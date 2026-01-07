@@ -3,27 +3,23 @@
 import * as React from 'react';
 import { EmptyState } from '~/components/empty-state';
 import { HexEditor } from '~/components/hex-editor';
-import { Tabs, TabsContent, TabsList, TabsTrigger, Button, Card, CardContent } from '@binspector/ui';
-import type { BinarySnapshot } from '@binspector/types';
+import { Button, Card, CardContent } from '@binspector/ui';
 import { useFileWatcher } from '~/utils/use-file-watcher';
 import { useRecentFiles } from '~/hooks/use-recent-files';
 import { Loader2, AlertCircle, X } from 'lucide-react';
 
 export default function Home() {
   const [selectedFile, setSelectedFile] = React.useState<string | null>(null);
-  const [activeTab, setActiveTab] = React.useState<string>('0');
   const { snapshots, isConnected, error } = useFileWatcher(selectedFile);
   const { recentFiles, addRecentFile } = useRecentFiles();
 
   const handleFileSelect = (filePath: string) => {
     setSelectedFile(filePath);
-    setActiveTab('0');
     addRecentFile(filePath);
   };
 
   const handleClose = () => {
     setSelectedFile(null);
-    setActiveTab('0');
   };
 
   if (!selectedFile) {
@@ -86,29 +82,12 @@ export default function Home() {
 
   return (
     <div className="flex items-start justify-center min-h-screen py-8 px-4">
-      <div className="w-full max-w-7xl">
-        <Tabs value={activeTab} onValueChange={setActiveTab}>
-          <TabsList>
-            {snapshots.map((snapshot, index) => (
-              <TabsTrigger key={snapshot.id} value={index.toString()}>
-                {snapshot.label}
-              </TabsTrigger>
-            ))}
-          </TabsList>
-
-          {snapshots.map((snapshot, index) => (
-            <TabsContent key={snapshot.id} value={index.toString()}>
-              <HexEditor
-                snapshot={snapshot}
-                previousSnapshot={index > 0 ? snapshots[index - 1] : undefined}
-                filePath={selectedFile}
-                isConnected={isConnected}
-                onClose={handleClose}
-              />
-            </TabsContent>
-          ))}
-        </Tabs>
-      </div>
+      <HexEditor
+        snapshots={snapshots}
+        filePath={selectedFile}
+        isConnected={isConnected}
+        onClose={handleClose}
+      />
     </div>
   );
 }

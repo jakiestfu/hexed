@@ -53,6 +53,10 @@ export function EmptyState({ onFileSelect, recentFiles }: EmptyStateProps) {
     return `...${path.slice(-maxLength + 3)}`;
   };
 
+  const pathBasename = (path: string): string => {
+    return path.split("/").pop() || "";
+  };
+
   return (
     <div className="flex items-center justify-center min-h-[500px]">
       <Card className="w-full max-w-lg">
@@ -92,7 +96,6 @@ export function EmptyState({ onFileSelect, recentFiles }: EmptyStateProps) {
                         className="shrink-0"
                       >
                         <Clock className="h-4 w-4" />
-                        <ChevronDown className="h-3 w-3 ml-1" />
                       </Button>
                     </PopoverTrigger>
                     <PopoverContent className="w-[400px] p-2" align="end">
@@ -110,7 +113,7 @@ export function EmptyState({ onFileSelect, recentFiles }: EmptyStateProps) {
                           >
                             <div className="flex flex-col items-start gap-0.5 flex-1 min-w-0">
                               <span className="font-mono text-sm truncate w-full">
-                                {truncatePath(file.path, 50)}
+                                {pathBasename(file.path)}
                               </span>
                               <span className="text-xs text-muted-foreground">
                                 {formatTimestamp(file.timestamp)}

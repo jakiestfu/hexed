@@ -1,14 +1,40 @@
-import * as React from 'react';
-import type { BinarySnapshot, DiffViewMode, DiffResult } from '@binspector/types';
-import type { FormattedRow } from '@binspector/binary-utils/formatter';
-import { formatDataIntoRows } from '@binspector/binary-utils/formatter';
-import { computeDiff, getDiffAtOffset, hasDiffAtOffset } from '@binspector/binary-utils/differ';
-import { Card, CardContent, CardHeader, Toggle, Button, cn } from '@binspector/ui';
-import { Columns2, Minus, Eye, X, ChevronDownIcon } from 'lucide-react';
-import { useVirtualizer } from '@tanstack/react-virtual';
-import { DiffViewer } from './diff-viewer';
+import * as React from "react";
+import type {
+  BinarySnapshot,
+  DiffViewMode,
+  DiffResult,
+} from "@binspector/types";
+import type { FormattedRow } from "@binspector/binary-utils/formatter";
+import { formatDataIntoRows } from "@binspector/binary-utils/formatter";
+import {
+  computeDiff,
+  getDiffAtOffset,
+  hasDiffAtOffset,
+} from "@binspector/binary-utils/differ";
+import {
+  Card,
+  CardContent,
+  CardHeader,
+  Toggle,
+  Button,
+  cn,
+  Tabs,
+  TabsContent,
+  TabsList,
+  TabsTrigger,
+} from "@binspector/ui";
+import { Columns2, Minus, Eye, X, ChevronDownIcon, File } from "lucide-react";
+import { useVirtualizer } from "@tanstack/react-virtual";
+import { DiffViewer } from "./diff-viewer";
 
 interface HexEditorProps {
+  snapshots: BinarySnapshot[];
+  filePath: string;
+  isConnected: boolean;
+  onClose: () => void;
+}
+
+interface HexEditorViewProps {
   snapshot: BinarySnapshot;
   previousSnapshot?: BinarySnapshot;
   filePath: string;
@@ -23,9 +49,9 @@ interface CollapsibleSection {
   hiddenRowCount: number;
 }
 
-type VirtualItemType = 
-  | { type: 'row'; rowIndex: number }
-  | { type: 'collapse'; section: CollapsibleSection };
+type VirtualItemType =
+  | { type: "row"; rowIndex: number }
+  | { type: "collapse"; section: CollapsibleSection };
 
 /**
  * Check if a row has any changes in the diff
@@ -66,13 +92,21 @@ function computeCollapsibleSections(
   const visibleRows = new Set<number>();
   for (const changedRowIndex of rowsWithChanges) {
     // Add buffer rows above
-    for (let i = Math.max(0, changedRowIndex - bufferRows); i < changedRowIndex; i++) {
+    for (
+      let i = Math.max(0, changedRowIndex - bufferRows);
+      i < changedRowIndex;
+      i++
+    ) {
       visibleRows.add(i);
     }
     // Add the changed row itself
     visibleRows.add(changedRowIndex);
     // Add buffer rows below
-    for (let i = changedRowIndex + 1; i <= Math.min(rows.length - 1, changedRowIndex + bufferRows); i++) {
+    for (
+      let i = changedRowIndex + 1;
+      i <= Math.min(rows.length - 1, changedRowIndex + bufferRows);
+      i++
+    ) {
       visibleRows.add(i);
     }
   }
@@ -129,7 +163,7 @@ function buildVirtualItems(
 ): VirtualItemType[] {
   const items: VirtualItemType[] = [];
   const sectionMap = new Map<string, CollapsibleSection>();
-  
+
   for (const section of collapsibleSections) {
     sectionMap.set(section.id, section);
   }
@@ -147,12 +181,12 @@ function buildVirtualItems(
 
     if (foundSection && !expandedSections.has(foundSection.id)) {
       // Add collapse button
-      items.push({ type: 'collapse', section: foundSection });
+      items.push({ type: "collapse", section: foundSection });
       // Skip to end of section
       i = foundSection.endRowIndex + 1;
     } else {
       // Add regular row
-      items.push({ type: 'row', rowIndex: i });
+      items.push({ type: "row", rowIndex: i });
       i++;
     }
   }
@@ -160,15 +194,30 @@ function buildVirtualItems(
   return items;
 }
 
-export function HexEditor({ snapshot, previousSnapshot, filePath, isConnected, onClose }: HexEditorProps) {
-  const [diffMode, setDiffMode] = React.useState<DiffViewMode>('none');
+/**
+ * Get the basename from a file path
+ */
+function getBasename(filePath: string): string {
+  return filePath.split("/").pop() || filePath.split("\\").pop() || filePath;
+}
+
+function HexEditorView({
+  snapshot,
+  previousSnapshot,
+  filePath,
+  isConnected,
+  onClose,
+}: HexEditorViewProps) {
+  const [diffMode, setDiffMode] = React.useState<DiffViewMode>("none");
   const [showAscii, setShowAscii] = React.useState(true);
   const bytesPerRow = 16;
-  const hexViewRef = React.useRef<{ scrollToOffset: (offset: number) => void } | null>(null);
+  const hexViewRef = React.useRef<{
+    scrollToOffset: (offset: number) => void;
+  } | null>(null);
 
   // Compute diff if we have a previous snapshot and diff mode is active
   const diff = React.useMemo(() => {
-    if (!previousSnapshot || diffMode === 'none') return null;
+    if (!previousSnapshot || diffMode === "none") return null;
     return computeDiff(previousSnapshot, snapshot);
   }, [previousSnapshot, snapshot, diffMode]);
 
@@ -182,29 +231,29 @@ export function HexEditor({ snapshot, previousSnapshot, filePath, isConnected, o
   }, [previousSnapshot, bytesPerRow]);
 
   const getDiffColorClass = (offset: number) => {
-    if (!diff) return '';
+    if (!diff) return "";
     const byteDiff = getDiffAtOffset(diff, offset);
-    if (!byteDiff) return '';
+    if (!byteDiff) return "";
 
     switch (byteDiff.type) {
-      case 'added':
-        return 'bg-green-500/20 text-green-900 dark:text-green-100 font-semibold';
-      case 'removed':
-        return 'bg-red-500/20 text-red-900 dark:text-red-100 font-semibold';
-      case 'modified':
-        return 'bg-yellow-500/20 text-yellow-900 dark:text-yellow-100 font-semibold';
+      case "added":
+        return "bg-green-500/20 text-green-900 dark:text-green-100 font-semibold";
+      case "removed":
+        return "bg-red-500/20 text-red-900 dark:text-red-100 font-semibold";
+      case "modified":
+        return "bg-yellow-500/20 text-yellow-900 dark:text-yellow-100 font-semibold";
       default:
-        return '';
+        return "";
     }
   };
 
   const toggleDiffMode = () => {
     if (!previousSnapshot) return;
-    
+
     setDiffMode((current) => {
-      if (current === 'none') return 'inline';
-      if (current === 'inline') return 'side-by-side';
-      return 'none';
+      if (current === "none") return "inline";
+      if (current === "inline") return "side-by-side";
+      return "none";
     });
   };
 
@@ -213,100 +262,157 @@ export function HexEditor({ snapshot, previousSnapshot, filePath, isConnected, o
   }, []);
 
   return (
-    <Card className="mt-4">
-      <CardHeader className="pb-4">
-        {/* Toolbar */}
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-4 flex-1 min-w-0">
-            <div className="flex items-center gap-2 min-w-0">
-              <span className="text-sm text-muted-foreground whitespace-nowrap">
-                Watching:
-              </span>
-              <span className="font-mono text-sm truncate" title={filePath}>
-                {filePath}
-              </span>
-              <div
-                className={`inline-flex h-2 w-2 rounded-full shrink-0 ${
-                  isConnected ? 'bg-green-500' : 'bg-red-500'
-                }`}
-                title={isConnected ? 'Connected' : 'Disconnected'}
-              />
-            </div>
-            <div className="flex items-center gap-2">
-              <span className="text-sm text-muted-foreground">
-                {snapshot.data.length.toLocaleString()} bytes
-              </span>
-              <Toggle
-                pressed={showAscii}
-                onPressedChange={setShowAscii}
-                aria-label="Toggle ASCII view"
-                size="sm"
-              >
-                <Eye className="h-3 w-3" />
-                <span className="ml-1 text-xs">ASCII</span>
-              </Toggle>
-              {previousSnapshot && (
-                <Toggle
-                  pressed={diffMode !== 'none'}
-                  onPressedChange={toggleDiffMode}
-                  aria-label="Toggle diff mode"
-                  size="sm"
-                >
-                  {diffMode === 'side-by-side' ? (
-                    <Columns2 className="h-3 w-3" />
-                  ) : (
-                    <Minus className="h-3 w-3" />
-                  )}
-                  <span className="ml-1 text-xs">
-                    {diffMode === 'none' ? 'Diff' : diffMode === 'inline' ? 'Inline' : 'Side-by-Side'}
-                  </span>
-                </Toggle>
-              )}
-            </div>
-          </div>
-          <Button variant="ghost" size="sm" onClick={onClose} className="ml-2 shrink-0">
-            <X className="h-4 w-4" />
-          </Button>
-        </div>
-      </CardHeader>
-      <CardContent className="space-y-4">
-        {/* Stats */}
-        {diff && diffMode !== 'none' && (
-          <DiffViewer diff={diff} onScrollToOffset={handleScrollToOffset} />
+    <div className="space-y-4">
+      {/* View Controls */}
+      <div className="flex items-center justify-end gap-2">
+        <Toggle
+          pressed={showAscii}
+          onPressedChange={setShowAscii}
+          aria-label="Toggle ASCII view"
+          size="sm"
+        >
+          <Eye className="h-3 w-3" />
+          <span className="ml-1 text-xs">ASCII</span>
+        </Toggle>
+        {previousSnapshot && (
+          <Toggle
+            pressed={diffMode !== "none"}
+            onPressedChange={toggleDiffMode}
+            aria-label="Toggle diff mode"
+            size="sm"
+          >
+            {diffMode === "side-by-side" ? (
+              <Columns2 className="h-3 w-3" />
+            ) : (
+              <Minus className="h-3 w-3" />
+            )}
+            <span className="ml-1 text-xs">
+              {diffMode === "none"
+                ? "Diff"
+                : diffMode === "inline"
+                ? "Inline"
+                : "Side-by-Side"}
+            </span>
+          </Toggle>
         )}
+      </div>
 
-        {/* Hex Editor View */}
-        {diffMode === 'side-by-side' && previousRows ? (
-          <div className="grid grid-cols-2 gap-4">
-            <Card>
-              <CardContent className="p-4">
-                <div className="text-sm font-semibold mb-2 text-muted-foreground">Previous</div>
-                <HexView rows={previousRows} showAscii={showAscii} diff={null} getDiffColorClass={() => ''} />
-              </CardContent>
-            </Card>
-            <Card>
-              <CardContent className="p-4">
-                <div className="text-sm font-semibold mb-2">Current</div>
-                <HexView
-                  ref={hexViewRef}
-                  rows={rows}
-                  showAscii={showAscii}
-                  diff={diff}
-                  getDiffColorClass={getDiffColorClass}
+      {/* Stats */}
+      {diff && diffMode !== "none" && (
+        <DiffViewer diff={diff} onScrollToOffset={handleScrollToOffset} />
+      )}
+
+      {/* Hex Editor View */}
+      {diffMode === "side-by-side" && previousRows ? (
+        <div className="grid grid-cols-2">
+          <Card className="p-0">
+            <CardContent className="p-4">
+              <div className="text-sm font-semibold mb-2 text-muted-foreground">
+                Previous
+              </div>
+              <HexView
+                rows={previousRows}
+                showAscii={showAscii}
+                diff={null}
+                getDiffColorClass={() => ""}
+              />
+            </CardContent>
+          </Card>
+          <Card>
+            <CardContent className="p-4">
+              <div className="text-sm font-semibold mb-2">Current</div>
+              <HexView
+                ref={hexViewRef}
+                rows={rows}
+                showAscii={showAscii}
+                diff={diff}
+                getDiffColorClass={getDiffColorClass}
+              />
+            </CardContent>
+          </Card>
+        </div>
+      ) : (
+        <HexView
+          ref={hexViewRef}
+          rows={rows}
+          showAscii={showAscii}
+          diff={diff}
+          getDiffColorClass={getDiffColorClass}
+        />
+      )}
+    </div>
+  );
+}
+
+export function HexEditor({
+  snapshots,
+  filePath,
+  isConnected,
+  onClose,
+}: HexEditorProps) {
+  const [activeTab, setActiveTab] = React.useState<string>("0");
+  const currentSnapshot = snapshots[parseInt(activeTab, 10)] || snapshots[0];
+
+  return (
+    <Card className="p-0 mt-4 w-full max-w-7xl">
+      <Tabs value={activeTab} onValueChange={setActiveTab}>
+        <CardHeader className="p-0! gap-0 m-0 border-b bg-muted/30">
+          {/* Primary Toolbar */}
+          <div className="flex items-center justify-between p-4 border-b">
+            <div className="flex items-center gap-4 flex-1 min-w-0">
+              <div className="flex items-center gap-2 min-w-0">
+                <File className="h-4 w-4 text-muted-foreground shrink-0" />
+                <span className="font-mono text-sm truncate" title={filePath}>
+                  {getBasename(filePath)}
+                </span>
+                <div
+                  className={`inline-flex h-2 w-2 rounded-full shrink-0 ${
+                    isConnected ? "bg-green-500" : "bg-red-500"
+                  }`}
+                  title={isConnected ? "Connected" : "Disconnected"}
                 />
-              </CardContent>
-            </Card>
+              </div>
+              <div className="flex items-center gap-2">
+                <span className="text-sm text-muted-foreground">
+                  {currentSnapshot?.data.length.toLocaleString()} bytes
+                </span>
+              </div>
+            </div>
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={onClose}
+              className="ml-2 shrink-0"
+            >
+              <X className="h-4 w-4" />
+            </Button>
           </div>
-        ) : (
-          <HexView
-            ref={hexViewRef}
-            rows={rows}
-            showAscii={showAscii}
-            diff={diff}
-            getDiffColorClass={getDiffColorClass}
-          />
-        )}
-      </CardContent>
+
+          {/* Secondary Toolbar - Tabs */}
+          <div className="p-4">
+            <TabsList>
+              {snapshots.map((snapshot, index) => (
+                <TabsTrigger key={snapshot.id} value={index.toString()}>
+                  {snapshot.label}
+                </TabsTrigger>
+              ))}
+            </TabsList>
+          </div>
+        </CardHeader>
+        <CardContent className="pt-6">
+          {snapshots.map((snapshot, index) => (
+            <TabsContent key={snapshot.id} value={index.toString()}>
+              <HexEditorView
+                snapshot={snapshot}
+                previousSnapshot={index > 0 ? snapshots[index - 1] : undefined}
+                filePath={filePath}
+                isConnected={isConnected}
+                onClose={onClose}
+              />
+            </TabsContent>
+          ))}
+        </CardContent>
+      </Tabs>
     </Card>
   );
 }
@@ -324,8 +430,12 @@ const HexView = React.forwardRef<
 >(({ rows, showAscii, diff, getDiffColorClass }, ref) => {
   const parentRef = React.useRef<HTMLDivElement>(null);
   const bytesPerRow = 16;
-  const [highlightedOffset, setHighlightedOffset] = React.useState<number | null>(null);
-  const [expandedSections, setExpandedSections] = React.useState<Set<string>>(new Set());
+  const [highlightedOffset, setHighlightedOffset] = React.useState<
+    number | null
+  >(null);
+  const [expandedSections, setExpandedSections] = React.useState<Set<string>>(
+    new Set()
+  );
 
   // Compute collapsible sections when in diff mode
   const collapsibleSections = React.useMemo(() => {
@@ -336,7 +446,7 @@ const HexView = React.forwardRef<
   // Build virtual items (rows + collapse buttons)
   const virtualItems = React.useMemo(() => {
     if (!diff || collapsibleSections.length === 0) {
-      return rows.map((_, i) => ({ type: 'row' as const, rowIndex: i }));
+      return rows.map((_, i) => ({ type: "row" as const, rowIndex: i }));
     }
     return buildVirtualItems(rows, collapsibleSections, expandedSections);
   }, [rows, collapsibleSections, expandedSections, diff]);
@@ -346,7 +456,7 @@ const HexView = React.forwardRef<
     getScrollElement: () => parentRef.current,
     estimateSize: (index) => {
       const item = virtualItems[index];
-      if (item.type === 'collapse') {
+      if (item.type === "collapse") {
         return 32; // Collapse button height
       }
       return 24; // Regular row height
@@ -354,46 +464,63 @@ const HexView = React.forwardRef<
     overscan: 5, // Render 5 extra rows above and below viewport
   });
 
-  const scrollToOffset = React.useCallback((offset: number) => {
-    const rowIndex = Math.floor(offset / bytesPerRow);
-    
-    // Find the virtual item index for this row
-    const virtualItemIndex = virtualItems.findIndex(
-      (item) => item.type === 'row' && item.rowIndex === rowIndex
-    );
-    
-    if (virtualItemIndex >= 0) {
-      virtualizer.scrollToIndex(virtualItemIndex, {
-        align: 'center',
-        behavior: 'smooth',
-      });
-    } else {
-      // Row might be collapsed, try to expand its section
-      for (const section of collapsibleSections) {
-        if (rowIndex >= section.startRowIndex && rowIndex <= section.endRowIndex) {
-          setExpandedSections((prev) => new Set(prev).add(section.id));
-          // Wait for expansion, then scroll
-          setTimeout(() => {
-            const newVirtualItems = buildVirtualItems(rows, collapsibleSections, new Set(expandedSections).add(section.id));
-            const newVirtualItemIndex = newVirtualItems.findIndex(
-              (item) => item.type === 'row' && item.rowIndex === rowIndex
-            );
-            if (newVirtualItemIndex >= 0) {
-              virtualizer.scrollToIndex(newVirtualItemIndex, {
-                align: 'center',
-                behavior: 'smooth',
-              });
-            }
-          }, 100);
-          break;
+  const scrollToOffset = React.useCallback(
+    (offset: number) => {
+      const rowIndex = Math.floor(offset / bytesPerRow);
+
+      // Find the virtual item index for this row
+      const virtualItemIndex = virtualItems.findIndex(
+        (item) => item.type === "row" && item.rowIndex === rowIndex
+      );
+
+      if (virtualItemIndex >= 0) {
+        virtualizer.scrollToIndex(virtualItemIndex, {
+          align: "center",
+          behavior: "smooth",
+        });
+      } else {
+        // Row might be collapsed, try to expand its section
+        for (const section of collapsibleSections) {
+          if (
+            rowIndex >= section.startRowIndex &&
+            rowIndex <= section.endRowIndex
+          ) {
+            setExpandedSections((prev) => new Set(prev).add(section.id));
+            // Wait for expansion, then scroll
+            setTimeout(() => {
+              const newVirtualItems = buildVirtualItems(
+                rows,
+                collapsibleSections,
+                new Set(expandedSections).add(section.id)
+              );
+              const newVirtualItemIndex = newVirtualItems.findIndex(
+                (item) => item.type === "row" && item.rowIndex === rowIndex
+              );
+              if (newVirtualItemIndex >= 0) {
+                virtualizer.scrollToIndex(newVirtualItemIndex, {
+                  align: "center",
+                  behavior: "smooth",
+                });
+              }
+            }, 100);
+            break;
+          }
         }
       }
-    }
-    
-    setHighlightedOffset(offset);
-    // Clear highlight after animation
-    setTimeout(() => setHighlightedOffset(null), 2000);
-  }, [virtualizer, bytesPerRow, virtualItems, collapsibleSections, rows, expandedSections]);
+
+      setHighlightedOffset(offset);
+      // Clear highlight after animation
+      setTimeout(() => setHighlightedOffset(null), 2000);
+    },
+    [
+      virtualizer,
+      bytesPerRow,
+      virtualItems,
+      collapsibleSections,
+      rows,
+      expandedSections,
+    ]
+  );
 
   React.useImperativeHandle(ref, () => ({
     scrollToOffset,
@@ -419,23 +546,23 @@ const HexView = React.forwardRef<
       <div
         style={{
           height: `${virtualizer.getTotalSize()}px`,
-          width: '100%',
-          position: 'relative',
+          width: "100%",
+          position: "relative",
         }}
       >
         {virtualizer.getVirtualItems().map((virtualItem) => {
           const item = virtualItems[virtualItem.index];
-          
-          if (item.type === 'collapse') {
+
+          if (item.type === "collapse") {
             // Render collapse button
             return (
               <div
                 key={item.section.id}
                 style={{
-                  position: 'absolute',
+                  position: "absolute",
                   top: 0,
                   left: 0,
-                  width: '100%',
+                  width: "100%",
                   height: `${virtualItem.size}px`,
                   transform: `translateY(${virtualItem.start}px)`,
                 }}
@@ -449,7 +576,8 @@ const HexView = React.forwardRef<
                 >
                   <ChevronDownIcon className="h-4 w-4 mr-2" />
                   <span className="text-xs">
-                    {item.section.hiddenRowCount} line{item.section.hiddenRowCount !== 1 ? 's' : ''} hidden
+                    {item.section.hiddenRowCount} line
+                    {item.section.hiddenRowCount !== 1 ? "s" : ""} hidden
                   </span>
                 </Button>
               </div>
@@ -462,10 +590,10 @@ const HexView = React.forwardRef<
             <div
               key={row.startOffset}
               style={{
-                position: 'absolute',
+                position: "absolute",
                 top: 0,
                 left: 0,
-                width: '100%',
+                width: "100%",
                 height: `${virtualItem.size}px`,
                 transform: `translateY(${virtualItem.start}px)`,
               }}
@@ -486,11 +614,14 @@ const HexView = React.forwardRef<
                     <span
                       key={offset}
                       className={cn(
-                        'inline-block w-6 text-center rounded px-0.5 transition-all',
+                        "inline-block w-6 text-center rounded px-0.5 transition-all",
                         colorClass,
-                        isHighlighted && 'ring-2 ring-primary ring-offset-1 bg-primary/20'
+                        isHighlighted &&
+                          "ring-2 ring-primary ring-offset-1 bg-primary/20"
                       )}
-                      title={`Offset: ${offset} (0x${offset.toString(16).toUpperCase()})`}
+                      title={`Offset: ${offset} (0x${offset
+                        .toString(16)
+                        .toUpperCase()})`}
                     >
                       {byte}
                     </span>
@@ -498,15 +629,17 @@ const HexView = React.forwardRef<
                 })}
                 {/* Padding for incomplete rows */}
                 {row.hexBytes.length < 16 &&
-                  Array.from({ length: 16 - row.hexBytes.length }).map((_, i) => (
-                    <span key={`pad-${i}`} className="inline-block w-6" />
-                  ))}
+                  Array.from({ length: 16 - row.hexBytes.length }).map(
+                    (_, i) => (
+                      <span key={`pad-${i}`} className="inline-block w-6" />
+                    )
+                  )}
               </div>
 
               {/* ASCII */}
               {showAscii && (
                 <div className="border-l pl-4 text-muted-foreground">
-                  {row.ascii.split('').map((char, index) => {
+                  {row.ascii.split("").map((char, index) => {
                     const offset = row.startOffset + index;
                     const colorClass = getDiffColorClass(offset);
                     const isHighlighted = highlightedOffset === offset;
@@ -514,9 +647,10 @@ const HexView = React.forwardRef<
                       <span
                         key={offset}
                         className={cn(
-                          'inline-block rounded px-0.5 transition-all',
+                          "inline-block rounded px-0.5 transition-all",
                           colorClass,
-                          isHighlighted && 'ring-2 ring-primary ring-offset-1 bg-primary/20'
+                          isHighlighted &&
+                            "ring-2 ring-primary ring-offset-1 bg-primary/20"
                         )}
                         title={`Offset: ${offset}`}
                       >
@@ -534,4 +668,4 @@ const HexView = React.forwardRef<
   );
 });
 
-HexView.displayName = 'HexView';
+HexView.displayName = "HexView";
