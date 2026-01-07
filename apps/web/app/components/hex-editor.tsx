@@ -4,6 +4,7 @@ import { formatDataIntoRows } from '@binspector/binary-utils/formatter';
 import { computeDiff, getDiffAtOffset } from '@binspector/binary-utils/differ';
 import { Card, CardContent, Toggle, cn } from '@binspector/ui';
 import { Columns2, Minus, Eye } from 'lucide-react';
+import { useVirtualizer } from '@tanstack/react-virtual';
 import { DiffViewer } from './diff-viewer';
 
 interface HexEditorProps {
@@ -134,60 +135,94 @@ interface HexViewProps {
 }
 
 function HexView({ rows, showAscii, diff, getDiffColorClass }: HexViewProps) {
+  const parentRef = React.useRef<HTMLDivElement>(null);
+
+  const virtualizer = useVirtualizer({
+    count: rows.length,
+    getScrollElement: () => parentRef.current,
+    estimateSize: () => 24, // Estimated row height in pixels
+    overscan: 5, // Render 5 extra rows above and below viewport
+  });
+
   return (
-    <div className="overflow-auto max-h-[600px] font-mono text-sm">
-      {rows.map((row) => (
-        <div key={row.startOffset} className="flex gap-4 hover:bg-muted/50 py-0.5">
-          {/* Address */}
-          <div className="text-muted-foreground select-none shrink-0 w-24">
-            {row.address}
-          </div>
+    <div
+      ref={parentRef}
+      className="overflow-auto max-h-[600px] font-mono text-sm"
+    >
+      <div
+        style={{
+          height: `${virtualizer.getTotalSize()}px`,
+          width: '100%',
+          position: 'relative',
+        }}
+      >
+        {virtualizer.getVirtualItems().map((virtualRow) => {
+          const row = rows[virtualRow.index];
+          return (
+            <div
+              key={row.startOffset}
+              style={{
+                position: 'absolute',
+                top: 0,
+                left: 0,
+                width: '100%',
+                height: `${virtualRow.size}px`,
+                transform: `translateY(${virtualRow.start}px)`,
+              }}
+              className="flex gap-4 hover:bg-muted/50 py-0.5"
+            >
+              {/* Address */}
+              <div className="text-muted-foreground select-none shrink-0 w-24">
+                {row.address}
+              </div>
 
-          {/* Hex bytes */}
-          <div className="flex gap-1 flex-wrap">
-            {row.hexBytes.map((byte, index) => {
-              const offset = row.startOffset + index;
-              const colorClass = getDiffColorClass(offset);
-              return (
-                <span
-                  key={offset}
-                  className={cn(
-                    'inline-block w-6 text-center rounded px-0.5',
-                    colorClass
-                  )}
-                  title={`Offset: ${offset} (0x${offset.toString(16).toUpperCase()})`}
-                >
-                  {byte}
-                </span>
-              );
-            })}
-            {/* Padding for incomplete rows */}
-            {row.hexBytes.length < 16 &&
-              Array.from({ length: 16 - row.hexBytes.length }).map((_, i) => (
-                <span key={`pad-${i}`} className="inline-block w-6" />
-              ))}
-          </div>
+              {/* Hex bytes */}
+              <div className="flex gap-1 flex-wrap">
+                {row.hexBytes.map((byte, index) => {
+                  const offset = row.startOffset + index;
+                  const colorClass = getDiffColorClass(offset);
+                  return (
+                    <span
+                      key={offset}
+                      className={cn(
+                        'inline-block w-6 text-center rounded px-0.5',
+                        colorClass
+                      )}
+                      title={`Offset: ${offset} (0x${offset.toString(16).toUpperCase()})`}
+                    >
+                      {byte}
+                    </span>
+                  );
+                })}
+                {/* Padding for incomplete rows */}
+                {row.hexBytes.length < 16 &&
+                  Array.from({ length: 16 - row.hexBytes.length }).map((_, i) => (
+                    <span key={`pad-${i}`} className="inline-block w-6" />
+                  ))}
+              </div>
 
-          {/* ASCII */}
-          {showAscii && (
-            <div className="border-l pl-4 text-muted-foreground">
-              {row.ascii.split('').map((char, index) => {
-                const offset = row.startOffset + index;
-                const colorClass = getDiffColorClass(offset);
-                return (
-                  <span
-                    key={offset}
-                    className={cn('inline-block rounded px-0.5', colorClass)}
-                    title={`Offset: ${offset}`}
-                  >
-                    {char}
-                  </span>
-                );
-              })}
+              {/* ASCII */}
+              {showAscii && (
+                <div className="border-l pl-4 text-muted-foreground">
+                  {row.ascii.split('').map((char, index) => {
+                    const offset = row.startOffset + index;
+                    const colorClass = getDiffColorClass(offset);
+                    return (
+                      <span
+                        key={offset}
+                        className={cn('inline-block rounded px-0.5', colorClass)}
+                        title={`Offset: ${offset}`}
+                      >
+                        {char}
+                      </span>
+                    );
+                  })}
+                </div>
+              )}
             </div>
-          )}
-        </div>
-      ))}
+          );
+        })}
+      </div>
     </div>
   );
 }
