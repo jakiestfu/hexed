@@ -1,6 +1,6 @@
 import type { Metadata } from 'next';
 import * as React from 'react';
-import './globals.css';
+import '@binspector/ui/styles';
 
 export const metadata: Metadata = {
   title: 'Binspector - Binary File Inspector',
