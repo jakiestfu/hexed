@@ -3,9 +3,9 @@
 
 @source "../**/*.{ts,tsx,js,jsx}";
 @source "../../../packages/**/*.{ts,tsx,js,jsx}";
- 
+
 @custom-variant dark (&:is(.dark *));
- 
+
 @theme inline {
   --radius-sm: calc(var(--radius) - 4px);
   --radius-md: calc(var(--radius) - 2px);
@@ -43,7 +43,7 @@
   --color-sidebar-border: var(--sidebar-border);
   --color-sidebar-ring: var(--sidebar-ring);
 }
- 
+
 :root {
   --radius: 0.625rem;
   --background: oklch(1 0 0);
@@ -78,7 +78,7 @@
   --sidebar-border: oklch(0.922 0 0);
   --sidebar-ring: oklch(0.708 0 0);
 }
- 
+
 .dark {
   --background: oklch(0.145 0 0);
   --foreground: oklch(0.985 0 0);
@@ -112,7 +112,7 @@
   --sidebar-border: oklch(1 0 0 / 10%);
   --sidebar-ring: oklch(0.556 0 0);
 }
- 
+
 @layer base {
   * {
     @apply border-border outline-ring/50;
