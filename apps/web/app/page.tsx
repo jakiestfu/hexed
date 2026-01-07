@@ -28,8 +28,10 @@ export default function Home() {
 
   if (!selectedFile) {
     return (
-      <div className="container py-8">
-        <EmptyState onFileSelect={handleFileSelect} recentFiles={recentFiles} />
+      <div className="flex items-center justify-center min-h-screen py-8 px-4">
+        <div className="w-full max-w-lg">
+          <EmptyState onFileSelect={handleFileSelect} recentFiles={recentFiles} />
+        </div>
       </div>
     );
   }
@@ -37,22 +39,20 @@ export default function Home() {
   // Loading state
   if (snapshots.length === 0 && !error) {
     return (
-      <div className="container py-8">
-        <div className="flex items-center justify-center min-h-[400px]">
-          <Card className="w-full max-w-md">
-            <CardContent className="pt-6">
-              <div className="flex flex-col items-center gap-4 text-center">
-                <Loader2 className="h-8 w-8 animate-spin text-primary" />
-                <div>
-                  <h3 className="font-semibold">Loading file...</h3>
-                  <p className="text-sm text-muted-foreground mt-1">
-                    Reading {selectedFile}
-                  </p>
-                </div>
+      <div className="flex items-center justify-center min-h-screen py-8 px-4">
+        <Card className="w-full max-w-md">
+          <CardContent className="pt-6">
+            <div className="flex flex-col items-center gap-4 text-center">
+              <Loader2 className="h-8 w-8 animate-spin text-primary" />
+              <div>
+                <h3 className="font-semibold">Loading file...</h3>
+                <p className="text-sm text-muted-foreground mt-1">
+                  Reading {selectedFile}
+                </p>
               </div>
-            </CardContent>
-          </Card>
-        </div>
+            </div>
+          </CardContent>
+        </Card>
       </div>
     );
   }
@@ -60,70 +60,55 @@ export default function Home() {
   // Error state
   if (error) {
     return (
-      <div className="container py-8">
-        <div className="flex items-center justify-center min-h-[400px]">
-          <Card className="w-full max-w-md border-destructive">
-            <CardContent className="pt-6">
-              <div className="flex flex-col items-center gap-4 text-center">
-                <div className="rounded-full bg-destructive/10 p-3">
-                  <AlertCircle className="h-6 w-6 text-destructive" />
-                </div>
-                <div>
-                  <h3 className="font-semibold text-destructive">Error loading file</h3>
-                  <p className="text-sm text-muted-foreground mt-1">{error}</p>
-                  <p className="text-xs text-muted-foreground mt-2 font-mono">
-                    {selectedFile}
-                  </p>
-                </div>
-                <Button onClick={handleClose} variant="outline">
-                  Go Back
-                </Button>
+      <div className="flex items-center justify-center min-h-screen py-8 px-4">
+        <Card className="w-full max-w-md border-destructive">
+          <CardContent className="pt-6">
+            <div className="flex flex-col items-center gap-4 text-center">
+              <div className="rounded-full bg-destructive/10 p-3">
+                <AlertCircle className="h-6 w-6 text-destructive" />
               </div>
-            </CardContent>
-          </Card>
-        </div>
+              <div>
+                <h3 className="font-semibold text-destructive">Error loading file</h3>
+                <p className="text-sm text-muted-foreground mt-1">{error}</p>
+                <p className="text-xs text-muted-foreground mt-2 font-mono">
+                  {selectedFile}
+                </p>
+              </div>
+              <Button onClick={handleClose} variant="outline">
+                Go Back
+              </Button>
+            </div>
+          </CardContent>
+        </Card>
       </div>
     );
   }
 
   return (
-    <div className="container py-4">
-      <div className="flex items-center justify-between mb-4">
-        <div className="flex items-center gap-2">
-          <span className="text-sm text-muted-foreground">
-            Watching: <span className="font-mono">{selectedFile}</span>
-          </span>
-          <div
-            className={`inline-flex h-2 w-2 rounded-full ${
-              isConnected ? 'bg-green-500' : 'bg-red-500'
-            }`}
-            title={isConnected ? 'Connected' : 'Disconnected'}
-          />
-        </div>
-        <Button variant="ghost" size="sm" onClick={handleClose}>
-          <X className="h-4 w-4 mr-1" />
-          Close
-        </Button>
-      </div>
+    <div className="flex items-start justify-center min-h-screen py-8 px-4">
+      <div className="w-full max-w-7xl">
+        <Tabs value={activeTab} onValueChange={setActiveTab}>
+          <TabsList>
+            {snapshots.map((snapshot, index) => (
+              <TabsTrigger key={snapshot.id} value={index.toString()}>
+                {snapshot.label}
+              </TabsTrigger>
+            ))}
+          </TabsList>
 
-      <Tabs value={activeTab} onValueChange={setActiveTab}>
-        <TabsList>
           {snapshots.map((snapshot, index) => (
-            <TabsTrigger key={snapshot.id} value={index.toString()}>
-              {snapshot.label}
-            </TabsTrigger>
+            <TabsContent key={snapshot.id} value={index.toString()}>
+              <HexEditor
+                snapshot={snapshot}
+                previousSnapshot={index > 0 ? snapshots[index - 1] : undefined}
+                filePath={selectedFile}
+                isConnected={isConnected}
+                onClose={handleClose}
+              />
+            </TabsContent>
           ))}
-        </TabsList>
-
-        {snapshots.map((snapshot, index) => (
-          <TabsContent key={snapshot.id} value={index.toString()}>
-            <HexEditor
-              snapshot={snapshot}
-              previousSnapshot={index > 0 ? snapshots[index - 1] : undefined}
-            />
-          </TabsContent>
-        ))}
-      </Tabs>
+        </Tabs>
+      </div>
     </div>
   );
 }
