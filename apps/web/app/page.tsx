@@ -1,4 +1,5 @@
-import { createFileRoute } from '@tanstack/react-router';
+'use client';
+
 import * as React from 'react';
 import { EmptyState } from '~/components/empty-state';
 import { HexEditor } from '~/components/hex-editor';
@@ -7,11 +8,7 @@ import type { BinarySnapshot } from '@binspector/types';
 import { useFileWatcher } from '~/utils/use-file-watcher';
 import { Loader2, AlertCircle, X } from 'lucide-react';
 
-export const Route = createFileRoute('/')({
-  component: Home,
-});
-
-function Home() {
+export default function Home() {
   const [selectedFile, setSelectedFile] = React.useState<string | null>(null);
   const [activeTab, setActiveTab] = React.useState<string>('0');
   const { snapshots, isConnected, error } = useFileWatcher(selectedFile);
@@ -127,3 +124,4 @@ function Home() {
     </div>
   );
 }
+

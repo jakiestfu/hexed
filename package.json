@@ -7,7 +7,9 @@
     "dev": "pnpm --filter web dev",
     "build": "pnpm --filter web build",
     "start": "pnpm --filter web start",
-    "typecheck": "pnpm -r typecheck"
+    "typecheck": "pnpm -r typecheck",
+    "clean": "rm -rf node_modules",
+    "clean:workspace": "pnpm -r clean && pnpm clean"
   },
   "keywords": ["hex-editor", "binary", "inspector"],
   "author": "",

@@ -1,8 +1,8 @@
 // Parser
-export { readBinaryFile, readBinaryFromFile, getFileSize } from './parser.js';
+export { readBinaryFile, readBinaryFromFile, getFileSize } from './parser';
 
 // Differ
-export { computeDiff, hasDiffAtOffset, getDiffAtOffset } from './differ.js';
+export { computeDiff, hasDiffAtOffset, getDiffAtOffset } from './differ';
 
 // Formatter
 export {
@@ -13,8 +13,8 @@ export {
   toAsciiString,
   formatDataIntoRows,
   type FormattedRow
-} from './formatter.js';
+} from './formatter';
 
 // Storage
-export { InMemoryStorage, createStorageAdapter } from './storage.js';
+export { InMemoryStorage, createStorageAdapter } from './storage';
 

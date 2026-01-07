@@ -1,32 +1,19 @@
-import { createRootRoute, Outlet } from '@tanstack/react-router';
-import { Meta, Scripts } from '@tanstack/start';
+import type { Metadata } from 'next';
 import * as React from 'react';
-import '@binspector/ui/styles';
+import './globals.css';
 
-export const Route = createRootRoute({
-  head: () => ({
-    meta: [
-      {
-        charSet: 'utf-8',
-      },
-      {
-        name: 'viewport',
-        content: 'width=device-width, initial-scale=1',
-      },
-      {
-        title: 'Binspector - Binary File Inspector',
-      },
-    ],
-  }),
-  component: RootComponent,
-});
+export const metadata: Metadata = {
+  title: 'Binspector - Binary File Inspector',
+  description: 'A modern hex editor for inspecting and tracking binary file changes',
+};
 
-function RootComponent() {
+export default function RootLayout({
+  children,
+}: {
+  children: React.ReactNode;
+}) {
   return (
     <html lang="en">
-      <head>
-        <Meta />
-      </head>
       <body className="min-h-screen bg-background font-sans antialiased">
         <div className="relative flex min-h-screen flex-col">
           <header className="sticky top-0 z-50 w-full border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
@@ -37,10 +24,9 @@ function RootComponent() {
             </div>
           </header>
           <main className="flex-1">
-            <Outlet />
+            {children}
           </main>
         </div>
-        <Scripts />
       </body>
     </html>
   );

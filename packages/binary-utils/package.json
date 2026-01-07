@@ -6,15 +6,21 @@
   "main": "./src/index.ts",
   "types": "./src/index.ts",
   "exports": {
-    ".": "./src/index.ts"
+    ".": "./src/index.ts",
+    "./differ": "./src/differ.ts",
+    "./formatter": "./src/formatter.ts",
+    "./parser": "./src/parser.ts",
+    "./storage": "./src/storage.ts"
   },
   "scripts": {
-    "typecheck": "tsc --noEmit"
+    "typecheck": "tsc --noEmit",
+    "clean": "rm -rf dist node_modules"
   },
   "dependencies": {
     "@binspector/types": "workspace:*"
   },
   "devDependencies": {
+    "@types/node": "^25.0.3",
     "typescript": "^5.7.2"
   }
 }

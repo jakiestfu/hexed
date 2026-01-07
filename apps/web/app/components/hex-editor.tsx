@@ -1,6 +1,7 @@
 import * as React from 'react';
 import type { BinarySnapshot, DiffViewMode } from '@binspector/types';
-import { formatDataIntoRows, computeDiff, getDiffAtOffset } from '@binspector/binary-utils';
+import { formatDataIntoRows } from '@binspector/binary-utils/formatter';
+import { computeDiff, getDiffAtOffset } from '@binspector/binary-utils/differ';
 import { Card, CardContent, Toggle, cn } from '@binspector/ui';
 import { Columns2, Minus, Eye } from 'lucide-react';
 import { DiffViewer } from './diff-viewer';

@@ -10,7 +10,8 @@
     "./styles": "./src/styles.css"
   },
   "scripts": {
-    "typecheck": "tsc --noEmit"
+    "typecheck": "tsc --noEmit",
+    "clean": "rm -rf dist node_modules"
   },
   "dependencies": {
     "@radix-ui/react-slot": "^1.1.1",
