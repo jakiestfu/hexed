@@ -1,12 +1,14 @@
 import * as React from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, Button } from '@binspector/ui';
-import { FileIcon, Upload } from 'lucide-react';
+import { FileIcon, Upload, Clock } from 'lucide-react';
+import type { RecentFile } from '~/hooks/use-recent-files';
 
 interface EmptyStateProps {
   onFileSelect: (filePath: string) => void;
+  recentFiles: RecentFile[];
 }
 
-export function EmptyState({ onFileSelect }: EmptyStateProps) {
+export function EmptyState({ onFileSelect, recentFiles }: EmptyStateProps) {
   const fileInputRef = React.useRef<HTMLInputElement>(null);
   const [filePath, setFilePath] = React.useState('');
 
@@ -27,6 +29,26 @@ export function EmptyState({ onFileSelect }: EmptyStateProps) {
     }
   };
 
+  const formatTimestamp = (timestamp: number): string => {
+    const date = new Date(timestamp);
+    const now = new Date();
+    const diffMs = now.getTime() - date.getTime();
+    const diffMins = Math.floor(diffMs / 60000);
+    const diffHours = Math.floor(diffMs / 3600000);
+    const diffDays = Math.floor(diffMs / 86400000);
+
+    if (diffMins < 1) return 'Just now';
+    if (diffMins < 60) return `${diffMins}m ago`;
+    if (diffHours < 24) return `${diffHours}h ago`;
+    if (diffDays < 7) return `${diffDays}d ago`;
+    return date.toLocaleDateString();
+  };
+
+  const truncatePath = (path: string, maxLength: number = 50): string => {
+    if (path.length <= maxLength) return path;
+    return `...${path.slice(-maxLength + 3)}`;
+  };
+
   return (
     <div className="flex items-center justify-center min-h-[500px]">
       <Card className="w-full max-w-lg">
@@ -40,6 +62,47 @@ export function EmptyState({ onFileSelect }: EmptyStateProps) {
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
+          {/* Recent Files Section */}
+          {recentFiles.length > 0 && (
+            <>
+              <div className="space-y-2">
+                <div className="flex items-center gap-2">
+                  <Clock className="h-4 w-4 text-muted-foreground" />
+                  <label className="text-sm font-medium">Recent Files</label>
+                </div>
+                <div className="space-y-1">
+                  {recentFiles.map((file) => (
+                    <Button
+                      key={file.path}
+                      variant="outline"
+                      className="w-full justify-start text-left h-auto py-2 px-3"
+                      onClick={() => onFileSelect(file.path)}
+                    >
+                      <div className="flex flex-col items-start gap-0.5 flex-1 min-w-0">
+                        <span className="font-mono text-sm truncate w-full">
+                          {truncatePath(file.path)}
+                        </span>
+                        <span className="text-xs text-muted-foreground">
+                          {formatTimestamp(file.timestamp)}
+                        </span>
+                      </div>
+                    </Button>
+                  ))}
+                </div>
+              </div>
+
+              {/* Divider */}
+              <div className="relative">
+                <div className="absolute inset-0 flex items-center">
+                  <div className="w-full border-t" />
+                </div>
+                <div className="relative flex justify-center text-xs uppercase">
+                  <span className="bg-card px-2 text-muted-foreground">or</span>
+                </div>
+              </div>
+            </>
+          )}
+
           {/* Manual path input (server-side files) */}
           <form onSubmit={handleManualPathSubmit} className="space-y-2">
             <label htmlFor="filePath" className="text-sm font-medium">

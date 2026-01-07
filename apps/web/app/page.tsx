@@ -6,16 +6,19 @@ import { HexEditor } from '~/components/hex-editor';
 import { Tabs, TabsContent, TabsList, TabsTrigger, Button, Card, CardContent } from '@binspector/ui';
 import type { BinarySnapshot } from '@binspector/types';
 import { useFileWatcher } from '~/utils/use-file-watcher';
+import { useRecentFiles } from '~/hooks/use-recent-files';
 import { Loader2, AlertCircle, X } from 'lucide-react';
 
 export default function Home() {
   const [selectedFile, setSelectedFile] = React.useState<string | null>(null);
   const [activeTab, setActiveTab] = React.useState<string>('0');
   const { snapshots, isConnected, error } = useFileWatcher(selectedFile);
+  const { recentFiles, addRecentFile } = useRecentFiles();
 
   const handleFileSelect = (filePath: string) => {
     setSelectedFile(filePath);
     setActiveTab('0');
+    addRecentFile(filePath);
   };
 
   const handleClose = () => {
@@ -26,7 +29,7 @@ export default function Home() {
   if (!selectedFile) {
     return (
       <div className="container py-8">
-        <EmptyState onFileSelect={handleFileSelect} />
+        <EmptyState onFileSelect={handleFileSelect} recentFiles={recentFiles} />
       </div>
     );
   }

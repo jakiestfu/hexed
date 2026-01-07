@@ -1,21 +1,21 @@
-import * as chokidar from 'chokidar';
-import { readBinaryFile } from '@binspector/binary-utils';
-import { createStorageAdapter } from '@binspector/binary-utils';
-import type { BinarySnapshot, SSEMessage } from '@binspector/types';
+import * as chokidar from "chokidar";
+import { readBinaryFile } from "@binspector/binary-utils";
+import { createStorageAdapter } from "@binspector/binary-utils";
+import type { BinarySnapshot, SSEMessage } from "@binspector/types";
 
 export async function GET(request: Request) {
   const url = new URL(request.url);
-  const filePath = url.searchParams.get('file');
+  const filePath = url.searchParams.get("file");
 
   if (!filePath) {
-    return new Response('File path is required', { status: 400 });
+    return new Response("File path is required", { status: 400 });
   }
 
   // Set up SSE
   const stream = new ReadableStream({
     start(controller) {
       const encoder = new TextEncoder();
-      const storage = createStorageAdapter('memory');
+      const storage = createStorageAdapter("memory");
       let snapshotIndex = 0;
 
       const sendMessage = (message: SSEMessage) => {
@@ -25,7 +25,7 @@ export async function GET(request: Request) {
 
       // Send connected message
       sendMessage({
-        type: 'connected',
+        type: "connected",
         timestamp: Date.now(),
       });
 
@@ -39,7 +39,7 @@ export async function GET(request: Request) {
             data,
             timestamp: Date.now(),
             index: snapshotIndex,
-            label: snapshotIndex === 0 ? 'Baseline' : `Change ${snapshotIndex}`,
+            label: snapshotIndex === 0 ? "Baseline" : `Change ${snapshotIndex}`,
           };
 
           await storage.save(filePath, snapshot);
@@ -52,14 +52,14 @@ export async function GET(request: Request) {
           };
 
           sendMessage({
-            type: 'snapshot',
+            type: "snapshot",
             data: serializableSnapshot as any,
             timestamp: Date.now(),
           });
         } catch (error) {
           sendMessage({
-            type: 'error',
-            error: error instanceof Error ? error.message : 'Unknown error',
+            type: "error",
+            error: error instanceof Error ? error.message : "Unknown error",
             timestamp: Date.now(),
           });
         }
@@ -72,22 +72,25 @@ export async function GET(request: Request) {
       const watcher = chokidar.watch(filePath, {
         persistent: true,
         ignoreInitial: true,
+        usePolling: true, // Enable polling
+        interval: 1000, // General polling interval (default: 100)
+        binaryInterval: 500, // Polling interval for files identified as binary (default: 300)
       });
 
-      watcher.on('change', () => {
+      watcher.on("change", () => {
         processFile();
       });
 
-      watcher.on('error', (error) => {
+      watcher.on("error", (error) => {
         sendMessage({
-          type: 'error',
+          type: "error",
           error: error.message,
           timestamp: Date.now(),
         });
       });
 
       // Cleanup on close
-      request.signal.addEventListener('abort', () => {
+      request.signal.addEventListener("abort", () => {
         watcher.close();
         controller.close();
       });
@@ -96,10 +99,9 @@ export async function GET(request: Request) {
 
   return new Response(stream, {
     headers: {
-      'Content-Type': 'text/event-stream',
-      'Cache-Control': 'no-cache',
-      'Connection': 'keep-alive',
+      "Content-Type": "text/event-stream",
+      "Cache-Control": "no-cache",
+      Connection: "keep-alive",
     },
   });
 }
-
