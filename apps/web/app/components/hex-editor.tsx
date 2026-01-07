@@ -23,15 +23,28 @@ import {
   TabsList,
   TabsTrigger,
 } from "@binspector/ui";
-import { Columns2, Minus, Eye, X, ChevronDownIcon, File } from "lucide-react";
+import {
+  Columns2,
+  Minus,
+  Eye,
+  X,
+  ChevronDownIcon,
+  File,
+  Loader2,
+} from "lucide-react";
 import { useVirtualizer } from "@tanstack/react-virtual";
 import { DiffViewer } from "./diff-viewer";
+import { EmptyState } from "./empty-state";
+import type { RecentFile } from "~/hooks/use-recent-files";
 
 interface HexEditorProps {
   snapshots: BinarySnapshot[];
-  filePath: string;
+  filePath?: string | null;
   isConnected: boolean;
-  onClose: () => void;
+  loading?: boolean;
+  onClose?: () => void;
+  onFileSelect?: (filePath: string) => void;
+  recentFiles?: RecentFile[];
 }
 
 interface HexEditorViewProps {
@@ -39,7 +52,7 @@ interface HexEditorViewProps {
   previousSnapshot?: BinarySnapshot;
   filePath: string;
   isConnected: boolean;
-  onClose: () => void;
+  onClose?: () => void;
 }
 
 interface CollapsibleSection {
@@ -348,10 +361,55 @@ export function HexEditor({
   snapshots,
   filePath,
   isConnected,
+  loading = false,
   onClose,
+  onFileSelect,
+  recentFiles = [],
 }: HexEditorProps) {
   const [activeTab, setActiveTab] = React.useState<string>("0");
   const currentSnapshot = snapshots[parseInt(activeTab, 10)] || snapshots[0];
+  const hasFile = filePath != null && filePath !== "";
+  const hasSnapshots = snapshots.length > 0;
+
+  // Show empty state when no file is selected
+  if (!hasFile) {
+    return (
+      <Card className="p-0 mt-4 w-full max-w-7xl">
+        <CardHeader className="p-0! gap-0 m-0 border-b bg-muted/30">
+          {/* Primary Toolbar */}
+          <div className="flex items-center justify-between p-4 border-b">
+            <div className="flex items-center gap-4 flex-1 min-w-0">
+              <div className="flex items-center gap-2 min-w-0">
+                <File className="h-4 w-4 text-muted-foreground shrink-0" />
+                <span className="font-mono text-sm text-muted-foreground">
+                  No file selected
+                </span>
+              </div>
+            </div>
+            {onClose && (
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={onClose}
+                className="ml-2 shrink-0"
+              >
+                <X className="h-4 w-4" />
+              </Button>
+            )}
+          </div>
+        </CardHeader>
+        <CardContent className="pt-6">
+          {onFileSelect ? (
+            <EmptyState onFileSelect={onFileSelect} recentFiles={recentFiles} />
+          ) : (
+            <div className="flex items-center justify-center min-h-[500px] text-muted-foreground">
+              Please select a file to begin
+            </div>
+          )}
+        </CardContent>
+      </Card>
+    );
+  }
 
   return (
     <Card className="p-0 mt-4 w-full max-w-7xl">
@@ -378,39 +436,61 @@ export function HexEditor({
                 </span>
               </div>
             </div>
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={onClose}
-              className="ml-2 shrink-0"
-            >
-              <X className="h-4 w-4" />
-            </Button>
+            {onClose && (
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={onClose}
+                className="ml-2 shrink-0"
+              >
+                <X className="h-4 w-4" />
+              </Button>
+            )}
           </div>
 
           {/* Secondary Toolbar - Tabs */}
-          <div className="p-4">
-            <TabsList>
-              {snapshots.map((snapshot, index) => (
-                <TabsTrigger key={snapshot.id} value={index.toString()}>
-                  {snapshot.label}
-                </TabsTrigger>
-              ))}
-            </TabsList>
-          </div>
+          {hasSnapshots && (
+            <div className="p-4">
+              <TabsList>
+                {snapshots.map((snapshot, index) => (
+                  <TabsTrigger key={snapshot.id} value={index.toString()}>
+                    {snapshot.label}
+                  </TabsTrigger>
+                ))}
+              </TabsList>
+            </div>
+          )}
         </CardHeader>
         <CardContent className="pt-6">
-          {snapshots.map((snapshot, index) => (
-            <TabsContent key={snapshot.id} value={index.toString()}>
-              <HexEditorView
-                snapshot={snapshot}
-                previousSnapshot={index > 0 ? snapshots[index - 1] : undefined}
-                filePath={filePath}
-                isConnected={isConnected}
-                onClose={onClose}
-              />
-            </TabsContent>
-          ))}
+          {loading ? (
+            <div className="flex flex-col items-center justify-center gap-4 text-center min-h-[500px]">
+              <Loader2 className="h-8 w-8 animate-spin text-primary" />
+              <div>
+                <h3 className="font-semibold">Loading file...</h3>
+                <p className="text-sm text-muted-foreground mt-1">
+                  Reading {filePath}
+                </p>
+              </div>
+            </div>
+          ) : hasSnapshots ? (
+            snapshots.map((snapshot, index) => (
+              <TabsContent key={snapshot.id} value={index.toString()}>
+                <HexEditorView
+                  snapshot={snapshot}
+                  previousSnapshot={
+                    index > 0 ? snapshots[index - 1] : undefined
+                  }
+                  filePath={filePath}
+                  isConnected={isConnected}
+                  onClose={onClose}
+                />
+              </TabsContent>
+            ))
+          ) : (
+            <div className="flex items-center justify-center min-h-[500px] text-muted-foreground">
+              No data available
+            </div>
+          )}
         </CardContent>
       </Tabs>
     </Card>
