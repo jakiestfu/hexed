@@ -19,6 +19,19 @@ import {
   TabsContent,
   TabsList,
   TabsTrigger,
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuGroup,
+  DropdownMenuLabel,
+  DropdownMenuRadioGroup,
+  DropdownMenuRadioItem,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
 } from "@hexed/ui";
 import {
   Columns2,
@@ -305,6 +318,9 @@ export function HexEditor({
   const [activeTab, setActiveTab] = React.useState<string>("0");
   const [showAscii, setShowAscii] = React.useState(true);
   const [diffMode, setDiffMode] = React.useState<DiffViewMode>("inline");
+  const [dataType, setDataType] = React.useState<string>("Signed Int");
+  const [endianness, setEndianness] = React.useState<string>("le");
+  const [numberFormat, setNumberFormat] = React.useState<string>("dec");
   const currentSnapshot = snapshots[parseInt(activeTab, 10)] || snapshots[0];
   const hasFile = filePath != null && filePath !== "";
   const hasSnapshots = snapshots.length > 0;
@@ -478,6 +494,8 @@ export function HexEditor({
         diffMode={diffMode}
         onShowAsciiChange={setShowAscii}
         onDiffModeChange={setDiffMode}
+        scrollToOffset={scrollToOffset}
+        diff={diff}
       />
     );
   };
@@ -498,7 +516,67 @@ export function HexEditor({
           </CardContent>
           <CardFooter className="p-0">
             <HexFooter
-              left={bytesLabel}
+              left={
+                <div className="flex items-center gap-2">
+                  <Select value={dataType} onValueChange={setDataType}>
+                    <SelectTrigger size="sm">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="Signed Int">Signed Int</SelectItem>
+                      <SelectItem value="Unsigned Int">Unsigned Int</SelectItem>
+                      <SelectItem value="Floats">Floats</SelectItem>
+                      <SelectItem value="UTF-8">UTF-8</SelectItem>
+                      <SelectItem value="SLEB128">SLEB128</SelectItem>
+                      <SelectItem value="ULEB128">ULEB128</SelectItem>
+                      <SelectItem value="Binary">Binary</SelectItem>
+                    </SelectContent>
+                  </Select>
+                  <DropdownMenu>
+                    <DropdownMenuTrigger asChild>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        className="justify-between font-mono"
+                      >
+                        {endianness}, {numberFormat}
+                        <ChevronDownIcon className="ml-2 h-4 w-4 opacity-50" />
+                      </Button>
+                    </DropdownMenuTrigger>
+                    <DropdownMenuContent align="start" className="w-48">
+                      <DropdownMenuGroup>
+                        <DropdownMenuLabel>Endianness</DropdownMenuLabel>
+                        <DropdownMenuRadioGroup
+                          value={endianness}
+                          onValueChange={setEndianness}
+                        >
+                          <DropdownMenuRadioItem value="le">
+                            little
+                          </DropdownMenuRadioItem>
+                          <DropdownMenuRadioItem value="be">
+                            big
+                          </DropdownMenuRadioItem>
+                        </DropdownMenuRadioGroup>
+                      </DropdownMenuGroup>
+                      <DropdownMenuSeparator />
+                      <DropdownMenuGroup>
+                        <DropdownMenuLabel>Format</DropdownMenuLabel>
+                        <DropdownMenuRadioGroup
+                          value={numberFormat}
+                          onValueChange={setNumberFormat}
+                        >
+                          <DropdownMenuRadioItem value="dec">
+                            decimal
+                          </DropdownMenuRadioItem>
+                          <DropdownMenuRadioItem value="hex">
+                            hexadecimal
+                          </DropdownMenuRadioItem>
+                        </DropdownMenuRadioGroup>
+                      </DropdownMenuGroup>
+                    </DropdownMenuContent>
+                  </DropdownMenu>
+                </div>
+              }
               right={
                 <Toggle
                   pressed={showAscii}
@@ -510,7 +588,7 @@ export function HexEditor({
                   <span className="ml-1 text-xs">ASCII</span>
                 </Toggle>
               }
-              center={<span>test</span>}
+              center={bytesLabel}
             />
           </CardFooter>
         </Tabs>
@@ -522,20 +600,20 @@ export function HexEditor({
           </CardContent>
           <CardFooter className="p-0">
             <HexFooter
-              left={bytesLabel}
-              right={
-                hasFile ? (
-                  <Toggle
-                    pressed={showAscii}
-                    onPressedChange={setShowAscii}
-                    aria-label="Toggle ASCII view"
-                    size="sm"
-                  >
-                    <Eye className="h-3 w-3" />
-                    <span className="ml-1 text-xs">ASCII</span>
-                  </Toggle>
-                ) : undefined
-              }
+              // left={bytesLabel}
+              // right={
+              //   hasFile ? (
+              //     <Toggle
+              //       pressed={showAscii}
+              //       onPressedChange={setShowAscii}
+              //       aria-label="Toggle ASCII view"
+              //       size="sm"
+              //     >
+              //       <Eye className="h-3 w-3" />
+              //       <span className="ml-1 text-xs">ASCII</span>
+              //     </Toggle>
+              //   ) : undefined
+              // }
               center={hasFile ? <span>test</span> : undefined}
             />
           </CardFooter>
