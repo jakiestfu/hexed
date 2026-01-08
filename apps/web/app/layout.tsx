@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import * as React from "react";
 import "@hexed/ui/styles";
+import { ThemeProvider } from "~/providers/theme-provider";
 
 export const metadata: Metadata = {
   title: "Hexed - Binary File Inspector",
@@ -14,9 +15,16 @@ export default function RootLayout({
   children: React.ReactNode;
 }) {
   return (
-    <html lang="en">
+    <html lang="en" suppressHydrationWarning>
       <body className="h-screen bg-background font-sans antialiased">
-        <main className="h-full">{children}</main>
+        <ThemeProvider
+          attribute="class"
+          defaultTheme="system"
+          enableSystem
+          disableTransitionOnChange
+        >
+          <main className="h-full">{children}</main>
+        </ThemeProvider>
       </body>
     </html>
   );
