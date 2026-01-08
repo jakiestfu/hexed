@@ -1,12 +1,17 @@
 import * as React from "react";
+import type { FunctionComponent } from "react";
 
-interface HexToolbarProps {
+type HexToolbarProps = {
   left?: React.ReactNode;
   center?: React.ReactNode;
   right?: React.ReactNode;
-}
+};
 
-export function HexToolbar({ left, center, right }: HexToolbarProps) {
+export const HexToolbar: FunctionComponent<HexToolbarProps> = ({
+  left,
+  center,
+  right,
+}) => {
   return (
     <div className="flex items-center justify-between p-4 border-b">
       <div className="flex items-start min-w-0 w-[100px]">{left}</div>
@@ -20,4 +25,4 @@ export function HexToolbar({ left, center, right }: HexToolbarProps) {
       )}
     </div>
   );
-}
+};

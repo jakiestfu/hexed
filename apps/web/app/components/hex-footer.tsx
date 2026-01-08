@@ -1,12 +1,17 @@
 import * as React from "react";
+import type { FunctionComponent } from "react";
 
-interface HexFooterProps {
+type HexFooterProps = {
   left?: React.ReactNode;
   center?: React.ReactNode;
   right?: React.ReactNode;
-}
+};
 
-export function HexFooter({ left, center, right }: HexFooterProps) {
+export const HexFooter: FunctionComponent<HexFooterProps> = ({
+  left,
+  center,
+  right,
+}) => {
   return (
     <div className="flex items-center justify-between w-full border-t bg-muted/30 p-4">
       <div className="flex items-start min-w-0 flex-1">{left}</div>
@@ -22,4 +27,4 @@ export function HexFooter({ left, center, right }: HexFooterProps) {
       )}
     </div>
   );
-}
+};

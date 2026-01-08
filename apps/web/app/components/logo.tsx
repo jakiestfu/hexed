@@ -12,16 +12,16 @@ import { Ghost, Github, Monitor, Moon, Sun } from "lucide-react";
 import { useTheme } from "next-themes";
 import { FunctionComponent, ReactNode } from "react";
 
-export interface LogoMenuItem {
+export type LogoMenuItem = {
   label: string;
   icon?: ReactNode;
   onClick?: () => void;
-}
+};
 
-export interface LogoProps {
+export type LogoProps = {
   menuItems?: LogoMenuItem[];
   githubUrl?: string;
-}
+};
 
 export const Logo: FunctionComponent<LogoProps> = ({
   menuItems,

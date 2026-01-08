@@ -1,4 +1,5 @@
 import * as React from "react";
+import type { FunctionComponent } from "react";
 import {
   Card,
   CardContent,
@@ -13,12 +14,15 @@ import {
 import { FileIcon, Clock, ChevronDown } from "lucide-react";
 import type { RecentFile } from "~/hooks/use-recent-files";
 
-interface EmptyStateProps {
+type EmptyStateProps = {
   onFileSelect: (filePath: string) => void;
   recentFiles: RecentFile[];
-}
+};
 
-export function EmptyState({ onFileSelect, recentFiles }: EmptyStateProps) {
+export const EmptyState: FunctionComponent<EmptyStateProps> = ({
+  onFileSelect,
+  recentFiles,
+}) => {
   const [filePath, setFilePath] = React.useState("");
 
   const handleManualPathSubmit = (event: React.FormEvent) => {
@@ -137,4 +141,4 @@ export function EmptyState({ onFileSelect, recentFiles }: EmptyStateProps) {
       </Card>
     </div>
   );
-}
+};

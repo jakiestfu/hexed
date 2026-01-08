@@ -1,4 +1,5 @@
 import * as React from "react";
+import type { FunctionComponent } from "react";
 import type { BinarySnapshot, DiffViewMode, DiffResult } from "@hexed/types";
 import type { FormattedRow } from "@hexed/binary-utils/formatter";
 import { formatDataIntoRows } from "@hexed/binary-utils/formatter";
@@ -51,7 +52,7 @@ import type { RecentFile } from "~/hooks/use-recent-files";
 import { Logo } from "~/components/logo";
 import { HexFooter } from "~/components/hex-footer";
 
-interface HexEditorProps {
+type HexEditorProps = {
   snapshots: BinarySnapshot[];
   filePath?: string | null;
   isConnected: boolean;
@@ -60,28 +61,21 @@ interface HexEditorProps {
   onFileSelect?: (filePath: string) => void;
   recentFiles?: RecentFile[];
   className?: string;
-}
+};
 
-interface HexEditorViewProps {
+type HexEditorViewProps = {
   scrollToOffset: number | null;
   snapshot: BinarySnapshot;
-  previousSnapshot?: BinarySnapshot;
-  filePath: string;
-  isConnected: boolean;
-  onClose?: () => void;
-  showAscii: boolean;
-  diffMode: DiffViewMode;
-  onShowAsciiChange: (show: boolean) => void;
-  onDiffModeChange: (mode: DiffViewMode) => void;
   diff: DiffResult | null;
-}
+  showAscii: boolean;
+};
 
-interface CollapsibleSection {
+type CollapsibleSection = {
   startRowIndex: number;
   endRowIndex: number;
   id: string;
   hiddenRowCount: number;
-}
+};
 
 type VirtualItemType =
   | { type: "row"; rowIndex: number }
@@ -235,34 +229,20 @@ function getBasename(filePath: string): string {
   return filePath.split("/").pop() || filePath.split("\\").pop() || filePath;
 }
 
-function HexEditorView({
+const HexEditorView: FunctionComponent<HexEditorViewProps> = ({
   scrollToOffset,
   snapshot,
-  previousSnapshot,
-  filePath,
-  isConnected,
-  onClose,
   showAscii,
-  diffMode,
-  onShowAsciiChange,
-  onDiffModeChange,
   diff,
-}: HexEditorViewProps) {
+}) => {
   const bytesPerRow = 16;
   const hexViewRef = React.useRef<{
     scrollToOffset: (offset: number) => void;
   } | null>(null);
 
-  // Compute diff if we have a previous snapshot and diff mode is active
-
   const rows = React.useMemo(() => {
     return formatDataIntoRows(snapshot.data, bytesPerRow);
   }, [snapshot.data, bytesPerRow]);
-
-  const previousRows = React.useMemo(() => {
-    if (!previousSnapshot) return null;
-    return formatDataIntoRows(previousSnapshot.data, bytesPerRow);
-  }, [previousSnapshot, bytesPerRow]);
 
   React.useEffect(() => {
     if (scrollToOffset) {
@@ -303,9 +283,9 @@ function HexEditorView({
       />
     </div>
   );
-}
+};
 
-export function HexEditor({
+export const HexEditor: FunctionComponent<HexEditorProps> = ({
   snapshots,
   filePath,
   isConnected,
@@ -314,7 +294,7 @@ export function HexEditor({
   onFileSelect,
   recentFiles = [],
   className = "",
-}: HexEditorProps) {
+}) => {
   const [activeTab, setActiveTab] = React.useState<string>("0");
   const [showAscii, setShowAscii] = React.useState(true);
   const [diffMode, setDiffMode] = React.useState<DiffViewMode>("inline");
@@ -329,16 +309,6 @@ export function HexEditor({
   const activeTabIndex = parseInt(activeTab, 10);
   const previousSnapshot =
     activeTabIndex > 0 ? snapshots[activeTabIndex - 1] : undefined;
-
-  const toggleDiffMode = () => {
-    if (!previousSnapshot) return;
-
-    setDiffMode((current) => {
-      if (current === "none") return "inline";
-      // if (current === "inline") return "side-by-side";
-      return "none";
-    });
-  };
 
   const bytesLabel = hasFile ? (
     <div className="flex items-center gap-2">
@@ -465,17 +435,10 @@ export function HexEditor({
           className="h-full"
         >
           <HexEditorView
-            diff={diff}
-            snapshot={snapshot}
-            previousSnapshot={index > 0 ? snapshots[index - 1] : undefined}
-            filePath={filePath!}
-            isConnected={isConnected}
-            onClose={onClose}
-            showAscii={showAscii}
-            diffMode={diffMode}
-            onShowAsciiChange={setShowAscii}
-            onDiffModeChange={setDiffMode}
             scrollToOffset={scrollToOffset}
+            snapshot={snapshot}
+            showAscii={showAscii}
+            diff={diff}
           />
         </TabsContent>
       ));
@@ -485,16 +448,9 @@ export function HexEditor({
     const activeSnapshot = snapshots[parseInt(activeTab, 10)] || snapshots[0];
     return (
       <HexEditorView
-        snapshot={activeSnapshot}
-        previousSnapshot={snapshots.length > 1 ? snapshots[0] : undefined}
-        filePath={filePath!}
-        isConnected={isConnected}
-        onClose={onClose}
-        showAscii={showAscii}
-        diffMode={diffMode}
-        onShowAsciiChange={setShowAscii}
-        onDiffModeChange={setDiffMode}
         scrollToOffset={scrollToOffset}
+        snapshot={activeSnapshot}
+        showAscii={showAscii}
         diff={diff}
       />
     );
@@ -621,14 +577,14 @@ export function HexEditor({
       )}
     </Card>
   );
-}
+};
 
-interface HexViewProps {
+type HexViewProps = {
   rows: ReturnType<typeof formatDataIntoRows>;
   showAscii: boolean;
   diff: ReturnType<typeof computeDiff> | null;
   getDiffColorClass: (offset: number) => string;
-}
+};
 
 const HexView = React.forwardRef<
   { scrollToOffset: (offset: number) => void },
@@ -803,7 +759,7 @@ const HexView = React.forwardRef<
                     variant="ghost"
                     size="sm"
                     onClick={() => toggleSection(item.section.id)}
-                    className="text-muted-foreground hover:text-foreground my-[1px] w-full"
+                    className="text-muted-foreground hover:text-foreground my-px w-full"
                   >
                     <span className="flex items-center justify-center w-full">
                       <ChevronsUpDown className="h-4 w-4 mr-2" />

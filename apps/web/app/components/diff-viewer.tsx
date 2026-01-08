@@ -1,4 +1,5 @@
 import * as React from "react";
+import type { FunctionComponent } from "react";
 import type { DiffResult } from "@hexed/types";
 import {
   Select,
@@ -10,16 +11,19 @@ import {
 } from "@hexed/ui";
 import { TrendingUp, TrendingDown, RefreshCw } from "lucide-react";
 
-interface DiffViewerProps {
+type DiffViewerProps = {
   diff: DiffResult;
   onScrollToOffset: (offset: number) => void;
-}
+};
 
 function formatOffset(offset: number): string {
   return `0x${offset.toString(16).toUpperCase().padStart(8, "0")}`;
 }
 
-export function DiffViewer({ diff, onScrollToOffset }: DiffViewerProps) {
+export const DiffViewer: FunctionComponent<DiffViewerProps> = ({
+  diff,
+  onScrollToOffset,
+}) => {
   const added = diff.diffs.filter((d) => d.type === "added");
   const removed = diff.diffs.filter((d) => d.type === "removed");
   const modified = diff.diffs.filter((d) => d.type === "modified");
@@ -114,4 +118,4 @@ export function DiffViewer({ diff, onScrollToOffset }: DiffViewerProps) {
       </div>
     </div>
   );
-}
+};
