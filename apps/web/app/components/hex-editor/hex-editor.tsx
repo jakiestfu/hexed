@@ -48,6 +48,7 @@ const HexEditorView: FunctionComponent<HexEditorViewProps> = ({
   diff,
 }) => {
   const hexCanvasRef = useRef<HexCanvasRef | null>(null);
+  const [selectedOffset, setSelectedOffset] = useState<number | null>(null);
 
   useEffect(() => {
     if (scrollToOffset !== null) {
@@ -62,6 +63,8 @@ const HexEditorView: FunctionComponent<HexEditorViewProps> = ({
         data={snapshot.data}
         showAscii={showAscii}
         diff={diff}
+        selectedOffset={selectedOffset}
+        onSelectedOffsetChange={setSelectedOffset}
       />
     </div>
   );

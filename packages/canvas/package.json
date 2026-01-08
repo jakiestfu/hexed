@@ -14,7 +14,8 @@
   },
   "dependencies": {
     "@hexed/binary-utils": "workspace:*",
-    "@hexed/types": "workspace:*"
+    "@hexed/types": "workspace:*",
+    "usehooks-ts": "^3.0.0"
   },
   "devDependencies": {
     "@types/react": "^19.0.1",
