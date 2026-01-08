@@ -21,6 +21,8 @@ import { useSelection } from "./hooks/use-selection";
 import { useKeyboardNavigation } from "./hooks/use-keyboard-navigation";
 import { useOnClickOutside } from "usehooks-ts";
 import { ScrollArea, ScrollBar } from "@hexed/ui";
+export type SelectionRange = { start: number; end: number } | null;
+
 export interface HexCanvasProps {
   data: Uint8Array;
   showAscii?: boolean;
@@ -28,7 +30,9 @@ export interface HexCanvasProps {
   diff?: DiffResult | null;
   highlightedOffset?: number | null;
   selectedOffset?: number | null;
+  selectedOffsetRange?: SelectionRange;
   onSelectedOffsetChange?: (offset: number | null) => void;
+  onSelectedOffsetRangeChange?: (range: SelectionRange) => void;
   colors?: Partial<HexCanvasColors>;
 }
 
@@ -60,7 +64,9 @@ export const HexCanvas = forwardRef<HexCanvasRef, HexCanvasProps>(
       diff = null,
       highlightedOffset: propHighlightedOffset = null,
       selectedOffset: propSelectedOffset,
+      selectedOffsetRange: propSelectedOffsetRange,
       onSelectedOffsetChange,
+      onSelectedOffsetRangeChange,
       colors: colorsProp,
     },
     ref
@@ -76,6 +82,9 @@ export const HexCanvas = forwardRef<HexCanvasRef, HexCanvasProps>(
     const [hoveredRow, setHoveredRow] = useState<number | null>(null);
     const [hoveredOffset, setHoveredOffset] = useState<number | null>(null);
     const [hasFocus, setHasFocus] = useState(false);
+    const [isDragging, setIsDragging] = useState(false);
+    const [dragStartOffset, setDragStartOffset] = useState<number | null>(null);
+    const justFinishedDragRef = useRef(false);
     const highlightTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(
       null
     );
@@ -324,6 +333,28 @@ export const HexCanvas = forwardRef<HexCanvasRef, HexCanvasProps>(
       onSelectedOffsetChange,
     });
 
+    // Determine the active selection range (prop takes precedence, fallback to single offset)
+    const selectedRange: SelectionRange = useMemo(() => {
+      if (propSelectedOffsetRange !== undefined) {
+        return propSelectedOffsetRange;
+      }
+      if (selectedOffset !== null) {
+        return { start: selectedOffset, end: selectedOffset };
+      }
+      return null;
+    }, [propSelectedOffsetRange, selectedOffset]);
+
+    // Helper to check if an offset is in the selection range
+    const isOffsetInRange = useCallback(
+      (offset: number, range: SelectionRange): boolean => {
+        if (!range) return false;
+        const min = Math.min(range.start, range.end);
+        const max = Math.max(range.start, range.end);
+        return offset >= min && offset <= max;
+      },
+      []
+    );
+
     // Helper function to calculate row index from mouse Y coordinate
     const getRowFromY = useCallback(
       (mouseY: number): number | null => {
@@ -349,24 +380,40 @@ export const HexCanvas = forwardRef<HexCanvasRef, HexCanvasProps>(
       [layout, rows, showAscii, getRowFromY]
     );
 
+    // Extract the earliest byte from the range for keyboard navigation
+    const keyboardSelectedOffset = useMemo(() => {
+      if (selectedRange) {
+        return Math.min(selectedRange.start, selectedRange.end);
+      }
+      return selectedOffset;
+    }, [selectedRange, selectedOffset]);
+
     // Use keyboard navigation hook
     const { handleKeyDown } = useKeyboardNavigation({
-      selectedOffset,
+      selectedOffset: keyboardSelectedOffset,
       dataLength: data.length,
       bytesPerRow: layout?.bytesPerRow ?? 16,
       viewportHeight: dimensions.height,
       rowHeight: layout?.rowHeight ?? 20,
       hasFocus,
       onOffsetChange: (offset: number) => {
-        handleSelectionClick(offset);
+        if (onSelectedOffsetRangeChange) {
+          onSelectedOffsetRangeChange({ start: offset, end: offset });
+        } else {
+          handleSelectionClick(offset);
+        }
       },
       onClearSelection: () => {
-        handleSelectionClick(null);
+        if (onSelectedOffsetRangeChange) {
+          onSelectedOffsetRangeChange(null);
+        } else {
+          handleSelectionClick(null);
+        }
       },
       scrollToOffset,
     });
 
-    // Handle mouse move to detect hover
+    // Handle mouse move to detect hover and drag
     const handleMouseMove = useCallback(
       (event: React.MouseEvent<HTMLCanvasElement>) => {
         if (!layout || !canvasRef.current) {
@@ -386,8 +433,25 @@ export const HexCanvas = forwardRef<HexCanvasRef, HexCanvasProps>(
 
         setHoveredRow(rowIndex);
         setHoveredOffset(offset);
+
+        // Handle drag selection
+        if (
+          isDragging &&
+          dragStartOffset !== null &&
+          offset !== null &&
+          onSelectedOffsetRangeChange
+        ) {
+          onSelectedOffsetRangeChange({ start: dragStartOffset, end: offset });
+        }
       },
-      [layout, getRowFromY, getOffsetFromPosition]
+      [
+        layout,
+        getRowFromY,
+        getOffsetFromPosition,
+        isDragging,
+        dragStartOffset,
+        onSelectedOffsetRangeChange,
+      ]
     );
 
     // Handle mouse leave to clear hover
@@ -396,8 +460,8 @@ export const HexCanvas = forwardRef<HexCanvasRef, HexCanvasProps>(
       setHoveredOffset(null);
     }, []);
 
-    // Handle click to select byte
-    const handleClick = useCallback(
+    // Handle mouse down to start drag selection
+    const handleMouseDown = useCallback(
       (event: React.MouseEvent<HTMLCanvasElement>) => {
         if (!layout || !canvasRef.current) return;
 
@@ -407,12 +471,99 @@ export const HexCanvas = forwardRef<HexCanvasRef, HexCanvasProps>(
         const mouseY = event.clientY - rect.top;
 
         const offset = getOffsetFromPosition(mouseX, mouseY);
-        handleSelectionClick(offset);
+        if (offset !== null) {
+          setIsDragging(true);
+          setDragStartOffset(offset);
+          if (onSelectedOffsetRangeChange) {
+            onSelectedOffsetRangeChange({ start: offset, end: offset });
+          } else {
+            handleSelectionClick(offset);
+          }
+        }
 
         // Focus canvas for keyboard navigation
         canvas.focus();
       },
-      [layout, getOffsetFromPosition, handleSelectionClick]
+      [
+        layout,
+        getOffsetFromPosition,
+        handleSelectionClick,
+        onSelectedOffsetRangeChange,
+      ]
+    );
+
+    // Handle mouse up to end drag selection
+    const handleMouseUp = useCallback(() => {
+      if (isDragging) {
+        setIsDragging(false);
+        setDragStartOffset(null);
+        // Mark that we just finished a drag to prevent click handler from interfering
+        justFinishedDragRef.current = true;
+        // Reset the flag after a short delay to allow click event to be ignored
+        setTimeout(() => {
+          justFinishedDragRef.current = false;
+        }, 0);
+      }
+    }, [isDragging]);
+
+    // Add global mouseup handler to handle dragging outside canvas
+    useEffect(() => {
+      const handleGlobalMouseUp = () => {
+        if (isDragging) {
+          setIsDragging(false);
+          setDragStartOffset(null);
+          // Mark that we just finished a drag to prevent click handler from interfering
+          justFinishedDragRef.current = true;
+          // Reset the flag after a short delay to allow click event to be ignored
+          setTimeout(() => {
+            justFinishedDragRef.current = false;
+          }, 0);
+        }
+      };
+
+      if (isDragging) {
+        window.addEventListener("mouseup", handleGlobalMouseUp);
+        return () => {
+          window.removeEventListener("mouseup", handleGlobalMouseUp);
+        };
+      }
+    }, [isDragging]);
+
+    // Handle click to select byte (for single clicks without drag)
+    const handleClick = useCallback(
+      (event: React.MouseEvent<HTMLCanvasElement>) => {
+        // Ignore click if we just finished a drag
+        if (justFinishedDragRef.current) {
+          return;
+        }
+
+        // Only handle click if we didn't drag
+        if (!isDragging && dragStartOffset === null) {
+          if (!layout || !canvasRef.current) return;
+
+          const canvas = canvasRef.current;
+          const rect = canvas.getBoundingClientRect();
+          const mouseX = event.clientX - rect.left;
+          const mouseY = event.clientY - rect.top;
+
+          const offset = getOffsetFromPosition(mouseX, mouseY);
+          if (onSelectedOffsetRangeChange) {
+            onSelectedOffsetRangeChange(
+              offset !== null ? { start: offset, end: offset } : null
+            );
+          } else {
+            handleSelectionClick(offset);
+          }
+        }
+      },
+      [
+        layout,
+        getOffsetFromPosition,
+        handleSelectionClick,
+        isDragging,
+        dragStartOffset,
+        onSelectedOffsetRangeChange,
+      ]
     );
 
     // Handle focus/blur for keyboard navigation
@@ -535,7 +686,7 @@ export const HexCanvas = forwardRef<HexCanvasRef, HexCanvasProps>(
           const offset = row.startOffset + j;
           const byteDiff = diff ? getDiffAtOffset(diff, offset) : null;
           const isHighlighted = highlightedOffset === offset;
-          const isSelected = selectedOffset === offset;
+          const isSelected = isOffsetInRange(offset, selectedRange);
           const isByteHovered = hoveredOffset === offset;
 
           // Draw diff background if present
@@ -650,7 +801,7 @@ export const HexCanvas = forwardRef<HexCanvasRef, HexCanvasProps>(
             const offset = row.startOffset + j;
             const byteDiff = diff ? getDiffAtOffset(diff, offset) : null;
             const isHighlighted = highlightedOffset === offset;
-            const isSelected = selectedOffset === offset;
+            const isSelected = isOffsetInRange(offset, selectedRange);
             const isByteHovered = hoveredOffset === offset;
             const charX = asciiStartX + j * layout.asciiCharWidth;
 
@@ -766,7 +917,8 @@ export const HexCanvas = forwardRef<HexCanvasRef, HexCanvasProps>(
       colors,
       diff,
       highlightedOffset,
-      selectedOffset,
+      selectedRange,
+      isOffsetInRange,
       hoveredRow,
       hoveredOffset,
     ]);
@@ -789,8 +941,11 @@ export const HexCanvas = forwardRef<HexCanvasRef, HexCanvasProps>(
             left: 0,
             zIndex: 1,
             outline: hasFocus ? "2px solid var(--ring)" : "none",
+            userSelect: "none",
           }}
+          onMouseDown={handleMouseDown}
           onMouseMove={handleMouseMove}
+          onMouseUp={handleMouseUp}
           onMouseLeave={handleMouseLeave}
           onClick={handleClick}
           onKeyDown={handleKeyDown}

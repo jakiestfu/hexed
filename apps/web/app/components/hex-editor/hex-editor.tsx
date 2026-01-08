@@ -48,8 +48,8 @@ const HexEditorView: FunctionComponent<HexEditorViewProps> = ({
   snapshot,
   showAscii,
   diff,
-  selectedOffset,
-  onSelectedOffsetChange,
+  selectedOffsetRange,
+  onSelectedOffsetRangeChange,
 }) => {
   const hexCanvasRef = useRef<HexCanvasRef | null>(null);
 
@@ -66,8 +66,8 @@ const HexEditorView: FunctionComponent<HexEditorViewProps> = ({
         data={snapshot.data}
         showAscii={showAscii}
         diff={diff}
-        selectedOffset={selectedOffset}
-        onSelectedOffsetChange={onSelectedOffsetChange}
+        selectedOffsetRange={selectedOffsetRange}
+        onSelectedOffsetRangeChange={onSelectedOffsetRangeChange}
       />
     </div>
   );
@@ -101,7 +101,7 @@ export const HexEditor: FunctionComponent<HexEditorProps> = ({
 
   const bytesLabel = hasFile ? (
     <div className="flex items-center gap-2 font-mono">
-      <span className="text-sm text-muted-foreground">
+      <span className="text-xs text-muted-foreground">
         {formatFileSize(currentSnapshot?.data.length || 0)}
       </span>
     </div>
@@ -113,7 +113,15 @@ export const HexEditor: FunctionComponent<HexEditorProps> = ({
   }, [previousSnapshot, currentSnapshot, diffMode]);
 
   const [scrollToOffset, setScrollToOffset] = useState<number | null>(null);
-  const [selectedOffset, setSelectedOffset] = useState<number | null>(null);
+  const [selectedOffsetRange, setSelectedOffsetRange] = useState<{
+    start: number;
+    end: number;
+  } | null>(null);
+
+  // Calculate earliest byte for interpreter
+  const selectedOffset = selectedOffsetRange
+    ? Math.min(selectedOffsetRange.start, selectedOffsetRange.end)
+    : null;
   const headerContent = (
     <CardHeader className="p-0! gap-0 m-0 bg-muted/30">
       {/* Primary Toolbar */}
@@ -245,8 +253,8 @@ export const HexEditor: FunctionComponent<HexEditorProps> = ({
             snapshot={snapshot}
             showAscii={showAscii}
             diff={diff}
-            selectedOffset={selectedOffset}
-            onSelectedOffsetChange={setSelectedOffset}
+            selectedOffsetRange={selectedOffsetRange}
+            onSelectedOffsetRangeChange={setSelectedOffsetRange}
           />
           {selectedOffset !== null && (
             <div className="w-[650px] shrink-0 h-full border-l">
@@ -255,7 +263,7 @@ export const HexEditor: FunctionComponent<HexEditorProps> = ({
                 selectedOffset={selectedOffset}
                 endianness={endianness as "le" | "be"}
                 numberFormat={numberFormat as "dec" | "hex"}
-                onClose={() => setSelectedOffset(null)}
+                onClose={() => setSelectedOffsetRange(null)}
                 onScrollToOffset={setScrollToOffset}
               />
             </div>

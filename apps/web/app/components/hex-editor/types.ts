@@ -13,13 +13,15 @@ export type HexEditorProps = {
   className?: string;
 };
 
+export type SelectionRange = { start: number; end: number } | null;
+
 export type HexEditorViewProps = {
   scrollToOffset: number | null;
   snapshot: BinarySnapshot;
   diff: DiffResult | null;
   showAscii: boolean;
-  selectedOffset: number | null;
-  onSelectedOffsetChange: (offset: number | null) => void;
+  selectedOffsetRange: SelectionRange;
+  onSelectedOffsetRangeChange: (range: SelectionRange) => void;
 };
 
 export type InterpreterProps = {
