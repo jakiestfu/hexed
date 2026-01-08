@@ -27,5 +27,7 @@ export type InterpreterProps = {
   selectedOffset: number | null;
   endianness: Endianness;
   numberFormat: NumberFormat;
+  onClose?: () => void;
+  onScrollToOffset?: (offset: number) => void;
 };
 

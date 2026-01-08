@@ -11,7 +11,11 @@ import {
   CardContent,
   CardHeader,
   CardTitle,
+  Button,
+  Badge,
 } from "@hexed/ui";
+import { formatAddress } from "@hexed/binary-utils/formatter";
+import { X } from "lucide-react";
 import type { Endianness, NumberFormat } from "@hexed/binary-utils/interpreter";
 import {
   formatNumber,
@@ -65,6 +69,8 @@ export const Interpreter: FunctionComponent<InterpreterProps> = ({
   selectedOffset,
   endianness = "le",
   numberFormat = "dec",
+  onClose,
+  onScrollToOffset,
 }) => {
   const interpretedData = useMemo<InterpretedValue[]>(() => {
     if (
@@ -271,15 +277,56 @@ export const Interpreter: FunctionComponent<InterpreterProps> = ({
     return null;
   }
 
+  const hexAddress =
+    selectedOffset !== null ? formatAddress(selectedOffset) : "";
+  const byteOffset =
+    selectedOffset !== null ? selectedOffset.toLocaleString() : "";
+
   return (
-    <Card className="h-full rounded-none border-none bg-sidebar min-w-[600px]">
-      <CardHeader className="pb-3">
-        <CardTitle className="text-sm font-medium">
-          Data Inspector ({endianness === "le" ? "Little-endian" : "Big-endian"}
-          )
-        </CardTitle>
+    <Card className="h-full flex flex-col p-0 rounded-none border-none bg-sidebar overflow-hidden gap-0">
+      <CardHeader className="py-3! px-4 border-b shrink-0 gap-0 bg-secondary">
+        <div className="flex items-center justify-between gap-4">
+          <div className="flex items-center gap-3 min-w-0">
+            <CardTitle className="text-sm font-medium shrink-0">
+              Interpreter
+            </CardTitle>
+            {selectedOffset !== null && (
+              <div className="flex items-center gap-2 text-xs text-muted-foreground min-w-0">
+                {onScrollToOffset ? (
+                  <button
+                    onClick={() => onScrollToOffset(selectedOffset)}
+                    className="font-mono hover:text-foreground hover:underline transition-colors cursor-pointer"
+                    aria-label={`Scroll to offset ${hexAddress}`}
+                  >
+                    {hexAddress}
+                  </button>
+                ) : (
+                  <span className="font-mono">{hexAddress}</span>
+                )}
+                <span className="text-muted-foreground/70">•</span>
+                <span>{byteOffset}</span>
+              </div>
+            )}
+          </div>
+          <div className="flex items-center gap-2 shrink-0">
+            <Badge variant="outline" className="text-xs font-mono">
+              {endianness === "le" ? "LE" : "BE"}
+            </Badge>
+            {onClose && (
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={onClose}
+                className="h-7 w-7 p-0"
+                aria-label="Close interpreter"
+              >
+                <X className="h-4 w-4" />
+              </Button>
+            )}
+          </div>
+        </div>
       </CardHeader>
-      <CardContent className="p-0">
+      <CardContent className="p-0 flex-1 overflow-y-auto">
         <Table>
           <TableHeader>
             <TableRow>

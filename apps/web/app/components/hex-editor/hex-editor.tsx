@@ -30,9 +30,6 @@ import {
   Tooltip,
   TooltipContent,
   TooltipTrigger,
-  ResizablePanelGroup,
-  ResizablePanel,
-  ResizableHandle,
 } from "@hexed/ui";
 import { Eye, X, ChevronDownIcon, File, Loader2 } from "lucide-react";
 import { DiffViewer } from "./diff-viewer";
@@ -62,7 +59,7 @@ const HexEditorView: FunctionComponent<HexEditorViewProps> = ({
   }, [scrollToOffset]);
 
   return (
-    <div className="h-full flex-1">
+    <div className="h-full flex-1 min-w-0">
       <HexCanvas
         ref={hexCanvasRef}
         data={snapshot.data}
@@ -240,7 +237,7 @@ export const HexEditor: FunctionComponent<HexEditorProps> = ({
         value={index.toString()}
         className="h-full"
       >
-        {/* <div className="h-full w-full flex">
+        <div className="h-full w-full flex min-w-0">
           <HexEditorView
             scrollToOffset={scrollToOffset}
             snapshot={snapshot}
@@ -250,40 +247,18 @@ export const HexEditor: FunctionComponent<HexEditorProps> = ({
             onSelectedOffsetChange={setSelectedOffset}
           />
           {selectedOffset !== null && (
-            <Interpreter
-              data={snapshot.data}
-              selectedOffset={selectedOffset}
-              endianness={endianness as "le" | "be"}
-              numberFormat={numberFormat as "dec" | "hex"}
-            />
+            <div className="w-[650px] shrink-0 h-full border-l">
+              <Interpreter
+                data={snapshot.data}
+                selectedOffset={selectedOffset}
+                endianness={endianness as "le" | "be"}
+                numberFormat={numberFormat as "dec" | "hex"}
+                onClose={() => setSelectedOffset(null)}
+                onScrollToOffset={setScrollToOffset}
+              />
+            </div>
           )}
-        </div> */}
-
-        <ResizablePanelGroup direction="horizontal" className="h-full">
-          <ResizablePanel defaultSize={70} minSize={30}>
-            <HexEditorView
-              scrollToOffset={scrollToOffset}
-              snapshot={snapshot}
-              showAscii={showAscii}
-              diff={diff}
-              selectedOffset={selectedOffset}
-              onSelectedOffsetChange={setSelectedOffset}
-            />
-          </ResizablePanel>
-          {selectedOffset !== null && (
-            <>
-              <ResizableHandle withHandle />
-              <ResizablePanel defaultSize={30} minSize={20}>
-                <Interpreter
-                  data={snapshot.data}
-                  selectedOffset={selectedOffset}
-                  endianness={endianness as "le" | "be"}
-                  numberFormat={numberFormat as "dec" | "hex"}
-                />
-              </ResizablePanel>
-            </>
-          )}
-        </ResizablePanelGroup>
+        </div>
       </TabsContent>
     ));
   };
