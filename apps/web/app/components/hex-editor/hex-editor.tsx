@@ -176,12 +176,18 @@ export const HexEditor: FunctionComponent<HexEditorProps> = ({
                     className={`inline-flex h-2 w-2 rounded-full shrink-0 ${
                       isConnected ? "bg-green-500" : "bg-red-500"
                     }`}
-                    title={isConnected ? "Connected" : "Disconnected"}
+                    title={
+                      isConnected
+                        ? "Watching for changes"
+                        : "Not watching for change"
+                    }
                   />
                 </div>
               </TooltipTrigger>
               <TooltipContent>
-                {isConnected ? "Connected" : "Disconnected"}
+                {isConnected
+                  ? "Watching for changes"
+                  : "Not watching for change"}
               </TooltipContent>
             </Tooltip>
           )
@@ -424,15 +430,34 @@ const HexView = forwardRef<
   );
   const [parentHeight, setParentHeight] = useState<number>(0);
   const [parentWidth, setParentWidth] = useState<number>(0);
+  const [isResizing, setIsResizing] = useState<boolean>(false);
+  const resizeTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
   // Track parentRef height and width changes
   useEffect(() => {
     const element = parentRef.current;
     if (!element) return;
 
+    let isInitialCall = true;
     const updateDimensions = () => {
       setParentHeight(element.clientHeight);
       setParentWidth(element.clientWidth);
+      // Skip resizing state on initial call
+      if (isInitialCall) {
+        isInitialCall = false;
+        return;
+      }
+      // Set resizing to true immediately when resize starts
+      setIsResizing(true);
+      // Clear any existing timeout
+      if (resizeTimeoutRef.current) {
+        clearTimeout(resizeTimeoutRef.current);
+      }
+      // Set a new timeout to mark resize as complete after 150ms of no resize events
+      resizeTimeoutRef.current = setTimeout(() => {
+        setIsResizing(false);
+        resizeTimeoutRef.current = null;
+      }, 150);
     };
 
     // Initial dimensions
@@ -444,6 +469,11 @@ const HexView = forwardRef<
 
     return () => {
       resizeObserver.disconnect();
+      // Cleanup timeout on unmount
+      if (resizeTimeoutRef.current) {
+        clearTimeout(resizeTimeoutRef.current);
+        resizeTimeoutRef.current = null;
+      }
     };
   }, []);
 
@@ -613,22 +643,63 @@ const HexView = forwardRef<
       ref={parentRef}
       className="overflow-auto h-full grow font-mono text-sm"
     >
-      <div style={{ height: `${parentHeight}px` }}>
-        <div
-          style={{
-            height: `${virtualizer.getTotalSize()}px`,
-            width: "100%",
-            position: "relative",
-          }}
-        >
-          {virtualizer.getVirtualItems().map((virtualItem, index) => {
-            const item = virtualItems[virtualItem.index];
+      {isResizing ? (
+        <div className="flex flex-col items-center justify-center h-full text-muted-foreground">
+          <Loader2 className="h-6 w-6 animate-spin text-primary mb-2" />
+          <p className="text-sm">Resizing...</p>
+        </div>
+      ) : (
+        <div style={{ height: `${parentHeight}px` }}>
+          <div
+            style={{
+              height: `${virtualizer.getTotalSize()}px`,
+              width: "100%",
+              position: "relative",
+            }}
+          >
+            {virtualizer.getVirtualItems().map((virtualItem, index) => {
+              const item = virtualItems[virtualItem.index];
 
-            if (item.type === "collapse") {
-              // Render collapse button
+              if (item.type === "collapse") {
+                // Render collapse button
+                return (
+                  <div
+                    key={item.section.id}
+                    style={{
+                      position: "absolute",
+                      top: 0,
+                      left: 0,
+                      width: "100%",
+                      height: `${virtualItem.size}px`,
+                      transform: `translateY(${virtualItem.start}px)`,
+                    }}
+                    className={`flex items-center justify-center ${
+                      index ? "border-y" : "border-b"
+                    } border-border bg-muted/30 hover:bg-muted/50 transition-colors`}
+                  >
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => toggleSection(item.section.id)}
+                      className="text-muted-foreground hover:text-foreground my-px w-full"
+                    >
+                      <span className="flex items-center justify-center w-full">
+                        <ChevronsUpDown className="h-4 w-4 mr-2" />
+                        <span className="text-xs">
+                          {item.section.hiddenRowCount} line
+                          {item.section.hiddenRowCount !== 1 ? "s" : ""} hidden
+                        </span>
+                      </span>
+                    </Button>
+                  </div>
+                );
+              }
+
+              // Render regular row
+              const row = rows[item.rowIndex];
               return (
                 <div
-                  key={item.section.id}
+                  key={row.startOffset}
                   style={{
                     position: "absolute",
                     top: 0,
@@ -637,81 +708,14 @@ const HexView = forwardRef<
                     height: `${virtualItem.size}px`,
                     transform: `translateY(${virtualItem.start}px)`,
                   }}
-                  className={`flex items-center justify-center ${
-                    index ? "border-y" : "border-b"
-                  } border-border bg-muted/30 hover:bg-muted/50 transition-colors`}
+                  className="flex gap-4 hover:bg-muted/50 px-4"
                 >
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    onClick={() => toggleSection(item.section.id)}
-                    className="text-muted-foreground hover:text-foreground my-px w-full"
-                  >
-                    <span className="flex items-center justify-center w-full">
-                      <ChevronsUpDown className="h-4 w-4 mr-2" />
-                      <span className="text-xs">
-                        {item.section.hiddenRowCount} line
-                        {item.section.hiddenRowCount !== 1 ? "s" : ""} hidden
-                      </span>
-                    </span>
-                  </Button>
-                </div>
-              );
-            }
+                  <div className="flex h-full items-center text-muted-foreground select-none shrink-0 w-24">
+                    {row.address}
+                  </div>
 
-            // Render regular row
-            const row = rows[item.rowIndex];
-            return (
-              <div
-                key={row.startOffset}
-                style={{
-                  position: "absolute",
-                  top: 0,
-                  left: 0,
-                  width: "100%",
-                  height: `${virtualItem.size}px`,
-                  transform: `translateY(${virtualItem.start}px)`,
-                }}
-                className="flex gap-4 hover:bg-muted/50 px-4"
-              >
-                <div className="flex h-full items-center text-muted-foreground select-none shrink-0 w-24">
-                  {row.address}
-                </div>
-
-                <div className="flex h-full items-center gap-1 flex-wrap">
-                  {row.hexBytes.map((byte, index) => {
-                    const offset = row.startOffset + index;
-                    const colorClass = getDiffColorClass(offset);
-                    const isHighlighted = highlightedOffset === offset;
-                    return (
-                      <span
-                        key={offset}
-                        className={cn(
-                          "inline-block w-6 text-center rounded px-0.5 transition-all",
-                          colorClass,
-                          isHighlighted &&
-                            "ring-2 ring-primary ring-offset-1 bg-primary/20"
-                        )}
-                        title={`Offset: ${offset} (0x${offset
-                          .toString(16)
-                          .toUpperCase()})`}
-                      >
-                        {byte}
-                      </span>
-                    );
-                  })}
-
-                  {row.hexBytes.length < bytesPerRow &&
-                    Array.from({
-                      length: bytesPerRow - row.hexBytes.length,
-                    }).map((_, i) => (
-                      <span key={`pad-${i}`} className="inline-block w-6" />
-                    ))}
-                </div>
-
-                {showAscii && (
-                  <div className="flex h-full items-center border-l pl-4 text-muted-foreground">
-                    {row.ascii.split("").map((char, index) => {
+                  <div className="flex h-full items-center gap-1 flex-wrap">
+                    {row.hexBytes.map((byte, index) => {
                       const offset = row.startOffset + index;
                       const colorClass = getDiffColorClass(offset);
                       const isHighlighted = highlightedOffset === offset;
@@ -719,24 +723,57 @@ const HexView = forwardRef<
                         <span
                           key={offset}
                           className={cn(
-                            "inline-block rounded px-0.5 transition-all",
+                            "inline-block w-6 text-center rounded px-0.5 transition-all",
                             colorClass,
                             isHighlighted &&
                               "ring-2 ring-primary ring-offset-1 bg-primary/20"
                           )}
-                          title={`Offset: ${offset}`}
+                          title={`Offset: ${offset} (0x${offset
+                            .toString(16)
+                            .toUpperCase()})`}
                         >
-                          {char}
+                          {byte}
                         </span>
                       );
                     })}
+
+                    {row.hexBytes.length < bytesPerRow &&
+                      Array.from({
+                        length: bytesPerRow - row.hexBytes.length,
+                      }).map((_, i) => (
+                        <span key={`pad-${i}`} className="inline-block w-6" />
+                      ))}
                   </div>
-                )}
-              </div>
-            );
-          })}
+
+                  {showAscii && (
+                    <div className="flex h-full items-center border-l pl-4 text-muted-foreground">
+                      {row.ascii.split("").map((char, index) => {
+                        const offset = row.startOffset + index;
+                        const colorClass = getDiffColorClass(offset);
+                        const isHighlighted = highlightedOffset === offset;
+                        return (
+                          <span
+                            key={offset}
+                            className={cn(
+                              "inline-block rounded px-0.5 transition-all",
+                              colorClass,
+                              isHighlighted &&
+                                "ring-2 ring-primary ring-offset-1 bg-primary/20"
+                            )}
+                            title={`Offset: ${offset}`}
+                          >
+                            {char}
+                          </span>
+                        );
+                      })}
+                    </div>
+                  )}
+                </div>
+              );
+            })}
+          </div>
         </div>
-      </div>
+      )}
     </div>
   );
 });
