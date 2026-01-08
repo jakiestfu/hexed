@@ -67,14 +67,9 @@ const HexEditorView: FunctionComponent<HexEditorViewProps> = ({
   showAscii,
   diff,
 }) => {
-  const bytesPerRow = 16;
   const hexViewRef = useRef<{
     scrollToOffset: (offset: number) => void;
   } | null>(null);
-
-  const rows = useMemo(() => {
-    return formatDataIntoRows(snapshot.data, bytesPerRow);
-  }, [snapshot.data, bytesPerRow]);
 
   useEffect(() => {
     if (scrollToOffset) {
@@ -108,7 +103,7 @@ const HexEditorView: FunctionComponent<HexEditorViewProps> = ({
 
       <HexView
         ref={hexViewRef}
-        rows={rows}
+        data={snapshot.data}
         showAscii={showAscii}
         diff={diff}
         getDiffColorClass={getDiffColorClass}
@@ -419,9 +414,8 @@ export const HexEditor: FunctionComponent<HexEditorProps> = ({
 const HexView = forwardRef<
   { scrollToOffset: (offset: number) => void },
   HexViewProps
->(({ rows, showAscii, diff, getDiffColorClass }, ref) => {
+>(({ data, showAscii, diff, getDiffColorClass }, ref) => {
   const parentRef = useRef<HTMLDivElement>(null);
-  const bytesPerRow = 16;
   const [highlightedOffset, setHighlightedOffset] = useState<number | null>(
     null
   );
@@ -429,27 +423,89 @@ const HexView = forwardRef<
     new Set()
   );
   const [parentHeight, setParentHeight] = useState<number>(0);
+  const [parentWidth, setParentWidth] = useState<number>(0);
 
-  // Track parentRef height changes
+  // Track parentRef height and width changes
   useEffect(() => {
     const element = parentRef.current;
     if (!element) return;
 
-    const updateHeight = () => {
+    const updateDimensions = () => {
       setParentHeight(element.clientHeight);
+      setParentWidth(element.clientWidth);
     };
 
-    // Initial height
-    updateHeight();
+    // Initial dimensions
+    updateDimensions();
 
-    // Use ResizeObserver to track height changes
-    const resizeObserver = new ResizeObserver(updateHeight);
+    // Use ResizeObserver to track dimension changes
+    const resizeObserver = new ResizeObserver(updateDimensions);
     resizeObserver.observe(element);
 
     return () => {
       resizeObserver.disconnect();
     };
   }, []);
+
+  // Calculate dynamic bytesPerRow based on available width
+  const bytesPerRow = useMemo(() => {
+    if (parentWidth === 0) return 16; // Default until we measure
+
+    // Constants for layout calculations
+    const ADDRESS_COLUMN_WIDTH = 96; // w-24 = 96px
+    const HEX_BYTE_WIDTH = 24; // w-6 = 24px
+    const HEX_BYTE_GAP = 4; // gap-1 = 4px
+    const ROW_PADDING = 32; // px-4 = 16px * 2 = 32px total
+    const ADDRESS_HEX_GAP = 16; // gap-4 = 16px
+    const ASCII_CHAR_WIDTH = 12; // Approximate width per ASCII character
+    const ASCII_BORDER_PADDING = 20; // border-l + pl-4 = ~20px
+
+    // Calculate available width for hex bytes
+    let availableWidth =
+      parentWidth - ADDRESS_COLUMN_WIDTH - ROW_PADDING - ADDRESS_HEX_GAP;
+
+    // If ASCII is shown, we need to iteratively calculate bytesPerRow
+    // because ASCII width depends on bytesPerRow, but bytesPerRow depends on ASCII width
+    if (showAscii) {
+      // Start with an estimate, then refine
+      let estimatedBytes = Math.floor(
+        (availableWidth + HEX_BYTE_GAP) / (HEX_BYTE_WIDTH + HEX_BYTE_GAP)
+      );
+
+      // Iterate to find the correct bytesPerRow
+      // ASCII takes: bytesPerRow * ASCII_CHAR_WIDTH + ASCII_BORDER_PADDING
+      for (let i = 0; i < 5; i++) {
+        // Max 5 iterations should be enough
+        const asciiWidth =
+          estimatedBytes * ASCII_CHAR_WIDTH + ASCII_BORDER_PADDING;
+        const hexAvailableWidth = availableWidth - asciiWidth;
+        const newEstimatedBytes = Math.floor(
+          (hexAvailableWidth + HEX_BYTE_GAP) / (HEX_BYTE_WIDTH + HEX_BYTE_GAP)
+        );
+
+        if (newEstimatedBytes === estimatedBytes) {
+          break; // Converged
+        }
+        estimatedBytes = newEstimatedBytes;
+      }
+
+      // Enforce minimum of 16 bytes
+      return Math.max(16, estimatedBytes);
+    } else {
+      // No ASCII, straightforward calculation
+      const calculatedBytes = Math.floor(
+        (availableWidth + HEX_BYTE_GAP) / (HEX_BYTE_WIDTH + HEX_BYTE_GAP)
+      );
+
+      // Enforce minimum of 16 bytes
+      return Math.max(16, calculatedBytes);
+    }
+  }, [parentWidth, showAscii]);
+
+  // Format rows with dynamic bytesPerRow
+  const rows = useMemo(() => {
+    return formatDataIntoRows(data, bytesPerRow);
+  }, [data, bytesPerRow]);
 
   // Compute collapsible sections when in diff mode
   const collapsibleSections = useMemo(() => {
@@ -645,12 +701,12 @@ const HexView = forwardRef<
                     );
                   })}
 
-                  {row.hexBytes.length < 16 &&
-                    Array.from({ length: 16 - row.hexBytes.length }).map(
-                      (_, i) => (
-                        <span key={`pad-${i}`} className="inline-block w-6" />
-                      )
-                    )}
+                  {row.hexBytes.length < bytesPerRow &&
+                    Array.from({
+                      length: bytesPerRow - row.hexBytes.length,
+                    }).map((_, i) => (
+                      <span key={`pad-${i}`} className="inline-block w-6" />
+                    ))}
                 </div>
 
                 {showAscii && (

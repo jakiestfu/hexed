@@ -34,7 +34,7 @@ export type VirtualItemType =
   | { type: "collapse"; section: CollapsibleSection };
 
 export type HexViewProps = {
-  rows: ReturnType<typeof formatDataIntoRows>;
+  data: Uint8Array;
   showAscii: boolean;
   diff: ReturnType<typeof computeDiff> | null;
   getDiffColorClass: (offset: number) => string;
