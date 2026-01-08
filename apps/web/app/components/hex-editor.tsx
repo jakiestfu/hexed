@@ -28,6 +28,7 @@ import {
   ChevronDownIcon,
   File,
   Loader2,
+  ChevronsUpDown,
 } from "lucide-react";
 import { useVirtualizer } from "@tanstack/react-virtual";
 import { DiffViewer } from "./diff-viewer";
@@ -49,6 +50,7 @@ interface HexEditorProps {
 }
 
 interface HexEditorViewProps {
+  scrollToOffset: number | null;
   snapshot: BinarySnapshot;
   previousSnapshot?: BinarySnapshot;
   filePath: string;
@@ -58,6 +60,7 @@ interface HexEditorViewProps {
   diffMode: DiffViewMode;
   onShowAsciiChange: (show: boolean) => void;
   onDiffModeChange: (mode: DiffViewMode) => void;
+  diff: DiffResult | null;
 }
 
 interface CollapsibleSection {
@@ -220,6 +223,7 @@ function getBasename(filePath: string): string {
 }
 
 function HexEditorView({
+  scrollToOffset,
   snapshot,
   previousSnapshot,
   filePath,
@@ -229,6 +233,7 @@ function HexEditorView({
   diffMode,
   onShowAsciiChange,
   onDiffModeChange,
+  diff,
 }: HexEditorViewProps) {
   const bytesPerRow = 16;
   const hexViewRef = React.useRef<{
@@ -236,10 +241,6 @@ function HexEditorView({
   } | null>(null);
 
   // Compute diff if we have a previous snapshot and diff mode is active
-  const diff = React.useMemo(() => {
-    if (!previousSnapshot || diffMode === "none") return null;
-    return computeDiff(previousSnapshot, snapshot);
-  }, [previousSnapshot, snapshot, diffMode]);
 
   const rows = React.useMemo(() => {
     return formatDataIntoRows(snapshot.data, bytesPerRow);
@@ -249,6 +250,12 @@ function HexEditorView({
     if (!previousSnapshot) return null;
     return formatDataIntoRows(previousSnapshot.data, bytesPerRow);
   }, [previousSnapshot, bytesPerRow]);
+
+  React.useEffect(() => {
+    if (scrollToOffset) {
+      hexViewRef.current?.scrollToOffset(scrollToOffset);
+    }
+  }, [scrollToOffset]);
 
   const getDiffColorClass = (offset: number) => {
     if (!diff) return "";
@@ -267,16 +274,12 @@ function HexEditorView({
     }
   };
 
-  const handleScrollToOffset = React.useCallback((offset: number) => {
-    hexViewRef.current?.scrollToOffset(offset);
-  }, []);
-
   return (
     <div className="h-full">
       {/* Stats */}
-      {diff && diffMode !== "none" && (
+      {/* {diff && diffMode !== "none" && (
         <DiffViewer diff={diff} onScrollToOffset={handleScrollToOffset} />
-      )}
+      )} */}
 
       <HexView
         ref={hexViewRef}
@@ -329,6 +332,14 @@ export function HexEditor({
     </div>
   ) : undefined;
 
+  const diff = React.useMemo(() => {
+    if (!previousSnapshot || diffMode === "none") return null;
+    return computeDiff(previousSnapshot, currentSnapshot);
+  }, [previousSnapshot, currentSnapshot, diffMode]);
+
+  const [scrollToOffset, setScrollToOffset] = React.useState<number | null>(
+    null
+  );
   const headerContent = (
     <CardHeader className="p-0! gap-0 m-0 bg-muted/30">
       {/* Primary Toolbar */}
@@ -389,6 +400,10 @@ export function HexEditor({
           </div>
         </div>
       )}
+
+      {diff ? (
+        <DiffViewer diff={diff} onScrollToOffset={setScrollToOffset} />
+      ) : null}
     </CardHeader>
   );
 
@@ -434,6 +449,7 @@ export function HexEditor({
           className="h-full"
         >
           <HexEditorView
+            diff={diff}
             snapshot={snapshot}
             previousSnapshot={index > 0 ? snapshots[index - 1] : undefined}
             filePath={filePath!}
@@ -443,6 +459,7 @@ export function HexEditor({
             diffMode={diffMode}
             onShowAsciiChange={setShowAscii}
             onDiffModeChange={setDiffMode}
+            scrollToOffset={scrollToOffset}
           />
         </TabsContent>
       ));
@@ -684,7 +701,7 @@ const HexView = React.forwardRef<
             position: "relative",
           }}
         >
-          {virtualizer.getVirtualItems().map((virtualItem) => {
+          {virtualizer.getVirtualItems().map((virtualItem, index) => {
             const item = virtualItems[virtualItem.index];
 
             if (item.type === "collapse") {
@@ -700,18 +717,22 @@ const HexView = React.forwardRef<
                     height: `${virtualItem.size}px`,
                     transform: `translateY(${virtualItem.start}px)`,
                   }}
-                  className="flex items-center justify-center border-y border-border bg-muted/30 hover:bg-muted/50 transition-colors"
+                  className={`flex items-center justify-center ${
+                    index ? "border-y" : "border-b"
+                  } border-border bg-muted/30 hover:bg-muted/50 transition-colors`}
                 >
                   <Button
                     variant="ghost"
                     size="sm"
                     onClick={() => toggleSection(item.section.id)}
-                    className="text-muted-foreground hover:text-foreground"
+                    className="text-muted-foreground hover:text-foreground my-[1px] w-full"
                   >
-                    <ChevronDownIcon className="h-4 w-4 mr-2" />
-                    <span className="text-xs">
-                      {item.section.hiddenRowCount} line
-                      {item.section.hiddenRowCount !== 1 ? "s" : ""} hidden
+                    <span className="flex items-center justify-center w-full">
+                      <ChevronsUpDown className="h-4 w-4 mr-2" />
+                      <span className="text-xs">
+                        {item.section.hiddenRowCount} line
+                        {item.section.hiddenRowCount !== 1 ? "s" : ""} hidden
+                      </span>
                     </span>
                   </Button>
                 </div>
@@ -731,13 +752,13 @@ const HexView = React.forwardRef<
                   height: `${virtualItem.size}px`,
                   transform: `translateY(${virtualItem.start}px)`,
                 }}
-                className="flex gap-4 hover:bg-muted/50 py-0.5"
+                className="flex gap-4 hover:bg-muted/50 px-4"
               >
-                <div className="text-muted-foreground select-none shrink-0 w-24">
+                <div className="flex h-full items-center text-muted-foreground select-none shrink-0 w-24">
                   {row.address}
                 </div>
 
-                <div className="flex gap-1 flex-wrap">
+                <div className="flex h-full items-center gap-1 flex-wrap">
                   {row.hexBytes.map((byte, index) => {
                     const offset = row.startOffset + index;
                     const colorClass = getDiffColorClass(offset);
@@ -769,7 +790,7 @@ const HexView = React.forwardRef<
                 </div>
 
                 {showAscii && (
-                  <div className="border-l pl-4 text-muted-foreground">
+                  <div className="flex h-full items-center border-l pl-4 text-muted-foreground">
                     {row.ascii.split("").map((char, index) => {
                       const offset = row.startOffset + index;
                       const colorClass = getDiffColorClass(offset);

@@ -29,7 +29,7 @@ export function DiffViewer({ diff, onScrollToOffset }: DiffViewerProps) {
   const modifiedOffsets = modified.map((d) => d.offset).sort((a, b) => a - b);
 
   return (
-    <div className="flex gap-4 divide-x divide-gray-200">
+    <div className="flex divide-x border-b">
       <div className="flex-1 p-4">
         <div className="flex flex-row items-center justify-between pb-2">
           <h3 className="text-sm font-medium">Added</h3>
@@ -57,8 +57,6 @@ export function DiffViewer({ diff, onScrollToOffset }: DiffViewerProps) {
         )}
       </div>
 
-      <Separator orientation="vertical" />
-
       <div className="flex-1 p-4">
         <div className="flex flex-row items-center justify-between pb-2">
           <h3 className="text-sm font-medium">Removed</h3>
@@ -85,8 +83,6 @@ export function DiffViewer({ diff, onScrollToOffset }: DiffViewerProps) {
           </Select>
         )}
       </div>
-
-      <Separator orientation="vertical" />
 
       <div className="flex-1 p-4">
         <div className="flex flex-row items-center justify-between pb-2">
