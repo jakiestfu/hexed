@@ -54,6 +54,7 @@ import { EmptyState } from "./empty-state";
 import { HexToolbar } from "./hex-toolbar";
 import { Logo } from "~/components/logo";
 import { HexFooter } from "~/components/hex-editor/hex-footer";
+import { useChecksumVisibility } from "~/hooks/use-checksum-visibility";
 import type { HexEditorProps, HexEditorViewProps, HexViewProps } from "./types";
 import {
   computeCollapsibleSections,
@@ -128,6 +129,7 @@ export const HexEditor: FunctionComponent<HexEditorProps> = ({
   const [dataType, setDataType] = useState<string>("Signed Int");
   const [endianness, setEndianness] = useState<string>("le");
   const [numberFormat, setNumberFormat] = useState<string>("dec");
+  const { showChecksums } = useChecksumVisibility();
   const currentSnapshot = snapshots[parseInt(activeTab, 10)] || snapshots[0];
   const hasFile = filePath != null && filePath !== "";
   const hasSnapshots = snapshots.length > 0;
@@ -218,6 +220,11 @@ export const HexEditor: FunctionComponent<HexEditorProps> = ({
               {snapshots.map((snapshot, index) => (
                 <TabsTrigger key={snapshot.id} value={index.toString()}>
                   {snapshot.label}
+                  {showChecksums && (
+                    <span className="text-xs text-muted-foreground font-mono">
+                      {snapshot.md5 ? ` (${snapshot.md5.slice(0, 7)})` : ""}
+                    </span>
+                  )}
                 </TabsTrigger>
               ))}
             </TabsList>

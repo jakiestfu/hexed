@@ -14,6 +14,8 @@ export interface BinarySnapshot {
   index: number;
   /** Label for display (e.g., "Baseline", "Change 1") */
   label: string;
+  /** MD5 checksum of the file data */
+  md5?: string;
 }
 
 /**

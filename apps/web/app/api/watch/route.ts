@@ -1,4 +1,5 @@
 import * as chokidar from "chokidar";
+import * as crypto from "crypto";
 import { readBinaryFile } from "@hexed/binary-utils";
 import { createStorageAdapter } from "@hexed/binary-utils";
 import type { BinarySnapshot, SSEMessage } from "@hexed/types";
@@ -33,6 +34,7 @@ export async function GET(request: Request) {
       const processFile = async () => {
         try {
           const data = await readBinaryFile(filePath);
+          const md5 = crypto.createHash("md5").update(data).digest("hex");
           const snapshot: BinarySnapshot = {
             id: `${Date.now()}-${snapshotIndex}`,
             filePath,
@@ -40,6 +42,7 @@ export async function GET(request: Request) {
             timestamp: Date.now(),
             index: snapshotIndex,
             label: snapshotIndex === 0 ? "Baseline" : `Change ${snapshotIndex}`,
+            md5,
           };
 
           await storage.save(filePath, snapshot);
@@ -84,7 +87,7 @@ export async function GET(request: Request) {
       watcher.on("error", (error) => {
         sendMessage({
           type: "error",
-          error: error.message,
+          error: error instanceof Error ? error.message : "Unknown error",
           timestamp: Date.now(),
         });
       });

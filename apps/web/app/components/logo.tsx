@@ -3,6 +3,7 @@
 import {
   Button,
   DropdownMenu,
+  DropdownMenuCheckboxItem,
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuSeparator,
@@ -13,6 +14,7 @@ import {
 } from "@hexed/ui";
 import {
   ChevronDown,
+  Eye,
   File,
   Ghost,
   Github,
@@ -26,6 +28,7 @@ import { useTheme } from "next-themes";
 import Link from "next/link";
 import { FunctionComponent, ReactNode } from "react";
 import { useRecentFiles } from "~/hooks/use-recent-files";
+import { useChecksumVisibility } from "~/hooks/use-checksum-visibility";
 import { encodeFilePath } from "~/utils/path-encoding";
 import { cn } from "@hexed/ui";
 
@@ -61,6 +64,7 @@ export const Logo: FunctionComponent<LogoProps> = ({
 }) => {
   const { setTheme } = useTheme();
   const { recentFiles } = useRecentFiles();
+  const { showChecksums, setShowChecksums } = useChecksumVisibility();
   const effectiveMenuItems =
     menuItems && menuItems.length > 0 ? menuItems : defaultMenuItems;
   const hasDropdown =
@@ -170,9 +174,18 @@ export const Logo: FunctionComponent<LogoProps> = ({
           <DropdownMenuSub>
             <DropdownMenuSubTrigger className="cursor-pointer">
               <Palette className="mr-2 h-4 w-4" />
-              Theme
+              View
             </DropdownMenuSubTrigger>
             <DropdownMenuSubContent>
+              <DropdownMenuCheckboxItem
+                checked={showChecksums}
+                onCheckedChange={setShowChecksums}
+                className="cursor-pointer"
+              >
+                <Eye className="mr-2 h-4 w-4" />
+                Show Checksums
+              </DropdownMenuCheckboxItem>
+              <DropdownMenuSeparator />
               <DropdownMenuItem
                 onClick={() => setTheme("light")}
                 className="cursor-pointer"
