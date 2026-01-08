@@ -1,15 +1,12 @@
 import * as React from "react";
 import type { DiffResult } from "@hexed/types";
 import {
-  Card,
-  CardContent,
-  CardHeader,
-  CardTitle,
   Select,
   SelectContent,
   SelectItem,
   SelectTrigger,
   SelectValue,
+  Separator,
 } from "@hexed/ui";
 import { TrendingUp, TrendingDown, RefreshCw } from "lucide-react";
 
@@ -32,99 +29,93 @@ export function DiffViewer({ diff, onScrollToOffset }: DiffViewerProps) {
   const modifiedOffsets = modified.map((d) => d.offset).sort((a, b) => a - b);
 
   return (
-    <div className="grid gap-4 md:grid-cols-3">
-      <Card>
-        <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-          <CardTitle className="text-sm font-medium">Added</CardTitle>
+    <div className="flex gap-4 divide-x divide-gray-200">
+      <div className="flex-1 p-4">
+        <div className="flex flex-row items-center justify-between pb-2">
+          <h3 className="text-sm font-medium">Added</h3>
           <TrendingUp className="h-4 w-4 text-green-500" />
-        </CardHeader>
-        <CardContent>
-          <div className="text-2xl font-bold text-green-500">
-            {added.length}
-          </div>
-          <p className="text-xs text-muted-foreground mb-2">bytes added</p>
-          {addedOffsets.length > 0 && (
-            <Select
-              onValueChange={(value) => {
-                onScrollToOffset(parseInt(value, 16));
-              }}
-            >
-              <SelectTrigger className="h-8 text-xs w-full">
-                <SelectValue placeholder="Jump to offset..." />
-              </SelectTrigger>
-              <SelectContent>
-                {addedOffsets.map((offset) => (
-                  <SelectItem key={offset} value={offset.toString(16)}>
-                    {formatOffset(offset)}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          )}
-        </CardContent>
-      </Card>
+        </div>
+        <div className="text-2xl font-bold text-green-500">{added.length}</div>
+        <p className="text-xs text-muted-foreground mb-2">bytes added</p>
+        {addedOffsets.length > 0 && (
+          <Select
+            onValueChange={(value) => {
+              onScrollToOffset(parseInt(value, 16));
+            }}
+          >
+            <SelectTrigger className="h-8 text-xs w-full">
+              <SelectValue placeholder="Jump to offset..." />
+            </SelectTrigger>
+            <SelectContent>
+              {addedOffsets.map((offset) => (
+                <SelectItem key={offset} value={offset.toString(16)}>
+                  {formatOffset(offset)}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        )}
+      </div>
 
-      <Card>
-        <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-          <CardTitle className="text-sm font-medium">Removed</CardTitle>
+      <Separator orientation="vertical" />
+
+      <div className="flex-1 p-4">
+        <div className="flex flex-row items-center justify-between pb-2">
+          <h3 className="text-sm font-medium">Removed</h3>
           <TrendingDown className="h-4 w-4 text-red-500" />
-        </CardHeader>
-        <CardContent>
-          <div className="text-2xl font-bold text-red-500">
-            {removed.length}
-          </div>
-          <p className="text-xs text-muted-foreground mb-2">bytes removed</p>
-          {removedOffsets.length > 0 && (
-            <Select
-              onValueChange={(value) => {
-                onScrollToOffset(parseInt(value, 16));
-              }}
-            >
-              <SelectTrigger className="h-8 text-xs w-full">
-                <SelectValue placeholder="Jump to offset..." />
-              </SelectTrigger>
-              <SelectContent>
-                {removedOffsets.map((offset) => (
-                  <SelectItem key={offset} value={offset.toString(16)}>
-                    {formatOffset(offset)}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          )}
-        </CardContent>
-      </Card>
+        </div>
+        <div className="text-2xl font-bold text-red-500">{removed.length}</div>
+        <p className="text-xs text-muted-foreground mb-2">bytes removed</p>
+        {removedOffsets.length > 0 && (
+          <Select
+            onValueChange={(value) => {
+              onScrollToOffset(parseInt(value, 16));
+            }}
+          >
+            <SelectTrigger className="h-8 text-xs w-full">
+              <SelectValue placeholder="Jump to offset..." />
+            </SelectTrigger>
+            <SelectContent>
+              {removedOffsets.map((offset) => (
+                <SelectItem key={offset} value={offset.toString(16)}>
+                  {formatOffset(offset)}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        )}
+      </div>
 
-      <Card>
-        <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-          <CardTitle className="text-sm font-medium">Modified</CardTitle>
+      <Separator orientation="vertical" />
+
+      <div className="flex-1 p-4">
+        <div className="flex flex-row items-center justify-between pb-2">
+          <h3 className="text-sm font-medium">Modified</h3>
           <RefreshCw className="h-4 w-4 text-yellow-500" />
-        </CardHeader>
-        <CardContent>
-          <div className="text-2xl font-bold text-yellow-500">
-            {modified.length}
-          </div>
-          <p className="text-xs text-muted-foreground mb-2">bytes modified</p>
-          {modifiedOffsets.length > 0 && (
-            <Select
-              onValueChange={(value) => {
-                onScrollToOffset(parseInt(value, 16));
-              }}
-            >
-              <SelectTrigger className="h-8 text-xs w-full">
-                <SelectValue placeholder="Jump to offset..." />
-              </SelectTrigger>
-              <SelectContent>
-                {modifiedOffsets.map((offset) => (
-                  <SelectItem key={offset} value={offset.toString(16)}>
-                    {formatOffset(offset)}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          )}
-        </CardContent>
-      </Card>
+        </div>
+        <div className="text-2xl font-bold text-yellow-500">
+          {modified.length}
+        </div>
+        <p className="text-xs text-muted-foreground mb-2">bytes modified</p>
+        {modifiedOffsets.length > 0 && (
+          <Select
+            onValueChange={(value) => {
+              onScrollToOffset(parseInt(value, 16));
+            }}
+          >
+            <SelectTrigger className="h-8 text-xs w-full">
+              <SelectValue placeholder="Jump to offset..." />
+            </SelectTrigger>
+            <SelectContent>
+              {modifiedOffsets.map((offset) => (
+                <SelectItem key={offset} value={offset.toString(16)}>
+                  {formatOffset(offset)}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        )}
+      </div>
     </div>
   );
 }

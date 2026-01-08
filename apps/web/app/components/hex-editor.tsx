@@ -272,50 +272,19 @@ function HexEditorView({
   }, []);
 
   return (
-    <div className="space-y-4 h-full">
+    <div className="h-full">
       {/* Stats */}
       {diff && diffMode !== "none" && (
         <DiffViewer diff={diff} onScrollToOffset={handleScrollToOffset} />
       )}
 
-      {/* Hex Editor View */}
-      {diffMode === "side-by-side" && previousRows ? (
-        <div className="grid grid-cols-2">
-          <Card className="p-0">
-            <CardContent className="p-4">
-              <div className="text-sm font-semibold mb-2 text-muted-foreground">
-                Previous
-              </div>
-              <HexView
-                rows={previousRows}
-                showAscii={showAscii}
-                diff={null}
-                getDiffColorClass={() => ""}
-              />
-            </CardContent>
-          </Card>
-          <Card>
-            <CardContent className="p-4">
-              <div className="text-sm font-semibold mb-2">Current</div>
-              <HexView
-                ref={hexViewRef}
-                rows={rows}
-                showAscii={showAscii}
-                diff={diff}
-                getDiffColorClass={getDiffColorClass}
-              />
-            </CardContent>
-          </Card>
-        </div>
-      ) : (
-        <HexView
-          ref={hexViewRef}
-          rows={rows}
-          showAscii={showAscii}
-          diff={diff}
-          getDiffColorClass={getDiffColorClass}
-        />
-      )}
+      <HexView
+        ref={hexViewRef}
+        rows={rows}
+        showAscii={showAscii}
+        diff={diff}
+        getDiffColorClass={getDiffColorClass}
+      />
     </div>
   );
 }
@@ -332,7 +301,7 @@ export function HexEditor({
 }: HexEditorProps) {
   const [activeTab, setActiveTab] = React.useState<string>("0");
   const [showAscii, setShowAscii] = React.useState(true);
-  const [diffMode, setDiffMode] = React.useState<DiffViewMode>("none");
+  const [diffMode, setDiffMode] = React.useState<DiffViewMode>("inline");
   const currentSnapshot = snapshots[parseInt(activeTab, 10)] || snapshots[0];
   const hasFile = filePath != null && filePath !== "";
   const hasSnapshots = snapshots.length > 0;
@@ -347,195 +316,214 @@ export function HexEditor({
 
     setDiffMode((current) => {
       if (current === "none") return "inline";
-      if (current === "inline") return "side-by-side";
+      // if (current === "inline") return "side-by-side";
       return "none";
     });
   };
 
-  // Show empty state when no file is selected
-  if (!hasFile) {
-    return (
-      <Card
-        className={`p-0 m-0 w-full h-full rounded-none border-none shadow-none ${className}`}
-      >
-        <CardHeader className="p-0! gap-0 m-0 bg-muted/30">
-          {/* Primary Toolbar */}
-          <HexToolbar
-            left={<Logo />}
-            center={
-              <div className="flex items-center gap-2 min-w-0">
-                <File className="h-4 w-4 text-muted-foreground shrink-0" />
-                <span className="font-mono text-sm text-muted-foreground">
-                  No file selected
-                </span>
-              </div>
-            }
-            right={<span />}
-          />
-        </CardHeader>
-        <CardContent className="p-0 grow overflow-auto">
-          {onFileSelect ? (
-            <EmptyState onFileSelect={onFileSelect} recentFiles={recentFiles} />
-          ) : (
-            <div className="flex items-center justify-center min-h-[500px] text-muted-foreground">
-              Please select a file to begin
-            </div>
-          )}
-        </CardContent>
-        <CardFooter className="p-0">
-          <HexFooter />
-        </CardFooter>
-      </Card>
-    );
-  }
-
-  const bytesLabel = (
+  const bytesLabel = hasFile ? (
     <div className="flex items-center gap-2">
       <span className="text-sm text-muted-foreground">
         {currentSnapshot?.data.length.toLocaleString()} bytes
       </span>
     </div>
+  ) : undefined;
+
+  const headerContent = (
+    <CardHeader className="p-0! gap-0 m-0 bg-muted/30">
+      {/* Primary Toolbar */}
+      <HexToolbar
+        left={<Logo />}
+        center={
+          !hasFile ? (
+            <div className="flex items-center gap-2 min-w-0">
+              <File className="h-4 w-4 text-muted-foreground shrink-0" />
+              <span className="font-mono text-sm text-muted-foreground">
+                No file selected
+              </span>
+            </div>
+          ) : (
+            <div className="flex items-center gap-2 min-w-0">
+              <File className="h-4 w-4 text-muted-foreground shrink-0" />
+              <span className="font-mono text-sm truncate" title={filePath}>
+                {getBasename(filePath!)}
+              </span>
+              <div
+                className={`inline-flex h-2 w-2 rounded-full shrink-0 ${
+                  isConnected ? "bg-green-500" : "bg-red-500"
+                }`}
+                title={isConnected ? "Connected" : "Disconnected"}
+              />
+            </div>
+          )
+        }
+        right={
+          !hasFile ? (
+            <span />
+          ) : (
+            onClose && (
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={onClose}
+                className="ml-2 shrink-0"
+              >
+                <X className="h-4 w-4" />
+              </Button>
+            )
+          )
+        }
+      />
+
+      {/* Secondary Toolbar - Tabs */}
+      {hasFile && hasSnapshots && (
+        <div className="border-b">
+          <div className="p-4">
+            <TabsList>
+              {snapshots.map((snapshot, index) => (
+                <TabsTrigger key={snapshot.id} value={index.toString()}>
+                  {snapshot.label}
+                </TabsTrigger>
+              ))}
+            </TabsList>
+          </div>
+        </div>
+      )}
+    </CardHeader>
   );
+
+  const renderCardContent = (insideTabs: boolean) => {
+    if (!hasFile) {
+      return onFileSelect ? (
+        <EmptyState onFileSelect={onFileSelect} recentFiles={recentFiles} />
+      ) : (
+        <div className="flex items-center justify-center min-h-[500px] text-muted-foreground">
+          Please select a file to begin
+        </div>
+      );
+    }
+
+    if (loading) {
+      return (
+        <div className="flex flex-col items-center justify-center gap-4 text-center min-h-[500px]">
+          <Loader2 className="h-8 w-8 animate-spin text-primary" />
+          <div>
+            <h3 className="font-semibold">Loading file...</h3>
+            <p className="text-sm text-muted-foreground mt-1">
+              Reading {filePath}
+            </p>
+          </div>
+        </div>
+      );
+    }
+
+    if (!hasSnapshots) {
+      return (
+        <div className="flex items-center justify-center min-h-[500px] text-muted-foreground">
+          No data available
+        </div>
+      );
+    }
+
+    // When we have snapshots, render TabsContent if inside Tabs, otherwise render HexEditorView directly
+    if (insideTabs) {
+      return snapshots.map((snapshot, index) => (
+        <TabsContent
+          key={snapshot.id}
+          value={index.toString()}
+          className="h-full"
+        >
+          <HexEditorView
+            snapshot={snapshot}
+            previousSnapshot={index > 0 ? snapshots[index - 1] : undefined}
+            filePath={filePath!}
+            isConnected={isConnected}
+            onClose={onClose}
+            showAscii={showAscii}
+            diffMode={diffMode}
+            onShowAsciiChange={setShowAscii}
+            onDiffModeChange={setDiffMode}
+          />
+        </TabsContent>
+      ));
+    }
+
+    // Render HexEditorView directly when not inside Tabs (shouldn't happen with current logic, but for safety)
+    const activeSnapshot = snapshots[parseInt(activeTab, 10)] || snapshots[0];
+    return (
+      <HexEditorView
+        snapshot={activeSnapshot}
+        previousSnapshot={snapshots.length > 1 ? snapshots[0] : undefined}
+        filePath={filePath!}
+        isConnected={isConnected}
+        onClose={onClose}
+        showAscii={showAscii}
+        diffMode={diffMode}
+        onShowAsciiChange={setShowAscii}
+        onDiffModeChange={setDiffMode}
+      />
+    );
+  };
 
   return (
     <Card
-      className={`p-0 m-0 w-full h-full rounded-none shadow-none border-none ${className}`}
+      className={`p-0 m-0 w-full h-full rounded-none border-none shadow-none ${className}`}
     >
-      <Tabs
-        value={activeTab}
-        onValueChange={setActiveTab}
-        className="gap-0 h-full"
-      >
-        <CardHeader className="p-0! gap-0 m-0 border-none bg-muted/30">
-          {/* Primary Toolbar */}
-          <HexToolbar
-            left={<Logo />}
-            center={
-              <>
-                <div className="flex items-center gap-2 min-w-0">
-                  <File className="h-4 w-4 text-muted-foreground shrink-0" />
-                  <span className="font-mono text-sm truncate" title={filePath}>
-                    {getBasename(filePath)}
-                  </span>
-                  <div
-                    className={`inline-flex h-2 w-2 rounded-full shrink-0 ${
-                      isConnected ? "bg-green-500" : "bg-red-500"
-                    }`}
-                    title={isConnected ? "Connected" : "Disconnected"}
-                  />
-                </div>
-              </>
-            }
-            right={
-              onClose && (
-                <Button
-                  variant="ghost"
+      {hasFile && hasSnapshots ? (
+        <Tabs
+          value={activeTab}
+          onValueChange={setActiveTab}
+          className="gap-0 h-full"
+        >
+          {headerContent}
+          <CardContent className="p-0 grow overflow-auto">
+            {renderCardContent(true)}
+          </CardContent>
+          <CardFooter className="p-0">
+            <HexFooter
+              left={bytesLabel}
+              right={
+                <Toggle
+                  pressed={showAscii}
+                  onPressedChange={setShowAscii}
+                  aria-label="Toggle ASCII view"
                   size="sm"
-                  onClick={onClose}
-                  className="ml-2 shrink-0"
                 >
-                  <X className="h-4 w-4" />
-                </Button>
-              )
-            }
-          />
-
-          {/* Secondary Toolbar - Tabs */}
-          {hasSnapshots && (
-            <div className="border-b">
-              <div className="p-4">
-                <TabsList>
-                  {snapshots.map((snapshot, index) => (
-                    <TabsTrigger key={snapshot.id} value={index.toString()}>
-                      {snapshot.label}
-                    </TabsTrigger>
-                  ))}
-                </TabsList>
-              </div>
-            </div>
-          )}
-        </CardHeader>
-        <CardContent className="p-0 grow overflow-auto">
-          {loading ? (
-            <div className="flex flex-col items-center justify-center gap-4 text-center min-h-[500px]">
-              <Loader2 className="h-8 w-8 animate-spin text-primary" />
-              <div>
-                <h3 className="font-semibold">Loading file...</h3>
-                <p className="text-sm text-muted-foreground mt-1">
-                  Reading {filePath}
-                </p>
-              </div>
-            </div>
-          ) : hasSnapshots ? (
-            snapshots.map((snapshot, index) => (
-              <TabsContent
-                key={snapshot.id}
-                value={index.toString()}
-                className="h-full"
-              >
-                <HexEditorView
-                  snapshot={snapshot}
-                  previousSnapshot={
-                    index > 0 ? snapshots[index - 1] : undefined
-                  }
-                  filePath={filePath}
-                  isConnected={isConnected}
-                  onClose={onClose}
-                  showAscii={showAscii}
-                  diffMode={diffMode}
-                  onShowAsciiChange={setShowAscii}
-                  onDiffModeChange={setDiffMode}
-                />
-              </TabsContent>
-            ))
-          ) : (
-            <div className="flex items-center justify-center min-h-[500px] text-muted-foreground">
-              No data available
-            </div>
-          )}
-        </CardContent>
-        <CardFooter className="p-0">
-          <HexFooter
-            left={bytesLabel}
-            right={
-              <Toggle
-                pressed={showAscii}
-                onPressedChange={setShowAscii}
-                aria-label="Toggle ASCII view"
-                size="sm"
-              >
-                <Eye className="h-3 w-3" />
-                <span className="ml-1 text-xs">ASCII</span>
-              </Toggle>
-            }
-            center={<span>test</span>}
-          />
-          {/* <div className="flex items-center justify-end gap-2 w-full">
-            
-            {previousSnapshot && (
-              <Toggle
-                pressed={diffMode !== "none"}
-                onPressedChange={toggleDiffMode}
-                aria-label="Toggle diff mode"
-                size="sm"
-              >
-                {diffMode === "side-by-side" ? (
-                  <Columns2 className="h-3 w-3" />
-                ) : (
-                  <Minus className="h-3 w-3" />
-                )}
-                <span className="ml-1 text-xs">
-                  {diffMode === "none"
-                    ? "Diff"
-                    : diffMode === "inline"
-                    ? "Inline"
-                    : "Side-by-Side"}
-                </span>
-              </Toggle>
-            )}
-          </div> */}
-        </CardFooter>
-      </Tabs>
+                  <Eye className="h-3 w-3" />
+                  <span className="ml-1 text-xs">ASCII</span>
+                </Toggle>
+              }
+              center={<span>test</span>}
+            />
+          </CardFooter>
+        </Tabs>
+      ) : (
+        <>
+          {headerContent}
+          <CardContent className="p-0 grow overflow-auto">
+            {renderCardContent(false)}
+          </CardContent>
+          <CardFooter className="p-0">
+            <HexFooter
+              left={bytesLabel}
+              right={
+                hasFile ? (
+                  <Toggle
+                    pressed={showAscii}
+                    onPressedChange={setShowAscii}
+                    aria-label="Toggle ASCII view"
+                    size="sm"
+                  >
+                    <Eye className="h-3 w-3" />
+                    <span className="ml-1 text-xs">ASCII</span>
+                  </Toggle>
+                ) : undefined
+              }
+              center={hasFile ? <span>test</span> : undefined}
+            />
+          </CardFooter>
+        </>
+      )}
     </Card>
   );
 }
