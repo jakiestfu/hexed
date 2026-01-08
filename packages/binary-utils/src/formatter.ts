@@ -6,7 +6,7 @@
  * Convert a byte to a 2-character hex string
  */
 export function byteToHex(byte: number): string {
-  return byte.toString(16).padStart(2, '0').toUpperCase();
+  return byte.toString(16).padStart(2, "0").toUpperCase();
 }
 
 /**
@@ -17,22 +17,22 @@ export function byteToAscii(byte: number): string {
   if (byte >= 32 && byte <= 126) {
     return String.fromCharCode(byte);
   }
-  return '.';
+  return ".";
 }
 
 /**
  * Format an offset/address as hex
  */
 export function formatAddress(offset: number, width: number = 8): string {
-  return '0x' + offset.toString(16).padStart(width, '0').toUpperCase();
+  return "0x" + offset.toString(16).padStart(width, "0").toUpperCase();
 }
 
 /**
  * Convert Uint8Array to hex string representation
  */
-export function toHexString(data: Uint8Array, separator: string = ' '): string {
+export function toHexString(data: Uint8Array, separator: string = " "): string {
   return Array.from(data)
-    .map(byte => byteToHex(byte))
+    .map((byte) => byteToHex(byte))
     .join(separator);
 }
 
@@ -41,8 +41,8 @@ export function toHexString(data: Uint8Array, separator: string = ' '): string {
  */
 export function toAsciiString(data: Uint8Array): string {
   return Array.from(data)
-    .map(byte => byteToAscii(byte))
-    .join('');
+    .map((byte) => byteToAscii(byte))
+    .join("");
 }
 
 /**
@@ -64,21 +64,60 @@ export function formatDataIntoRows(
   bytesPerRow: number = 16
 ): FormattedRow[] {
   const rows: FormattedRow[] = [];
-  
+
   for (let i = 0; i < data.length; i += bytesPerRow) {
     const chunk = data.slice(i, Math.min(i + bytesPerRow, data.length));
-    const hexBytes = Array.from(chunk).map(byte => byteToHex(byte));
+    const hexBytes = Array.from(chunk).map((byte) => byteToHex(byte));
     const ascii = toAsciiString(chunk);
-    
+
     rows.push({
       address: formatAddress(i),
       hexBytes,
       ascii,
       startOffset: i,
-      endOffset: i + chunk.length - 1
+      endOffset: i + chunk.length - 1,
     });
   }
-  
+
   return rows;
 }
 
+/**
+ * Format file size with bytes and most relevant unit
+ * @param bytes - The number of bytes
+ * @returns Formatted string like "512 bytes" or "1,024 bytes • 1 KB"
+ */
+export function formatFileSize(bytes: number): string {
+  const formattedBytes = bytes.toLocaleString();
+
+  if (bytes < 1024) {
+    return `${formattedBytes} bytes`;
+  }
+
+  const KB = 1024;
+  const MB = KB * 1024;
+  const GB = MB * 1024;
+  const TB = GB * 1024;
+
+  if (bytes < MB) {
+    const kb = bytes / KB;
+    const formattedKb = kb % 1 === 0 ? kb.toFixed(0) : kb.toFixed(1);
+    return `${formattedBytes} bytes • ${formattedKb}kb`;
+  }
+
+  if (bytes < GB) {
+    const mb = bytes / MB;
+    const formattedMb = mb % 1 === 0 ? mb.toFixed(0) : mb.toFixed(1);
+    return `${formattedBytes} bytes • ${formattedMb}mb`;
+  }
+
+  if (bytes < TB) {
+    const gb = bytes / GB;
+    const formattedGb = gb % 1 === 0 ? gb.toFixed(0) : gb.toFixed(1);
+    return `${formattedBytes} bytes • ${formattedGb}gb`;
+  }
+
+  const tb = bytes / TB;
+  const formattedTb = tb % 1 === 0 ? tb.toFixed(0) : tb.toFixed(1);
+  return `${formattedBytes} bytes • ${formattedTb}tb`;
+}

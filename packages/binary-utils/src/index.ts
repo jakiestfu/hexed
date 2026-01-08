@@ -12,6 +12,7 @@ export {
   toHexString,
   toAsciiString,
   formatDataIntoRows,
+  formatFileSize,
   type FormattedRow
 } from './formatter';
 

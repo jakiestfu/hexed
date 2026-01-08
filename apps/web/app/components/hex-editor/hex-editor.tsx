@@ -2,6 +2,7 @@ import { useRef, useEffect, useState, useMemo } from "react";
 import type { FunctionComponent } from "react";
 import type { DiffViewMode } from "@hexed/types";
 import { computeDiff } from "@hexed/binary-utils/differ";
+import { formatFileSize } from "@hexed/binary-utils/formatter";
 import { HexCanvas, type HexCanvasRef } from "@hexed/canvas";
 import {
   Card,
@@ -99,9 +100,9 @@ export const HexEditor: FunctionComponent<HexEditorProps> = ({
     activeTabIndex > 0 ? snapshots[activeTabIndex - 1] : undefined;
 
   const bytesLabel = hasFile ? (
-    <div className="flex items-center gap-2">
+    <div className="flex items-center gap-2 font-mono">
       <span className="text-sm text-muted-foreground">
-        {currentSnapshot?.data.length.toLocaleString()} bytes
+        {formatFileSize(currentSnapshot?.data.length || 0)}
       </span>
     </div>
   ) : undefined;
@@ -160,12 +161,13 @@ export const HexEditor: FunctionComponent<HexEditorProps> = ({
           ) : (
             onClose && (
               <Button
-                variant="ghost"
+                variant="outline"
                 size="sm"
                 onClick={onClose}
                 className="ml-2 shrink-0"
               >
-                <X className="h-4 w-4" />
+                {/* <X className="h-4 w-4" /> */}
+                Done
               </Button>
             )
           )
