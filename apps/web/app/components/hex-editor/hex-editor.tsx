@@ -1,16 +1,8 @@
-import {
-  useRef,
-  useMemo,
-  useEffect,
-  useState,
-  useCallback,
-  useImperativeHandle,
-  forwardRef,
-} from "react";
+import { useRef, useEffect, useState, useMemo } from "react";
 import type { FunctionComponent } from "react";
 import type { DiffViewMode } from "@hexed/types";
-import { formatDataIntoRows } from "@hexed/binary-utils/formatter";
-import { computeDiff, getDiffAtOffset } from "@hexed/binary-utils/differ";
+import { computeDiff } from "@hexed/binary-utils/differ";
+import { HexCanvas, type HexCanvasRef } from "@hexed/canvas";
 import {
   Card,
   CardContent,
@@ -18,7 +10,6 @@ import {
   CardHeader,
   Toggle,
   Button,
-  cn,
   Tabs,
   TabsContent,
   TabsList,
@@ -40,27 +31,15 @@ import {
   TooltipContent,
   TooltipTrigger,
 } from "@hexed/ui";
-import {
-  Eye,
-  X,
-  ChevronDownIcon,
-  File,
-  Loader2,
-  ChevronsUpDown,
-} from "lucide-react";
-import { useVirtualizer } from "@tanstack/react-virtual";
+import { Eye, X, ChevronDownIcon, File, Loader2 } from "lucide-react";
 import { DiffViewer } from "./diff-viewer";
 import { EmptyState } from "./empty-state";
 import { HexToolbar } from "./hex-toolbar";
 import { Logo } from "~/components/logo";
 import { HexFooter } from "~/components/hex-editor/hex-footer";
 import { useChecksumVisibility } from "~/hooks/use-checksum-visibility";
-import type { HexEditorProps, HexEditorViewProps, HexViewProps } from "./types";
-import {
-  computeCollapsibleSections,
-  buildVirtualItems,
-  getBasename,
-} from "./utils";
+import type { HexEditorProps, HexEditorViewProps } from "./types";
+import { getBasename } from "./utils";
 
 const HexEditorView: FunctionComponent<HexEditorViewProps> = ({
   scrollToOffset,
@@ -68,46 +47,20 @@ const HexEditorView: FunctionComponent<HexEditorViewProps> = ({
   showAscii,
   diff,
 }) => {
-  const hexViewRef = useRef<{
-    scrollToOffset: (offset: number) => void;
-  } | null>(null);
+  const hexCanvasRef = useRef<HexCanvasRef | null>(null);
 
   useEffect(() => {
-    if (scrollToOffset) {
-      hexViewRef.current?.scrollToOffset(scrollToOffset);
+    if (scrollToOffset !== null) {
+      hexCanvasRef.current?.scrollToOffset(scrollToOffset);
     }
   }, [scrollToOffset]);
 
-  const getDiffColorClass = (offset: number) => {
-    if (!diff) return "";
-    const byteDiff = getDiffAtOffset(diff, offset);
-    if (!byteDiff) return "";
-
-    switch (byteDiff.type) {
-      case "added":
-        return "bg-green-500/20 text-green-900 dark:text-green-100 font-semibold";
-      case "removed":
-        return "bg-red-500/20 text-red-900 dark:text-red-100 font-semibold";
-      case "modified":
-        return "bg-yellow-500/20 text-yellow-900 dark:text-yellow-100 font-semibold";
-      default:
-        return "";
-    }
-  };
-
   return (
     <div className="h-full">
-      {/* Stats */}
-      {/* {diff && diffMode !== "none" && (
-        <DiffViewer diff={diff} onScrollToOffset={handleScrollToOffset} />
-      )} */}
-
-      <HexView
-        ref={hexViewRef}
+      <HexCanvas
+        ref={hexCanvasRef}
         data={snapshot.data}
         showAscii={showAscii}
-        diff={diff}
-        getDiffColorClass={getDiffColorClass}
       />
     </div>
   );
@@ -423,366 +376,3 @@ export const HexEditor: FunctionComponent<HexEditorProps> = ({
     </Card>
   );
 };
-
-const HexView = forwardRef<
-  { scrollToOffset: (offset: number) => void },
-  HexViewProps
->(({ data, showAscii, diff, getDiffColorClass }, ref) => {
-  const parentRef = useRef<HTMLDivElement>(null);
-  const [highlightedOffset, setHighlightedOffset] = useState<number | null>(
-    null
-  );
-  const [expandedSections, setExpandedSections] = useState<Set<string>>(
-    new Set()
-  );
-  const [parentHeight, setParentHeight] = useState<number>(0);
-  const [parentWidth, setParentWidth] = useState<number>(0);
-  const [isResizing, setIsResizing] = useState<boolean>(false);
-  const resizeTimeoutRef = useRef<NodeJS.Timeout | null>(null);
-
-  // Track parentRef height and width changes
-  useEffect(() => {
-    const element = parentRef.current;
-    if (!element) return;
-
-    let isInitialCall = true;
-    const updateDimensions = () => {
-      setParentHeight(element.clientHeight);
-      setParentWidth(element.clientWidth);
-      // Skip resizing state on initial call
-      if (isInitialCall) {
-        isInitialCall = false;
-        return;
-      }
-      // Set resizing to true immediately when resize starts
-      setIsResizing(true);
-      // Clear any existing timeout
-      if (resizeTimeoutRef.current) {
-        clearTimeout(resizeTimeoutRef.current);
-      }
-      // Set a new timeout to mark resize as complete after 150ms of no resize events
-      resizeTimeoutRef.current = setTimeout(() => {
-        setIsResizing(false);
-        resizeTimeoutRef.current = null;
-      }, 150);
-    };
-
-    // Initial dimensions
-    updateDimensions();
-
-    // Use ResizeObserver to track dimension changes
-    const resizeObserver = new ResizeObserver(updateDimensions);
-    resizeObserver.observe(element);
-
-    return () => {
-      resizeObserver.disconnect();
-      // Cleanup timeout on unmount
-      if (resizeTimeoutRef.current) {
-        clearTimeout(resizeTimeoutRef.current);
-        resizeTimeoutRef.current = null;
-      }
-    };
-  }, []);
-
-  // Calculate dynamic bytesPerRow based on available width
-  const bytesPerRow = useMemo(() => {
-    if (parentWidth === 0) return 16; // Default until we measure
-
-    // Constants for layout calculations
-    const ADDRESS_COLUMN_WIDTH = 96; // w-24 = 96px
-    const HEX_BYTE_WIDTH = 24; // w-6 = 24px
-    const HEX_BYTE_GAP = 4; // gap-1 = 4px
-    const ROW_PADDING = 32; // px-4 = 16px * 2 = 32px total
-    const ADDRESS_HEX_GAP = 16; // gap-4 = 16px
-    const ASCII_CHAR_WIDTH = 12; // Approximate width per ASCII character
-    const ASCII_BORDER_PADDING = 20; // border-l + pl-4 = ~20px
-
-    // Calculate available width for hex bytes
-    let availableWidth =
-      parentWidth - ADDRESS_COLUMN_WIDTH - ROW_PADDING - ADDRESS_HEX_GAP;
-
-    // If ASCII is shown, we need to iteratively calculate bytesPerRow
-    // because ASCII width depends on bytesPerRow, but bytesPerRow depends on ASCII width
-    if (showAscii) {
-      // Start with an estimate, then refine
-      let estimatedBytes = Math.floor(
-        (availableWidth + HEX_BYTE_GAP) / (HEX_BYTE_WIDTH + HEX_BYTE_GAP)
-      );
-
-      // Iterate to find the correct bytesPerRow
-      // ASCII takes: bytesPerRow * ASCII_CHAR_WIDTH + ASCII_BORDER_PADDING
-      for (let i = 0; i < 5; i++) {
-        // Max 5 iterations should be enough
-        const asciiWidth =
-          estimatedBytes * ASCII_CHAR_WIDTH + ASCII_BORDER_PADDING;
-        const hexAvailableWidth = availableWidth - asciiWidth;
-        const newEstimatedBytes = Math.floor(
-          (hexAvailableWidth + HEX_BYTE_GAP) / (HEX_BYTE_WIDTH + HEX_BYTE_GAP)
-        );
-
-        if (newEstimatedBytes === estimatedBytes) {
-          break; // Converged
-        }
-        estimatedBytes = newEstimatedBytes;
-      }
-
-      // Enforce minimum of 16 bytes
-      return Math.max(16, estimatedBytes);
-    } else {
-      // No ASCII, straightforward calculation
-      const calculatedBytes = Math.floor(
-        (availableWidth + HEX_BYTE_GAP) / (HEX_BYTE_WIDTH + HEX_BYTE_GAP)
-      );
-
-      // Enforce minimum of 16 bytes
-      return Math.max(16, calculatedBytes);
-    }
-  }, [parentWidth, showAscii]);
-
-  // Format rows with dynamic bytesPerRow
-  const rows = useMemo(() => {
-    return formatDataIntoRows(data, bytesPerRow);
-  }, [data, bytesPerRow]);
-
-  // Compute collapsible sections when in diff mode
-  const collapsibleSections = useMemo(() => {
-    if (!diff) return [];
-    return computeCollapsibleSections(rows, diff, bytesPerRow);
-  }, [rows, diff, bytesPerRow]);
-
-  // Build virtual items (rows + collapse buttons)
-  const virtualItems = useMemo(() => {
-    if (!diff || collapsibleSections.length === 0) {
-      return rows.map((_, i) => ({ type: "row" as const, rowIndex: i }));
-    }
-    return buildVirtualItems(rows, collapsibleSections, expandedSections);
-  }, [rows, collapsibleSections, expandedSections, diff]);
-
-  const virtualizer = useVirtualizer({
-    count: virtualItems.length,
-    getScrollElement: () => parentRef.current,
-    estimateSize: (index) => {
-      const item = virtualItems[index];
-      if (item.type === "collapse") {
-        return 32; // Collapse button height
-      }
-      return 24; // Regular row height
-    },
-    overscan: 200, // Render 5 extra rows above and below viewport
-  });
-
-  const scrollToOffset = useCallback(
-    (offset: number) => {
-      const rowIndex = Math.floor(offset / bytesPerRow);
-
-      // Find the virtual item index for this row
-      const virtualItemIndex = virtualItems.findIndex(
-        (item) => item.type === "row" && item.rowIndex === rowIndex
-      );
-
-      if (virtualItemIndex >= 0) {
-        virtualizer.scrollToIndex(virtualItemIndex, {
-          align: "center",
-          behavior: "smooth",
-        });
-      } else {
-        // Row might be collapsed, try to expand its section
-        for (const section of collapsibleSections) {
-          if (
-            rowIndex >= section.startRowIndex &&
-            rowIndex <= section.endRowIndex
-          ) {
-            setExpandedSections((prev) => new Set(prev).add(section.id));
-            // Wait for expansion, then scroll
-            setTimeout(() => {
-              const newVirtualItems = buildVirtualItems(
-                rows,
-                collapsibleSections,
-                new Set(expandedSections).add(section.id)
-              );
-              const newVirtualItemIndex = newVirtualItems.findIndex(
-                (item) => item.type === "row" && item.rowIndex === rowIndex
-              );
-              if (newVirtualItemIndex >= 0) {
-                virtualizer.scrollToIndex(newVirtualItemIndex, {
-                  align: "center",
-                  behavior: "smooth",
-                });
-              }
-            }, 100);
-            break;
-          }
-        }
-      }
-
-      setHighlightedOffset(offset);
-      // Clear highlight after animation
-      setTimeout(() => setHighlightedOffset(null), 2000);
-    },
-    [
-      virtualizer,
-      bytesPerRow,
-      virtualItems,
-      collapsibleSections,
-      rows,
-      expandedSections,
-    ]
-  );
-
-  useImperativeHandle(ref, () => ({
-    scrollToOffset,
-  }));
-
-  const toggleSection = useCallback((sectionId: string) => {
-    setExpandedSections((prev) => {
-      const next = new Set(prev);
-      if (next.has(sectionId)) {
-        next.delete(sectionId);
-      } else {
-        next.add(sectionId);
-      }
-      return next;
-    });
-  }, []);
-
-  return (
-    <div
-      ref={parentRef}
-      className="overflow-auto h-full grow font-mono text-sm"
-    >
-      {isResizing ? (
-        <div className="flex flex-col items-center justify-center h-full text-muted-foreground">
-          <Loader2 className="h-6 w-6 animate-spin text-primary mb-2" />
-          <p className="text-sm">Resizing...</p>
-        </div>
-      ) : (
-        <div style={{ height: `${parentHeight}px` }}>
-          <div
-            style={{
-              height: `${virtualizer.getTotalSize()}px`,
-              width: "100%",
-              position: "relative",
-            }}
-          >
-            {virtualizer.getVirtualItems().map((virtualItem, index) => {
-              const item = virtualItems[virtualItem.index];
-
-              if (item.type === "collapse") {
-                // Render collapse button
-                return (
-                  <div
-                    key={item.section.id}
-                    style={{
-                      position: "absolute",
-                      top: 0,
-                      left: 0,
-                      width: "100%",
-                      height: `${virtualItem.size}px`,
-                      transform: `translateY(${virtualItem.start}px)`,
-                    }}
-                    className={`flex items-center justify-center ${
-                      index ? "border-y" : "border-b"
-                    } border-border bg-muted/30 hover:bg-muted/50 transition-colors`}
-                  >
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      onClick={() => toggleSection(item.section.id)}
-                      className="text-muted-foreground hover:text-foreground my-px w-full"
-                    >
-                      <span className="flex items-center justify-center w-full">
-                        <ChevronsUpDown className="h-4 w-4 mr-2" />
-                        <span className="text-xs">
-                          {item.section.hiddenRowCount} line
-                          {item.section.hiddenRowCount !== 1 ? "s" : ""} hidden
-                        </span>
-                      </span>
-                    </Button>
-                  </div>
-                );
-              }
-
-              // Render regular row
-              const row = rows[item.rowIndex];
-              return (
-                <div
-                  key={row.startOffset}
-                  style={{
-                    position: "absolute",
-                    top: 0,
-                    left: 0,
-                    width: "100%",
-                    height: `${virtualItem.size}px`,
-                    transform: `translateY(${virtualItem.start}px)`,
-                  }}
-                  className="flex gap-4 hover:bg-muted/50 px-4"
-                >
-                  <div className="flex h-full items-center text-muted-foreground select-none shrink-0 w-24">
-                    {row.address}
-                  </div>
-
-                  <div className="flex h-full items-center gap-1 flex-wrap">
-                    {row.hexBytes.map((byte, index) => {
-                      const offset = row.startOffset + index;
-                      const colorClass = getDiffColorClass(offset);
-                      const isHighlighted = highlightedOffset === offset;
-                      return (
-                        <span
-                          key={offset}
-                          className={cn(
-                            "inline-block w-6 text-center rounded px-0.5 transition-all",
-                            colorClass,
-                            isHighlighted &&
-                              "ring-2 ring-primary ring-offset-1 bg-primary/20"
-                          )}
-                          title={`Offset: ${offset} (0x${offset
-                            .toString(16)
-                            .toUpperCase()})`}
-                        >
-                          {byte}
-                        </span>
-                      );
-                    })}
-
-                    {row.hexBytes.length < bytesPerRow &&
-                      Array.from({
-                        length: bytesPerRow - row.hexBytes.length,
-                      }).map((_, i) => (
-                        <span key={`pad-${i}`} className="inline-block w-6" />
-                      ))}
-                  </div>
-
-                  {showAscii && (
-                    <div className="flex h-full items-center border-l pl-4 text-muted-foreground">
-                      {row.ascii.split("").map((char, index) => {
-                        const offset = row.startOffset + index;
-                        const colorClass = getDiffColorClass(offset);
-                        const isHighlighted = highlightedOffset === offset;
-                        return (
-                          <span
-                            key={offset}
-                            className={cn(
-                              "inline-block rounded px-0.5 transition-all",
-                              colorClass,
-                              isHighlighted &&
-                                "ring-2 ring-primary ring-offset-1 bg-primary/20"
-                            )}
-                            title={`Offset: ${offset}`}
-                          >
-                            {char}
-                          </span>
-                        );
-                      })}
-                    </div>
-                  )}
-                </div>
-              );
-            })}
-          </div>
-        </div>
-      )}
-    </div>
-  );
-});
-
-HexView.displayName = "HexView";

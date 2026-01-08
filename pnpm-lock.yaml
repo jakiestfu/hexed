@@ -30,6 +30,9 @@ importers:
       '@hexed/binary-utils':
         specifier: workspace:*
         version: link:../../packages/binary-utils
+      '@hexed/canvas':
+        specifier: workspace:*
+        version: link:../../packages/canvas
       '@hexed/types':
         specifier: workspace:*
         version: link:../../packages/types

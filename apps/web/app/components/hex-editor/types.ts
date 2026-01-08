@@ -1,8 +1,5 @@
 import type { BinarySnapshot, DiffResult } from "@hexed/types";
-import type { FormattedRow } from "@hexed/binary-utils/formatter";
 import type { RecentFile } from "~/hooks/use-recent-files";
-import { formatDataIntoRows } from "@hexed/binary-utils/formatter";
-import { computeDiff } from "@hexed/binary-utils/differ";
 
 export type HexEditorProps = {
   snapshots: BinarySnapshot[];
@@ -20,23 +17,5 @@ export type HexEditorViewProps = {
   snapshot: BinarySnapshot;
   diff: DiffResult | null;
   showAscii: boolean;
-};
-
-export type CollapsibleSection = {
-  startRowIndex: number;
-  endRowIndex: number;
-  id: string;
-  hiddenRowCount: number;
-};
-
-export type VirtualItemType =
-  | { type: "row"; rowIndex: number }
-  | { type: "collapse"; section: CollapsibleSection };
-
-export type HexViewProps = {
-  data: Uint8Array;
-  showAscii: boolean;
-  diff: ReturnType<typeof computeDiff> | null;
-  getDiffColorClass: (offset: number) => string;
 };
 
