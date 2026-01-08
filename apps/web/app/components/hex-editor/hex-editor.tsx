@@ -36,6 +36,9 @@ import {
   DropdownMenuRadioItem,
   DropdownMenuSeparator,
   DropdownMenuTrigger,
+  Tooltip,
+  TooltipContent,
+  TooltipTrigger,
 } from "@hexed/ui";
 import {
   Eye,
@@ -167,18 +170,25 @@ export const HexEditor: FunctionComponent<HexEditorProps> = ({
               </span>
             </div>
           ) : (
-            <div className="flex items-center gap-2 min-w-0">
-              <File className="h-4 w-4 text-muted-foreground shrink-0" />
-              <span className="font-mono text-sm truncate" title={filePath}>
-                {getBasename(filePath!)}
-              </span>
-              <div
-                className={`inline-flex h-2 w-2 rounded-full shrink-0 ${
-                  isConnected ? "bg-green-500" : "bg-red-500"
-                }`}
-                title={isConnected ? "Connected" : "Disconnected"}
-              />
-            </div>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <div className="flex items-center gap-2 min-w-0 cursor-default">
+                  <File className="h-4 w-4 text-muted-foreground shrink-0" />
+                  <span className="font-mono text-sm truncate" title={filePath}>
+                    {getBasename(filePath!)}
+                  </span>
+                  <div
+                    className={`inline-flex h-2 w-2 rounded-full shrink-0 ${
+                      isConnected ? "bg-green-500" : "bg-red-500"
+                    }`}
+                    title={isConnected ? "Connected" : "Disconnected"}
+                  />
+                </div>
+              </TooltipTrigger>
+              <TooltipContent>
+                {isConnected ? "Connected" : "Disconnected"}
+              </TooltipContent>
+            </Tooltip>
           )
         }
         right={
