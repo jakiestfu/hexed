@@ -110,6 +110,9 @@ importers:
       '@hexed/types':
         specifier: workspace:*
         version: link:../types
+      '@hexed/ui':
+        specifier: workspace:*
+        version: link:../ui
       react:
         specifier: ^19.0.0
         version: 19.2.3
@@ -219,6 +222,9 @@ importers:
       '@radix-ui/react-tooltip':
         specifier: ^1.2.8
         version: 1.2.8(@types/react-dom@19.2.3(@types/react@19.2.7))(@types/react@19.2.7)(react-dom@19.2.3(react@19.2.3))(react@19.2.3)
+      '@split-ui/react':
+        specifier: ^0.1.1
+        version: 0.1.1(react-dom@19.2.3(react@19.2.3))(react@19.2.3)
       class-variance-authority:
         specifier: ^0.7.1
         version: 0.7.1
@@ -1183,6 +1189,12 @@ packages:
   '@sindresorhus/is@4.6.0':
     resolution: {integrity: sha512-t09vSN3MdfsyCHoFcTRCH/iUtG7OJ0CsjzB8cjAmKc/va/kIgeDI/TxsigdncE/4be734m0cvIYwNaV4i2XqAw==}
     engines: {node: '>=10'}
+
+  '@split-ui/react@0.1.1':
+    resolution: {integrity: sha512-3EdSuvGdhIphCqzn2E6dpGNhgefNnlqNxVnooEnCuDiFIjT7zqYuT2An3KCpc0GG0px+kjAmxC2fREDuaagzqQ==}
+    peerDependencies:
+      react: '>=16.8.0'
+      react-dom: '>=16.8.0'
 
   '@standard-schema/utils@0.3.0':
     resolution: {integrity: sha512-e7Mew686owMaPJVNNLs55PUvgz371nKgwsc4vxE49zsODpJEnxgxRo2y/OKrqueavXgZNMDVj3DdHFlaSAeU8g==}
@@ -2947,6 +2959,11 @@ snapshots:
   '@radix-ui/rect@1.1.1': {}
 
   '@sindresorhus/is@4.6.0': {}
+
+  '@split-ui/react@0.1.1(react-dom@19.2.3(react@19.2.3))(react@19.2.3)':
+    dependencies:
+      react: 19.2.3
+      react-dom: 19.2.3(react@19.2.3)
 
   '@standard-schema/utils@0.3.0': {}
 

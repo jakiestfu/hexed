@@ -67,7 +67,11 @@ export const Interpreter: FunctionComponent<InterpreterProps> = ({
   numberFormat = "dec",
 }) => {
   const interpretedData = useMemo<InterpretedValue[]>(() => {
-    if (selectedOffset === null || selectedOffset < 0 || selectedOffset >= data.length) {
+    if (
+      selectedOffset === null ||
+      selectedOffset < 0 ||
+      selectedOffset >= data.length
+    ) {
       return [];
     }
 
@@ -78,8 +82,12 @@ export const Interpreter: FunctionComponent<InterpreterProps> = ({
     const int8Result = readInt8(data, selectedOffset);
     results.push({
       type: "8-bit Integer",
-      unsigned: uint8Result.error ? undefined : formatNumber(uint8Result.value!, numberFormat),
-      signed: int8Result.error ? undefined : formatNumber(int8Result.value!, numberFormat),
+      unsigned: uint8Result.error
+        ? undefined
+        : formatNumber(uint8Result.value!, numberFormat),
+      signed: int8Result.error
+        ? undefined
+        : formatNumber(int8Result.value!, numberFormat),
     });
 
     // 16-bit Integer
@@ -87,8 +95,12 @@ export const Interpreter: FunctionComponent<InterpreterProps> = ({
     const int16Result = readInt16(data, selectedOffset, endianness);
     results.push({
       type: "16-bit Integer",
-      unsigned: uint16Result.error ? undefined : formatNumber(uint16Result.value!, numberFormat),
-      signed: int16Result.error ? undefined : formatNumber(int16Result.value!, numberFormat),
+      unsigned: uint16Result.error
+        ? undefined
+        : formatNumber(uint16Result.value!, numberFormat),
+      signed: int16Result.error
+        ? undefined
+        : formatNumber(int16Result.value!, numberFormat),
     });
 
     // 24-bit Integer
@@ -96,8 +108,12 @@ export const Interpreter: FunctionComponent<InterpreterProps> = ({
     const int24Result = readInt24(data, selectedOffset, endianness);
     results.push({
       type: "24-bit Integer",
-      unsigned: uint24Result.error ? undefined : formatNumber(uint24Result.value!, numberFormat),
-      signed: int24Result.error ? undefined : formatNumber(int24Result.value!, numberFormat),
+      unsigned: uint24Result.error
+        ? undefined
+        : formatNumber(uint24Result.value!, numberFormat),
+      signed: int24Result.error
+        ? undefined
+        : formatNumber(int24Result.value!, numberFormat),
     });
 
     // 32-bit Integer
@@ -105,8 +121,12 @@ export const Interpreter: FunctionComponent<InterpreterProps> = ({
     const int32Result = readInt32(data, selectedOffset, endianness);
     results.push({
       type: "32-bit Integer",
-      unsigned: uint32Result.error ? undefined : formatNumber(uint32Result.value!, numberFormat),
-      signed: int32Result.error ? undefined : formatNumber(int32Result.value!, numberFormat),
+      unsigned: uint32Result.error
+        ? undefined
+        : formatNumber(uint32Result.value!, numberFormat),
+      signed: int32Result.error
+        ? undefined
+        : formatNumber(int32Result.value!, numberFormat),
     });
 
     // 64-bit Integer
@@ -114,44 +134,58 @@ export const Interpreter: FunctionComponent<InterpreterProps> = ({
     const int64Result = readInt64(data, selectedOffset, endianness);
     results.push({
       type: "64-bit Integer (+)",
-      unsigned: uint64Result.error ? undefined : formatNumber(Number(uint64Result.value!), numberFormat),
+      unsigned: uint64Result.error
+        ? undefined
+        : formatNumber(Number(uint64Result.value!), numberFormat),
     });
     results.push({
       type: "64-bit Integer (±)",
-      signed: int64Result.error ? undefined : formatNumber(Number(int64Result.value!), numberFormat),
+      signed: int64Result.error
+        ? undefined
+        : formatNumber(Number(int64Result.value!), numberFormat),
     });
 
     // 16-bit Float
     const float16Result = readFloat16(data, selectedOffset, endianness);
     results.push({
       type: "16-bit Float. P.",
-      unsigned: float16Result.error ? undefined : float16Result.value!.toString(),
+      unsigned: float16Result.error
+        ? undefined
+        : float16Result.value!.toString(),
     });
 
     // 32-bit Float
     const float32Result = readFloat32(data, selectedOffset, endianness);
     results.push({
       type: "32-bit Float. P.",
-      unsigned: float32Result.error ? undefined : float32Result.value!.toString(),
+      unsigned: float32Result.error
+        ? undefined
+        : float32Result.value!.toString(),
     });
 
     // 64-bit Float
     const float64Result = readFloat64(data, selectedOffset, endianness);
     results.push({
       type: "64-bit Float. P.",
-      unsigned: float64Result.error ? undefined : float64Result.value!.toString(),
+      unsigned: float64Result.error
+        ? undefined
+        : float64Result.value!.toString(),
     });
 
     // LEB128
     const leb128Result = readLEB128(data, selectedOffset);
     results.push({
       type: "LEB128 (+)",
-      unsigned: leb128Result.error ? undefined : formatNumber(Number(leb128Result.value!), numberFormat),
+      unsigned: leb128Result.error
+        ? undefined
+        : formatNumber(Number(leb128Result.value!), numberFormat),
     });
     const sleb128Result = readSLEB128(data, selectedOffset);
     results.push({
       type: "LEB128 (±)",
-      signed: sleb128Result.error ? undefined : formatNumber(Number(sleb128Result.value!), numberFormat),
+      signed: sleb128Result.error
+        ? undefined
+        : formatNumber(Number(sleb128Result.value!), numberFormat),
     });
 
     // Rational
@@ -191,14 +225,22 @@ export const Interpreter: FunctionComponent<InterpreterProps> = ({
     const macHFSResult = readMacHFSDateTime(data, selectedOffset, endianness);
     results.push({
       type: "Macintosh HFS DateTime",
-      unsigned: macHFSResult.error ? undefined : formatDate(macHFSResult.value!),
+      unsigned: macHFSResult.error
+        ? undefined
+        : formatDate(macHFSResult.value!),
     });
 
     // Macintosh HFS+ DateTime
-    const macHFSPlusResult = readMacHFSPlusDateTime(data, selectedOffset, endianness);
+    const macHFSPlusResult = readMacHFSPlusDateTime(
+      data,
+      selectedOffset,
+      endianness
+    );
     results.push({
       type: "Macintosh HFS+ DateTime",
-      unsigned: macHFSPlusResult.error ? undefined : formatDate(macHFSPlusResult.value!),
+      unsigned: macHFSPlusResult.error
+        ? undefined
+        : formatDate(macHFSPlusResult.value!),
     });
 
     // UTF-8 Character
@@ -230,10 +272,11 @@ export const Interpreter: FunctionComponent<InterpreterProps> = ({
   }
 
   return (
-    <Card className="h-full rounded-none border-l">
+    <Card className="h-full rounded-none border-none bg-sidebar min-w-[600px]">
       <CardHeader className="pb-3">
         <CardTitle className="text-sm font-medium">
-          Data Inspector ({endianness === "le" ? "Little-endian" : "Big-endian"})
+          Data Inspector ({endianness === "le" ? "Little-endian" : "Big-endian"}
+          )
         </CardTitle>
       </CardHeader>
       <CardContent className="p-0">
@@ -254,9 +297,11 @@ export const Interpreter: FunctionComponent<InterpreterProps> = ({
                     row.unsigned
                   ) : (
                     <span className="text-muted-foreground">
-                      {row.type.includes("DateTime") ? "Invalid date" : 
-                       row.type.includes("Character") ? "Null" :
-                       "Invalid number"}
+                      {row.type.includes("DateTime")
+                        ? "Invalid date"
+                        : row.type.includes("Character")
+                        ? "Null"
+                        : "Invalid number"}
                     </span>
                   )}
                 </TableCell>
@@ -265,9 +310,11 @@ export const Interpreter: FunctionComponent<InterpreterProps> = ({
                     row.signed
                   ) : (
                     <span className="text-muted-foreground">
-                      {row.type.includes("DateTime") ? "Invalid date" : 
-                       row.type.includes("Character") ? "Null" :
-                       "Invalid number"}
+                      {row.type.includes("DateTime")
+                        ? "Invalid date"
+                        : row.type.includes("Character")
+                        ? "Null"
+                        : "Invalid number"}
                     </span>
                   )}
                 </TableCell>

@@ -234,72 +234,58 @@ export const HexEditor: FunctionComponent<HexEditorProps> = ({
       );
     }
 
-    // When we have snapshots, render TabsContent if inside Tabs, otherwise render HexEditorView directly
-    if (insideTabs) {
-      return snapshots.map((snapshot, index) => (
-        <TabsContent
-          key={snapshot.id}
-          value={index.toString()}
-          className="h-full"
-        >
-          <ResizablePanelGroup direction="horizontal" className="h-full">
-            <ResizablePanel defaultSize={70} minSize={30}>
-              <HexEditorView
-                scrollToOffset={scrollToOffset}
-                snapshot={snapshot}
-                showAscii={showAscii}
-                diff={diff}
-                selectedOffset={selectedOffset}
-                onSelectedOffsetChange={setSelectedOffset}
-              />
-            </ResizablePanel>
-            {selectedOffset !== null && (
-              <>
-                <ResizableHandle withHandle />
-                <ResizablePanel defaultSize={30} minSize={20}>
-                  <Interpreter
-                    data={snapshot.data}
-                    selectedOffset={selectedOffset}
-                    endianness={endianness as "le" | "be"}
-                    numberFormat={numberFormat as "dec" | "hex"}
-                  />
-                </ResizablePanel>
-              </>
-            )}
-          </ResizablePanelGroup>
-        </TabsContent>
-      ));
-    }
-
-    // Render HexEditorView directly when not inside Tabs (shouldn't happen with current logic, but for safety)
-    const activeSnapshot = snapshots[parseInt(activeTab, 10)] || snapshots[0];
-    return (
-      <ResizablePanelGroup direction="horizontal" className="h-full">
-        <ResizablePanel defaultSize={70} minSize={30}>
+    return snapshots.map((snapshot, index) => (
+      <TabsContent
+        key={snapshot.id}
+        value={index.toString()}
+        className="h-full"
+      >
+        <div className="h-full w-full flex">
           <HexEditorView
             scrollToOffset={scrollToOffset}
-            snapshot={activeSnapshot}
+            snapshot={snapshot}
             showAscii={showAscii}
             diff={diff}
             selectedOffset={selectedOffset}
             onSelectedOffsetChange={setSelectedOffset}
           />
-        </ResizablePanel>
-        {selectedOffset !== null && (
-          <>
-            <ResizableHandle withHandle />
-            <ResizablePanel defaultSize={30} minSize={20}>
-              <Interpreter
-                data={activeSnapshot.data}
-                selectedOffset={selectedOffset}
-                endianness={endianness as "le" | "be"}
-                numberFormat={numberFormat as "dec" | "hex"}
-              />
-            </ResizablePanel>
-          </>
-        )}
-      </ResizablePanelGroup>
-    );
+          {selectedOffset !== null && (
+            <Interpreter
+              data={snapshot.data}
+              selectedOffset={selectedOffset}
+              endianness={endianness as "le" | "be"}
+              numberFormat={numberFormat as "dec" | "hex"}
+            />
+          )}
+        </div>
+
+        {/* <ResizablePanelGroup direction="horizontal" className="h-full">
+          <ResizablePanel defaultSize={70} minSize={30}>
+            <HexEditorView
+              scrollToOffset={scrollToOffset}
+              snapshot={snapshot}
+              showAscii={showAscii}
+              diff={diff}
+              selectedOffset={selectedOffset}
+              onSelectedOffsetChange={setSelectedOffset}
+            />
+          </ResizablePanel>
+          {selectedOffset !== null && (
+            <>
+              <ResizableHandle withHandle />
+              <ResizablePanel defaultSize={30} minSize={20}>
+                <Interpreter
+                  data={snapshot.data}
+                  selectedOffset={selectedOffset}
+                  endianness={endianness as "le" | "be"}
+                  numberFormat={numberFormat as "dec" | "hex"}
+                />
+              </ResizablePanel>
+            </>
+          )}
+        </ResizablePanelGroup> */}
+      </TabsContent>
+    ));
   };
 
   return (
@@ -400,25 +386,6 @@ export const HexEditor: FunctionComponent<HexEditorProps> = ({
           <CardContent className="p-0 grow overflow-auto">
             {renderCardContent(false)}
           </CardContent>
-          <CardFooter className="p-0">
-            {/* <HexFooter
-              // left={bytesLabel}
-              // right={
-              //   hasFile ? (
-              //     <Toggle
-              //       pressed={showAscii}
-              //       onPressedChange={setShowAscii}
-              //       aria-label="Toggle ASCII view"
-              //       size="sm"
-              //     >
-              //       <Eye className="h-3 w-3" />
-              //       <span className="ml-1 text-xs">ASCII</span>
-              //     </Toggle>
-              //   ) : undefined
-              // }
-              center={hasFile ? <span>test</span> : undefined}
-            /> */}
-          </CardFooter>
         </>
       )}
     </Card>

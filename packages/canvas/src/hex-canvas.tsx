@@ -20,7 +20,7 @@ import {
 import { useSelection } from "./hooks/use-selection";
 import { useKeyboardNavigation } from "./hooks/use-keyboard-navigation";
 import { useOnClickOutside } from "usehooks-ts";
-
+import { ScrollArea, ScrollBar } from "@hexed/ui";
 export interface HexCanvasProps {
   data: Uint8Array;
   showAscii?: boolean;
@@ -227,8 +227,12 @@ export const HexCanvas = forwardRef<HexCanvasRef, HexCanvasProps>(
     // Calculate total canvas height (including vertical padding)
     const totalHeight = useMemo(() => {
       if (!layout) return 0;
-      return rows.length * layout.rowHeight + layout.verticalPadding * 2;
-    }, [rows.length, layout]);
+      return (
+        rows.length * layout.rowHeight +
+        layout.verticalPadding * 2 -
+        dimensions.height
+      );
+    }, [rows.length, layout, dimensions.height]);
 
     // Update canvas dimensions when container resizes
     useEffect(() => {
@@ -319,8 +323,6 @@ export const HexCanvas = forwardRef<HexCanvasRef, HexCanvasProps>(
       selectedOffset: propSelectedOffset,
       onSelectedOffsetChange,
     });
-
-    console.log("selectedOffset", selectedOffset);
 
     // Helper function to calculate row index from mouse Y coordinate
     const getRowFromY = useCallback(
@@ -423,9 +425,9 @@ export const HexCanvas = forwardRef<HexCanvasRef, HexCanvasProps>(
     }, []);
 
     // Handle click outside canvas to clear selection
-    useOnClickOutside(canvasRef as React.RefObject<HTMLElement>, () => {
-      handleSelectionClick(null);
-    });
+    // useOnClickOutside(canvasRef as React.RefObject<HTMLElement>, () => {
+    //   handleSelectionClick(null);
+    // });
 
     // Render canvas
     useEffect(() => {
@@ -797,6 +799,8 @@ export const HexCanvas = forwardRef<HexCanvasRef, HexCanvasProps>(
         />
         {/* Spacer to make container scrollable to total height */}
         <div style={{ height: `${totalHeight}px`, width: "100%" }} />
+
+        {/* <ScrollBar orientation="horizontal" /> */}
       </div>
     );
   }

@@ -15,6 +15,7 @@
   "dependencies": {
     "@hexed/binary-utils": "workspace:*",
     "@hexed/types": "workspace:*",
+    "@hexed/ui": "workspace:*",
     "usehooks-ts": "^3.0.0"
   },
   "devDependencies": {
