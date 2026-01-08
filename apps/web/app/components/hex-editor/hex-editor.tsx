@@ -240,7 +240,7 @@ export const HexEditor: FunctionComponent<HexEditorProps> = ({
         value={index.toString()}
         className="h-full"
       >
-        <div className="h-full w-full flex">
+        {/* <div className="h-full w-full flex">
           <HexEditorView
             scrollToOffset={scrollToOffset}
             snapshot={snapshot}
@@ -257,9 +257,9 @@ export const HexEditor: FunctionComponent<HexEditorProps> = ({
               numberFormat={numberFormat as "dec" | "hex"}
             />
           )}
-        </div>
+        </div> */}
 
-        {/* <ResizablePanelGroup direction="horizontal" className="h-full">
+        <ResizablePanelGroup direction="horizontal" className="h-full">
           <ResizablePanel defaultSize={70} minSize={30}>
             <HexEditorView
               scrollToOffset={scrollToOffset}
@@ -283,7 +283,7 @@ export const HexEditor: FunctionComponent<HexEditorProps> = ({
               </ResizablePanel>
             </>
           )}
-        </ResizablePanelGroup> */}
+        </ResizablePanelGroup>
       </TabsContent>
     ));
   };
