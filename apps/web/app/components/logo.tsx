@@ -8,7 +8,7 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@hexed/ui";
-import { Ghost, Github, Monitor, Moon, Sun } from "lucide-react";
+import { ChevronDown, Ghost, Github, Monitor, Moon, Sun } from "lucide-react";
 import { useTheme } from "next-themes";
 import { FunctionComponent, ReactNode } from "react";
 
@@ -21,21 +21,37 @@ export type LogoMenuItem = {
 export type LogoProps = {
   menuItems?: LogoMenuItem[];
   githubUrl?: string;
+  inline?: boolean;
 };
 
 export const Logo: FunctionComponent<LogoProps> = ({
   menuItems,
   githubUrl = "https://github.com/jakiestfu/hexed",
+  inline = false,
 }) => {
   const { setTheme } = useTheme();
   const hasDropdown = (menuItems && menuItems.length > 0) || githubUrl;
 
-  const buttonContent = (
-    <Button variant="ghost">
+  const inlineContent = (
+    <>
       <Ghost />
       <span className="font-mono font-bold">hexed</span>
+    </>
+  );
+
+  const buttonContent = (
+    <Button variant="ghost">
+      {inlineContent}
+      <ChevronDown className="opacity-50 h-4 w-4" />
     </Button>
   );
+
+  if (inline)
+    return (
+      <div className="flex justify-center items-center gap-2">
+        {inlineContent}
+      </div>
+    );
 
   if (!hasDropdown) {
     return <div className="flex justify-center gap-2">{buttonContent}</div>;

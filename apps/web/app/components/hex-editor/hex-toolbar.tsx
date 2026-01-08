@@ -1,10 +1,9 @@
-import * as React from "react";
-import type { FunctionComponent } from "react";
+import type { FunctionComponent, ReactNode } from "react";
 
 type HexToolbarProps = {
-  left?: React.ReactNode;
-  center?: React.ReactNode;
-  right?: React.ReactNode;
+  left?: ReactNode;
+  center?: ReactNode;
+  right?: ReactNode;
 };
 
 export const HexToolbar: FunctionComponent<HexToolbarProps> = ({

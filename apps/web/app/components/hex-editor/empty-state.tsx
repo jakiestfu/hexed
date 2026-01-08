@@ -1,5 +1,5 @@
-import * as React from "react";
-import type { FunctionComponent } from "react";
+import { useState } from "react";
+import type { FunctionComponent, FormEvent } from "react";
 import {
   Card,
   CardContent,
@@ -11,8 +11,9 @@ import {
   PopoverContent,
   PopoverTrigger,
 } from "@hexed/ui";
-import { FileIcon, Clock, ChevronDown } from "lucide-react";
+import { FileIcon, Clock, ChevronDown, Ghost } from "lucide-react";
 import type { RecentFile } from "~/hooks/use-recent-files";
+import { Logo } from "~/components/logo";
 
 type EmptyStateProps = {
   onFileSelect: (filePath: string) => void;
@@ -23,9 +24,9 @@ export const EmptyState: FunctionComponent<EmptyStateProps> = ({
   onFileSelect,
   recentFiles,
 }) => {
-  const [filePath, setFilePath] = React.useState("");
+  const [filePath, setFilePath] = useState("");
 
-  const handleManualPathSubmit = (event: React.FormEvent) => {
+  const handleManualPathSubmit = (event: FormEvent) => {
     event.preventDefault();
     if (filePath.trim()) {
       onFileSelect(filePath.trim());
@@ -62,18 +63,18 @@ export const EmptyState: FunctionComponent<EmptyStateProps> = ({
   };
 
   return (
-    <div className="flex items-center justify-center min-h-[500px]">
-      <Card className="w-full max-w-lg">
-        <CardHeader className="text-center">
-          <div className="mx-auto w-12 h-12 rounded-full bg-primary/10 flex items-center justify-center mb-4">
-            <FileIcon className="h-6 w-6 text-primary" />
+    <div className="flex items-center justify-center h-full">
+      <Card className="w-full max-w-lg border-none">
+        {/* <CardHeader className="text-center">
+          <div className="mx-auto w-12 h-12 rounded-full bg-primary/10 flex items-center justify-center mb-2">
+            <Ghost className="h-6 w-6 text-primary" />
           </div>
-          <CardTitle className="text-2xl">Welcome to Hexed</CardTitle>
+          <CardTitle className="text-2xl font-mono mb-4">hexed</CardTitle>
           <CardDescription>
             Select a binary file to begin inspecting. The file will be monitored
             for changes and displayed in a hex editor view.
           </CardDescription>
-        </CardHeader>
+        </CardHeader> */}
         <CardContent className="space-y-4">
           {/* Manual path input with recent files dropdown */}
           <form onSubmit={handleManualPathSubmit} className="space-y-2">

@@ -1,4 +1,3 @@
-import * as React from "react";
 import type { FunctionComponent } from "react";
 import type { DiffResult } from "@hexed/types";
 import {

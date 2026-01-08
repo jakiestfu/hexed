@@ -2,7 +2,7 @@
 
 import * as React from "react";
 import { useRouter } from "next/navigation";
-import { HexEditor } from "~/components/hex-editor";
+import { HexEditor } from "~/components/hex-editor/hex-editor";
 import { useRecentFiles } from "~/hooks/use-recent-files";
 import { encodeFilePath } from "~/utils/path-encoding";
 

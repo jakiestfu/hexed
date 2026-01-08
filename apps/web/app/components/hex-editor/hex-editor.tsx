@@ -1,13 +1,16 @@
-import * as React from "react";
-import type { FunctionComponent } from "react";
-import type { BinarySnapshot, DiffViewMode, DiffResult } from "@hexed/types";
-import type { FormattedRow } from "@hexed/binary-utils/formatter";
-import { formatDataIntoRows } from "@hexed/binary-utils/formatter";
 import {
-  computeDiff,
-  getDiffAtOffset,
-  hasDiffAtOffset,
-} from "@hexed/binary-utils/differ";
+  useRef,
+  useMemo,
+  useEffect,
+  useState,
+  useCallback,
+  useImperativeHandle,
+  forwardRef,
+} from "react";
+import type { FunctionComponent } from "react";
+import type { DiffViewMode } from "@hexed/types";
+import { formatDataIntoRows } from "@hexed/binary-utils/formatter";
+import { computeDiff, getDiffAtOffset } from "@hexed/binary-utils/differ";
 import {
   Card,
   CardContent,
@@ -35,8 +38,6 @@ import {
   DropdownMenuTrigger,
 } from "@hexed/ui";
 import {
-  Columns2,
-  Minus,
   Eye,
   X,
   ChevronDownIcon,
@@ -48,186 +49,14 @@ import { useVirtualizer } from "@tanstack/react-virtual";
 import { DiffViewer } from "./diff-viewer";
 import { EmptyState } from "./empty-state";
 import { HexToolbar } from "./hex-toolbar";
-import type { RecentFile } from "~/hooks/use-recent-files";
 import { Logo } from "~/components/logo";
-import { HexFooter } from "~/components/hex-footer";
-
-type HexEditorProps = {
-  snapshots: BinarySnapshot[];
-  filePath?: string | null;
-  isConnected: boolean;
-  loading?: boolean;
-  onClose?: () => void;
-  onFileSelect?: (filePath: string) => void;
-  recentFiles?: RecentFile[];
-  className?: string;
-};
-
-type HexEditorViewProps = {
-  scrollToOffset: number | null;
-  snapshot: BinarySnapshot;
-  diff: DiffResult | null;
-  showAscii: boolean;
-};
-
-type CollapsibleSection = {
-  startRowIndex: number;
-  endRowIndex: number;
-  id: string;
-  hiddenRowCount: number;
-};
-
-type VirtualItemType =
-  | { type: "row"; rowIndex: number }
-  | { type: "collapse"; section: CollapsibleSection };
-
-/**
- * Check if a row has any changes in the diff
- */
-function hasRowChanges(row: FormattedRow, diff: DiffResult): boolean {
-  for (let offset = row.startOffset; offset <= row.endOffset; offset++) {
-    if (hasDiffAtOffset(diff, offset)) {
-      return true;
-    }
-  }
-  return false;
-}
-
-/**
- * Compute collapsible sections for empty rows
- * Maintains a 3-row buffer above and below changed rows
- */
-function computeCollapsibleSections(
-  rows: FormattedRow[],
-  diff: DiffResult | null,
-  bytesPerRow: number
-): CollapsibleSection[] {
-  if (!diff) return [];
-
-  const sections: CollapsibleSection[] = [];
-  const bufferRows = 3;
-  const minCollapsibleRows = 4; // Need at least 4 empty rows to collapse
-
-  // Mark which rows have changes
-  const rowsWithChanges = new Set<number>();
-  for (let i = 0; i < rows.length; i++) {
-    if (hasRowChanges(rows[i], diff)) {
-      rowsWithChanges.add(i);
-    }
-  }
-
-  // Mark rows that should be visible (changed rows + buffer)
-  const visibleRows = new Set<number>();
-  for (const changedRowIndex of rowsWithChanges) {
-    // Add buffer rows above
-    for (
-      let i = Math.max(0, changedRowIndex - bufferRows);
-      i < changedRowIndex;
-      i++
-    ) {
-      visibleRows.add(i);
-    }
-    // Add the changed row itself
-    visibleRows.add(changedRowIndex);
-    // Add buffer rows below
-    for (
-      let i = changedRowIndex + 1;
-      i <= Math.min(rows.length - 1, changedRowIndex + bufferRows);
-      i++
-    ) {
-      visibleRows.add(i);
-    }
-  }
-
-  // Find consecutive empty rows that should be collapsed
-  let startEmptyRow: number | null = null;
-  for (let i = 0; i < rows.length; i++) {
-    const isEmpty = !rowsWithChanges.has(i);
-    const shouldBeVisible = visibleRows.has(i);
-
-    if (isEmpty && !shouldBeVisible) {
-      if (startEmptyRow === null) {
-        startEmptyRow = i;
-      }
-    } else {
-      if (startEmptyRow !== null) {
-        const emptyRowCount = i - startEmptyRow;
-        if (emptyRowCount >= minCollapsibleRows) {
-          sections.push({
-            startRowIndex: startEmptyRow,
-            endRowIndex: i - 1,
-            id: `collapse-${startEmptyRow}-${i - 1}`,
-            hiddenRowCount: emptyRowCount,
-          });
-        }
-        startEmptyRow = null;
-      }
-    }
-  }
-
-  // Handle trailing empty rows
-  if (startEmptyRow !== null) {
-    const emptyRowCount = rows.length - startEmptyRow;
-    if (emptyRowCount >= minCollapsibleRows) {
-      sections.push({
-        startRowIndex: startEmptyRow,
-        endRowIndex: rows.length - 1,
-        id: `collapse-${startEmptyRow}-${rows.length - 1}`,
-        hiddenRowCount: emptyRowCount,
-      });
-    }
-  }
-
-  return sections;
-}
-
-/**
- * Build virtual items list including rows and collapse buttons
- */
-function buildVirtualItems(
-  rows: FormattedRow[],
-  collapsibleSections: CollapsibleSection[],
-  expandedSections: Set<string>
-): VirtualItemType[] {
-  const items: VirtualItemType[] = [];
-  const sectionMap = new Map<string, CollapsibleSection>();
-
-  for (const section of collapsibleSections) {
-    sectionMap.set(section.id, section);
-  }
-
-  let i = 0;
-  while (i < rows.length) {
-    // Check if we're at the start of a collapsible section
-    let foundSection: CollapsibleSection | null = null;
-    for (const section of collapsibleSections) {
-      if (section.startRowIndex === i) {
-        foundSection = section;
-        break;
-      }
-    }
-
-    if (foundSection && !expandedSections.has(foundSection.id)) {
-      // Add collapse button
-      items.push({ type: "collapse", section: foundSection });
-      // Skip to end of section
-      i = foundSection.endRowIndex + 1;
-    } else {
-      // Add regular row
-      items.push({ type: "row", rowIndex: i });
-      i++;
-    }
-  }
-
-  return items;
-}
-
-/**
- * Get the basename from a file path
- */
-function getBasename(filePath: string): string {
-  return filePath.split("/").pop() || filePath.split("\\").pop() || filePath;
-}
+import { HexFooter } from "~/components/hex-editor/hex-footer";
+import type { HexEditorProps, HexEditorViewProps, HexViewProps } from "./types";
+import {
+  computeCollapsibleSections,
+  buildVirtualItems,
+  getBasename,
+} from "./utils";
 
 const HexEditorView: FunctionComponent<HexEditorViewProps> = ({
   scrollToOffset,
@@ -236,15 +65,15 @@ const HexEditorView: FunctionComponent<HexEditorViewProps> = ({
   diff,
 }) => {
   const bytesPerRow = 16;
-  const hexViewRef = React.useRef<{
+  const hexViewRef = useRef<{
     scrollToOffset: (offset: number) => void;
   } | null>(null);
 
-  const rows = React.useMemo(() => {
+  const rows = useMemo(() => {
     return formatDataIntoRows(snapshot.data, bytesPerRow);
   }, [snapshot.data, bytesPerRow]);
 
-  React.useEffect(() => {
+  useEffect(() => {
     if (scrollToOffset) {
       hexViewRef.current?.scrollToOffset(scrollToOffset);
     }
@@ -295,12 +124,12 @@ export const HexEditor: FunctionComponent<HexEditorProps> = ({
   recentFiles = [],
   className = "",
 }) => {
-  const [activeTab, setActiveTab] = React.useState<string>("0");
-  const [showAscii, setShowAscii] = React.useState(true);
-  const [diffMode, setDiffMode] = React.useState<DiffViewMode>("inline");
-  const [dataType, setDataType] = React.useState<string>("Signed Int");
-  const [endianness, setEndianness] = React.useState<string>("le");
-  const [numberFormat, setNumberFormat] = React.useState<string>("dec");
+  const [activeTab, setActiveTab] = useState<string>("0");
+  const [showAscii, setShowAscii] = useState(true);
+  const [diffMode, setDiffMode] = useState<DiffViewMode>("inline");
+  const [dataType, setDataType] = useState<string>("Signed Int");
+  const [endianness, setEndianness] = useState<string>("le");
+  const [numberFormat, setNumberFormat] = useState<string>("dec");
   const currentSnapshot = snapshots[parseInt(activeTab, 10)] || snapshots[0];
   const hasFile = filePath != null && filePath !== "";
   const hasSnapshots = snapshots.length > 0;
@@ -318,14 +147,12 @@ export const HexEditor: FunctionComponent<HexEditorProps> = ({
     </div>
   ) : undefined;
 
-  const diff = React.useMemo(() => {
+  const diff = useMemo(() => {
     if (!previousSnapshot || diffMode === "none") return null;
     return computeDiff(previousSnapshot, currentSnapshot);
   }, [previousSnapshot, currentSnapshot, diffMode]);
 
-  const [scrollToOffset, setScrollToOffset] = React.useState<number | null>(
-    null
-  );
+  const [scrollToOffset, setScrollToOffset] = useState<number | null>(null);
   const headerContent = (
     <CardHeader className="p-0! gap-0 m-0 bg-muted/30">
       {/* Primary Toolbar */}
@@ -398,7 +225,7 @@ export const HexEditor: FunctionComponent<HexEditorProps> = ({
       return onFileSelect ? (
         <EmptyState onFileSelect={onFileSelect} recentFiles={recentFiles} />
       ) : (
-        <div className="flex items-center justify-center min-h-[500px] text-muted-foreground">
+        <div className="flex items-center justify-center h-full text-muted-foreground">
           Please select a file to begin
         </div>
       );
@@ -406,7 +233,7 @@ export const HexEditor: FunctionComponent<HexEditorProps> = ({
 
     if (loading) {
       return (
-        <div className="flex flex-col items-center justify-center gap-4 text-center min-h-[500px]">
+        <div className="flex flex-col items-center justify-center gap-4 text-center h-full">
           <Loader2 className="h-8 w-8 animate-spin text-primary" />
           <div>
             <h3 className="font-semibold">Loading file...</h3>
@@ -420,7 +247,7 @@ export const HexEditor: FunctionComponent<HexEditorProps> = ({
 
     if (!hasSnapshots) {
       return (
-        <div className="flex items-center justify-center min-h-[500px] text-muted-foreground">
+        <div className="flex items-center justify-center h-full text-muted-foreground">
           No data available
         </div>
       );
@@ -555,7 +382,7 @@ export const HexEditor: FunctionComponent<HexEditorProps> = ({
             {renderCardContent(false)}
           </CardContent>
           <CardFooter className="p-0">
-            <HexFooter
+            {/* <HexFooter
               // left={bytesLabel}
               // right={
               //   hasFile ? (
@@ -571,7 +398,7 @@ export const HexEditor: FunctionComponent<HexEditorProps> = ({
               //   ) : undefined
               // }
               center={hasFile ? <span>test</span> : undefined}
-            />
+            /> */}
           </CardFooter>
         </>
       )}
@@ -579,29 +406,22 @@ export const HexEditor: FunctionComponent<HexEditorProps> = ({
   );
 };
 
-type HexViewProps = {
-  rows: ReturnType<typeof formatDataIntoRows>;
-  showAscii: boolean;
-  diff: ReturnType<typeof computeDiff> | null;
-  getDiffColorClass: (offset: number) => string;
-};
-
-const HexView = React.forwardRef<
+const HexView = forwardRef<
   { scrollToOffset: (offset: number) => void },
   HexViewProps
 >(({ rows, showAscii, diff, getDiffColorClass }, ref) => {
-  const parentRef = React.useRef<HTMLDivElement>(null);
+  const parentRef = useRef<HTMLDivElement>(null);
   const bytesPerRow = 16;
-  const [highlightedOffset, setHighlightedOffset] = React.useState<
-    number | null
-  >(null);
-  const [expandedSections, setExpandedSections] = React.useState<Set<string>>(
+  const [highlightedOffset, setHighlightedOffset] = useState<number | null>(
+    null
+  );
+  const [expandedSections, setExpandedSections] = useState<Set<string>>(
     new Set()
   );
-  const [parentHeight, setParentHeight] = React.useState<number>(0);
+  const [parentHeight, setParentHeight] = useState<number>(0);
 
   // Track parentRef height changes
-  React.useEffect(() => {
+  useEffect(() => {
     const element = parentRef.current;
     if (!element) return;
 
@@ -622,13 +442,13 @@ const HexView = React.forwardRef<
   }, []);
 
   // Compute collapsible sections when in diff mode
-  const collapsibleSections = React.useMemo(() => {
+  const collapsibleSections = useMemo(() => {
     if (!diff) return [];
     return computeCollapsibleSections(rows, diff, bytesPerRow);
   }, [rows, diff, bytesPerRow]);
 
   // Build virtual items (rows + collapse buttons)
-  const virtualItems = React.useMemo(() => {
+  const virtualItems = useMemo(() => {
     if (!diff || collapsibleSections.length === 0) {
       return rows.map((_, i) => ({ type: "row" as const, rowIndex: i }));
     }
@@ -648,7 +468,7 @@ const HexView = React.forwardRef<
     overscan: 200, // Render 5 extra rows above and below viewport
   });
 
-  const scrollToOffset = React.useCallback(
+  const scrollToOffset = useCallback(
     (offset: number) => {
       const rowIndex = Math.floor(offset / bytesPerRow);
 
@@ -706,11 +526,11 @@ const HexView = React.forwardRef<
     ]
   );
 
-  React.useImperativeHandle(ref, () => ({
+  useImperativeHandle(ref, () => ({
     scrollToOffset,
   }));
 
-  const toggleSection = React.useCallback((sectionId: string) => {
+  const toggleSection = useCallback((sectionId: string) => {
     setExpandedSections((prev) => {
       const next = new Set(prev);
       if (next.has(sectionId)) {
