@@ -24,9 +24,10 @@ import {
 } from "lucide-react";
 import { useTheme } from "next-themes";
 import Link from "next/link";
-import { FunctionComponent, ReactNode, useState } from "react";
+import { FunctionComponent, ReactNode } from "react";
 import { useRecentFiles } from "~/hooks/use-recent-files";
 import { encodeFilePath } from "~/utils/path-encoding";
+import { cn } from "@hexed/ui";
 
 export type LogoMenuItem = {
   label: string;
@@ -53,35 +54,6 @@ const defaultMenuItems: LogoMenuItem[] = [
   },
 ];
 
-const GlitchButton: FunctionComponent = () => {
-  const [entered, setEntered] = useState(false);
-  return (
-    <div
-      className="bg-red-400"
-      onMouseEnter={() => setEntered(true)}
-      onMouseLeave={() => setEntered(false)}
-    >
-      <Button variant="ghost">
-        <Ghost />
-        <span className="font-mono font-bold">
-          <FuzzyText
-            fontSize="1rem"
-            baseIntensity={0}
-            // hoverIntensity={0.5}
-            glitchMode={entered}
-            glitchInterval={1000}
-            glitchDuration={100}
-            enableHover={false}
-          >
-            hexed
-          </FuzzyText>
-        </span>
-        <ChevronDown className="opacity-50 h-4 w-4" />
-      </Button>
-    </div>
-  );
-};
-
 export const Logo: FunctionComponent<LogoProps> = ({
   menuItems,
   githubUrl = "https://github.com/jakiestfu/hexed",
@@ -96,14 +68,14 @@ export const Logo: FunctionComponent<LogoProps> = ({
 
   if (inline)
     return (
-      <div className="flex justify-center items-center gap-2">
+      <div className="flex justify-center items-center gap-2 logo-container-inline">
         <Ghost />
         <span className="font-mono font-bold">hexed</span>
       </div>
     );
 
   return (
-    <div className="flex justify-center gap-2">
+    <div className="flex justify-center gap-2 logo-container">
       <DropdownMenu>
         <DropdownMenuTrigger asChild>
           <Button variant="ghost">

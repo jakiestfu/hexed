@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import type { FunctionComponent, FormEvent } from "react";
 import {
   Card,
@@ -11,9 +11,10 @@ import {
   PopoverContent,
   PopoverTrigger,
 } from "@hexed/ui";
-import { FileIcon, Clock, ChevronDown, Ghost } from "lucide-react";
+import { FileIcon, Clock, ChevronDown, Ghost, FolderOpen } from "lucide-react";
 import type { RecentFile } from "~/hooks/use-recent-files";
 import { Logo } from "~/components/logo";
+import { isElectron, openFileDialog } from "~/utils/electron";
 
 type EmptyStateProps = {
   onFileSelect: (filePath: string) => void;
@@ -25,6 +26,12 @@ export const EmptyState: FunctionComponent<EmptyStateProps> = ({
   recentFiles,
 }) => {
   const [filePath, setFilePath] = useState("");
+  const [isInElectron, setIsInElectron] = useState(false);
+  const [isLoading, setIsLoading] = useState(false);
+
+  useEffect(() => {
+    setIsInElectron(isElectron());
+  }, []);
 
   const handleManualPathSubmit = (event: FormEvent) => {
     event.preventDefault();
@@ -36,6 +43,22 @@ export const EmptyState: FunctionComponent<EmptyStateProps> = ({
   const handleRecentFileSelect = (path: string) => {
     setFilePath(path);
     onFileSelect(path);
+  };
+
+  const handleNativeFilePicker = async () => {
+    if (!isInElectron) return;
+
+    setIsLoading(true);
+    try {
+      const selectedPath = await openFileDialog();
+      if (selectedPath) {
+        onFileSelect(selectedPath);
+      }
+    } catch (error) {
+      console.error("Error opening file dialog:", error);
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   const formatTimestamp = (timestamp: number): string => {
@@ -76,21 +99,19 @@ export const EmptyState: FunctionComponent<EmptyStateProps> = ({
           </CardDescription>
         </CardHeader> */}
         <CardContent className="space-y-4">
-          {/* Manual path input with recent files dropdown */}
-          <form onSubmit={handleManualPathSubmit} className="space-y-2">
-            <label htmlFor="filePath" className="text-sm font-medium">
-              Enter file path
-            </label>
-            <div className="flex gap-2">
-              <div className="flex-1 flex gap-2">
-                <input
-                  id="filePath"
-                  type="text"
-                  value={filePath}
-                  onChange={(e) => setFilePath(e.target.value)}
-                  placeholder="/path/to/binary/file"
-                  className="flex-1 px-3 py-2 text-sm border rounded-md bg-background"
-                />
+          {isInElectron ? (
+            /* Native file picker for Electron */
+            <div className="space-y-2">
+              <label className="text-sm font-medium">Select a file</label>
+              <div className="flex gap-2">
+                <Button
+                  onClick={handleNativeFilePicker}
+                  disabled={isLoading}
+                  className="flex-1"
+                >
+                  <FolderOpen className="h-4 w-4 mr-2" />
+                  {isLoading ? "Opening..." : "Choose File"}
+                </Button>
                 {recentFiles.length > 0 && (
                   <Popover>
                     <PopoverTrigger asChild>
@@ -131,13 +152,75 @@ export const EmptyState: FunctionComponent<EmptyStateProps> = ({
                   </Popover>
                 )}
               </div>
-              <Button type="submit">Open File</Button>
+              <p className="text-xs text-muted-foreground">
+                Use the native file picker to select a binary file
+                {recentFiles.length > 0 && " or select from recent files"}
+              </p>
             </div>
-            <p className="text-xs text-muted-foreground">
-              Enter the full path to a file on your server filesystem
-              {recentFiles.length > 0 && " or select from recent files"}
-            </p>
-          </form>
+          ) : (
+            /* Manual path input for web */
+            <form onSubmit={handleManualPathSubmit} className="space-y-2">
+              <label htmlFor="filePath" className="text-sm font-medium">
+                Enter file path
+              </label>
+              <div className="flex gap-2">
+                <div className="flex-1 flex gap-2">
+                  <input
+                    id="filePath"
+                    type="text"
+                    value={filePath}
+                    onChange={(e) => setFilePath(e.target.value)}
+                    placeholder="/path/to/binary/file"
+                    className="flex-1 px-3 py-2 text-sm border rounded-md bg-background"
+                  />
+                  {recentFiles.length > 0 && (
+                    <Popover>
+                      <PopoverTrigger asChild>
+                        <Button
+                          type="button"
+                          variant="outline"
+                          size="icon"
+                          className="shrink-0"
+                        >
+                          <Clock className="h-4 w-4" />
+                        </Button>
+                      </PopoverTrigger>
+                      <PopoverContent className="w-[400px] p-2" align="end">
+                        <div className="space-y-1">
+                          <div className="px-2 py-1.5 text-xs font-semibold text-muted-foreground">
+                            Recent Files
+                          </div>
+                          {recentFiles.map((file) => (
+                            <Button
+                              key={file.path}
+                              type="button"
+                              variant="ghost"
+                              className="w-full justify-start text-left h-auto py-2 px-2"
+                              onClick={() => handleRecentFileSelect(file.path)}
+                            >
+                              <div className="flex flex-col items-start gap-0.5 flex-1 min-w-0">
+                                <span className="font-mono text-sm truncate w-full">
+                                  {pathBasename(file.path)}
+                                </span>
+                                <span className="text-xs text-muted-foreground">
+                                  {formatTimestamp(file.timestamp)}
+                                </span>
+                              </div>
+                            </Button>
+                          ))}
+                        </div>
+                      </PopoverContent>
+                    </Popover>
+                  )}
+                </div>
+                <Button type="submit">Open File</Button>
+              </div>
+              <p className="text-xs text-muted-foreground">
+                Enter the full path to a file on your server filesystem
+                {recentFiles.length > 0 && " or select from recent files"}
+              </p>
+            </form>
+          )}
         </CardContent>
       </Card>
     </div>

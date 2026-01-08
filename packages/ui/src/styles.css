@@ -121,3 +121,13 @@
     @apply bg-background text-foreground;
   }
 }
+
+/* Electron-specific padding for Logo component */
+@layer utilities {
+  html[data-electron="true"] .logo-container {
+    padding-left: 3.5rem; /* pl-14 */
+  }
+  html[data-electron="true"] .logo-container-inline {
+    padding-left: 5rem; /* pl-20 */
+  }
+}

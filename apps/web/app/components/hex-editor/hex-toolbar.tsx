@@ -1,4 +1,7 @@
+import { useEffect, useState } from "react";
 import type { FunctionComponent, ReactNode } from "react";
+import { isElectron } from "~/utils/electron";
+import { cn } from "@hexed/ui";
 
 type HexToolbarProps = {
   left?: ReactNode;
@@ -11,8 +14,45 @@ export const HexToolbar: FunctionComponent<HexToolbarProps> = ({
   center,
   right,
 }) => {
+  const [isInElectron, setIsInElectron] = useState(false);
+
+  useEffect(() => {
+    const inElectron = isElectron();
+    setIsInElectron(inElectron);
+
+    if (inElectron) {
+      // Add global style to ensure interactive elements are not draggable
+      const style = document.createElement("style");
+      style.textContent = `
+        [data-electron-drag-region] button,
+        [data-electron-drag-region] input,
+        [data-electron-drag-region] select,
+        [data-electron-drag-region] a,
+        [data-electron-drag-region] [role="button"],
+        [data-electron-drag-region] [role="menuitem"] {
+          -webkit-app-region: no-drag !important;
+        }
+      `;
+      document.head.appendChild(style);
+
+      return () => {
+        document.head.removeChild(style);
+      };
+    }
+  }, []);
+
   return (
-    <div className="flex items-center justify-between p-4 border-b">
+    <div
+      data-electron-drag-region={isInElectron ? "" : undefined}
+      className="flex items-center justify-between p-4 border-b"
+      style={
+        isInElectron
+          ? {
+              WebkitAppRegion: "drag",
+            }
+          : undefined
+      }
+    >
       <div className="flex items-start min-w-0 flex-1">{left}</div>
       {center && (
         <div className="flex items-center grow justify-center">{center}</div>
