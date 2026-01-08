@@ -358,7 +358,7 @@ export function HexEditor({
       <Card
         className={`p-0 m-0 w-full h-full rounded-none border-none shadow-none ${className}`}
       >
-        <CardHeader className="p-0! gap-0 m-0 border-b bg-muted/30">
+        <CardHeader className="p-0! gap-0 m-0 bg-muted/30">
           {/* Primary Toolbar */}
           <HexToolbar
             left={<Logo />}
@@ -373,7 +373,7 @@ export function HexEditor({
             right={<span />}
           />
         </CardHeader>
-        <CardContent className="pt-6">
+        <CardContent className="p-0 grow overflow-auto">
           {onFileSelect ? (
             <EmptyState onFileSelect={onFileSelect} recentFiles={recentFiles} />
           ) : (
@@ -382,6 +382,9 @@ export function HexEditor({
             </div>
           )}
         </CardContent>
+        <CardFooter className="p-0">
+          <HexFooter />
+        </CardFooter>
       </Card>
     );
   }
@@ -403,7 +406,7 @@ export function HexEditor({
         onValueChange={setActiveTab}
         className="gap-0 h-full"
       >
-        <CardHeader className="p-0! gap-0 m-0 border-b bg-muted/30">
+        <CardHeader className="p-0! gap-0 m-0 border-none bg-muted/30">
           {/* Primary Toolbar */}
           <HexToolbar
             left={<Logo />}
@@ -439,14 +442,16 @@ export function HexEditor({
 
           {/* Secondary Toolbar - Tabs */}
           {hasSnapshots && (
-            <div className="p-4">
-              <TabsList>
-                {snapshots.map((snapshot, index) => (
-                  <TabsTrigger key={snapshot.id} value={index.toString()}>
-                    {snapshot.label}
-                  </TabsTrigger>
-                ))}
-              </TabsList>
+            <div className="border-b">
+              <div className="p-4">
+                <TabsList>
+                  {snapshots.map((snapshot, index) => (
+                    <TabsTrigger key={snapshot.id} value={index.toString()}>
+                      {snapshot.label}
+                    </TabsTrigger>
+                  ))}
+                </TabsList>
+              </div>
             </div>
           )}
         </CardHeader>
