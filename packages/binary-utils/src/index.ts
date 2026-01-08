@@ -18,3 +18,34 @@ export {
 // Storage
 export { InMemoryStorage, createStorageAdapter } from './storage';
 
+// Interpreter
+export {
+  formatNumber,
+  readUint8,
+  readInt8,
+  readUint16,
+  readInt16,
+  readUint24,
+  readInt24,
+  readUint32,
+  readInt32,
+  readUint64,
+  readInt64,
+  readFloat16,
+  readFloat32,
+  readFloat64,
+  readLEB128,
+  readSLEB128,
+  readRational,
+  readSRational,
+  readMSDOSDateTime,
+  readOLEDateTime,
+  readUnixDateTime,
+  readMacHFSDateTime,
+  readMacHFSPlusDateTime,
+  readUTF8Char,
+  readUTF16Char,
+  readBinary,
+  type Endianness,
+  type NumberFormat,
+} from './interpreter';

@@ -30,6 +30,9 @@ import {
   Tooltip,
   TooltipContent,
   TooltipTrigger,
+  ResizablePanelGroup,
+  ResizablePanel,
+  ResizableHandle,
 } from "@hexed/ui";
 import { Eye, X, ChevronDownIcon, File, Loader2 } from "lucide-react";
 import { DiffViewer } from "./diff-viewer";
@@ -38,6 +41,7 @@ import { HexToolbar } from "./hex-toolbar";
 import { Logo } from "~/components/logo";
 import { HexFooter } from "~/components/hex-editor/hex-footer";
 import { useChecksumVisibility } from "~/hooks/use-checksum-visibility";
+import { Interpreter } from "./interpreter";
 import type { HexEditorProps, HexEditorViewProps } from "./types";
 import { getBasename } from "./utils";
 
@@ -46,9 +50,10 @@ const HexEditorView: FunctionComponent<HexEditorViewProps> = ({
   snapshot,
   showAscii,
   diff,
+  selectedOffset,
+  onSelectedOffsetChange,
 }) => {
   const hexCanvasRef = useRef<HexCanvasRef | null>(null);
-  const [selectedOffset, setSelectedOffset] = useState<number | null>(null);
 
   useEffect(() => {
     if (scrollToOffset !== null) {
@@ -64,13 +69,8 @@ const HexEditorView: FunctionComponent<HexEditorViewProps> = ({
         showAscii={showAscii}
         diff={diff}
         selectedOffset={selectedOffset}
-        onSelectedOffsetChange={setSelectedOffset}
+        onSelectedOffsetChange={onSelectedOffsetChange}
       />
-      {selectedOffset && (
-        <div className="text-sm text-muted-foreground">
-          Selected offset: {selectedOffset}
-        </div>
-      )}
     </div>
   );
 };
@@ -115,6 +115,7 @@ export const HexEditor: FunctionComponent<HexEditorProps> = ({
   }, [previousSnapshot, currentSnapshot, diffMode]);
 
   const [scrollToOffset, setScrollToOffset] = useState<number | null>(null);
+  const [selectedOffset, setSelectedOffset] = useState<number | null>(null);
   const headerContent = (
     <CardHeader className="p-0! gap-0 m-0 bg-muted/30">
       {/* Primary Toolbar */}
@@ -241,12 +242,31 @@ export const HexEditor: FunctionComponent<HexEditorProps> = ({
           value={index.toString()}
           className="h-full"
         >
-          <HexEditorView
-            scrollToOffset={scrollToOffset}
-            snapshot={snapshot}
-            showAscii={showAscii}
-            diff={diff}
-          />
+          <ResizablePanelGroup direction="horizontal" className="h-full">
+            <ResizablePanel defaultSize={70} minSize={30}>
+              <HexEditorView
+                scrollToOffset={scrollToOffset}
+                snapshot={snapshot}
+                showAscii={showAscii}
+                diff={diff}
+                selectedOffset={selectedOffset}
+                onSelectedOffsetChange={setSelectedOffset}
+              />
+            </ResizablePanel>
+            {selectedOffset !== null && (
+              <>
+                <ResizableHandle withHandle />
+                <ResizablePanel defaultSize={30} minSize={20}>
+                  <Interpreter
+                    data={snapshot.data}
+                    selectedOffset={selectedOffset}
+                    endianness={endianness as "le" | "be"}
+                    numberFormat={numberFormat as "dec" | "hex"}
+                  />
+                </ResizablePanel>
+              </>
+            )}
+          </ResizablePanelGroup>
         </TabsContent>
       ));
     }
@@ -254,12 +274,31 @@ export const HexEditor: FunctionComponent<HexEditorProps> = ({
     // Render HexEditorView directly when not inside Tabs (shouldn't happen with current logic, but for safety)
     const activeSnapshot = snapshots[parseInt(activeTab, 10)] || snapshots[0];
     return (
-      <HexEditorView
-        scrollToOffset={scrollToOffset}
-        snapshot={activeSnapshot}
-        showAscii={showAscii}
-        diff={diff}
-      />
+      <ResizablePanelGroup direction="horizontal" className="h-full">
+        <ResizablePanel defaultSize={70} minSize={30}>
+          <HexEditorView
+            scrollToOffset={scrollToOffset}
+            snapshot={activeSnapshot}
+            showAscii={showAscii}
+            diff={diff}
+            selectedOffset={selectedOffset}
+            onSelectedOffsetChange={setSelectedOffset}
+          />
+        </ResizablePanel>
+        {selectedOffset !== null && (
+          <>
+            <ResizableHandle withHandle />
+            <ResizablePanel defaultSize={30} minSize={20}>
+              <Interpreter
+                data={activeSnapshot.data}
+                selectedOffset={selectedOffset}
+                endianness={endianness as "le" | "be"}
+                numberFormat={numberFormat as "dec" | "hex"}
+              />
+            </ResizablePanel>
+          </>
+        )}
+      </ResizablePanelGroup>
     );
   };
 
