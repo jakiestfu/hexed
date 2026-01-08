@@ -61,6 +61,7 @@ const HexEditorView: FunctionComponent<HexEditorViewProps> = ({
         ref={hexCanvasRef}
         data={snapshot.data}
         showAscii={showAscii}
+        diff={diff}
       />
     </div>
   );
