@@ -8,6 +8,7 @@ interface UseKeyboardNavigationParams {
   rowHeight: number;
   hasFocus: boolean;
   onOffsetChange: (offset: number) => void;
+  onClearSelection: () => void;
   scrollToOffset: (offset: number) => void;
 }
 
@@ -27,6 +28,7 @@ export function useKeyboardNavigation({
   rowHeight,
   hasFocus,
   onOffsetChange,
+  onClearSelection,
   scrollToOffset,
 }: UseKeyboardNavigationParams): UseKeyboardNavigationReturn {
   const clampOffset = useCallback(
@@ -41,7 +43,8 @@ export function useKeyboardNavigation({
       if (offset < 0) {
         // Wrap to last row, same column position
         const column = offset % bytesPerRow;
-        const lastRowStart = Math.floor((dataLength - 1) / bytesPerRow) * bytesPerRow;
+        const lastRowStart =
+          Math.floor((dataLength - 1) / bytesPerRow) * bytesPerRow;
         return clampOffset(lastRowStart + column);
       }
       return clampOffset(offset);
@@ -65,12 +68,13 @@ export function useKeyboardNavigation({
     (offset: number): number => {
       const currentRow = Math.floor(offset / bytesPerRow);
       const column = offset % bytesPerRow;
-      
+
       if (column === 0) {
         // At start of row, wrap to last byte of previous row
         if (currentRow === 0) {
           // Already at first row, wrap to last row
-          const lastRowStart = Math.floor((dataLength - 1) / bytesPerRow) * bytesPerRow;
+          const lastRowStart =
+            Math.floor((dataLength - 1) / bytesPerRow) * bytesPerRow;
           const lastRowLength = dataLength - lastRowStart;
           return clampOffset(lastRowStart + lastRowLength - 1);
         }
@@ -87,7 +91,7 @@ export function useKeyboardNavigation({
       const column = offset % bytesPerRow;
       const rowStart = currentRow * bytesPerRow;
       const rowEnd = Math.min(dataLength - 1, rowStart + bytesPerRow - 1);
-      
+
       if (offset >= rowEnd) {
         // At end of row, wrap to first byte of next row
         if (currentRow >= Math.floor((dataLength - 1) / bytesPerRow)) {
@@ -103,7 +107,17 @@ export function useKeyboardNavigation({
 
   const handleKeyDown = useCallback(
     (event: React.KeyboardEvent) => {
-      if (!hasFocus || selectedOffset === null) return;
+      if (!hasFocus) return;
+
+      // Handle Escape key to clear selection (works even when selectedOffset is null)
+      if (event.key === "Escape") {
+        event.preventDefault();
+        onClearSelection();
+        return;
+      }
+
+      // Other keys require a selection
+      if (selectedOffset === null) return;
 
       let newOffset: number | null = null;
 
@@ -134,7 +148,8 @@ export function useKeyboardNavigation({
         case "End":
           event.preventDefault();
           // Move to last byte of current row
-          const rowStart = Math.floor(selectedOffset / bytesPerRow) * bytesPerRow;
+          const rowStart =
+            Math.floor(selectedOffset / bytesPerRow) * bytesPerRow;
           const rowEnd = Math.min(dataLength - 1, rowStart + bytesPerRow - 1);
           newOffset = clampOffset(rowEnd);
           break;
@@ -172,6 +187,7 @@ export function useKeyboardNavigation({
       wrapRight,
       clampOffset,
       onOffsetChange,
+      onClearSelection,
       scrollToOffset,
     ]
   );

@@ -59,11 +59,6 @@ export function getDefaultColors(container: HTMLElement): HexCanvasColors {
     text: chart4,
   };
 
-  const byteHover = {
-    bg: diffModified.bg,
-    border: diffModified.text,
-  };
-
   return {
     background: background || "oklch(1 0 0)",
     addressText: mutedForeground || foreground || "oklch(0.556 0 0)",
@@ -84,10 +79,13 @@ export function getDefaultColors(container: HTMLElement): HexCanvasColors {
       border: primary || ring || "oklch(0.708 0 0)",
     },
     rowHover: addOpacity(muted || "oklch(0.97 0 0)", 0.5),
-    byteHover,
+    byteHover: {
+      bg: diffModified.bg,
+      border: diffModified.bg,
+    },
     selection: {
-      bg: byteHover.bg,
-      border: byteHover.border,
+      bg: diffModified.bg,
+      border: diffModified.text,
     },
   };
 }

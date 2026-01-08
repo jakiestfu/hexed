@@ -57,7 +57,7 @@ const HexEditorView: FunctionComponent<HexEditorViewProps> = ({
   }, [scrollToOffset]);
 
   return (
-    <div className="h-full">
+    <div className="h-full flex-1">
       <HexCanvas
         ref={hexCanvasRef}
         data={snapshot.data}
@@ -66,6 +66,11 @@ const HexEditorView: FunctionComponent<HexEditorViewProps> = ({
         selectedOffset={selectedOffset}
         onSelectedOffsetChange={setSelectedOffset}
       />
+      {selectedOffset && (
+        <div className="text-sm text-muted-foreground">
+          Selected offset: {selectedOffset}
+        </div>
+      )}
     </div>
   );
 };

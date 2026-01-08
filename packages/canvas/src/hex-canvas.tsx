@@ -358,6 +358,9 @@ export const HexCanvas = forwardRef<HexCanvasRef, HexCanvasProps>(
       onOffsetChange: (offset: number) => {
         handleSelectionClick(offset);
       },
+      onClearSelection: () => {
+        handleSelectionClick(null);
+      },
       scrollToOffset,
     });
 
@@ -420,7 +423,7 @@ export const HexCanvas = forwardRef<HexCanvasRef, HexCanvasProps>(
     }, []);
 
     // Handle click outside canvas to clear selection
-    useOnClickOutside(canvasRef, () => {
+    useOnClickOutside(canvasRef as React.RefObject<HTMLElement>, () => {
       handleSelectionClick(null);
     });
 
@@ -451,7 +454,7 @@ export const HexCanvas = forwardRef<HexCanvasRef, HexCanvasProps>(
       ctx.font = `14px ${window
         .getComputedStyle(canvas)
         .getPropertyValue("--font-mono")}`;
-      ctx.textBaseline = "top";
+      ctx.textBaseline = "middle";
 
       // Clear canvas with background color
       ctx.fillStyle = colors.background;
@@ -521,7 +524,7 @@ export const HexCanvas = forwardRef<HexCanvasRef, HexCanvasProps>(
         ctx.fillText(
           row.address,
           layout.addressPadding,
-          y + (layout.rowHeight - 16) / 2 // Center vertically
+          y + layout.rowHeight / 2 // Center vertically (textBaseline is "middle")
         );
 
         // Draw hex bytes with diff and highlight backgrounds
@@ -631,7 +634,7 @@ export const HexCanvas = forwardRef<HexCanvasRef, HexCanvasProps>(
           } else {
             ctx.fillStyle = colors.byteText;
           }
-          ctx.fillText(row.hexBytes[j], hexX, y + (layout.rowHeight - 16) / 2);
+          ctx.fillText(row.hexBytes[j], hexX, y + layout.rowHeight / 2);
           hexX += layout.hexByteWidth + layout.hexByteGap;
         }
 
@@ -747,7 +750,7 @@ export const HexCanvas = forwardRef<HexCanvasRef, HexCanvasProps>(
             } else {
               ctx.fillStyle = colors.asciiText;
             }
-            ctx.fillText(row.ascii[j], charX, y + (layout.rowHeight - 16) / 2);
+            ctx.fillText(row.ascii[j], charX, y + layout.rowHeight / 2);
           }
         }
       }
