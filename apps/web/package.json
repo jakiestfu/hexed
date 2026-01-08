@@ -10,9 +10,9 @@
     "clean": "rm -rf .next node_modules"
   },
   "dependencies": {
-    "@binspector/binary-utils": "workspace:*",
-    "@binspector/types": "workspace:*",
-    "@binspector/ui": "workspace:*",
+    "@hexed/binary-utils": "workspace:*",
+    "@hexed/types": "workspace:*",
+    "@hexed/ui": "workspace:*",
     "@tanstack/react-virtual": "^3.12.0",
     "@tailwindcss/postcss": "^4.1.0",
     "chokidar": "^4.0.3",

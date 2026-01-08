@@ -1,19 +1,16 @@
 import * as React from "react";
-import type {
-  BinarySnapshot,
-  DiffViewMode,
-  DiffResult,
-} from "@binspector/types";
-import type { FormattedRow } from "@binspector/binary-utils/formatter";
-import { formatDataIntoRows } from "@binspector/binary-utils/formatter";
+import type { BinarySnapshot, DiffViewMode, DiffResult } from "@hexed/types";
+import type { FormattedRow } from "@hexed/binary-utils/formatter";
+import { formatDataIntoRows } from "@hexed/binary-utils/formatter";
 import {
   computeDiff,
   getDiffAtOffset,
   hasDiffAtOffset,
-} from "@binspector/binary-utils/differ";
+} from "@hexed/binary-utils/differ";
 import {
   Card,
   CardContent,
+  CardFooter,
   CardHeader,
   Toggle,
   Button,
@@ -22,7 +19,7 @@ import {
   TabsContent,
   TabsList,
   TabsTrigger,
-} from "@binspector/ui";
+} from "@hexed/ui";
 import {
   Columns2,
   Minus,
@@ -35,7 +32,10 @@ import {
 import { useVirtualizer } from "@tanstack/react-virtual";
 import { DiffViewer } from "./diff-viewer";
 import { EmptyState } from "./empty-state";
+import { HexToolbar } from "./hex-toolbar";
 import type { RecentFile } from "~/hooks/use-recent-files";
+import { Logo } from "~/components/logo";
+import { HexFooter } from "~/components/hex-footer";
 
 interface HexEditorProps {
   snapshots: BinarySnapshot[];
@@ -45,6 +45,7 @@ interface HexEditorProps {
   onClose?: () => void;
   onFileSelect?: (filePath: string) => void;
   recentFiles?: RecentFile[];
+  className?: string;
 }
 
 interface HexEditorViewProps {
@@ -53,6 +54,10 @@ interface HexEditorViewProps {
   filePath: string;
   isConnected: boolean;
   onClose?: () => void;
+  showAscii: boolean;
+  diffMode: DiffViewMode;
+  onShowAsciiChange: (show: boolean) => void;
+  onDiffModeChange: (mode: DiffViewMode) => void;
 }
 
 interface CollapsibleSection {
@@ -220,9 +225,11 @@ function HexEditorView({
   filePath,
   isConnected,
   onClose,
+  showAscii,
+  diffMode,
+  onShowAsciiChange,
+  onDiffModeChange,
 }: HexEditorViewProps) {
-  const [diffMode, setDiffMode] = React.useState<DiffViewMode>("none");
-  const [showAscii, setShowAscii] = React.useState(true);
   const bytesPerRow = 16;
   const hexViewRef = React.useRef<{
     scrollToOffset: (offset: number) => void;
@@ -260,56 +267,12 @@ function HexEditorView({
     }
   };
 
-  const toggleDiffMode = () => {
-    if (!previousSnapshot) return;
-
-    setDiffMode((current) => {
-      if (current === "none") return "inline";
-      if (current === "inline") return "side-by-side";
-      return "none";
-    });
-  };
-
   const handleScrollToOffset = React.useCallback((offset: number) => {
     hexViewRef.current?.scrollToOffset(offset);
   }, []);
 
   return (
-    <div className="space-y-4">
-      {/* View Controls */}
-      <div className="flex items-center justify-end gap-2">
-        <Toggle
-          pressed={showAscii}
-          onPressedChange={setShowAscii}
-          aria-label="Toggle ASCII view"
-          size="sm"
-        >
-          <Eye className="h-3 w-3" />
-          <span className="ml-1 text-xs">ASCII</span>
-        </Toggle>
-        {previousSnapshot && (
-          <Toggle
-            pressed={diffMode !== "none"}
-            onPressedChange={toggleDiffMode}
-            aria-label="Toggle diff mode"
-            size="sm"
-          >
-            {diffMode === "side-by-side" ? (
-              <Columns2 className="h-3 w-3" />
-            ) : (
-              <Minus className="h-3 w-3" />
-            )}
-            <span className="ml-1 text-xs">
-              {diffMode === "none"
-                ? "Diff"
-                : diffMode === "inline"
-                ? "Inline"
-                : "Side-by-Side"}
-            </span>
-          </Toggle>
-        )}
-      </div>
-
+    <div className="space-y-4 h-full">
       {/* Stats */}
       {diff && diffMode !== "none" && (
         <DiffViewer diff={diff} onScrollToOffset={handleScrollToOffset} />
@@ -365,38 +328,50 @@ export function HexEditor({
   onClose,
   onFileSelect,
   recentFiles = [],
+  className = "",
 }: HexEditorProps) {
   const [activeTab, setActiveTab] = React.useState<string>("0");
+  const [showAscii, setShowAscii] = React.useState(true);
+  const [diffMode, setDiffMode] = React.useState<DiffViewMode>("none");
   const currentSnapshot = snapshots[parseInt(activeTab, 10)] || snapshots[0];
   const hasFile = filePath != null && filePath !== "";
   const hasSnapshots = snapshots.length > 0;
 
+  // Get previous snapshot for the active tab
+  const activeTabIndex = parseInt(activeTab, 10);
+  const previousSnapshot =
+    activeTabIndex > 0 ? snapshots[activeTabIndex - 1] : undefined;
+
+  const toggleDiffMode = () => {
+    if (!previousSnapshot) return;
+
+    setDiffMode((current) => {
+      if (current === "none") return "inline";
+      if (current === "inline") return "side-by-side";
+      return "none";
+    });
+  };
+
   // Show empty state when no file is selected
   if (!hasFile) {
     return (
-      <Card className="p-0 mt-4 w-full max-w-7xl">
+      <Card
+        className={`p-0 m-0 w-full h-full rounded-none border-none shadow-none ${className}`}
+      >
         <CardHeader className="p-0! gap-0 m-0 border-b bg-muted/30">
           {/* Primary Toolbar */}
-          <div className="flex items-center justify-between p-4 border-b">
-            <div className="flex items-center gap-4 flex-1 min-w-0">
+          <HexToolbar
+            left={<Logo />}
+            center={
               <div className="flex items-center gap-2 min-w-0">
                 <File className="h-4 w-4 text-muted-foreground shrink-0" />
                 <span className="font-mono text-sm text-muted-foreground">
                   No file selected
                 </span>
               </div>
-            </div>
-            {onClose && (
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={onClose}
-                className="ml-2 shrink-0"
-              >
-                <X className="h-4 w-4" />
-              </Button>
-            )}
-          </div>
+            }
+            right={<span />}
+          />
         </CardHeader>
         <CardContent className="pt-6">
           {onFileSelect ? (
@@ -411,42 +386,56 @@ export function HexEditor({
     );
   }
 
+  const bytesLabel = (
+    <div className="flex items-center gap-2">
+      <span className="text-sm text-muted-foreground">
+        {currentSnapshot?.data.length.toLocaleString()} bytes
+      </span>
+    </div>
+  );
+
   return (
-    <Card className="p-0 mt-4 w-full max-w-7xl">
-      <Tabs value={activeTab} onValueChange={setActiveTab}>
+    <Card
+      className={`p-0 m-0 w-full h-full rounded-none shadow-none border-none ${className}`}
+    >
+      <Tabs
+        value={activeTab}
+        onValueChange={setActiveTab}
+        className="gap-0 h-full"
+      >
         <CardHeader className="p-0! gap-0 m-0 border-b bg-muted/30">
           {/* Primary Toolbar */}
-          <div className="flex items-center justify-between p-4 border-b">
-            <div className="flex items-center gap-4 flex-1 min-w-0">
-              <div className="flex items-center gap-2 min-w-0">
-                <File className="h-4 w-4 text-muted-foreground shrink-0" />
-                <span className="font-mono text-sm truncate" title={filePath}>
-                  {getBasename(filePath)}
-                </span>
-                <div
-                  className={`inline-flex h-2 w-2 rounded-full shrink-0 ${
-                    isConnected ? "bg-green-500" : "bg-red-500"
-                  }`}
-                  title={isConnected ? "Connected" : "Disconnected"}
-                />
-              </div>
-              <div className="flex items-center gap-2">
-                <span className="text-sm text-muted-foreground">
-                  {currentSnapshot?.data.length.toLocaleString()} bytes
-                </span>
-              </div>
-            </div>
-            {onClose && (
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={onClose}
-                className="ml-2 shrink-0"
-              >
-                <X className="h-4 w-4" />
-              </Button>
-            )}
-          </div>
+          <HexToolbar
+            left={<Logo />}
+            center={
+              <>
+                <div className="flex items-center gap-2 min-w-0">
+                  <File className="h-4 w-4 text-muted-foreground shrink-0" />
+                  <span className="font-mono text-sm truncate" title={filePath}>
+                    {getBasename(filePath)}
+                  </span>
+                  <div
+                    className={`inline-flex h-2 w-2 rounded-full shrink-0 ${
+                      isConnected ? "bg-green-500" : "bg-red-500"
+                    }`}
+                    title={isConnected ? "Connected" : "Disconnected"}
+                  />
+                </div>
+              </>
+            }
+            right={
+              onClose && (
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={onClose}
+                  className="ml-2 shrink-0"
+                >
+                  <X className="h-4 w-4" />
+                </Button>
+              )
+            }
+          />
 
           {/* Secondary Toolbar - Tabs */}
           {hasSnapshots && (
@@ -461,7 +450,7 @@ export function HexEditor({
             </div>
           )}
         </CardHeader>
-        <CardContent className="pt-6">
+        <CardContent className="p-0 grow overflow-auto">
           {loading ? (
             <div className="flex flex-col items-center justify-center gap-4 text-center min-h-[500px]">
               <Loader2 className="h-8 w-8 animate-spin text-primary" />
@@ -474,7 +463,11 @@ export function HexEditor({
             </div>
           ) : hasSnapshots ? (
             snapshots.map((snapshot, index) => (
-              <TabsContent key={snapshot.id} value={index.toString()}>
+              <TabsContent
+                key={snapshot.id}
+                value={index.toString()}
+                className="h-full"
+              >
                 <HexEditorView
                   snapshot={snapshot}
                   previousSnapshot={
@@ -483,6 +476,10 @@ export function HexEditor({
                   filePath={filePath}
                   isConnected={isConnected}
                   onClose={onClose}
+                  showAscii={showAscii}
+                  diffMode={diffMode}
+                  onShowAsciiChange={setShowAscii}
+                  onDiffModeChange={setDiffMode}
                 />
               </TabsContent>
             ))
@@ -492,6 +489,47 @@ export function HexEditor({
             </div>
           )}
         </CardContent>
+        <CardFooter className="p-0">
+          <HexFooter
+            left={bytesLabel}
+            right={
+              <Toggle
+                pressed={showAscii}
+                onPressedChange={setShowAscii}
+                aria-label="Toggle ASCII view"
+                size="sm"
+              >
+                <Eye className="h-3 w-3" />
+                <span className="ml-1 text-xs">ASCII</span>
+              </Toggle>
+            }
+            center={<span>test</span>}
+          />
+          {/* <div className="flex items-center justify-end gap-2 w-full">
+            
+            {previousSnapshot && (
+              <Toggle
+                pressed={diffMode !== "none"}
+                onPressedChange={toggleDiffMode}
+                aria-label="Toggle diff mode"
+                size="sm"
+              >
+                {diffMode === "side-by-side" ? (
+                  <Columns2 className="h-3 w-3" />
+                ) : (
+                  <Minus className="h-3 w-3" />
+                )}
+                <span className="ml-1 text-xs">
+                  {diffMode === "none"
+                    ? "Diff"
+                    : diffMode === "inline"
+                    ? "Inline"
+                    : "Side-by-Side"}
+                </span>
+              </Toggle>
+            )}
+          </div> */}
+        </CardFooter>
       </Tabs>
     </Card>
   );
@@ -516,6 +554,28 @@ const HexView = React.forwardRef<
   const [expandedSections, setExpandedSections] = React.useState<Set<string>>(
     new Set()
   );
+  const [parentHeight, setParentHeight] = React.useState<number>(0);
+
+  // Track parentRef height changes
+  React.useEffect(() => {
+    const element = parentRef.current;
+    if (!element) return;
+
+    const updateHeight = () => {
+      setParentHeight(element.clientHeight);
+    };
+
+    // Initial height
+    updateHeight();
+
+    // Use ResizeObserver to track height changes
+    const resizeObserver = new ResizeObserver(updateHeight);
+    resizeObserver.observe(element);
+
+    return () => {
+      resizeObserver.disconnect();
+    };
+  }, []);
 
   // Compute collapsible sections when in diff mode
   const collapsibleSections = React.useMemo(() => {
@@ -541,7 +601,7 @@ const HexView = React.forwardRef<
       }
       return 24; // Regular row height
     },
-    overscan: 5, // Render 5 extra rows above and below viewport
+    overscan: 200, // Render 5 extra rows above and below viewport
   });
 
   const scrollToOffset = React.useCallback(
@@ -621,23 +681,55 @@ const HexView = React.forwardRef<
   return (
     <div
       ref={parentRef}
-      className="overflow-auto max-h-[600px] font-mono text-sm"
+      className="overflow-auto h-full grow font-mono text-sm"
     >
-      <div
-        style={{
-          height: `${virtualizer.getTotalSize()}px`,
-          width: "100%",
-          position: "relative",
-        }}
-      >
-        {virtualizer.getVirtualItems().map((virtualItem) => {
-          const item = virtualItems[virtualItem.index];
+      <div style={{ height: `${parentHeight}px` }}>
+        <div
+          style={{
+            height: `${virtualizer.getTotalSize()}px`,
+            width: "100%",
+            position: "relative",
+          }}
+        >
+          {virtualizer.getVirtualItems().map((virtualItem) => {
+            const item = virtualItems[virtualItem.index];
 
-          if (item.type === "collapse") {
-            // Render collapse button
+            if (item.type === "collapse") {
+              // Render collapse button
+              return (
+                <div
+                  key={item.section.id}
+                  style={{
+                    position: "absolute",
+                    top: 0,
+                    left: 0,
+                    width: "100%",
+                    height: `${virtualItem.size}px`,
+                    transform: `translateY(${virtualItem.start}px)`,
+                  }}
+                  className="flex items-center justify-center border-y border-border bg-muted/30 hover:bg-muted/50 transition-colors"
+                >
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => toggleSection(item.section.id)}
+                    className="text-muted-foreground hover:text-foreground"
+                  >
+                    <ChevronDownIcon className="h-4 w-4 mr-2" />
+                    <span className="text-xs">
+                      {item.section.hiddenRowCount} line
+                      {item.section.hiddenRowCount !== 1 ? "s" : ""} hidden
+                    </span>
+                  </Button>
+                </div>
+              );
+            }
+
+            // Render regular row
+            const row = rows[item.rowIndex];
             return (
               <div
-                key={item.section.id}
+                key={row.startOffset}
                 style={{
                   position: "absolute",
                   top: 0,
@@ -646,80 +738,14 @@ const HexView = React.forwardRef<
                   height: `${virtualItem.size}px`,
                   transform: `translateY(${virtualItem.start}px)`,
                 }}
-                className="flex items-center justify-center border-y border-border bg-muted/30 hover:bg-muted/50 transition-colors"
+                className="flex gap-4 hover:bg-muted/50 py-0.5"
               >
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  onClick={() => toggleSection(item.section.id)}
-                  className="text-muted-foreground hover:text-foreground"
-                >
-                  <ChevronDownIcon className="h-4 w-4 mr-2" />
-                  <span className="text-xs">
-                    {item.section.hiddenRowCount} line
-                    {item.section.hiddenRowCount !== 1 ? "s" : ""} hidden
-                  </span>
-                </Button>
-              </div>
-            );
-          }
+                <div className="text-muted-foreground select-none shrink-0 w-24">
+                  {row.address}
+                </div>
 
-          // Render regular row
-          const row = rows[item.rowIndex];
-          return (
-            <div
-              key={row.startOffset}
-              style={{
-                position: "absolute",
-                top: 0,
-                left: 0,
-                width: "100%",
-                height: `${virtualItem.size}px`,
-                transform: `translateY(${virtualItem.start}px)`,
-              }}
-              className="flex gap-4 hover:bg-muted/50 py-0.5"
-            >
-              {/* Address */}
-              <div className="text-muted-foreground select-none shrink-0 w-24">
-                {row.address}
-              </div>
-
-              {/* Hex bytes */}
-              <div className="flex gap-1 flex-wrap">
-                {row.hexBytes.map((byte, index) => {
-                  const offset = row.startOffset + index;
-                  const colorClass = getDiffColorClass(offset);
-                  const isHighlighted = highlightedOffset === offset;
-                  return (
-                    <span
-                      key={offset}
-                      className={cn(
-                        "inline-block w-6 text-center rounded px-0.5 transition-all",
-                        colorClass,
-                        isHighlighted &&
-                          "ring-2 ring-primary ring-offset-1 bg-primary/20"
-                      )}
-                      title={`Offset: ${offset} (0x${offset
-                        .toString(16)
-                        .toUpperCase()})`}
-                    >
-                      {byte}
-                    </span>
-                  );
-                })}
-                {/* Padding for incomplete rows */}
-                {row.hexBytes.length < 16 &&
-                  Array.from({ length: 16 - row.hexBytes.length }).map(
-                    (_, i) => (
-                      <span key={`pad-${i}`} className="inline-block w-6" />
-                    )
-                  )}
-              </div>
-
-              {/* ASCII */}
-              {showAscii && (
-                <div className="border-l pl-4 text-muted-foreground">
-                  {row.ascii.split("").map((char, index) => {
+                <div className="flex gap-1 flex-wrap">
+                  {row.hexBytes.map((byte, index) => {
                     const offset = row.startOffset + index;
                     const colorClass = getDiffColorClass(offset);
                     const isHighlighted = highlightedOffset === offset;
@@ -727,22 +753,55 @@ const HexView = React.forwardRef<
                       <span
                         key={offset}
                         className={cn(
-                          "inline-block rounded px-0.5 transition-all",
+                          "inline-block w-6 text-center rounded px-0.5 transition-all",
                           colorClass,
                           isHighlighted &&
                             "ring-2 ring-primary ring-offset-1 bg-primary/20"
                         )}
-                        title={`Offset: ${offset}`}
+                        title={`Offset: ${offset} (0x${offset
+                          .toString(16)
+                          .toUpperCase()})`}
                       >
-                        {char}
+                        {byte}
                       </span>
                     );
                   })}
+
+                  {row.hexBytes.length < 16 &&
+                    Array.from({ length: 16 - row.hexBytes.length }).map(
+                      (_, i) => (
+                        <span key={`pad-${i}`} className="inline-block w-6" />
+                      )
+                    )}
                 </div>
-              )}
-            </div>
-          );
-        })}
+
+                {showAscii && (
+                  <div className="border-l pl-4 text-muted-foreground">
+                    {row.ascii.split("").map((char, index) => {
+                      const offset = row.startOffset + index;
+                      const colorClass = getDiffColorClass(offset);
+                      const isHighlighted = highlightedOffset === offset;
+                      return (
+                        <span
+                          key={offset}
+                          className={cn(
+                            "inline-block rounded px-0.5 transition-all",
+                            colorClass,
+                            isHighlighted &&
+                              "ring-2 ring-primary ring-offset-1 bg-primary/20"
+                          )}
+                          title={`Offset: ${offset}`}
+                        >
+                          {char}
+                        </span>
+                      );
+                    })}
+                  </div>
+                )}
+              </div>
+            );
+          })}
+        </div>
       </div>
     </div>
   );

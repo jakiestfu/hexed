@@ -11,11 +11,11 @@
   },
   "iconLibrary": "lucide",
   "aliases": {
-    "components": "@binspector/ui/components",
-    "utils": "@binspector/ui/lib/utils",
-    "ui": "@binspector/ui/components",
-    "lib": "@binspector/ui/lib",
-    "hooks": "@binspector/ui/hooks"
+    "components": "@hexed/ui/components",
+    "utils": "@hexed/ui/lib/utils",
+    "ui": "@hexed/ui/components",
+    "lib": "@hexed/ui/lib",
+    "hooks": "@hexed/ui/hooks"
   },
   "registries": {
     "@magicui": "https://magicui.design/r/{name}.json",

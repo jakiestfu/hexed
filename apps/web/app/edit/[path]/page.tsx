@@ -3,7 +3,7 @@
 import * as React from "react";
 import { useParams, useRouter } from "next/navigation";
 import { HexEditor } from "~/components/hex-editor";
-import { Button, Card, CardContent } from "@binspector/ui";
+import { Button, Card, CardContent } from "@hexed/ui";
 import { useFileWatcher } from "~/utils/use-file-watcher";
 import { useRecentFiles } from "~/hooks/use-recent-files";
 import { decodeFilePath } from "~/utils/path-encoding";
@@ -88,14 +88,12 @@ export default function EditPage() {
   }
 
   return (
-    <div className="flex items-start justify-center min-h-screen py-8 px-4">
-      <HexEditor
-        snapshots={snapshots}
-        filePath={filePath}
-        isConnected={isConnected}
-        loading={snapshots.length === 0 && !error}
-        onClose={handleClose}
-      />
-    </div>
+    <HexEditor
+      snapshots={snapshots}
+      filePath={filePath}
+      isConnected={isConnected}
+      loading={snapshots.length === 0 && !error}
+      onClose={handleClose}
+    />
   );
 }

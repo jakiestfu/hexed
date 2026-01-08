@@ -1,7 +1,7 @@
 import * as chokidar from "chokidar";
-import { readBinaryFile } from "@binspector/binary-utils";
-import { createStorageAdapter } from "@binspector/binary-utils";
-import type { BinarySnapshot, SSEMessage } from "@binspector/types";
+import { readBinaryFile } from "@hexed/binary-utils";
+import { createStorageAdapter } from "@hexed/binary-utils";
+import type { BinarySnapshot, SSEMessage } from "@hexed/types";
 
 export async function GET(request: Request) {
   const url = new URL(request.url);

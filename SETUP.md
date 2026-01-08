@@ -43,10 +43,10 @@ To test the file watching feature:
 # Create a test binary file
 echo -n "Hello World" > /tmp/test.bin
 
-# Open this file in Binspector: /tmp/test.bin
+# Open this file in Hexed: /tmp/test.bin
 
 # In another terminal, modify the file
-echo -n "Hello Binspector!" > /tmp/test.bin
+echo -n "Hello Hexed!" > /tmp/test.bin
 
 # Watch as a new "Change 1" tab appears in the UI
 ```
@@ -90,7 +90,7 @@ pnpm add -w <package>
 
 # Add to specific workspace
 pnpm --filter web add <package>
-pnpm --filter @binspector/ui add <package>
+pnpm --filter @hexed/ui add <package>
 ```
 
 ## Development Tips
@@ -100,4 +100,3 @@ pnpm --filter @binspector/ui add <package>
 - Large files (>10MB) may take a moment to load
 - The hex editor is scrollable for large files
 - Use the diff toggle to compare changes between snapshots
-

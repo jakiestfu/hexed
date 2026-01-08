@@ -9,7 +9,7 @@ import {
   Popover,
   PopoverContent,
   PopoverTrigger,
-} from "@binspector/ui";
+} from "@hexed/ui";
 import { FileIcon, Clock, ChevronDown } from "lucide-react";
 import type { RecentFile } from "~/hooks/use-recent-files";
 
@@ -64,7 +64,7 @@ export function EmptyState({ onFileSelect, recentFiles }: EmptyStateProps) {
           <div className="mx-auto w-12 h-12 rounded-full bg-primary/10 flex items-center justify-center mb-4">
             <FileIcon className="h-6 w-6 text-primary" />
           </div>
-          <CardTitle className="text-2xl">Welcome to Binspector</CardTitle>
+          <CardTitle className="text-2xl">Welcome to Hexed</CardTitle>
           <CardDescription>
             Select a binary file to begin inspecting. The file will be monitored
             for changes and displayed in a hex editor view.

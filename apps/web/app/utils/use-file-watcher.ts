@@ -1,5 +1,5 @@
-import { useState, useEffect, useRef } from 'react';
-import type { BinarySnapshot, SSEMessage } from '@binspector/types';
+import { useState, useEffect, useRef } from "react";
+import type { BinarySnapshot, SSEMessage } from "@hexed/types";
 
 export function useFileWatcher(filePath: string | null) {
   const [snapshots, setSnapshots] = useState<BinarySnapshot[]>([]);
@@ -38,11 +38,11 @@ export function useFileWatcher(filePath: string | null) {
         const message: SSEMessage = JSON.parse(event.data);
 
         switch (message.type) {
-          case 'connected':
+          case "connected":
             setIsConnected(true);
             break;
 
-          case 'snapshot':
+          case "snapshot":
             if (message.data) {
               // Convert array back to Uint8Array
               const snapshot: BinarySnapshot = {
@@ -53,22 +53,22 @@ export function useFileWatcher(filePath: string | null) {
             }
             break;
 
-          case 'error':
-            setError(message.error || 'Unknown error');
+          case "error":
+            setError(message.error || "Unknown error");
             break;
 
-          case 'disconnected':
+          case "disconnected":
             setIsConnected(false);
             break;
         }
       } catch (err) {
-        console.error('Failed to parse SSE message:', err);
+        console.error("Failed to parse SSE message:", err);
       }
     };
 
     eventSource.onerror = () => {
       setIsConnected(false);
-      setError('Connection lost');
+      setError("Connection lost");
     };
 
     // Cleanup
@@ -81,4 +81,3 @@ export function useFileWatcher(filePath: string | null) {
 
   return { snapshots, isConnected, error };
 }
-

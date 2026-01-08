@@ -1,8 +1,8 @@
-'use client';
+"use client";
 
-import * as React from 'react';
+import * as React from "react";
 
-const STORAGE_KEY = 'binspector:recent-files';
+const STORAGE_KEY = "hexed:recent-files";
 const MAX_RECENT_FILES = 10;
 
 export interface RecentFile {
@@ -18,7 +18,7 @@ export function useRecentFiles() {
 
   // Load recent files from localStorage on mount
   React.useEffect(() => {
-    if (typeof window === 'undefined') return;
+    if (typeof window === "undefined") return;
 
     try {
       const stored = localStorage.getItem(STORAGE_KEY);
@@ -29,12 +29,12 @@ export function useRecentFiles() {
         setRecentFiles(sorted);
       }
     } catch (error) {
-      console.error('Failed to load recent files from localStorage:', error);
+      console.error("Failed to load recent files from localStorage:", error);
     }
   }, []);
 
   const addRecentFile = React.useCallback((filePath: string) => {
-    if (typeof window === 'undefined') return;
+    if (typeof window === "undefined") return;
 
     try {
       const stored = localStorage.getItem(STORAGE_KEY);
@@ -52,12 +52,12 @@ export function useRecentFiles() {
       localStorage.setItem(STORAGE_KEY, JSON.stringify(updated));
       setRecentFiles(updated);
     } catch (error) {
-      console.error('Failed to save recent file to localStorage:', error);
+      console.error("Failed to save recent file to localStorage:", error);
     }
   }, []);
 
   const removeRecentFile = React.useCallback((filePath: string) => {
-    if (typeof window === 'undefined') return;
+    if (typeof window === "undefined") return;
 
     try {
       const stored = localStorage.getItem(STORAGE_KEY);
@@ -69,18 +69,18 @@ export function useRecentFiles() {
       localStorage.setItem(STORAGE_KEY, JSON.stringify(filtered));
       setRecentFiles(filtered);
     } catch (error) {
-      console.error('Failed to remove recent file from localStorage:', error);
+      console.error("Failed to remove recent file from localStorage:", error);
     }
   }, []);
 
   const clearRecentFiles = React.useCallback(() => {
-    if (typeof window === 'undefined') return;
+    if (typeof window === "undefined") return;
 
     try {
       localStorage.removeItem(STORAGE_KEY);
       setRecentFiles([]);
     } catch (error) {
-      console.error('Failed to clear recent files from localStorage:', error);
+      console.error("Failed to clear recent files from localStorage:", error);
     }
   }, []);
 
@@ -91,4 +91,3 @@ export function useRecentFiles() {
     clearRecentFiles,
   };
 }
-

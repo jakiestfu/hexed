@@ -1,4 +1,4 @@
-# Binspector
+# Hexed
 
 A modern hex editor for inspecting and tracking binary file changes in real-time.
 
@@ -7,7 +7,7 @@ A modern hex editor for inspecting and tracking binary file changes in real-time
 - **Real-time File Watching**: Automatically detects and displays changes to binary files
 - **Hex Editor View**: Clean hex display with parallel ASCII view
 - **Change Tracking**: Snapshots every change with tabs (Baseline, Change 1, Change 2, etc.)
-- **Diff Visualization**: 
+- **Diff Visualization**:
   - Inline mode: Highlights changes in the current view
   - Side-by-side mode: Compare previous and current versions
 - **Modern UI**: Built with shadcn/ui and Tailwind CSS v4
@@ -25,7 +25,7 @@ A modern hex editor for inspecting and tracking binary file changes in real-time
 ## Project Structure
 
 ```
-binspector/
+hexed/
 ├── apps/
 │   └── web/                    # TanStack Start app
 │       ├── app/
@@ -98,6 +98,7 @@ interface SnapshotStorage {
 ```
 
 Currently uses in-memory storage, but can be easily swapped for:
+
 - IndexedDB (browser persistence)
 - Filesystem (server-side persistence)
 - Database (PostgreSQL, MongoDB, etc.)
@@ -105,6 +106,7 @@ Currently uses in-memory storage, but can be easily swapped for:
 ### Real-time Updates
 
 Uses Server-Sent Events (SSE) for one-way communication:
+
 1. Client connects to `/api/watch?file=<path>`
 2. Server watches file with chokidar
 3. On change, server sends snapshot via SSE
@@ -124,4 +126,3 @@ Uses Server-Sent Events (SSE) for one-way communication:
 ## License
 
 ISC
-

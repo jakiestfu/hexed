@@ -1,5 +1,5 @@
 {
-  "name": "binspector",
+  "name": "hexed",
   "version": "1.0.0",
   "private": true,
   "description": "A hex editor for inspecting and tracking binary file changes",
@@ -11,7 +11,11 @@
     "clean": "rm -rf node_modules",
     "clean:workspace": "pnpm -r clean && pnpm clean"
   },
-  "keywords": ["hex-editor", "binary", "inspector"],
+  "keywords": [
+    "hex-editor",
+    "binary",
+    "inspector"
+  ],
   "author": "",
   "license": "ISC",
   "engines": {

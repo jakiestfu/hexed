@@ -1,4 +1,4 @@
-import type { BinarySnapshot, SnapshotStorage } from '@binspector/types';
+import type { BinarySnapshot, SnapshotStorage } from "@hexed/types";
 
 /**
  * In-memory implementation of SnapshotStorage
@@ -17,9 +17,12 @@ export class InMemoryStorage implements SnapshotStorage {
     return this.snapshots.get(fileId) || [];
   }
 
-  async getSnapshot(fileId: string, snapshotId: string): Promise<BinarySnapshot | null> {
+  async getSnapshot(
+    fileId: string,
+    snapshotId: string
+  ): Promise<BinarySnapshot | null> {
     const snapshots = this.snapshots.get(fileId) || [];
-    return snapshots.find(s => s.id === snapshotId) || null;
+    return snapshots.find((s) => s.id === snapshotId) || null;
   }
 
   async clear(fileId: string): Promise<void> {
@@ -38,12 +41,13 @@ export class InMemoryStorage implements SnapshotStorage {
  * Factory function to create a storage adapter
  * This makes it easy to swap implementations
  */
-export function createStorageAdapter(type: 'memory' = 'memory'): SnapshotStorage {
+export function createStorageAdapter(
+  type: "memory" = "memory"
+): SnapshotStorage {
   switch (type) {
-    case 'memory':
+    case "memory":
       return new InMemoryStorage();
     default:
       throw new Error(`Unknown storage type: ${type}`);
   }
 }
-

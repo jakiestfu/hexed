@@ -17,14 +17,12 @@ export default function Home() {
   };
 
   return (
-    <div className="flex items-start justify-center min-h-screen py-8 px-4">
-      <HexEditor
-        snapshots={[]}
-        filePath={null}
-        isConnected={false}
-        onFileSelect={handleFileSelect}
-        recentFiles={recentFiles}
-      />
-    </div>
+    <HexEditor
+      snapshots={[]}
+      filePath={null}
+      isConnected={false}
+      onFileSelect={handleFileSelect}
+      recentFiles={recentFiles}
+    />
   );
 }

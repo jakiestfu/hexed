@@ -1,6 +1,6 @@
-# Binspector Web App
+# Hexed Web App
 
-The main TanStack Start application for Binspector.
+The main TanStack Start application for Hexed.
 
 ## Development
 
@@ -22,6 +22,7 @@ pnpm start
 SSE endpoint for watching binary file changes.
 
 **Query Parameters:**
+
 - `file` (required): Full path to the file to watch
 
 **Response:**
@@ -46,4 +47,3 @@ Server-Sent Events stream with JSON messages:
 ## Utilities
 
 - `use-file-watcher.ts`: React hook for SSE connection and state management
-

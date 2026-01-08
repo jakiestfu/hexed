@@ -4,9 +4,8 @@
     "outDir": "./dist",
     "rootDir": "./src",
     "paths": {
-      "@binspector/ui/*": ["./src/*"]
+      "@hexed/ui/*": ["./src/*"]
     }
   },
   "include": ["src/**/*"]
 }
-

@@ -1,4 +1,4 @@
-# Binspector - Implementation Summary
+# Hexed - Implementation Summary
 
 ## ✅ Completed Implementation
 
@@ -7,7 +7,7 @@ All features from the plan have been successfully implemented!
 ## 📁 Project Structure
 
 ```
-binspector/
+hexed/
 ├── Documentation
 │   ├── README.md                 # Main documentation
 │   ├── SETUP.md                  # Setup instructions
@@ -67,6 +67,7 @@ binspector/
 ## 🎯 Features Implemented
 
 ### ✅ 1. Monorepo Foundation
+
 - **pnpm workspace** configured with proper structure
 - **Root package.json** with workspace scripts
 - **TypeScript** configuration with inheritance
@@ -74,6 +75,7 @@ binspector/
 - **One app**: web (TanStack Start)
 
 ### ✅ 2. Storage Adapter Pattern
+
 - Interface-based design for flexibility
 - `SnapshotStorage` interface with methods:
   - `save()` - Store a snapshot
@@ -84,6 +86,7 @@ binspector/
 - Easy to swap for IndexedDB, filesystem, or database
 
 ### ✅ 3. Binary Utilities Package
+
 - **Parser**: Read binary files into `Uint8Array`
 - **Differ**: Compute byte-by-byte differences
   - Detects added, removed, modified bytes
@@ -95,6 +98,7 @@ binspector/
   - Row-based formatting for display
 
 ### ✅ 4. Backend (SSE & File Watching)
+
 - **`/api/watch`** endpoint
   - Accepts file path query parameter
   - Sets up SSE stream
@@ -104,6 +108,7 @@ binspector/
   - Supports client reconnection
 
 ### ✅ 5. UI Package (shadcn + Tailwind v4)
+
 - **Button** component with variants
 - **Card** components (Card, CardHeader, CardContent, etc.)
 - **Tabs** components (Tabs, TabsList, TabsTrigger, TabsContent)
@@ -112,6 +117,7 @@ binspector/
 - **Dark mode** support via CSS variables
 
 ### ✅ 6. Empty State
+
 - Clean, welcoming UI
 - File path input for server files
 - File upload placeholder (for future)
@@ -119,6 +125,7 @@ binspector/
 - Responsive design
 
 ### ✅ 7. Hex Editor View
+
 - **16 bytes per row** (standard layout)
 - **Address column** showing hex offset
 - **Hex bytes** with proper spacing
@@ -130,6 +137,7 @@ binspector/
 - **Hover tooltips** showing offset and byte value
 
 ### ✅ 8. Tab System
+
 - **Baseline** tab (initial file state)
 - **Change N** tabs (subsequent changes)
 - Automatic tab creation on file changes
@@ -137,9 +145,11 @@ binspector/
 - Clean tab navigation
 
 ### ✅ 9. Diff Visualization
+
 Two modes implemented:
 
 **Inline Mode:**
+
 - Shows current snapshot with highlights
 - Color coding:
   - 🟢 Green: Added bytes
@@ -148,17 +158,20 @@ Two modes implemented:
 - Highlights in both hex and ASCII views
 
 **Side-by-Side Mode:**
+
 - Left panel: Previous snapshot
 - Right panel: Current snapshot with highlights
 - Easy visual comparison
 - Independent scrolling
 
 **Diff Statistics:**
+
 - Card-based stats display
 - Shows count of added/removed/modified bytes
 - Icons for visual clarity
 
 ### ✅ 10. SSE Client Integration
+
 - **`useFileWatcher` hook**
   - Manages SSE connection
   - Handles reconnection
@@ -174,6 +187,7 @@ Two modes implemented:
   - Error messages
 
 ### ✅ 11. UI Polish
+
 - **Loading states**: Spinner with file path
 - **Error states**: Clear error messages with retry
 - **Connection indicator**: Green/red dot for status
@@ -185,31 +199,34 @@ Two modes implemented:
 
 ## 🛠 Technology Stack
 
-| Category | Technology | Version |
-|----------|-----------|---------|
-| Framework | TanStack Start | Latest (v1.x) |
-| UI Library | React | 19.0.0 |
-| Language | TypeScript | 5.7.2 |
-| Styling | Tailwind CSS | 4.0.0 |
-| Components | shadcn/ui | Latest |
-| Build Tool | Vinxi | 0.5.3 |
-| Package Manager | pnpm | 8.0.0+ |
-| File Watching | chokidar | 4.0.3 |
-| Real-time | Server-Sent Events | Native |
+| Category        | Technology         | Version       |
+| --------------- | ------------------ | ------------- |
+| Framework       | TanStack Start     | Latest (v1.x) |
+| UI Library      | React              | 19.0.0        |
+| Language        | TypeScript         | 5.7.2         |
+| Styling         | Tailwind CSS       | 4.0.0         |
+| Components      | shadcn/ui          | Latest        |
+| Build Tool      | Vinxi              | 0.5.3         |
+| Package Manager | pnpm               | 8.0.0+        |
+| File Watching   | chokidar           | 4.0.3         |
+| Real-time       | Server-Sent Events | Native        |
 
 ## 🚀 Getting Started
 
 1. **Install pnpm**:
+
    ```bash
    npm install -g pnpm
    ```
 
 2. **Install dependencies**:
+
    ```bash
    pnpm install
    ```
 
 3. **Start development server**:
+
    ```bash
    pnpm dev
    ```
@@ -217,15 +234,16 @@ Two modes implemented:
 4. **Open browser** to `http://localhost:3000`
 
 5. **Test the app**:
+
    ```bash
    # Create a test file
    echo -n "Hello World" > /tmp/test.bin
-   
+
    # Enter path in app: /tmp/test.bin
-   
+
    # Modify the file
-   echo -n "Hello Binspector!" > /tmp/test.bin
-   
+   echo -n "Hello Hexed!" > /tmp/test.bin
+
    # Watch the new tab appear!
    ```
 
@@ -253,11 +271,13 @@ Two modes implemented:
 ## 🔒 Security Notes
 
 Current implementation is for development:
+
 - No authentication
 - Direct filesystem access
 - Any file server can read
 
 **For production**, add:
+
 - Authentication/authorization
 - Directory whitelisting
 - Rate limiting
@@ -267,11 +287,13 @@ Current implementation is for development:
 ## 📈 Performance Considerations
 
 **Current:**
+
 - Handles files up to several MB comfortably
 - Diff computation is O(n)
 - In-memory storage only
 
 **Future Optimizations:**
+
 - Virtual scrolling for large files
 - Web Workers for diff computation
 - Chunked file loading
@@ -280,6 +302,7 @@ Current implementation is for development:
 ## 🔮 Future Enhancements
 
 The architecture supports adding:
+
 - Byte editing
 - Search/find functionality
 - Multiple file comparison
@@ -301,7 +324,6 @@ The architecture supports adding:
 
 ## 🎉 Summary
 
-Binspector is a fully functional, production-ready hex editor with real-time change tracking. The monorepo structure makes it easy to maintain and extend, while the adapter pattern ensures flexibility for future storage backends. The UI is modern, responsive, and user-friendly.
+Hexed is a fully functional, production-ready hex editor with real-time change tracking. The monorepo structure makes it easy to maintain and extend, while the adapter pattern ensures flexibility for future storage backends. The UI is modern, responsive, and user-friendly.
 
 All planned features have been implemented successfully! 🚀
-
