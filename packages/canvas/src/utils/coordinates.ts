@@ -1,4 +1,5 @@
 import type { FormattedRow } from "@hexed/binary-utils/formatter";
+import { getAsciiStartX } from "./canvas";
 
 export interface LayoutMetrics {
   rowHeight: number;
@@ -83,17 +84,12 @@ export function getOffsetFromPosition(
 
   // Check if mouse is in ASCII column
   if (showAscii) {
-    const hexColumnEndX =
-      hexColumnStartX + row.hexBytes.length * layout.cellWidth;
-    const asciiX =
-      hexColumnEndX +
-      layout.hexAsciiGap +
-      layout.borderWidth +
-      layout.asciiPadding;
+    // Use the same helper function as rendering to ensure consistent positioning
+    const asciiStartX = getAsciiStartX(layout);
 
     // Check each ASCII character individually
     for (let j = 0; j < row.ascii.length; j++) {
-      const charX = asciiX + j * layout.asciiCharWidth;
+      const charX = asciiStartX + j * layout.asciiCharWidth;
       // Use getCellBounds to match rendering exactly
       const bounds = getCellBounds(
         charX,

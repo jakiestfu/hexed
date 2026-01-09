@@ -1,43 +1,43 @@
 # Hexed
 
+![License](https://img.shields.io/badge/license-ISC-blue.svg)
+![Node.js](https://img.shields.io/badge/node-%3E%3D18.0.0-brightgreen.svg)
+![pnpm](https://img.shields.io/badge/pnpm-%3E%3D8.0.0-orange.svg)
+![TypeScript](https://img.shields.io/badge/TypeScript-5.7-blue.svg)
+
 A modern hex editor for inspecting and tracking binary file changes in real-time.
+
+Hexed provides a powerful interface for viewing binary files, tracking changes as they happen, and comparing different versions with visual diff tools. Perfect for developers, reverse engineers, and anyone working with binary data.
+
+## Screenshots
+
+<!-- Add screenshot of hex editor interface here -->
+<!-- Add screenshot of diff view here -->
+<!-- Add screenshot of desktop app here -->
 
 ## Features
 
 - **Real-time File Watching**: Automatically detects and displays changes to binary files
 - **Hex Editor View**: Clean hex display with parallel ASCII view
 - **Change Tracking**: Snapshots every change with tabs (Baseline, Change 1, Change 2, etc.)
-- **Diff Visualization**:
-  - Inline mode: Highlights changes in the current view
-  - Side-by-side mode: Compare previous and current versions
+- **Diff Visualization**: Inline and side-by-side comparison modes
 - **Modern UI**: Built with shadcn/ui and Tailwind CSS v4
-- **Extensible Storage**: Adapter pattern for easy storage backend switching
+- **Desktop App**: Electron wrapper for native desktop experience
+- **Interpreter**: View binary data as different types (signed/unsigned int, float, etc.)
+- **Checksum Visibility**: MD5 checksums for file integrity verification
+- **Keyboard Navigation**: Efficient keyboard shortcuts for navigation
+- **Efficient Rendering**: Canvas-based rendering for smooth performance with large files
 
 ## Tech Stack
 
-- **Monorepo**: pnpm workspaces
-- **Framework**: TanStack Start (latest) with React 19
+- **Framework**: Next.js 15 with React 19
 - **UI**: shadcn/ui + Tailwind CSS v4
+- **Monorepo**: pnpm workspaces
 - **Real-time**: Server-Sent Events (SSE)
 - **File Watching**: chokidar
+- **Desktop**: Electron
 - **TypeScript**: Fully typed
-
-## Project Structure
-
-```
-hexed/
-├── apps/
-│   └── web/                    # TanStack Start app
-│       ├── app/
-│       │   ├── routes/         # Routes and API endpoints
-│       │   ├── components/     # UI components
-│       │   └── utils/          # Utilities (SSE client, etc.)
-│       └── package.json
-└── packages/
-    ├── ui/                     # Shared UI components (shadcn)
-    ├── binary-utils/           # Binary parsing, diffing, formatting
-    └── types/                  # Shared TypeScript types
-```
+- **Rendering**: Canvas-based hex editor for efficient rendering of large files
 
 ## Getting Started
 
@@ -51,77 +51,138 @@ hexed/
 ```bash
 # Install dependencies
 pnpm install
+```
 
+### Running the Web App
+
+```bash
 # Start development server
 pnpm dev
 ```
 
 The app will be available at `http://localhost:3000`
 
+### Running the Desktop App
+
+1. Start the web app in one terminal:
+
+   ```bash
+   pnpm dev
+   ```
+
+2. In another terminal, start the Electron app:
+   ```bash
+   pnpm dev:desktop
+   ```
+
 ### Usage
 
-1. Open the app in your browser
+1. Open the app in your browser (or use the desktop app)
 2. Enter the full path to a binary file on your server's filesystem
 3. Click "Open File" to start watching
 4. The file will be displayed in hex editor view
-5. Any changes to the file will automatically create new tabs
-6. Use the diff toggle to compare changes
+5. Any changes to the file will automatically create new snapshot tabs
+6. Use the diff toggle to compare changes between snapshots
 
-## Development
+## Developing
+
+### Development Commands
 
 ```bash
-# Run development server
+# Run web development server
 pnpm dev
 
-# Build for production
+# Run desktop app in development
+pnpm dev:desktop
+
+# Build web app for production
 pnpm build
+
+# Build desktop app
+pnpm build:desktop
 
 # Start production server
 pnpm start
 
 # Type check all packages
 pnpm typecheck
+
+# Clean all node_modules
+pnpm clean:workspace
 ```
 
-## Architecture
+### Project Structure
 
-### Storage Adapter Pattern
-
-The storage system uses an adapter pattern for flexibility:
-
-```typescript
-interface SnapshotStorage {
-  save(fileId: string, snapshot: BinarySnapshot): Promise<void>;
-  getSnapshots(fileId: string): Promise<BinarySnapshot[]>;
-  clear(fileId: string): Promise<void>;
-}
+```
+hexed/
+├── apps/
+│   ├── web/              # Next.js web application
+│   │   ├── app/
+│   │   │   ├── api/      # API routes (SSE endpoints)
+│   │   │   ├── components/  # UI components
+│   │   │   └── hooks/    # React hooks
+│   │   └── package.json
+│   └── desktop/          # Electron desktop app
+│       └── src/
+└── packages/
+    ├── binary-utils/     # Binary parsing, diffing, formatting
+    ├── canvas/           # Hex canvas rendering
+    ├── types/            # Shared TypeScript types
+    └── ui/               # Shared UI components (shadcn)
 ```
 
-Currently uses in-memory storage, but can be easily swapped for:
+## Contributing
 
-- IndexedDB (browser persistence)
-- Filesystem (server-side persistence)
-- Database (PostgreSQL, MongoDB, etc.)
+We welcome contributions! Please see [CONTRIBUTING.md](CONTRIBUTING.md) for details.
 
-### Real-time Updates
+### Quick Start for Contributors
 
-Uses Server-Sent Events (SSE) for one-way communication:
+1. Fork and clone the repository
+2. Install dependencies: `pnpm install`
+3. Start dev server: `pnpm dev`
+4. Make your changes
+5. Submit a pull request
 
-1. Client connects to `/api/watch?file=<path>`
-2. Server watches file with chokidar
-3. On change, server sends snapshot via SSE
-4. Client updates UI with new tab
+### Areas for Contribution
 
-## Future Enhancements
+- Add comprehensive tests
+- Performance optimization for large files
+- Persistent storage implementation
+- Search/find functionality
+- Byte editing capability
+- Accessibility improvements
 
-- [ ] Byte editing
-- [ ] Search functionality (find bytes/patterns)
-- [ ] Go to address/offset
-- [ ] Export snapshot history
-- [ ] Persistent storage (IndexedDB)
-- [ ] File upload (watch uploaded files)
-- [ ] Annotations and bookmarks
-- [ ] Multiple file comparison
+See [CONTRIBUTING.md](CONTRIBUTING.md) for more details on code style, commit guidelines, and the pull request process.
+
+## FAQ
+
+### How does real-time file watching work?
+
+Hexed uses Server-Sent Events (SSE) to stream file changes from the server to the client. The server watches files using chokidar and sends snapshots whenever changes are detected.
+
+### What file sizes are supported?
+
+Hexed can handle files of various sizes. The hex editor uses efficient canvas-based rendering that only draws the visible viewport, ensuring smooth performance even with very large binary files.
+
+### Can I edit files?
+
+Currently, Hexed is read-only. File editing is planned for future releases.
+
+### How do snapshots work?
+
+Each time a file changes, Hexed creates a snapshot with a timestamp and MD5 checksum. Snapshots are stored in tabs (Baseline, Change 1, Change 2, etc.) and can be compared using the diff visualization tools.
+
+### What storage backends are supported?
+
+Currently, Hexed uses in-memory storage. The architecture supports an adapter pattern, making it easy to add persistent storage backends like IndexedDB, filesystem, or databases in the future.
+
+### Can I use this with remote files?
+
+Hexed currently watches files on the server's filesystem. The file path must be accessible to the Next.js server running the application.
+
+### How does the desktop app differ from the web version?
+
+The desktop app is an Electron wrapper around the web application. It provides a native window experience with features like a frameless window (macOS), draggable toolbar, and native file picker integration.
 
 ## License
 
