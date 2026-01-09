@@ -23,6 +23,7 @@ import {
   Palette,
   Sun,
   Settings,
+  FolderOpen,
 } from "lucide-react";
 import { useTheme } from "next-themes";
 import Link from "next/link";
@@ -69,6 +70,7 @@ export const Logo: FunctionComponent<LogoProps> = ({
   const { showChecksums, setShowChecksums } = useChecksumVisibility();
   const { showAscii, setShowAscii } = useAsciiVisibility();
   const { showInterpreter, setShowInterpreter } = useInterpreterVisibility();
+
   const effectiveMenuItems =
     menuItems && menuItems.length > 0 ? menuItems : defaultMenuItems;
   const hasDropdown =
@@ -148,7 +150,7 @@ export const Logo: FunctionComponent<LogoProps> = ({
           )}
           <DropdownMenuSub>
             <DropdownMenuSubTrigger className="cursor-pointer">
-              <File className="mr-2 h-4 w-4" />
+              <FolderOpen className="mr-2 h-4 w-4" />
               Open Recent
             </DropdownMenuSubTrigger>
             <DropdownMenuSubContent>
