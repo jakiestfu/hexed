@@ -31,5 +31,6 @@ export type InterpreterProps = {
   numberFormat: NumberFormat;
   onClose?: () => void;
   onScrollToOffset?: (offset: number) => void;
+  onPIPStateChange?: (isPIPActive: boolean) => void;
 };
 

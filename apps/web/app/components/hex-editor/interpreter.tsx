@@ -1,5 +1,5 @@
-import { useMemo } from "react";
-import type { FunctionComponent } from "react";
+import { useMemo, useRef, useEffect } from "react";
+import type { FunctionComponent, RefObject } from "react";
 import {
   Table,
   TableBody,
@@ -20,8 +20,7 @@ import {
   EmptyMedia,
 } from "@hexed/ui";
 import { formatAddress } from "@hexed/binary-utils/formatter";
-import { X, MousePointerClick } from "lucide-react";
-import type { Endianness, NumberFormat } from "@hexed/binary-utils/interpreter";
+import { X, MousePointerClick, Maximize2, Minimize2 } from "lucide-react";
 import {
   formatNumber,
   readUint8,
@@ -50,6 +49,7 @@ import {
   readUTF16Char,
   readBinary,
 } from "@hexed/binary-utils/interpreter";
+import { usePIP } from "~/hooks/use-pip";
 import type { InterpreterProps } from "./types";
 
 interface InterpretedValue {
@@ -76,6 +76,7 @@ export const Interpreter: FunctionComponent<InterpreterProps> = ({
   numberFormat = "dec",
   onClose,
   onScrollToOffset,
+  onPIPStateChange,
 }) => {
   const interpretedData = useMemo<InterpretedValue[]>(() => {
     if (
@@ -278,116 +279,147 @@ export const Interpreter: FunctionComponent<InterpreterProps> = ({
     return results;
   }, [data, selectedOffset, endianness, numberFormat]);
 
+  const interpreterRef = useRef<HTMLDivElement>(null);
+  const { isPIPActive, stylesLoaded, togglePIP, isSupported } = usePIP(
+    interpreterRef as RefObject<HTMLElement>
+  );
+
+  // Notify parent component when PIP state changes
+  useEffect(() => {
+    onPIPStateChange?.(isPIPActive);
+  }, [isPIPActive, onPIPStateChange]);
+
   const hexAddress =
     selectedOffset !== null ? formatAddress(selectedOffset) : "";
   const byteOffset =
     selectedOffset !== null ? selectedOffset.toLocaleString() : "";
 
   return (
-    <Card className="h-full flex flex-col p-0 rounded-none border-none bg-sidebar overflow-hidden gap-0">
-      <CardHeader className="py-3! px-4 border-b shrink-0 gap-0 bg-secondary">
-        <div className="flex items-center justify-between gap-4">
-          <div className="flex items-center gap-3 min-w-0">
-            <CardTitle className="text-sm font-medium shrink-0 flex-1">
-              Interpreter
-            </CardTitle>
-            {selectedOffset !== null && (
-              <div className="flex items-center justify-center grow gap-2 text-xs text-muted-foreground min-w-0">
-                {onScrollToOffset ? (
-                  <button
-                    onClick={() => onScrollToOffset(selectedOffset)}
-                    className="font-mono hover:text-foreground hover:underline transition-colors cursor-pointer"
-                    aria-label={`Scroll to offset ${hexAddress}`}
+    <div
+      ref={interpreterRef}
+      className="h-full"
+      style={{
+        visibility: isPIPActive && !stylesLoaded ? "hidden" : "visible",
+      }}
+    >
+      <Card className="h-full flex flex-col p-0 rounded-none border-none bg-sidebar overflow-hidden gap-0">
+        <CardHeader className="py-3! px-4 border-b shrink-0 gap-0 bg-secondary">
+          <div className="flex items-center justify-between gap-4">
+            <div className="flex items-center gap-3 min-w-0">
+              <CardTitle className="text-sm font-medium shrink-0 flex-1">
+                Interpreter
+              </CardTitle>
+              {selectedOffset !== null && (
+                <div className="flex items-center justify-center grow gap-2 text-xs text-muted-foreground min-w-0">
+                  {onScrollToOffset && !isPIPActive ? (
+                    <button
+                      onClick={() => onScrollToOffset(selectedOffset)}
+                      className="font-mono hover:text-foreground hover:underline transition-colors cursor-pointer"
+                      aria-label={`Scroll to offset ${hexAddress}`}
+                    >
+                      {hexAddress}
+                    </button>
+                  ) : (
+                    <span className="font-mono">{hexAddress}</span>
+                  )}
+                  <span className="text-muted-foreground/70">•</span>
+                  <span>Offset {byteOffset}</span>
+                  <span className="text-muted-foreground/70">•</span>
+                  <span className="font-mono">
+                    {endianness === "le" ? "LE" : "BE"}
+                  </span>
+                </div>
+              )}
+            </div>
+            {!isPIPActive && (
+              <div className="flex items-center gap-2 shrink-0">
+                {isSupported && (
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    onClick={togglePIP}
+                    className="h-7 w-7 p-0"
+                    aria-label="Open Picture-in-Picture window"
                   >
-                    {hexAddress}
-                  </button>
-                ) : (
-                  <span className="font-mono">{hexAddress}</span>
+                    <Maximize2 className="h-4 w-4" />
+                  </Button>
                 )}
-                <span className="text-muted-foreground/70">•</span>
-                <span>Offset {byteOffset}</span>
-                <span className="text-muted-foreground/70">•</span>
-                <span className="font-mono">
-                  {endianness === "le" ? "LE" : "BE"}
-                </span>
+                {onClose && (
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    onClick={onClose}
+                    className="h-7 w-7 p-0"
+                    aria-label="Close interpreter"
+                  >
+                    <X className="h-4 w-4" />
+                  </Button>
+                )}
               </div>
             )}
           </div>
-          <div className="flex items-center gap-2 shrink-0">
-            {onClose && (
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={onClose}
-                className="h-7 w-7 p-0"
-                aria-label="Close interpreter"
-              >
-                <X className="h-4 w-4" />
-              </Button>
-            )}
-          </div>
-        </div>
-      </CardHeader>
-      <CardContent className="p-0 flex-1 overflow-y-auto">
-        {selectedOffset === null ? (
-          <Empty className="h-full">
-            <EmptyHeader>
-              <EmptyMedia variant="icon">
-                <MousePointerClick className="h-6 w-6" />
-              </EmptyMedia>
-              <EmptyTitle>No selection</EmptyTitle>
-              <EmptyDescription>
-                Select bytes in the hex editor to view interpreted values
-              </EmptyDescription>
-            </EmptyHeader>
-          </Empty>
-        ) : (
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead className="w-[200px]">Type</TableHead>
-                <TableHead>Unsigned (+)</TableHead>
-                <TableHead>Signed (±)</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {interpretedData.map((row, index) => (
-                <TableRow key={index}>
-                  <TableCell className="font-medium text-xs">
-                    {row.type}
-                  </TableCell>
-                  <TableCell className="font-mono text-xs">
-                    {row.unsigned !== undefined ? (
-                      row.unsigned
-                    ) : (
-                      <span className="text-muted-foreground">
-                        {row.type.includes("DateTime")
-                          ? "Invalid date"
-                          : row.type.includes("Character")
-                          ? "Null"
-                          : "Invalid number"}
-                      </span>
-                    )}
-                  </TableCell>
-                  <TableCell className="font-mono text-xs">
-                    {row.signed !== undefined ? (
-                      row.signed
-                    ) : (
-                      <span className="text-muted-foreground">
-                        {row.type.includes("DateTime")
-                          ? "Invalid date"
-                          : row.type.includes("Character")
-                          ? "Null"
-                          : "Invalid number"}
-                      </span>
-                    )}
-                  </TableCell>
+        </CardHeader>
+        <CardContent className="p-0 flex-1 overflow-y-auto">
+          {selectedOffset === null ? (
+            <Empty className="h-full">
+              <EmptyHeader>
+                <EmptyMedia variant="icon">
+                  <MousePointerClick className="h-6 w-6" />
+                </EmptyMedia>
+                <EmptyTitle>No selection</EmptyTitle>
+                <EmptyDescription>
+                  Select bytes in the hex editor to view interpreted values
+                </EmptyDescription>
+              </EmptyHeader>
+            </Empty>
+          ) : (
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead className="w-[200px]">Type</TableHead>
+                  <TableHead>Unsigned (+)</TableHead>
+                  <TableHead>Signed (±)</TableHead>
                 </TableRow>
-              ))}
-            </TableBody>
-          </Table>
-        )}
-      </CardContent>
-    </Card>
+              </TableHeader>
+              <TableBody>
+                {interpretedData.map((row, index) => (
+                  <TableRow key={index}>
+                    <TableCell className="font-medium text-xs">
+                      {row.type}
+                    </TableCell>
+                    <TableCell className="font-mono text-xs">
+                      {row.unsigned !== undefined ? (
+                        row.unsigned
+                      ) : (
+                        <span className="text-muted-foreground">
+                          {row.type.includes("DateTime")
+                            ? "Invalid date"
+                            : row.type.includes("Character")
+                            ? "Null"
+                            : "Invalid number"}
+                        </span>
+                      )}
+                    </TableCell>
+                    <TableCell className="font-mono text-xs">
+                      {row.signed !== undefined ? (
+                        row.signed
+                      ) : (
+                        <span className="text-muted-foreground">
+                          {row.type.includes("DateTime")
+                            ? "Invalid date"
+                            : row.type.includes("Character")
+                            ? "Null"
+                            : "Invalid number"}
+                        </span>
+                      )}
+                    </TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          )}
+        </CardContent>
+      </Card>
+    </div>
   );
 };

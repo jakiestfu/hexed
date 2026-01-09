@@ -129,6 +129,7 @@ export const HexEditor: FunctionComponent<HexEditorProps> = ({
     start: number;
     end: number;
   } | null>(null);
+  const [isInterpreterPIPActive, setIsInterpreterPIPActive] = useState(false);
 
   // Calculate earliest byte for interpreter
   const selectedOffset = selectedOffsetRange
@@ -269,7 +270,11 @@ export const HexEditor: FunctionComponent<HexEditorProps> = ({
             onSelectedOffsetRangeChange={setSelectedOffsetRange}
           />
           {showInterpreter && (
-            <div className="w-[650px] shrink-0 h-full border-l">
+            <div
+              className={`w-[650px] shrink-0 h-full border-l ${
+                isInterpreterPIPActive ? "hidden" : ""
+              }`}
+            >
               <Interpreter
                 data={snapshot.data}
                 selectedOffset={selectedOffset}
@@ -277,6 +282,7 @@ export const HexEditor: FunctionComponent<HexEditorProps> = ({
                 numberFormat={numberFormat as "dec" | "hex"}
                 onClose={() => setShowInterpreter(false)}
                 onScrollToOffset={setScrollToOffset}
+                onPIPStateChange={setIsInterpreterPIPActive}
               />
             </div>
           )}
@@ -374,8 +380,6 @@ export const HexEditor: FunctionComponent<HexEditorProps> = ({
                         size="sm"
                       >
                         <CaseSensitive />
-                        {/* <Eye /> */}
-                        {/* <span className="text-xs">ASCII</span> */}
                       </Toggle>
                     </TooltipTrigger>
                     <TooltipContent>Toggle ASCII view</TooltipContent>
@@ -387,12 +391,9 @@ export const HexEditor: FunctionComponent<HexEditorProps> = ({
                         pressed={showInterpreter}
                         onPressedChange={setShowInterpreter}
                         size="sm"
-                        // disabled={selectedOffset === null}
                         aria-label="Toggle interpreter"
                       >
                         <Binary />
-                        {/* <Code />
-                        <span className="text-xs">Interpreter</span> */}
                       </Toggle>
                     </TooltipTrigger>
                     <TooltipContent>
