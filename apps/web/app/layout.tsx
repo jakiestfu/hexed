@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import * as React from "react";
 import "@hexed/ui/styles";
 import { ThemeProvider } from "~/providers/theme-provider";
+import { ClientLayoutWrapper } from "~/components/client-layout-wrapper";
 
 export const metadata: Metadata = {
   title: "Hexed - Binary File Inspector",
@@ -36,7 +37,9 @@ export default function RootLayout({
           enableSystem
           disableTransitionOnChange
         >
-          <main className="h-full">{children}</main>
+          <ClientLayoutWrapper>
+            <main className="h-full">{children}</main>
+          </ClientLayoutWrapper>
         </ThemeProvider>
       </body>
     </html>

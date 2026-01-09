@@ -8,7 +8,7 @@ export type HexEditorProps = {
   isConnected: boolean;
   loading?: boolean;
   onClose?: () => void;
-  onFileSelect?: (filePath: string) => void;
+  onFileSelect?: (filePath: string | BinarySnapshot) => void;
   recentFiles?: RecentFile[];
   className?: string;
 };

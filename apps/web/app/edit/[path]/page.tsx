@@ -8,11 +8,15 @@ import { useFileWatcher } from "~/utils/use-file-watcher";
 import { useRecentFiles } from "~/hooks/use-recent-files";
 import { decodeFilePath } from "~/utils/path-encoding";
 import { AlertCircle } from "lucide-react";
+import { useDragDrop } from "~/components/hex-editor/drag-drop-provider";
+import { encodeFilePath } from "~/utils/path-encoding";
+import type { BinarySnapshot } from "@hexed/types";
 
 export default function EditPage() {
   const params = useParams();
   const router = useRouter();
   const { addRecentFile } = useRecentFiles();
+  const { setOnFileSelect } = useDragDrop();
 
   // Decode the file path from the URL parameter
   const encodedPath = params.path as string;
@@ -25,6 +29,31 @@ export default function EditPage() {
   }, [encodedPath, addRecentFile]);
 
   const { snapshots, isConnected, error } = useFileWatcher(filePath);
+
+  const handleFileSelect = React.useCallback(
+    (input: string | BinarySnapshot) => {
+      if (typeof input === "string") {
+        // String path - navigate to new file
+        addRecentFile(input);
+        const encodedPath = encodeFilePath(input);
+        router.push(`/edit/${encodedPath}`);
+      } else {
+        // BinarySnapshot - navigate to home with snapshot
+        addRecentFile(input.filePath);
+        router.push("/");
+        // The home page will handle the snapshot via its own state
+      }
+    },
+    [addRecentFile, router]
+  );
+
+  // Register the file select handler with drag-drop provider
+  React.useEffect(() => {
+    setOnFileSelect(handleFileSelect);
+    return () => {
+      setOnFileSelect(null);
+    };
+  }, [handleFileSelect, setOnFileSelect]);
 
   const handleClose = () => {
     router.push("/");
