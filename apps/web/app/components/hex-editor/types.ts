@@ -34,3 +34,7 @@ export type InterpreterProps = {
   onPIPStateChange?: (isPIPActive: boolean) => void;
 };
 
+export type TemplatesProps = {
+  onClose?: () => void;
+  onPIPStateChange?: (isPIPActive: boolean) => void;
+};

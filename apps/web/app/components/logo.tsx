@@ -32,6 +32,7 @@ import { useRecentFiles } from "~/hooks/use-recent-files";
 import { useChecksumVisibility } from "~/hooks/use-checksum-visibility";
 import { useAsciiVisibility } from "~/hooks/use-ascii-visibility";
 import { useInterpreterVisibility } from "~/hooks/use-interpreter-visibility";
+import { useTemplatesVisibility } from "~/hooks/use-templates-visibility";
 import { encodeFilePath } from "~/utils/path-encoding";
 import { cn } from "@hexed/ui";
 
@@ -70,6 +71,7 @@ export const Logo: FunctionComponent<LogoProps> = ({
   const { showChecksums, setShowChecksums } = useChecksumVisibility();
   const { showAscii, setShowAscii } = useAsciiVisibility();
   const { showInterpreter, setShowInterpreter } = useInterpreterVisibility();
+  const { showTemplates, setShowTemplates } = useTemplatesVisibility();
 
   const effectiveMenuItems =
     menuItems && menuItems.length > 0 ? menuItems : defaultMenuItems;
@@ -196,6 +198,13 @@ export const Logo: FunctionComponent<LogoProps> = ({
                 className="cursor-pointer"
               >
                 Show Interpreter
+              </DropdownMenuCheckboxItem>
+              <DropdownMenuCheckboxItem
+                checked={showTemplates}
+                onCheckedChange={setShowTemplates}
+                className="cursor-pointer"
+              >
+                Show Templates
               </DropdownMenuCheckboxItem>
               <DropdownMenuCheckboxItem
                 checked={showChecksums}

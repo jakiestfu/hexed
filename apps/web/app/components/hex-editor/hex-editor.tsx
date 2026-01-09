@@ -10,6 +10,8 @@ import {
   CardFooter,
   CardHeader,
   Toggle,
+  ToggleGroup,
+  ToggleGroupItem,
   Button,
   Tabs,
   TabsContent,
@@ -41,6 +43,7 @@ import {
   Code,
   CaseSensitive,
   Binary,
+  FileText,
 } from "lucide-react";
 import { DiffViewer } from "./diff-viewer";
 import { EmptyState } from "./empty-state";
@@ -50,7 +53,9 @@ import { HexFooter } from "~/components/hex-editor/hex-footer";
 import { useChecksumVisibility } from "~/hooks/use-checksum-visibility";
 import { useAsciiVisibility } from "~/hooks/use-ascii-visibility";
 import { useInterpreterVisibility } from "~/hooks/use-interpreter-visibility";
+import { useTemplatesVisibility } from "~/hooks/use-templates-visibility";
 import { Interpreter } from "./interpreter";
+import { Templates } from "./templates";
 import type { HexEditorProps, HexEditorViewProps } from "./types";
 import { getBasename } from "./utils";
 
@@ -102,6 +107,7 @@ export const HexEditor: FunctionComponent<HexEditorProps> = ({
   const [numberFormat, setNumberFormat] = useState<string>("dec");
   const { showChecksums } = useChecksumVisibility();
   const { showInterpreter, setShowInterpreter } = useInterpreterVisibility();
+  const { showTemplates, setShowTemplates } = useTemplatesVisibility();
   const currentSnapshot = snapshots[parseInt(activeTab, 10)] || snapshots[0];
   const hasFile = filePath != null && filePath !== "";
   const hasSnapshots = snapshots.length > 0;
@@ -130,11 +136,33 @@ export const HexEditor: FunctionComponent<HexEditorProps> = ({
     end: number;
   } | null>(null);
   const [isInterpreterPIPActive, setIsInterpreterPIPActive] = useState(false);
+  const [isTemplatesPIPActive, setIsTemplatesPIPActive] = useState(false);
 
   // Calculate earliest byte for interpreter
   const selectedOffset = selectedOffsetRange
     ? Math.min(selectedOffsetRange.start, selectedOffsetRange.end)
     : null;
+
+  // Derived value for toggle group
+  const paneToggleValue = showInterpreter
+    ? "interpreter"
+    : showTemplates
+    ? "templates"
+    : "";
+
+  // Handle pane toggle group change
+  const handlePaneToggleChange = (value: string) => {
+    if (value === "interpreter") {
+      setShowInterpreter(true);
+      setShowTemplates(false);
+    } else if (value === "templates") {
+      setShowTemplates(true);
+      setShowInterpreter(false);
+    } else {
+      setShowInterpreter(false);
+      setShowTemplates(false);
+    }
+  };
   const headerContent = (
     <CardHeader className="p-0! gap-0 m-0 bg-muted/30">
       {/* Primary Toolbar */}
@@ -286,6 +314,18 @@ export const HexEditor: FunctionComponent<HexEditorProps> = ({
               />
             </div>
           )}
+          {showTemplates && (
+            <div
+              className={`w-[650px] shrink-0 h-full border-l ${
+                isTemplatesPIPActive ? "hidden" : ""
+              }`}
+            >
+              <Templates
+                onClose={() => setShowTemplates(false)}
+                onPIPStateChange={setIsTemplatesPIPActive}
+              />
+            </div>
+          )}
         </div>
       </TabsContent>
     ));
@@ -378,30 +418,53 @@ export const HexEditor: FunctionComponent<HexEditorProps> = ({
                         onPressedChange={setShowAscii}
                         aria-label="Toggle ASCII view"
                         size="sm"
+                        className={showAscii ? "bg-accent" : ""}
                       >
                         <CaseSensitive />
                       </Toggle>
                     </TooltipTrigger>
                     <TooltipContent>Toggle ASCII view</TooltipContent>
                   </Tooltip>
-                  <Tooltip>
-                    <TooltipTrigger asChild>
-                      <Toggle
-                        variant="outline"
-                        pressed={showInterpreter}
-                        onPressedChange={setShowInterpreter}
-                        size="sm"
-                        aria-label="Toggle interpreter"
-                      >
-                        <Binary />
-                      </Toggle>
-                    </TooltipTrigger>
-                    <TooltipContent>
-                      {selectedOffset === null
-                        ? "Select bytes to enable interpreter"
-                        : "Toggle interpreter panel"}
-                    </TooltipContent>
-                  </Tooltip>
+                  <ToggleGroup
+                    type="single"
+                    value={paneToggleValue}
+                    onValueChange={handlePaneToggleChange}
+                    variant="outline"
+                    size="sm"
+                  >
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <ToggleGroupItem
+                          value="interpreter"
+                          aria-label="Toggle interpreter"
+                          className={
+                            paneToggleValue === "interpreter" ? "bg-accent" : ""
+                          }
+                        >
+                          <Binary />
+                        </ToggleGroupItem>
+                      </TooltipTrigger>
+                      <TooltipContent>
+                        {selectedOffset === null
+                          ? "Select bytes to enable interpreter"
+                          : "Toggle interpreter panel"}
+                      </TooltipContent>
+                    </Tooltip>
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <ToggleGroupItem
+                          value="templates"
+                          aria-label="Toggle templates panel"
+                          className={
+                            paneToggleValue === "templates" ? "bg-accent" : ""
+                          }
+                        >
+                          <FileText />
+                        </ToggleGroupItem>
+                      </TooltipTrigger>
+                      <TooltipContent>Toggle templates panel</TooltipContent>
+                    </Tooltip>
+                  </ToggleGroup>
                 </div>
               }
               center={bytesLabel}
