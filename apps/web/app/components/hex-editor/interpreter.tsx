@@ -13,9 +13,14 @@ import {
   CardTitle,
   Button,
   Badge,
+  Empty,
+  EmptyHeader,
+  EmptyTitle,
+  EmptyDescription,
+  EmptyMedia,
 } from "@hexed/ui";
 import { formatAddress } from "@hexed/binary-utils/formatter";
-import { X } from "lucide-react";
+import { X, MousePointerClick } from "lucide-react";
 import type { Endianness, NumberFormat } from "@hexed/binary-utils/interpreter";
 import {
   formatNumber,
@@ -273,10 +278,6 @@ export const Interpreter: FunctionComponent<InterpreterProps> = ({
     return results;
   }, [data, selectedOffset, endianness, numberFormat]);
 
-  if (selectedOffset === null) {
-    return null;
-  }
-
   const hexAddress =
     selectedOffset !== null ? formatAddress(selectedOffset) : "";
   const byteOffset =
@@ -287,11 +288,11 @@ export const Interpreter: FunctionComponent<InterpreterProps> = ({
       <CardHeader className="py-3! px-4 border-b shrink-0 gap-0 bg-secondary">
         <div className="flex items-center justify-between gap-4">
           <div className="flex items-center gap-3 min-w-0">
-            <CardTitle className="text-sm font-medium shrink-0">
+            <CardTitle className="text-sm font-medium shrink-0 flex-1">
               Interpreter
             </CardTitle>
             {selectedOffset !== null && (
-              <div className="flex items-center gap-2 text-xs text-muted-foreground min-w-0">
+              <div className="flex items-center justify-center grow gap-2 text-xs text-muted-foreground min-w-0">
                 {onScrollToOffset ? (
                   <button
                     onClick={() => onScrollToOffset(selectedOffset)}
@@ -304,14 +305,15 @@ export const Interpreter: FunctionComponent<InterpreterProps> = ({
                   <span className="font-mono">{hexAddress}</span>
                 )}
                 <span className="text-muted-foreground/70">•</span>
-                <span>{byteOffset}</span>
+                <span>Offset {byteOffset}</span>
+                <span className="text-muted-foreground/70">•</span>
+                <span className="font-mono">
+                  {endianness === "le" ? "LE" : "BE"}
+                </span>
               </div>
             )}
           </div>
           <div className="flex items-center gap-2 shrink-0">
-            <Badge variant="outline" className="text-xs font-mono">
-              {endianness === "le" ? "LE" : "BE"}
-            </Badge>
             {onClose && (
               <Button
                 variant="ghost"
@@ -327,48 +329,62 @@ export const Interpreter: FunctionComponent<InterpreterProps> = ({
         </div>
       </CardHeader>
       <CardContent className="p-0 flex-1 overflow-y-auto">
-        <Table>
-          <TableHeader>
-            <TableRow>
-              <TableHead className="w-[200px]">Type</TableHead>
-              <TableHead>Unsigned (+)</TableHead>
-              <TableHead>Signed (±)</TableHead>
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {interpretedData.map((row, index) => (
-              <TableRow key={index}>
-                <TableCell className="font-medium">{row.type}</TableCell>
-                <TableCell className="font-mono text-sm">
-                  {row.unsigned !== undefined ? (
-                    row.unsigned
-                  ) : (
-                    <span className="text-muted-foreground">
-                      {row.type.includes("DateTime")
-                        ? "Invalid date"
-                        : row.type.includes("Character")
-                        ? "Null"
-                        : "Invalid number"}
-                    </span>
-                  )}
-                </TableCell>
-                <TableCell className="font-mono text-sm">
-                  {row.signed !== undefined ? (
-                    row.signed
-                  ) : (
-                    <span className="text-muted-foreground">
-                      {row.type.includes("DateTime")
-                        ? "Invalid date"
-                        : row.type.includes("Character")
-                        ? "Null"
-                        : "Invalid number"}
-                    </span>
-                  )}
-                </TableCell>
+        {selectedOffset === null ? (
+          <Empty className="h-full">
+            <EmptyHeader>
+              <EmptyMedia variant="icon">
+                <MousePointerClick className="h-6 w-6" />
+              </EmptyMedia>
+              <EmptyTitle>No selection</EmptyTitle>
+              <EmptyDescription>
+                Select bytes in the hex editor to view interpreted values
+              </EmptyDescription>
+            </EmptyHeader>
+          </Empty>
+        ) : (
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead className="w-[200px]">Type</TableHead>
+                <TableHead>Unsigned (+)</TableHead>
+                <TableHead>Signed (±)</TableHead>
               </TableRow>
-            ))}
-          </TableBody>
-        </Table>
+            </TableHeader>
+            <TableBody>
+              {interpretedData.map((row, index) => (
+                <TableRow key={index}>
+                  <TableCell className="font-medium">{row.type}</TableCell>
+                  <TableCell className="font-mono text-sm">
+                    {row.unsigned !== undefined ? (
+                      row.unsigned
+                    ) : (
+                      <span className="text-muted-foreground">
+                        {row.type.includes("DateTime")
+                          ? "Invalid date"
+                          : row.type.includes("Character")
+                          ? "Null"
+                          : "Invalid number"}
+                      </span>
+                    )}
+                  </TableCell>
+                  <TableCell className="font-mono text-sm">
+                    {row.signed !== undefined ? (
+                      row.signed
+                    ) : (
+                      <span className="text-muted-foreground">
+                        {row.type.includes("DateTime")
+                          ? "Invalid date"
+                          : row.type.includes("Character")
+                          ? "Null"
+                          : "Invalid number"}
+                      </span>
+                    )}
+                  </TableCell>
+                </TableRow>
+              ))}
+            </TableBody>
+          </Table>
+        )}
       </CardContent>
     </Card>
   );

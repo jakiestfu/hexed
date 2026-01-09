@@ -14,7 +14,6 @@ import {
 } from "@hexed/ui";
 import {
   ChevronDown,
-  Eye,
   File,
   Ghost,
   Github,
@@ -23,12 +22,15 @@ import {
   Moon,
   Palette,
   Sun,
+  Settings,
 } from "lucide-react";
 import { useTheme } from "next-themes";
 import Link from "next/link";
 import { FunctionComponent, ReactNode } from "react";
 import { useRecentFiles } from "~/hooks/use-recent-files";
 import { useChecksumVisibility } from "~/hooks/use-checksum-visibility";
+import { useAsciiVisibility } from "~/hooks/use-ascii-visibility";
+import { useInterpreterVisibility } from "~/hooks/use-interpreter-visibility";
 import { encodeFilePath } from "~/utils/path-encoding";
 import { cn } from "@hexed/ui";
 
@@ -65,6 +67,8 @@ export const Logo: FunctionComponent<LogoProps> = ({
   const { setTheme } = useTheme();
   const { recentFiles } = useRecentFiles();
   const { showChecksums, setShowChecksums } = useChecksumVisibility();
+  const { showAscii, setShowAscii } = useAsciiVisibility();
+  const { showInterpreter, setShowInterpreter } = useInterpreterVisibility();
   const effectiveMenuItems =
     menuItems && menuItems.length > 0 ? menuItems : defaultMenuItems;
   const hasDropdown =
@@ -145,7 +149,7 @@ export const Logo: FunctionComponent<LogoProps> = ({
           <DropdownMenuSub>
             <DropdownMenuSubTrigger className="cursor-pointer">
               <File className="mr-2 h-4 w-4" />
-              Recent Files
+              Open Recent
             </DropdownMenuSubTrigger>
             <DropdownMenuSubContent>
               {recentFiles.length > 0 ? (
@@ -173,40 +177,61 @@ export const Logo: FunctionComponent<LogoProps> = ({
           </DropdownMenuSub>
           <DropdownMenuSub>
             <DropdownMenuSubTrigger className="cursor-pointer">
-              <Palette className="mr-2 h-4 w-4" />
-              View
+              <Settings className="mr-2 h-4 w-4" />
+              Settings
             </DropdownMenuSubTrigger>
             <DropdownMenuSubContent>
+              <DropdownMenuCheckboxItem
+                checked={showAscii}
+                onCheckedChange={setShowAscii}
+                className="cursor-pointer"
+              >
+                Show ASCII
+              </DropdownMenuCheckboxItem>
+              <DropdownMenuCheckboxItem
+                checked={showInterpreter}
+                onCheckedChange={setShowInterpreter}
+                className="cursor-pointer"
+              >
+                Show Interpreter
+              </DropdownMenuCheckboxItem>
               <DropdownMenuCheckboxItem
                 checked={showChecksums}
                 onCheckedChange={setShowChecksums}
                 className="cursor-pointer"
               >
-                <Eye className="mr-2 h-4 w-4" />
                 Show Checksums
               </DropdownMenuCheckboxItem>
               <DropdownMenuSeparator />
-              <DropdownMenuItem
-                onClick={() => setTheme("light")}
-                className="cursor-pointer"
-              >
-                <Sun className="mr-2 h-4 w-4" />
-                Light
-              </DropdownMenuItem>
-              <DropdownMenuItem
-                onClick={() => setTheme("dark")}
-                className="cursor-pointer"
-              >
-                <Moon className="mr-2 h-4 w-4" />
-                Dark
-              </DropdownMenuItem>
-              <DropdownMenuItem
-                onClick={() => setTheme("system")}
-                className="cursor-pointer"
-              >
-                <Monitor className="mr-2 h-4 w-4" />
-                System
-              </DropdownMenuItem>
+              <DropdownMenuSub>
+                <DropdownMenuSubTrigger className="cursor-pointer">
+                  <Palette className="mr-2 h-4 w-4" />
+                  Theme
+                </DropdownMenuSubTrigger>
+                <DropdownMenuSubContent>
+                  <DropdownMenuItem
+                    onClick={() => setTheme("light")}
+                    className="cursor-pointer"
+                  >
+                    <Sun className="mr-2 h-4 w-4" />
+                    Light
+                  </DropdownMenuItem>
+                  <DropdownMenuItem
+                    onClick={() => setTheme("dark")}
+                    className="cursor-pointer"
+                  >
+                    <Moon className="mr-2 h-4 w-4" />
+                    Dark
+                  </DropdownMenuItem>
+                  <DropdownMenuItem
+                    onClick={() => setTheme("system")}
+                    className="cursor-pointer"
+                  >
+                    <Monitor className="mr-2 h-4 w-4" />
+                    System
+                  </DropdownMenuItem>
+                </DropdownMenuSubContent>
+              </DropdownMenuSub>
             </DropdownMenuSubContent>
           </DropdownMenuSub>
           {githubUrl && (

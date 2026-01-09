@@ -32,13 +32,24 @@ import {
   TooltipContent,
   TooltipTrigger,
 } from "@hexed/ui";
-import { Eye, X, ChevronDownIcon, File, Loader2 } from "lucide-react";
+import {
+  Eye,
+  X,
+  ChevronDownIcon,
+  File,
+  Loader2,
+  Code,
+  CaseSensitive,
+  Binary,
+} from "lucide-react";
 import { DiffViewer } from "./diff-viewer";
 import { EmptyState } from "./empty-state";
 import { HexToolbar } from "./hex-toolbar";
 import { Logo } from "~/components/logo";
 import { HexFooter } from "~/components/hex-editor/hex-footer";
 import { useChecksumVisibility } from "~/hooks/use-checksum-visibility";
+import { useAsciiVisibility } from "~/hooks/use-ascii-visibility";
+import { useInterpreterVisibility } from "~/hooks/use-interpreter-visibility";
 import { Interpreter } from "./interpreter";
 import type { HexEditorProps, HexEditorViewProps } from "./types";
 import { getBasename } from "./utils";
@@ -84,12 +95,13 @@ export const HexEditor: FunctionComponent<HexEditorProps> = ({
   className = "",
 }) => {
   const [activeTab, setActiveTab] = useState<string>("0");
-  const [showAscii, setShowAscii] = useState(true);
+  const { showAscii, setShowAscii } = useAsciiVisibility();
   const [diffMode, setDiffMode] = useState<DiffViewMode>("inline");
   const [dataType, setDataType] = useState<string>("Signed Int");
   const [endianness, setEndianness] = useState<string>("le");
   const [numberFormat, setNumberFormat] = useState<string>("dec");
   const { showChecksums } = useChecksumVisibility();
+  const { showInterpreter, setShowInterpreter } = useInterpreterVisibility();
   const currentSnapshot = snapshots[parseInt(activeTab, 10)] || snapshots[0];
   const hasFile = filePath != null && filePath !== "";
   const hasSnapshots = snapshots.length > 0;
@@ -256,14 +268,14 @@ export const HexEditor: FunctionComponent<HexEditorProps> = ({
             selectedOffsetRange={selectedOffsetRange}
             onSelectedOffsetRangeChange={setSelectedOffsetRange}
           />
-          {selectedOffset !== null && (
+          {showInterpreter && (
             <div className="w-[650px] shrink-0 h-full border-l">
               <Interpreter
                 data={snapshot.data}
                 selectedOffset={selectedOffset}
                 endianness={endianness as "le" | "be"}
                 numberFormat={numberFormat as "dec" | "hex"}
-                onClose={() => setSelectedOffsetRange(null)}
+                onClose={() => setShowInterpreter(false)}
                 onScrollToOffset={setScrollToOffset}
               />
             </div>
@@ -351,15 +363,45 @@ export const HexEditor: FunctionComponent<HexEditorProps> = ({
                 </div>
               }
               right={
-                <Toggle
-                  pressed={showAscii}
-                  onPressedChange={setShowAscii}
-                  aria-label="Toggle ASCII view"
-                  size="sm"
-                >
-                  <Eye className="h-3 w-3" />
-                  <span className="ml-1 text-xs">ASCII</span>
-                </Toggle>
+                <div className="flex items-center gap-2">
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <Toggle
+                        variant="outline"
+                        pressed={showAscii}
+                        onPressedChange={setShowAscii}
+                        aria-label="Toggle ASCII view"
+                        size="sm"
+                      >
+                        <CaseSensitive />
+                        {/* <Eye /> */}
+                        {/* <span className="text-xs">ASCII</span> */}
+                      </Toggle>
+                    </TooltipTrigger>
+                    <TooltipContent>Toggle ASCII view</TooltipContent>
+                  </Tooltip>
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <Toggle
+                        variant="outline"
+                        pressed={showInterpreter}
+                        onPressedChange={setShowInterpreter}
+                        size="sm"
+                        // disabled={selectedOffset === null}
+                        aria-label="Toggle interpreter"
+                      >
+                        <Binary />
+                        {/* <Code />
+                        <span className="text-xs">Interpreter</span> */}
+                      </Toggle>
+                    </TooltipTrigger>
+                    <TooltipContent>
+                      {selectedOffset === null
+                        ? "Select bytes to enable interpreter"
+                        : "Toggle interpreter panel"}
+                    </TooltipContent>
+                  </Tooltip>
+                </div>
               }
               center={bytesLabel}
             />
