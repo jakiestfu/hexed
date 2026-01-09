@@ -10,6 +10,7 @@
     "clean": "rm -rf .next node_modules"
   },
   "dependencies": {
+    "@hexed/binary-templates": "workspace:*",
     "@hexed/binary-utils": "workspace:*",
     "@hexed/canvas": "workspace:*",
     "@hexed/types": "workspace:*",

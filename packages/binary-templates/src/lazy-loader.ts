@@ -1,45 +1,80 @@
+import { KaitaiStream } from "kaitai-struct/KaitaiStream";
+// const { KaitaiStream } = await import("kaitai-struct/KaitaiStream");
 /**
- * Template name to parser module path mapping
- * Maps template names to their corresponding parser module paths
+ * Converts a ksy file path to the corresponding dist module path
+ * @param ksyPath - The path from the manifest (e.g., "3d/gltf_binary.ksy")
+ * @returns The module path for dynamic import (e.g., "../dist/3d/GltfBinary")
  */
-const TEMPLATE_MAP: Record<string, () => Promise<{ [key: string]: (buffer: ArrayBuffer) => unknown }>> = {
-  id3v2: () => import("./parsers/id3v2"),
-  // Add more templates here as they are added
-};
+function ksyPathToModulePath(ksyPath: string): string {
+  // Remove .ksy extension
+  const withoutExt = ksyPath.replace(/\.ksy$/, "");
+
+  // Split into directory and filename
+  const parts = withoutExt.split("/");
+  const filename = parts[parts.length - 1];
+  const dir = parts.slice(0, -1).join("/");
+
+  // Convert snake_case to PascalCase
+  const pascalCase = filename
+    .split("_")
+    .map((word) => word.charAt(0).toUpperCase() + word.slice(1).toLowerCase())
+    .join("");
+
+  // Construct the module path
+  const modulePath = dir
+    ? `../dist/${dir}/${pascalCase}`
+    : `../dist/${pascalCase}`;
+
+  return modulePath;
+}
 
 /**
- * Lazy loads and executes a parser based on template name
- * @param name - The name of the template (e.g., "id3v2")
+ * Lazy loads and executes a parser based on template path
+ * @param path - The path from the manifest (e.g., "3d/gltf_binary.ksy" or "archive/android_bootldr_asus.ksy")
  * @param buffer - The ArrayBuffer containing the binary data to parse
  * @returns Promise that resolves to the parsed result
  */
 export async function parseTemplate(
-  name: string,
+  path: string,
   buffer: ArrayBuffer
 ): Promise<unknown> {
-  const parserLoader = TEMPLATE_MAP[name];
-  
-  if (!parserLoader) {
-    throw new Error(
-      `Unknown template: ${name}. Available templates: ${Object.keys(TEMPLATE_MAP).join(", ")}`
-    );
-  }
+  // Convert ksy path to module path
+  const modulePath = ksyPathToModulePath(path);
 
   // Dynamically import the parser module
-  const parserModule = await parserLoader();
-  
-  // Find the parse function in the module
-  // Parser modules export functions like parseId3, parseXxx, etc.
-  const parseFunction = Object.values(parserModule).find(
-    (exported) => typeof exported === "function"
-  ) as ((buffer: ArrayBuffer) => unknown) | undefined;
-
-  if (!parseFunction) {
+  let parserModule: { [key: string]: unknown };
+  try {
+    parserModule = await import(modulePath);
+  } catch (error) {
     throw new Error(
-      `Parser module for "${name}" does not export a parse function`
+      `Failed to load parser module for "${path}": ${
+        error instanceof Error ? error.message : String(error)
+      }`
     );
   }
 
-  // Execute the parse function
-  return parseFunction(buffer);
+  // Import KaitaiStream
+  // @ts-expect-error - kaitai-struct doesn't have TypeScript definitions
+
+  // Find the parser class in the module
+  // Kaitai Struct parsers export a class that takes a KaitaiStream in the constructor
+  const ParserClass = Object.values(parserModule).find((exported) => {
+    // Check if it's a class (function with prototype)
+    return typeof exported === "function" && exported.prototype;
+  }) as new (io: unknown, parent: unknown, root: unknown) =>
+    | unknown
+    | undefined;
+
+  if (!ParserClass) {
+    throw new Error(
+      `Parser module for "${path}" does not export a parser class`
+    );
+  }
+
+  // Create a KaitaiStream from the buffer
+  const stream = new KaitaiStream(buffer);
+
+  // Instantiate the parser with the stream
+  // Kaitai parsers take (stream, parent, root) where parent and root are typically null for top-level
+  return new ParserClass(stream, null, null);
 }

@@ -17,6 +17,7 @@
     "postinstall": "./scripts/install-kaitai.sh"
   },
   "dependencies": {
+    "iconv-lite": "^0.7.2",
     "kaitai-struct": "^0.10.0"
   },
   "devDependencies": {

@@ -1,4 +1,4 @@
-import { useRef, useEffect } from "react";
+import { useRef, useEffect, useState } from "react";
 import type { FunctionComponent, RefObject } from "react";
 import {
   Card,
@@ -6,10 +6,16 @@ import {
   CardHeader,
   CardTitle,
   Button,
+  Empty,
+  EmptyHeader,
+  EmptyTitle,
+  EmptyDescription,
+  EmptyMedia,
 } from "@hexed/ui";
-import { X, Maximize2 } from "lucide-react";
+import { X, Maximize2, FileCode } from "lucide-react";
 import { usePIP } from "~/hooks/use-pip";
 import type { TemplatesProps } from "./types";
+import { TemplatesCombobox } from "./templates-combobox";
 
 export const Templates: FunctionComponent<TemplatesProps> = ({
   onClose,
@@ -19,11 +25,27 @@ export const Templates: FunctionComponent<TemplatesProps> = ({
   const { isPIPActive, stylesLoaded, togglePIP, isSupported } = usePIP(
     templatesRef as RefObject<HTMLElement>
   );
+  const [commandOpen, setCommandOpen] = useState(false);
+  const [selectedTemplate, setSelectedTemplate] = useState<{
+    name: string;
+    title: string;
+    path: string;
+  } | null>(null);
 
   // Notify parent component when PIP state changes
   useEffect(() => {
     onPIPStateChange?.(isPIPActive);
   }, [isPIPActive, onPIPStateChange]);
+
+  const handleTemplateSelect = (entry: {
+    name: string;
+    title: string;
+    path: string;
+  }) => {
+    setSelectedTemplate(entry);
+    // TODO: Implement template selection logic
+    console.log("Template selected:", entry);
+  };
 
   return (
     <div
@@ -69,8 +91,34 @@ export const Templates: FunctionComponent<TemplatesProps> = ({
             )}
           </div>
         </CardHeader>
-        <CardContent className="p-0 flex-1 overflow-y-auto">
-          {/* Content will be added later */}
+        <CardContent className="p-4 flex-1 overflow-y-auto">
+          <TemplatesCombobox
+            open={commandOpen}
+            onOpenChange={setCommandOpen}
+            onTemplateSelect={handleTemplateSelect}
+            placeholder="Search templates..."
+            className="w-full"
+          />
+          {selectedTemplate === null ? (
+            <Empty className="mt-8">
+              <EmptyHeader>
+                <EmptyMedia variant="icon">
+                  <FileCode className="h-6 w-6" />
+                </EmptyMedia>
+                <EmptyTitle>No template selected</EmptyTitle>
+                <EmptyDescription>
+                  Select a template from the dropdown above to parse binary data
+                </EmptyDescription>
+              </EmptyHeader>
+            </Empty>
+          ) : (
+            <div className="mt-4">
+              <div className="text-sm font-medium mb-2">Template ID</div>
+              <code className="text-xs bg-muted px-2 py-1 rounded font-mono">
+                {selectedTemplate.name}
+              </code>
+            </div>
+          )}
         </CardContent>
       </Card>
     </div>
