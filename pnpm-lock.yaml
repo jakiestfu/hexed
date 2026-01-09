@@ -86,6 +86,22 @@ importers:
         specifier: ^5.7.2
         version: 5.9.3
 
+  packages/binary-templates:
+    dependencies:
+      kaitai-struct:
+        specifier: ^0.10.0
+        version: 0.10.0
+    devDependencies:
+      '@types/node':
+        specifier: ^25.0.3
+        version: 25.0.3
+      kaitai-struct-compiler:
+        specifier: ^0.10.0
+        version: 0.10.0
+      typescript:
+        specifier: ^5.7.2
+        version: 5.9.3
+
   packages/binary-utils:
     dependencies:
       '@hexed/types':
@@ -1625,6 +1641,12 @@ packages:
 
   jsonfile@4.0.0:
     resolution: {integrity: sha512-m6F1R3z8jjlf2imQHS2Qez5sjKWQzbuuhuJ/FKYFRZvPE3PuHcSMVZzfsLhGVOkfd20obL5SWEBew5ShlquNxg==}
+
+  kaitai-struct-compiler@0.10.0:
+    resolution: {integrity: sha512-zIIGUn6X3UQJ05mwkZ0QUbLTdq9Oopyl9EPSoQHiSpnHFfuQHCphj+doLm6oXD/ouUXpPC860185dGCCzNVi2A==}
+
+  kaitai-struct@0.10.0:
+    resolution: {integrity: sha512-81oxVi/OY+LrzgrONX7ciD1wtvq24nb2M9iYixRiQG+1hrDrDRqFVWuQzF1fUexh3Sg/ol6eMAz1MOVYFouzUg==}
 
   keyv@4.5.4:
     resolution: {integrity: sha512-oxVHkHR/EJf2CNXnWxRLW6mg7JyCCUcG0DtEGmL2ctUo1PNTin1PUil+r/+4r5MpVgC/fn1kjsx7mjSujKqIpw==}
@@ -3375,6 +3397,10 @@ snapshots:
   jsonfile@4.0.0:
     optionalDependencies:
       graceful-fs: 4.2.11
+
+  kaitai-struct-compiler@0.10.0: {}
+
+  kaitai-struct@0.10.0: {}
 
   keyv@4.5.4:
     dependencies:

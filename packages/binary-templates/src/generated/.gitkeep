@@ -1,0 +1,2 @@
+# This directory contains generated TypeScript files from .ksy files
+# Run `pnpm build:ksy` to generate the parser files
