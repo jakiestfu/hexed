@@ -33,10 +33,10 @@ async function buildKsyFiles() {
 
       try {
         // Run kaitai-struct-compiler
-        // -t typescript: generate TypeScript
-        // -d: output directory
+        // -t javascript: generate javascript
+        // Output directory is passed as a positional argument after the input file
         execSync(
-          `kaitai-struct-compiler -t typescript "${inputPath}" -d "${generatedDir}"`,
+          `kaitai-struct-compiler -t javascript "${inputPath}" --outdir "${generatedDir}"`,
           { stdio: "inherit", cwd: packageRoot }
         );
         console.log(`✓ Successfully compiled ${ksyFile}`);
