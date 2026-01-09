@@ -154,10 +154,10 @@ export const HexCanvas = forwardRef<HexCanvasRef, HexCanvasProps>(
       const asciiCharWidth = ctx.measureText(asciiText).width;
 
       // Constants
-      const hexByteGap = 12; // Space between hex bytes
+      const hexByteGap = 0; // Space between hex bytes
       const borderWidth = 1;
       const addressPadding = 16;
-      const cellWidth = 24; // Fixed width between hex and ASCII columns
+      const cellWidth = 30; // Fixed width between hex and ASCII columns
       const rowHeight = 24; // Fixed row height
       const asciiPadding = 16;
       const addressHexGap = 16; // Gap between address and hex columns
@@ -175,18 +175,14 @@ export const HexCanvas = forwardRef<HexCanvasRef, HexCanvasProps>(
       // If showing ASCII, we need to account for it
       if (showAscii) {
         // Iteratively calculate bytesPerRow since ASCII width depends on it
-        let estimatedBytes = Math.floor(
-          (availableWidth + hexByteGap) / (hexByteWidth + hexByteGap)
-        );
+        let estimatedBytes = Math.floor(availableWidth / cellWidth);
 
         // Refine estimate accounting for ASCII column
         for (let i = 0; i < 5; i++) {
           const asciiColumnWidth =
             estimatedBytes * asciiCharWidth + asciiPadding + borderWidth;
           const hexAvailableWidth = availableWidth - asciiColumnWidth;
-          const newEstimatedBytes = Math.floor(
-            (hexAvailableWidth + hexByteGap) / (hexByteWidth + hexByteGap)
-          );
+          const newEstimatedBytes = Math.floor(hexAvailableWidth / cellWidth);
 
           if (newEstimatedBytes === estimatedBytes) {
             break;
@@ -208,9 +204,7 @@ export const HexCanvas = forwardRef<HexCanvasRef, HexCanvasProps>(
           verticalPadding,
         };
       } else {
-        const calculatedBytes = Math.floor(
-          (availableWidth + hexByteGap) / (hexByteWidth + hexByteGap)
-        );
+        const calculatedBytes = Math.floor(availableWidth / cellWidth);
 
         return {
           rowHeight,
@@ -581,6 +575,55 @@ export const HexCanvas = forwardRef<HexCanvasRef, HexCanvasProps>(
     //   handleSelectionClick(null);
     // });
 
+    // Helper function to get cell fill and stroke styles
+    const getCellStyles = (
+      byteDiff: ReturnType<typeof getDiffAtOffset> | null,
+      isHighlighted: boolean,
+      isSelected: boolean,
+      isByteHovered: boolean,
+      colors: HexCanvasColors
+    ): {
+      fillStyle: string | null;
+      strokeStyle: string | null;
+      strokeWidth: number;
+    } => {
+      let fillStyle: string | null = null;
+      let strokeStyle: string | null = null;
+      let strokeWidth = 0;
+
+      // Determine fill style (priority: diff > highlight > selection > hover)
+      if (byteDiff) {
+        const diffColor =
+          byteDiff.type === "added"
+            ? colors.diffAdded
+            : byteDiff.type === "removed"
+            ? colors.diffRemoved
+            : colors.diffModified;
+        fillStyle = diffColor.bg;
+      } else if (isHighlighted) {
+        fillStyle = colors.highlight.bg;
+      } else if (isSelected) {
+        fillStyle = colors.selection.bg;
+      } else if (isByteHovered) {
+        fillStyle = colors.byteHover.bg;
+      }
+
+      // Determine stroke style (priority: highlight > selection > hover)
+      // if (isHighlighted) {
+      //   strokeStyle = colors.highlight.border;
+      //   strokeWidth = 2;
+      // } else if (isSelected) {
+      //   strokeStyle = colors.selection.border;
+      //   strokeWidth = 1;
+      // } else if (isByteHovered) {
+      //   strokeStyle = colors.byteHover.border;
+      //   strokeWidth = 1;
+      // }
+      strokeStyle = "transparent";
+
+      return { fillStyle, strokeStyle, strokeWidth };
+    };
+
     // Render canvas
     useEffect(() => {
       const canvas = canvasRef.current;
@@ -609,6 +652,7 @@ export const HexCanvas = forwardRef<HexCanvasRef, HexCanvasProps>(
         .getComputedStyle(canvas)
         .getPropertyValue("--font-mono")}`;
       ctx.textBaseline = "middle";
+      ctx.textAlign = "center";
 
       // Clear canvas with background color
       ctx.fillStyle = colors.background;
@@ -633,9 +677,7 @@ export const HexCanvas = forwardRef<HexCanvasRef, HexCanvasProps>(
       // Calculate ASCII column X position
       const hexColumnStartX = layout.addressColumnWidth + 16; // Gap between address and hex
       const hexColumnEndX =
-        hexColumnStartX +
-        layout.bytesPerRow * (layout.hexByteWidth + layout.hexByteGap) -
-        layout.hexByteGap;
+        hexColumnStartX + layout.bytesPerRow * layout.cellWidth;
 
       // Draw address/hex border line - full height, flush with canvas edges
       const addressHexBorderX = layout.addressColumnWidth;
@@ -674,6 +716,7 @@ export const HexCanvas = forwardRef<HexCanvasRef, HexCanvasProps>(
         }
 
         // Draw address
+        ctx.textAlign = "left"; // Address is left-aligned
         ctx.fillStyle = colors.addressText;
         ctx.fillText(
           row.address,
@@ -694,20 +737,21 @@ export const HexCanvas = forwardRef<HexCanvasRef, HexCanvasProps>(
           const hexBounds = getCellBounds(
             hexX,
             y,
-            layout.hexByteWidth,
-            layout.rowHeight,
-            2
+            layout.cellWidth,
+            layout.rowHeight
           );
 
-          // Draw diff background if present
-          if (byteDiff) {
-            const diffColor =
-              byteDiff.type === "added"
-                ? colors.diffAdded
-                : byteDiff.type === "removed"
-                ? colors.diffRemoved
-                : colors.diffModified;
-            ctx.fillStyle = diffColor.bg;
+          // Get cell styles and draw
+          const styles = getCellStyles(
+            byteDiff,
+            isHighlighted,
+            isSelected,
+            isByteHovered,
+            colors
+          );
+
+          if (styles.fillStyle) {
+            ctx.fillStyle = styles.fillStyle;
             ctx.fillRect(
               hexBounds.x,
               hexBounds.y,
@@ -716,43 +760,9 @@ export const HexCanvas = forwardRef<HexCanvasRef, HexCanvasProps>(
             );
           }
 
-          // Draw highlight background if present
-          if (isHighlighted) {
-            ctx.fillStyle = colors.highlight.bg;
-            ctx.fillRect(
-              hexBounds.x,
-              hexBounds.y,
-              hexBounds.width,
-              hexBounds.height
-            );
-          }
-
-          // Draw selection background if present
-          if (isSelected) {
-            ctx.fillStyle = colors.selection.bg;
-            ctx.fillRect(
-              hexBounds.x,
-              hexBounds.y,
-              hexBounds.width,
-              hexBounds.height
-            );
-          }
-
-          // Draw byte hover background if present
-          if (isByteHovered) {
-            ctx.fillStyle = colors.byteHover.bg;
-            ctx.fillRect(
-              hexBounds.x,
-              hexBounds.y,
-              hexBounds.width,
-              hexBounds.height
-            );
-          }
-
-          // Draw highlight border if present
-          if (isHighlighted) {
-            ctx.strokeStyle = colors.highlight.border;
-            ctx.lineWidth = 2;
+          if (styles.strokeStyle) {
+            ctx.strokeStyle = styles.strokeStyle;
+            ctx.lineWidth = styles.strokeWidth;
             ctx.strokeRect(
               hexBounds.x,
               hexBounds.y,
@@ -761,31 +771,9 @@ export const HexCanvas = forwardRef<HexCanvasRef, HexCanvasProps>(
             );
           }
 
-          // Draw selection border if present
-          if (isSelected) {
-            ctx.strokeStyle = colors.selection.border;
-            ctx.lineWidth = 1;
-            ctx.strokeRect(
-              hexBounds.x,
-              hexBounds.y,
-              hexBounds.width,
-              hexBounds.height
-            );
-          }
-
-          // Draw byte hover border if present
-          if (isByteHovered) {
-            ctx.strokeStyle = colors.byteHover.border;
-            ctx.lineWidth = 1;
-            ctx.strokeRect(
-              hexBounds.x,
-              hexBounds.y,
-              hexBounds.width,
-              hexBounds.height
-            );
-          }
-
-          // Draw hex byte text
+          // Draw hex byte text (centered in cell)
+          ctx.textAlign = "center"; // Center hex bytes in their cells
+          const textX = hexX + layout.cellWidth / 2;
           if (byteDiff) {
             const diffColor =
               byteDiff.type === "added"
@@ -797,8 +785,8 @@ export const HexCanvas = forwardRef<HexCanvasRef, HexCanvasProps>(
           } else {
             ctx.fillStyle = colors.byteText;
           }
-          ctx.fillText(row.hexBytes[j], hexX, y + layout.rowHeight / 2);
-          hexX += layout.hexByteWidth + layout.hexByteGap;
+          ctx.fillText(row.hexBytes[j], textX, y + layout.rowHeight / 2);
+          hexX += layout.cellWidth;
         }
 
         // Draw ASCII column if enabled
@@ -824,15 +812,17 @@ export const HexCanvas = forwardRef<HexCanvasRef, HexCanvasProps>(
               1
             );
 
-            // Draw diff background if present
-            if (byteDiff) {
-              const diffColor =
-                byteDiff.type === "added"
-                  ? colors.diffAdded
-                  : byteDiff.type === "removed"
-                  ? colors.diffRemoved
-                  : colors.diffModified;
-              ctx.fillStyle = diffColor.bg;
+            // Get cell styles and draw
+            const styles = getCellStyles(
+              byteDiff,
+              isHighlighted,
+              isSelected,
+              isByteHovered,
+              colors
+            );
+
+            if (styles.fillStyle) {
+              ctx.fillStyle = styles.fillStyle;
               ctx.fillRect(
                 asciiBounds.x,
                 asciiBounds.y,
@@ -841,67 +831,9 @@ export const HexCanvas = forwardRef<HexCanvasRef, HexCanvasProps>(
               );
             }
 
-            // Draw highlight background if present
-            if (isHighlighted) {
-              ctx.fillStyle = colors.highlight.bg;
-              ctx.fillRect(
-                asciiBounds.x,
-                asciiBounds.y,
-                asciiBounds.width,
-                asciiBounds.height
-              );
-            }
-
-            // Draw selection background if present
-            if (isSelected) {
-              ctx.fillStyle = colors.selection.bg;
-              ctx.fillRect(
-                asciiBounds.x,
-                asciiBounds.y,
-                asciiBounds.width,
-                asciiBounds.height
-              );
-            }
-
-            // Draw byte hover background if present
-            if (isByteHovered) {
-              ctx.fillStyle = colors.byteHover.bg;
-              ctx.fillRect(
-                asciiBounds.x,
-                asciiBounds.y,
-                asciiBounds.width,
-                asciiBounds.height
-              );
-            }
-
-            // Draw highlight border if present
-            if (isHighlighted) {
-              ctx.strokeStyle = colors.highlight.border;
-              ctx.lineWidth = 2;
-              ctx.strokeRect(
-                asciiBounds.x,
-                asciiBounds.y,
-                asciiBounds.width,
-                asciiBounds.height
-              );
-            }
-
-            // Draw selection border if present
-            if (isSelected) {
-              ctx.strokeStyle = colors.selection.border;
-              ctx.lineWidth = 1;
-              ctx.strokeRect(
-                asciiBounds.x,
-                asciiBounds.y,
-                asciiBounds.width,
-                asciiBounds.height
-              );
-            }
-
-            // Draw byte hover border if present
-            if (isByteHovered) {
-              ctx.strokeStyle = colors.byteHover.border;
-              ctx.lineWidth = 1;
+            if (styles.strokeStyle) {
+              ctx.strokeStyle = styles.strokeStyle;
+              ctx.lineWidth = styles.strokeWidth;
               ctx.strokeRect(
                 asciiBounds.x,
                 asciiBounds.y,
@@ -911,6 +843,7 @@ export const HexCanvas = forwardRef<HexCanvasRef, HexCanvasProps>(
             }
 
             // Draw ASCII character text
+            ctx.textAlign = "left"; // ASCII characters are left-aligned
             if (byteDiff) {
               const diffColor =
                 byteDiff.type === "added"

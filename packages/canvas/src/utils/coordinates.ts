@@ -20,9 +20,9 @@ export function getCellBounds(
   rowY: number,
   cellWidth: number,
   rowHeight: number,
-  horizontalPadding: number = 2
+  horizontalPadding: number = 0,
+  verticalPadding: number = 0
 ): { x: number; y: number; width: number; height: number } {
-  const verticalPadding = 2;
   return {
     x: cellX - horizontalPadding,
     y: rowY + verticalPadding,
@@ -64,17 +64,15 @@ export function getOffsetFromPosition(
   const hexColumnStartX = layout.addressColumnWidth + 16;
 
   // Check each hex byte individually to see if mouse is within its bounds
-  // This matches the rendering: hexX starts at hexColumnStartX and increments by (hexByteWidth + hexByteGap)
+  // This matches the rendering: hexX starts at hexColumnStartX and increments by cellWidth
   for (let j = 0; j < row.hexBytes.length; j++) {
-    const hexX =
-      hexColumnStartX + j * (layout.hexByteWidth + layout.hexByteGap);
+    const hexX = hexColumnStartX + j * layout.cellWidth;
     // Use getCellBounds to match rendering exactly
     const bounds = getCellBounds(
       hexX,
       0, // rowY not needed for horizontal bounds check
-      layout.hexByteWidth,
-      layout.rowHeight,
-      2
+      layout.cellWidth,
+      layout.rowHeight
     );
 
     if (mouseX >= bounds.x && mouseX < bounds.x + bounds.width) {
@@ -85,8 +83,7 @@ export function getOffsetFromPosition(
   // Check if mouse is in ASCII column
   if (showAscii) {
     const hexColumnEndX =
-      hexColumnStartX +
-      row.hexBytes.length * (layout.hexByteWidth + layout.hexByteGap);
+      hexColumnStartX + row.hexBytes.length * layout.cellWidth;
     const asciiX =
       hexColumnEndX +
       layout.cellWidth +
