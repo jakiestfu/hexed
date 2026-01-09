@@ -9,7 +9,7 @@ export interface LayoutMetrics {
   borderWidth: number;
   bytesPerRow: number;
   addressPadding: number;
-  hexPadding: number;
+  cellWidth: number;
   asciiPadding: number;
   verticalPadding: number;
 }
@@ -89,7 +89,7 @@ export function getOffsetFromPosition(
       row.hexBytes.length * (layout.hexByteWidth + layout.hexByteGap);
     const asciiX =
       hexColumnEndX +
-      layout.hexPadding +
+      layout.cellWidth +
       layout.borderWidth +
       layout.asciiPadding;
 

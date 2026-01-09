@@ -157,10 +157,10 @@ export const HexCanvas = forwardRef<HexCanvasRef, HexCanvasProps>(
       const hexByteGap = 12; // Space between hex bytes
       const borderWidth = 1;
       const addressPadding = 16;
-      const hexPadding = 16;
+      const cellWidth = 24; // Fixed width between hex and ASCII columns
+      const rowHeight = 24; // Fixed row height
       const asciiPadding = 16;
       const addressHexGap = 16; // Gap between address and hex columns
-      const rowHeight = 20; // Fixed row height
       const verticalPadding = 16; // Vertical padding for top and bottom rows
 
       // Calculate available width for hex bytes
@@ -170,7 +170,7 @@ export const HexCanvas = forwardRef<HexCanvasRef, HexCanvasProps>(
         dimensions.width -
         addressColumnTotalWidth -
         addressHexGap -
-        hexPadding * 2;
+        cellWidth * 2;
 
       // If showing ASCII, we need to account for it
       if (showAscii) {
@@ -203,7 +203,7 @@ export const HexCanvas = forwardRef<HexCanvasRef, HexCanvasProps>(
           borderWidth,
           bytesPerRow: Math.max(16, estimatedBytes),
           addressPadding,
-          hexPadding,
+          cellWidth,
           asciiPadding,
           verticalPadding,
         };
@@ -221,7 +221,7 @@ export const HexCanvas = forwardRef<HexCanvasRef, HexCanvasProps>(
           borderWidth,
           bytesPerRow: Math.max(16, calculatedBytes),
           addressPadding,
-          hexPadding,
+          cellWidth,
           asciiPadding,
           verticalPadding,
         };
@@ -648,7 +648,7 @@ export const HexCanvas = forwardRef<HexCanvasRef, HexCanvasProps>(
 
       // Draw ASCII border line once - full height, flush with canvas edges
       if (showAscii) {
-        const asciiX = hexColumnEndX + layout.hexPadding;
+        const asciiX = hexColumnEndX + layout.cellWidth;
         ctx.strokeStyle = colors.border;
         ctx.lineWidth = layout.borderWidth;
         ctx.beginPath();
@@ -803,7 +803,7 @@ export const HexCanvas = forwardRef<HexCanvasRef, HexCanvasProps>(
 
         // Draw ASCII column if enabled
         if (showAscii) {
-          const asciiX = hexColumnEndX + layout.hexPadding;
+          const asciiX = hexColumnEndX + layout.cellWidth;
 
           // Draw ASCII characters with diff and highlight backgrounds
           const asciiStartX = asciiX + layout.borderWidth + layout.asciiPadding;
