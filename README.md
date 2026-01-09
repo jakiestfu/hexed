@@ -11,9 +11,15 @@ Hexed provides a powerful interface for viewing binary files, tracking changes a
 
 ## Screenshots
 
-<img width="3128" height="1608" alt="light" src="https://github.com/user-attachments/assets/4b818745-7e06-4f96-ad56-4e05b5ecf71e" />
-<img width="3128" height="1608" alt="dark" src="https://github.com/user-attachments/assets/ed4628d3-5130-4111-bc33-a27d40ae5572" />
+**Light Mode**
 
+<img width="3128" height="1608" alt="light" src="https://github.com/user-attachments/assets/4b818745-7e06-4f96-ad56-4e05b5ecf71e" />
+
+---
+
+**Dark Mode**
+
+<img width="3128" height="1608" alt="dark" src="https://github.com/user-attachments/assets/ed4628d3-5130-4111-bc33-a27d40ae5572" />
 
 ## Features
 
