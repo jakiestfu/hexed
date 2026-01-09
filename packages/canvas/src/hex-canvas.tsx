@@ -15,6 +15,7 @@ import { getDefaultColors } from "./utils/colors";
 import {
   getRowFromY as getRowFromYUtil,
   getOffsetFromPosition as getOffsetFromPositionUtil,
+  getCellBounds,
   type LayoutMetrics,
 } from "./utils/coordinates";
 import { useSelection } from "./hooks/use-selection";
@@ -689,6 +690,15 @@ export const HexCanvas = forwardRef<HexCanvasRef, HexCanvasProps>(
           const isSelected = isOffsetInRange(offset, selectedRange);
           const isByteHovered = hoveredOffset === offset;
 
+          // Get cell bounds for this hex byte
+          const hexBounds = getCellBounds(
+            hexX,
+            y,
+            layout.hexByteWidth,
+            layout.rowHeight,
+            2
+          );
+
           // Draw diff background if present
           if (byteDiff) {
             const diffColor =
@@ -699,10 +709,10 @@ export const HexCanvas = forwardRef<HexCanvasRef, HexCanvasProps>(
                 : colors.diffModified;
             ctx.fillStyle = diffColor.bg;
             ctx.fillRect(
-              hexX - 2,
-              y + 2,
-              layout.hexByteWidth + 4,
-              layout.rowHeight - 4
+              hexBounds.x,
+              hexBounds.y,
+              hexBounds.width,
+              hexBounds.height
             );
           }
 
@@ -710,10 +720,10 @@ export const HexCanvas = forwardRef<HexCanvasRef, HexCanvasProps>(
           if (isHighlighted) {
             ctx.fillStyle = colors.highlight.bg;
             ctx.fillRect(
-              hexX - 2,
-              y + 2,
-              layout.hexByteWidth + 4,
-              layout.rowHeight - 4
+              hexBounds.x,
+              hexBounds.y,
+              hexBounds.width,
+              hexBounds.height
             );
           }
 
@@ -721,10 +731,10 @@ export const HexCanvas = forwardRef<HexCanvasRef, HexCanvasProps>(
           if (isSelected) {
             ctx.fillStyle = colors.selection.bg;
             ctx.fillRect(
-              hexX - 2,
-              y + 2,
-              layout.hexByteWidth + 4,
-              layout.rowHeight - 4
+              hexBounds.x,
+              hexBounds.y,
+              hexBounds.width,
+              hexBounds.height
             );
           }
 
@@ -732,10 +742,10 @@ export const HexCanvas = forwardRef<HexCanvasRef, HexCanvasProps>(
           if (isByteHovered) {
             ctx.fillStyle = colors.byteHover.bg;
             ctx.fillRect(
-              hexX - 2,
-              y + 2,
-              layout.hexByteWidth + 4,
-              layout.rowHeight - 4
+              hexBounds.x,
+              hexBounds.y,
+              hexBounds.width,
+              hexBounds.height
             );
           }
 
@@ -744,10 +754,10 @@ export const HexCanvas = forwardRef<HexCanvasRef, HexCanvasProps>(
             ctx.strokeStyle = colors.highlight.border;
             ctx.lineWidth = 2;
             ctx.strokeRect(
-              hexX - 2,
-              y + 2,
-              layout.hexByteWidth + 4,
-              layout.rowHeight - 4
+              hexBounds.x,
+              hexBounds.y,
+              hexBounds.width,
+              hexBounds.height
             );
           }
 
@@ -756,10 +766,10 @@ export const HexCanvas = forwardRef<HexCanvasRef, HexCanvasProps>(
             ctx.strokeStyle = colors.selection.border;
             ctx.lineWidth = 1;
             ctx.strokeRect(
-              hexX - 2,
-              y + 2,
-              layout.hexByteWidth + 4,
-              layout.rowHeight - 4
+              hexBounds.x,
+              hexBounds.y,
+              hexBounds.width,
+              hexBounds.height
             );
           }
 
@@ -768,10 +778,10 @@ export const HexCanvas = forwardRef<HexCanvasRef, HexCanvasProps>(
             ctx.strokeStyle = colors.byteHover.border;
             ctx.lineWidth = 1;
             ctx.strokeRect(
-              hexX - 2,
-              y + 2,
-              layout.hexByteWidth + 4,
-              layout.rowHeight - 4
+              hexBounds.x,
+              hexBounds.y,
+              hexBounds.width,
+              hexBounds.height
             );
           }
 
@@ -805,6 +815,15 @@ export const HexCanvas = forwardRef<HexCanvasRef, HexCanvasProps>(
             const isByteHovered = hoveredOffset === offset;
             const charX = asciiStartX + j * layout.asciiCharWidth;
 
+            // Get cell bounds for this ASCII character
+            const asciiBounds = getCellBounds(
+              charX,
+              y,
+              layout.asciiCharWidth,
+              layout.rowHeight,
+              1
+            );
+
             // Draw diff background if present
             if (byteDiff) {
               const diffColor =
@@ -815,10 +834,10 @@ export const HexCanvas = forwardRef<HexCanvasRef, HexCanvasProps>(
                   : colors.diffModified;
               ctx.fillStyle = diffColor.bg;
               ctx.fillRect(
-                charX - 1,
-                y + 2,
-                layout.asciiCharWidth + 2,
-                layout.rowHeight - 4
+                asciiBounds.x,
+                asciiBounds.y,
+                asciiBounds.width,
+                asciiBounds.height
               );
             }
 
@@ -826,10 +845,10 @@ export const HexCanvas = forwardRef<HexCanvasRef, HexCanvasProps>(
             if (isHighlighted) {
               ctx.fillStyle = colors.highlight.bg;
               ctx.fillRect(
-                charX - 1,
-                y + 2,
-                layout.asciiCharWidth + 2,
-                layout.rowHeight - 4
+                asciiBounds.x,
+                asciiBounds.y,
+                asciiBounds.width,
+                asciiBounds.height
               );
             }
 
@@ -837,10 +856,10 @@ export const HexCanvas = forwardRef<HexCanvasRef, HexCanvasProps>(
             if (isSelected) {
               ctx.fillStyle = colors.selection.bg;
               ctx.fillRect(
-                charX - 1,
-                y + 2,
-                layout.asciiCharWidth + 2,
-                layout.rowHeight - 4
+                asciiBounds.x,
+                asciiBounds.y,
+                asciiBounds.width,
+                asciiBounds.height
               );
             }
 
@@ -848,10 +867,10 @@ export const HexCanvas = forwardRef<HexCanvasRef, HexCanvasProps>(
             if (isByteHovered) {
               ctx.fillStyle = colors.byteHover.bg;
               ctx.fillRect(
-                charX - 1,
-                y + 2,
-                layout.asciiCharWidth + 2,
-                layout.rowHeight - 4
+                asciiBounds.x,
+                asciiBounds.y,
+                asciiBounds.width,
+                asciiBounds.height
               );
             }
 
@@ -860,10 +879,10 @@ export const HexCanvas = forwardRef<HexCanvasRef, HexCanvasProps>(
               ctx.strokeStyle = colors.highlight.border;
               ctx.lineWidth = 2;
               ctx.strokeRect(
-                charX - 1,
-                y + 2,
-                layout.asciiCharWidth + 2,
-                layout.rowHeight - 4
+                asciiBounds.x,
+                asciiBounds.y,
+                asciiBounds.width,
+                asciiBounds.height
               );
             }
 
@@ -872,10 +891,10 @@ export const HexCanvas = forwardRef<HexCanvasRef, HexCanvasProps>(
               ctx.strokeStyle = colors.selection.border;
               ctx.lineWidth = 1;
               ctx.strokeRect(
-                charX - 1,
-                y + 2,
-                layout.asciiCharWidth + 2,
-                layout.rowHeight - 4
+                asciiBounds.x,
+                asciiBounds.y,
+                asciiBounds.width,
+                asciiBounds.height
               );
             }
 
@@ -884,10 +903,10 @@ export const HexCanvas = forwardRef<HexCanvasRef, HexCanvasProps>(
               ctx.strokeStyle = colors.byteHover.border;
               ctx.lineWidth = 1;
               ctx.strokeRect(
-                charX - 1,
-                y + 2,
-                layout.asciiCharWidth + 2,
-                layout.rowHeight - 4
+                asciiBounds.x,
+                asciiBounds.y,
+                asciiBounds.width,
+                asciiBounds.height
               );
             }
 

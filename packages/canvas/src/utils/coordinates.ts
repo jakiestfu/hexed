@@ -14,6 +14,23 @@ export interface LayoutMetrics {
   verticalPadding: number;
 }
 
+// Helper function to get cell bounds for rendering and interaction
+export function getCellBounds(
+  cellX: number,
+  rowY: number,
+  cellWidth: number,
+  rowHeight: number,
+  horizontalPadding: number = 2
+): { x: number; y: number; width: number; height: number } {
+  const verticalPadding = 2;
+  return {
+    x: cellX - horizontalPadding,
+    y: rowY + verticalPadding,
+    width: cellWidth + horizontalPadding * 2,
+    height: rowHeight - verticalPadding * 2,
+  };
+}
+
 // Helper function to calculate row index from mouse Y coordinate
 export function getRowFromY(
   mouseY: number,
@@ -51,11 +68,16 @@ export function getOffsetFromPosition(
   for (let j = 0; j < row.hexBytes.length; j++) {
     const hexX =
       hexColumnStartX + j * (layout.hexByteWidth + layout.hexByteGap);
-    // Byte bounds match rendering: hexX - 2 to hexX + hexByteWidth + 2
-    const byteStartX = hexX - 2;
-    const byteEndX = hexX + layout.hexByteWidth + 2;
+    // Use getCellBounds to match rendering exactly
+    const bounds = getCellBounds(
+      hexX,
+      0, // rowY not needed for horizontal bounds check
+      layout.hexByteWidth,
+      layout.rowHeight,
+      2
+    );
 
-    if (mouseX >= byteStartX && mouseX < byteEndX) {
+    if (mouseX >= bounds.x && mouseX < bounds.x + bounds.width) {
       return row.startOffset + j;
     }
   }
@@ -74,11 +96,16 @@ export function getOffsetFromPosition(
     // Check each ASCII character individually
     for (let j = 0; j < row.ascii.length; j++) {
       const charX = asciiX + j * layout.asciiCharWidth;
-      // Character bounds match rendering: charX - 1 to charX + asciiCharWidth + 1
-      const charStartX = charX - 1;
-      const charEndX = charX + layout.asciiCharWidth + 1;
+      // Use getCellBounds to match rendering exactly
+      const bounds = getCellBounds(
+        charX,
+        0, // rowY not needed for horizontal bounds check
+        layout.asciiCharWidth,
+        layout.rowHeight,
+        1
+      );
 
-      if (mouseX >= charStartX && mouseX < charEndX) {
+      if (mouseX >= bounds.x && mouseX < bounds.x + bounds.width) {
         return row.startOffset + j;
       }
     }
