@@ -353,8 +353,10 @@ export const Interpreter: FunctionComponent<InterpreterProps> = ({
             <TableBody>
               {interpretedData.map((row, index) => (
                 <TableRow key={index}>
-                  <TableCell className="font-medium">{row.type}</TableCell>
-                  <TableCell className="font-mono text-sm">
+                  <TableCell className="font-medium text-xs">
+                    {row.type}
+                  </TableCell>
+                  <TableCell className="font-mono text-xs">
                     {row.unsigned !== undefined ? (
                       row.unsigned
                     ) : (
@@ -367,7 +369,7 @@ export const Interpreter: FunctionComponent<InterpreterProps> = ({
                       </span>
                     )}
                   </TableCell>
-                  <TableCell className="font-mono text-sm">
+                  <TableCell className="font-mono text-xs">
                     {row.signed !== undefined ? (
                       row.signed
                     ) : (

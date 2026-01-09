@@ -9,20 +9,25 @@ import {
 } from "react";
 import type { FunctionComponent } from "react";
 import { formatDataIntoRows } from "@hexed/binary-utils/formatter";
-import { getDiffAtOffset } from "@hexed/binary-utils/differ";
 import type { DiffResult } from "@hexed/types";
 import { getDefaultColors } from "./utils/colors";
 import {
   getRowFromY as getRowFromYUtil,
   getOffsetFromPosition as getOffsetFromPositionUtil,
-  getCellBounds,
   type LayoutMetrics,
 } from "./utils/coordinates";
+import {
+  calculateLayout,
+  calculateTotalHeight,
+  calculateScrollPosition,
+  isOffsetInRange,
+  calculateSelectionRange,
+  didDragOccur,
+  drawHexCanvas,
+  type SelectionRange,
+} from "./utils/canvas";
 import { useSelection } from "./hooks/use-selection";
 import { useKeyboardNavigation } from "./hooks/use-keyboard-navigation";
-import { useOnClickOutside } from "usehooks-ts";
-import { ScrollArea, ScrollBar } from "@hexed/ui";
-export type SelectionRange = { start: number; end: number } | null;
 
 export interface HexCanvasProps {
   data: Uint8Array;
@@ -86,6 +91,7 @@ export const HexCanvas = forwardRef<HexCanvasRef, HexCanvasProps>(
     const [isDragging, setIsDragging] = useState(false);
     const [dragStartOffset, setDragStartOffset] = useState<number | null>(null);
     const justFinishedDragRef = useRef(false);
+    const shouldDeselectRef = useRef(false);
     const highlightTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(
       null
     );
@@ -139,90 +145,7 @@ export const HexCanvas = forwardRef<HexCanvasRef, HexCanvasProps>(
       const ctx = canvasRef.current?.getContext("2d");
       if (!ctx || !canvas) return null;
 
-      const computedStyle = window.getComputedStyle(canvas);
-
-      // Set font for measurements
-      ctx.font = `14px ${computedStyle.getPropertyValue("--font-mono")}`;
-
-      // Measure text widths
-      const addressText = "0x00000000";
-      const hexByteText = "FF";
-      const asciiText = "A";
-
-      const addressWidth = ctx.measureText(addressText).width;
-      const hexByteWidth = ctx.measureText(hexByteText).width;
-      const asciiCharWidth = ctx.measureText(asciiText).width;
-
-      // Constants
-      const hexByteGap = 0; // Space between hex bytes
-      const borderWidth = 1;
-      const addressPadding = 16;
-      const cellWidth = 30; // Fixed width of each hex cell
-      const rowHeight = 24; // Fixed row height
-      const asciiPadding = 16;
-      const addressHexGap = 16; // Gap between address and hex columns
-      const hexAsciiGap = 16; // Gap between hex and ASCII columns
-      const verticalPadding = 16; // Vertical padding for top and bottom rows
-
-      // Calculate available width for hex bytes
-      // Total width - address column - gaps - minimal padding
-      const addressColumnTotalWidth = addressWidth + addressPadding * 2;
-      let availableWidth =
-        dimensions.width - addressColumnTotalWidth - addressHexGap;
-
-      // If showing ASCII, we need to account for it
-      if (showAscii) {
-        // Iteratively calculate bytesPerRow since ASCII width depends on it
-        // Account for hex-to-ASCII gap
-        const hexAvailableWidth = availableWidth - hexAsciiGap;
-        let estimatedBytes = Math.floor(hexAvailableWidth / cellWidth);
-
-        // Refine estimate accounting for ASCII column
-        for (let i = 0; i < 5; i++) {
-          const asciiColumnWidth =
-            estimatedBytes * asciiCharWidth + asciiPadding * 2 + borderWidth;
-          const remainingWidth =
-            availableWidth - hexAsciiGap - asciiColumnWidth;
-          const newEstimatedBytes = Math.floor(remainingWidth / cellWidth);
-
-          if (newEstimatedBytes === estimatedBytes) {
-            break;
-          }
-          estimatedBytes = newEstimatedBytes;
-        }
-
-        return {
-          rowHeight,
-          addressColumnWidth: addressColumnTotalWidth,
-          hexByteWidth,
-          hexByteGap,
-          asciiCharWidth,
-          borderWidth,
-          bytesPerRow: Math.max(16, estimatedBytes),
-          addressPadding,
-          cellWidth,
-          hexAsciiGap,
-          asciiPadding,
-          verticalPadding,
-        };
-      } else {
-        const calculatedBytes = Math.floor(availableWidth / cellWidth);
-
-        return {
-          rowHeight,
-          addressColumnWidth: addressColumnTotalWidth,
-          hexByteWidth,
-          hexByteGap,
-          asciiCharWidth,
-          borderWidth,
-          bytesPerRow: Math.max(16, calculatedBytes),
-          addressPadding,
-          cellWidth,
-          hexAsciiGap,
-          asciiPadding,
-          verticalPadding,
-        };
-      }
+      return calculateLayout(ctx, canvas, dimensions, showAscii);
     }, [dimensions.width, dimensions.height, showAscii]);
 
     // Format data into rows
@@ -233,12 +156,7 @@ export const HexCanvas = forwardRef<HexCanvasRef, HexCanvasProps>(
 
     // Calculate total canvas height (including vertical padding)
     const totalHeight = useMemo(() => {
-      if (!layout) return 0;
-      return (
-        rows.length * layout.rowHeight +
-        layout.verticalPadding * 2 -
-        dimensions.height
-      );
+      return calculateTotalHeight(rows.length, layout, dimensions.height);
     }, [rows.length, layout, dimensions.height]);
 
     // Update canvas dimensions when container resizes
@@ -287,9 +205,11 @@ export const HexCanvas = forwardRef<HexCanvasRef, HexCanvasProps>(
     const scrollToOffset = useCallback(
       (offset: number) => {
         if (!layout || !containerRef.current) return;
-        const rowIndex = Math.floor(offset / layout.bytesPerRow);
-        const targetScrollTop =
-          rowIndex * layout.rowHeight + layout.verticalPadding;
+        const targetScrollTop = calculateScrollPosition(
+          offset,
+          layout,
+          dimensions.height
+        );
         containerRef.current.scrollTo({
           top: targetScrollTop,
           behavior: "smooth",
@@ -309,7 +229,7 @@ export const HexCanvas = forwardRef<HexCanvasRef, HexCanvasProps>(
           highlightTimeoutRef.current = null;
         }, 2000);
       },
-      [layout]
+      [layout, dimensions.height]
     );
 
     // Cleanup timeout on unmount
@@ -333,25 +253,8 @@ export const HexCanvas = forwardRef<HexCanvasRef, HexCanvasProps>(
 
     // Determine the active selection range (prop takes precedence, fallback to single offset)
     const selectedRange: SelectionRange = useMemo(() => {
-      if (propSelectedOffsetRange !== undefined) {
-        return propSelectedOffsetRange;
-      }
-      if (selectedOffset !== null) {
-        return { start: selectedOffset, end: selectedOffset };
-      }
-      return null;
+      return calculateSelectionRange(propSelectedOffsetRange, selectedOffset);
     }, [propSelectedOffsetRange, selectedOffset]);
-
-    // Helper to check if an offset is in the selection range
-    const isOffsetInRange = useCallback(
-      (offset: number, range: SelectionRange): boolean => {
-        if (!range) return false;
-        const min = Math.min(range.start, range.end);
-        const max = Math.max(range.start, range.end);
-        return offset >= min && offset <= max;
-      },
-      []
-    );
 
     // Helper function to calculate row index from mouse Y coordinate
     const getRowFromY = useCallback(
@@ -393,7 +296,6 @@ export const HexCanvas = forwardRef<HexCanvasRef, HexCanvasProps>(
       bytesPerRow: layout?.bytesPerRow ?? 16,
       viewportHeight: dimensions.height,
       rowHeight: layout?.rowHeight ?? 20,
-      hasFocus,
       onOffsetChange: (offset: number) => {
         if (onSelectedOffsetRangeChange) {
           onSelectedOffsetRangeChange({ start: offset, end: offset });
@@ -410,6 +312,14 @@ export const HexCanvas = forwardRef<HexCanvasRef, HexCanvasProps>(
       },
       scrollToOffset,
     });
+
+    // Add global keyboard event listener
+    useEffect(() => {
+      window.addEventListener("keydown", handleKeyDown);
+      return () => {
+        window.removeEventListener("keydown", handleKeyDown);
+      };
+    }, [handleKeyDown]);
 
     // Handle mouse move to detect hover and drag
     const handleMouseMove = useCallback(
@@ -470,12 +380,24 @@ export const HexCanvas = forwardRef<HexCanvasRef, HexCanvasProps>(
 
         const offset = getOffsetFromPosition(mouseX, mouseY);
         if (offset !== null) {
+          // Check if clicking an already-selected single byte to deselect it
+          const shouldDeselect =
+            selectedRange !== null &&
+            selectedRange.start === selectedRange.end &&
+            isOffsetInRange(offset, selectedRange);
+
+          shouldDeselectRef.current = shouldDeselect;
+
           setIsDragging(true);
           setDragStartOffset(offset);
-          if (onSelectedOffsetRangeChange) {
-            onSelectedOffsetRangeChange({ start: offset, end: offset });
-          } else {
-            handleSelectionClick(offset);
+
+          // Only set selection if we're not deselecting
+          if (!shouldDeselect) {
+            if (onSelectedOffsetRangeChange) {
+              onSelectedOffsetRangeChange({ start: offset, end: offset });
+            } else {
+              handleSelectionClick(offset);
+            }
           }
         }
 
@@ -487,14 +409,30 @@ export const HexCanvas = forwardRef<HexCanvasRef, HexCanvasProps>(
         getOffsetFromPosition,
         handleSelectionClick,
         onSelectedOffsetRangeChange,
+        selectedRange,
       ]
     );
 
     // Handle mouse up to end drag selection
     const handleMouseUp = useCallback(() => {
       if (isDragging) {
+        // Check if we actually dragged (mouse moved) by comparing current selection
+        // If selection range changed from initial single-byte selection, user dragged
+        const dragOccurred = didDragOccur(dragStartOffset, selectedRange);
+
         setIsDragging(false);
         setDragStartOffset(null);
+
+        // If we didn't drag and should deselect, deselect now
+        if (!dragOccurred && shouldDeselectRef.current) {
+          if (onSelectedOffsetRangeChange) {
+            onSelectedOffsetRangeChange(null);
+          } else {
+            handleSelectionClick(null);
+          }
+          shouldDeselectRef.current = false;
+        }
+
         // Mark that we just finished a drag to prevent click handler from interfering
         justFinishedDragRef.current = true;
         // Reset the flag after a short delay to allow click event to be ignored
@@ -502,14 +440,34 @@ export const HexCanvas = forwardRef<HexCanvasRef, HexCanvasProps>(
           justFinishedDragRef.current = false;
         }, 0);
       }
-    }, [isDragging]);
+    }, [
+      isDragging,
+      dragStartOffset,
+      selectedRange,
+      onSelectedOffsetRangeChange,
+      handleSelectionClick,
+    ]);
 
     // Add global mouseup handler to handle dragging outside canvas
     useEffect(() => {
       const handleGlobalMouseUp = () => {
         if (isDragging) {
+          // Check if we actually dragged (mouse moved) by comparing current selection
+          const dragOccurred = didDragOccur(dragStartOffset, selectedRange);
+
           setIsDragging(false);
           setDragStartOffset(null);
+
+          // If we didn't drag and should deselect, deselect now
+          if (!dragOccurred && shouldDeselectRef.current) {
+            if (onSelectedOffsetRangeChange) {
+              onSelectedOffsetRangeChange(null);
+            } else {
+              handleSelectionClick(null);
+            }
+            shouldDeselectRef.current = false;
+          }
+
           // Mark that we just finished a drag to prevent click handler from interfering
           justFinishedDragRef.current = true;
           // Reset the flag after a short delay to allow click event to be ignored
@@ -525,107 +483,18 @@ export const HexCanvas = forwardRef<HexCanvasRef, HexCanvasProps>(
           window.removeEventListener("mouseup", handleGlobalMouseUp);
         };
       }
-    }, [isDragging]);
-
-    // Handle click to select byte (for single clicks without drag)
-    const handleClick = useCallback(
-      (event: React.MouseEvent<HTMLCanvasElement>) => {
-        // Ignore click if we just finished a drag
-        if (justFinishedDragRef.current) {
-          return;
-        }
-
-        // Only handle click if we didn't drag
-        if (!isDragging && dragStartOffset === null) {
-          if (!layout || !canvasRef.current) return;
-
-          const canvas = canvasRef.current;
-          const rect = canvas.getBoundingClientRect();
-          const mouseX = event.clientX - rect.left;
-          const mouseY = event.clientY - rect.top;
-
-          const offset = getOffsetFromPosition(mouseX, mouseY);
-          if (onSelectedOffsetRangeChange) {
-            onSelectedOffsetRangeChange(
-              offset !== null ? { start: offset, end: offset } : null
-            );
-          } else {
-            handleSelectionClick(offset);
-          }
-        }
-      },
-      [
-        layout,
-        getOffsetFromPosition,
-        handleSelectionClick,
-        isDragging,
-        dragStartOffset,
-        onSelectedOffsetRangeChange,
-      ]
-    );
-
-    // Handle focus/blur for keyboard navigation
-    const handleFocus = useCallback(() => {
-      setHasFocus(true);
-    }, []);
-
-    const handleBlur = useCallback(() => {
-      setHasFocus(false);
-    }, []);
+    }, [
+      isDragging,
+      dragStartOffset,
+      selectedRange,
+      onSelectedOffsetRangeChange,
+      handleSelectionClick,
+    ]);
 
     // Handle click outside canvas to clear selection
     // useOnClickOutside(canvasRef as React.RefObject<HTMLElement>, () => {
     //   handleSelectionClick(null);
     // });
-
-    // Helper function to get cell fill and stroke styles
-    const getCellStyles = (
-      byteDiff: ReturnType<typeof getDiffAtOffset> | null,
-      isHighlighted: boolean,
-      isSelected: boolean,
-      isByteHovered: boolean,
-      colors: HexCanvasColors
-    ): {
-      fillStyle: string | null;
-      strokeStyle: string | null;
-      strokeWidth: number;
-    } => {
-      let fillStyle: string | null = null;
-      let strokeStyle: string | null = null;
-      let strokeWidth = 0;
-
-      // Determine fill style (priority: diff > highlight > selection > hover)
-      if (byteDiff) {
-        const diffColor =
-          byteDiff.type === "added"
-            ? colors.diffAdded
-            : byteDiff.type === "removed"
-            ? colors.diffRemoved
-            : colors.diffModified;
-        fillStyle = diffColor.bg;
-      } else if (isHighlighted) {
-        fillStyle = colors.highlight.bg;
-      } else if (isSelected) {
-        fillStyle = colors.selection.bg;
-      } else if (isByteHovered) {
-        fillStyle = colors.byteHover.bg;
-      }
-
-      // Determine stroke style (priority: highlight > selection > hover)
-      // if (isHighlighted) {
-      //   strokeStyle = colors.highlight.border;
-      //   strokeWidth = 2;
-      // } else if (isSelected) {
-      //   strokeStyle = colors.selection.border;
-      //   strokeWidth = 1;
-      // } else if (isByteHovered) {
-      //   strokeStyle = colors.byteHover.border;
-      //   strokeWidth = 1;
-      // }
-      strokeStyle = "transparent";
-
-      return { fillStyle, strokeStyle, strokeWidth };
-    };
 
     // Render canvas
     useEffect(() => {
@@ -633,235 +502,21 @@ export const HexCanvas = forwardRef<HexCanvasRef, HexCanvasProps>(
       const ctx = canvas?.getContext("2d");
       if (!canvas || !ctx || !layout || dimensions.height === 0) return;
 
-      // Handle high DPI displays
-      const dpr = window.devicePixelRatio || 1;
-      const displayWidth = dimensions.width;
-      const displayHeight = dimensions.height; // Use viewport height, not total height
-
-      // Set actual canvas size in memory (scaled by device pixel ratio)
-      canvas.width = displayWidth * dpr;
-      canvas.height = displayHeight * dpr;
-
-      // Scale the context to account for device pixel ratio
-      ctx.scale(dpr, dpr);
-
-      // Set CSS size to maintain correct display size
-      canvas.style.width = `${displayWidth}px`;
-      canvas.style.height = `${displayHeight}px`;
-
-      // Set font
-      // ctx.font = MONOSPACE_FONT;
-      ctx.font = `14px ${window
-        .getComputedStyle(canvas)
-        .getPropertyValue("--font-mono")}`;
-      ctx.textBaseline = "middle";
-      ctx.textAlign = "center";
-
-      // Clear canvas with background color
-      ctx.fillStyle = colors.background;
-      ctx.fillRect(0, 0, displayWidth, displayHeight);
-
-      // If no rows, nothing to render
-      if (rows.length === 0) return;
-
-      // Calculate visible rows based on scroll position (accounting for vertical padding)
-      const scrollTopAdjusted = Math.max(0, scrollTop - layout.verticalPadding);
-      const startRow = Math.floor(scrollTopAdjusted / layout.rowHeight);
-      const endRow = Math.min(
-        rows.length - 1,
-        Math.ceil((scrollTopAdjusted + dimensions.height) / layout.rowHeight)
+      drawHexCanvas(
+        canvas,
+        ctx,
+        layout,
+        dimensions,
+        rows,
+        scrollTop,
+        showAscii,
+        colors,
+        diff,
+        highlightedOffset,
+        selectedRange,
+        hoveredRow,
+        hoveredOffset
       );
-
-      // Render visible rows plus overscan
-      const overscan = 5;
-      const renderStartRow = Math.max(0, startRow - overscan);
-      const renderEndRow = Math.min(rows.length - 1, endRow + overscan);
-
-      // Calculate ASCII column X position
-      const hexColumnStartX = layout.addressColumnWidth + 16; // Gap between address and hex
-      const hexColumnEndX =
-        hexColumnStartX + layout.bytesPerRow * layout.cellWidth;
-
-      // Draw address/hex border line - full height, flush with canvas edges
-      const addressHexBorderX = layout.addressColumnWidth;
-      ctx.strokeStyle = colors.border;
-      ctx.lineWidth = layout.borderWidth;
-      ctx.beginPath();
-      ctx.moveTo(addressHexBorderX, 0);
-      ctx.lineTo(addressHexBorderX, displayHeight);
-      ctx.stroke();
-
-      // Draw ASCII border line once - full height, flush with canvas edges
-      if (showAscii) {
-        const asciiX = hexColumnEndX + layout.hexAsciiGap;
-        ctx.strokeStyle = colors.border;
-        ctx.lineWidth = layout.borderWidth;
-        ctx.beginPath();
-        ctx.moveTo(asciiX, 0);
-        ctx.lineTo(asciiX, displayHeight);
-        ctx.stroke();
-      }
-
-      for (let i = renderStartRow; i <= renderEndRow; i++) {
-        const row = rows[i];
-        // Calculate y position relative to canvas viewport (accounting for scroll and vertical padding)
-        const absoluteY = i * layout.rowHeight + layout.verticalPadding;
-        const y = absoluteY - scrollTop; // Transform to canvas coordinates
-
-        // Only render if row is visible in viewport
-        if (y + layout.rowHeight < 0 || y > displayHeight) continue;
-
-        // Draw row hover background if row is hovered
-        const isRowHovered = hoveredRow === i;
-        if (isRowHovered) {
-          ctx.fillStyle = colors.rowHover;
-          ctx.fillRect(0, y, displayWidth, layout.rowHeight);
-        }
-
-        // Draw address
-        ctx.textAlign = "left"; // Address is left-aligned
-        ctx.fillStyle = colors.addressText;
-        ctx.fillText(
-          row.address,
-          layout.addressPadding,
-          y + layout.rowHeight / 2 // Center vertically (textBaseline is "middle")
-        );
-
-        // Draw hex bytes with diff and highlight backgrounds
-        let hexX = layout.addressColumnWidth + 16; // Gap between address and hex
-        for (let j = 0; j < row.hexBytes.length; j++) {
-          const offset = row.startOffset + j;
-          const byteDiff = diff ? getDiffAtOffset(diff, offset) : null;
-          const isHighlighted = highlightedOffset === offset;
-          const isSelected = isOffsetInRange(offset, selectedRange);
-          const isByteHovered = hoveredOffset === offset;
-
-          // Get cell bounds for this hex byte
-          const hexBounds = getCellBounds(
-            hexX,
-            y,
-            layout.cellWidth,
-            layout.rowHeight
-          );
-
-          // Get cell styles and draw
-          const styles = getCellStyles(
-            byteDiff,
-            isHighlighted,
-            isSelected,
-            isByteHovered,
-            colors
-          );
-
-          if (styles.fillStyle) {
-            ctx.fillStyle = styles.fillStyle;
-            ctx.fillRect(
-              hexBounds.x,
-              hexBounds.y,
-              hexBounds.width,
-              hexBounds.height
-            );
-          }
-
-          if (styles.strokeStyle) {
-            ctx.strokeStyle = styles.strokeStyle;
-            ctx.lineWidth = styles.strokeWidth;
-            ctx.strokeRect(
-              hexBounds.x,
-              hexBounds.y,
-              hexBounds.width,
-              hexBounds.height
-            );
-          }
-
-          // Draw hex byte text (centered in cell)
-          ctx.textAlign = "center"; // Center hex bytes in their cells
-          const textX = hexX + layout.cellWidth / 2;
-          if (byteDiff) {
-            const diffColor =
-              byteDiff.type === "added"
-                ? colors.diffAdded
-                : byteDiff.type === "removed"
-                ? colors.diffRemoved
-                : colors.diffModified;
-            ctx.fillStyle = diffColor.text;
-          } else {
-            ctx.fillStyle = colors.byteText;
-          }
-          ctx.fillText(row.hexBytes[j], textX, y + layout.rowHeight / 2);
-          hexX += layout.cellWidth;
-        }
-
-        // Draw ASCII column if enabled
-        if (showAscii) {
-          const asciiX = hexColumnEndX + layout.hexAsciiGap;
-
-          // Draw ASCII characters with diff and highlight backgrounds
-          const asciiStartX = asciiX + layout.borderWidth + layout.asciiPadding;
-          for (let j = 0; j < row.ascii.length; j++) {
-            const offset = row.startOffset + j;
-            const byteDiff = diff ? getDiffAtOffset(diff, offset) : null;
-            const isHighlighted = highlightedOffset === offset;
-            const isSelected = isOffsetInRange(offset, selectedRange);
-            const isByteHovered = hoveredOffset === offset;
-            const charX = asciiStartX + j * layout.asciiCharWidth;
-
-            // Get cell bounds for this ASCII character
-            const asciiBounds = getCellBounds(
-              charX,
-              y,
-              layout.asciiCharWidth,
-              layout.rowHeight,
-              1
-            );
-
-            // Get cell styles and draw
-            const styles = getCellStyles(
-              byteDiff,
-              isHighlighted,
-              isSelected,
-              isByteHovered,
-              colors
-            );
-
-            if (styles.fillStyle) {
-              ctx.fillStyle = styles.fillStyle;
-              ctx.fillRect(
-                asciiBounds.x,
-                asciiBounds.y,
-                asciiBounds.width,
-                asciiBounds.height
-              );
-            }
-
-            if (styles.strokeStyle) {
-              ctx.strokeStyle = styles.strokeStyle;
-              ctx.lineWidth = styles.strokeWidth;
-              ctx.strokeRect(
-                asciiBounds.x,
-                asciiBounds.y,
-                asciiBounds.width,
-                asciiBounds.height
-              );
-            }
-
-            // Draw ASCII character text
-            ctx.textAlign = "left"; // ASCII characters are left-aligned
-            if (byteDiff) {
-              const diffColor =
-                byteDiff.type === "added"
-                  ? colors.diffAdded
-                  : byteDiff.type === "removed"
-                  ? colors.diffRemoved
-                  : colors.diffModified;
-              ctx.fillStyle = diffColor.text;
-            } else {
-              ctx.fillStyle = colors.asciiText;
-            }
-            ctx.fillText(row.ascii[j], charX, y + layout.rowHeight / 2);
-          }
-        }
-      }
     }, [
       dimensions.width,
       dimensions.height,
@@ -873,7 +528,6 @@ export const HexCanvas = forwardRef<HexCanvasRef, HexCanvasProps>(
       diff,
       highlightedOffset,
       selectedRange,
-      isOffsetInRange,
       hoveredRow,
       hoveredOffset,
     ]);
@@ -902,10 +556,6 @@ export const HexCanvas = forwardRef<HexCanvasRef, HexCanvasProps>(
           onMouseMove={handleMouseMove}
           onMouseUp={handleMouseUp}
           onMouseLeave={handleMouseLeave}
-          onClick={handleClick}
-          onKeyDown={handleKeyDown}
-          onFocus={handleFocus}
-          onBlur={handleBlur}
         />
         {/* Spacer to make container scrollable to total height */}
         <div style={{ height: `${totalHeight}px`, width: "100%" }} />

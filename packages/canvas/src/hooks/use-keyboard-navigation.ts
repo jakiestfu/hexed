@@ -6,14 +6,13 @@ interface UseKeyboardNavigationParams {
   bytesPerRow: number;
   viewportHeight: number;
   rowHeight: number;
-  hasFocus: boolean;
   onOffsetChange: (offset: number) => void;
   onClearSelection: () => void;
   scrollToOffset: (offset: number) => void;
 }
 
 interface UseKeyboardNavigationReturn {
-  handleKeyDown: (event: React.KeyboardEvent) => void;
+  handleKeyDown: (event: KeyboardEvent | React.KeyboardEvent) => void;
 }
 
 /**
@@ -26,7 +25,6 @@ export function useKeyboardNavigation({
   bytesPerRow,
   viewportHeight,
   rowHeight,
-  hasFocus,
   onOffsetChange,
   onClearSelection,
   scrollToOffset,
@@ -106,8 +104,17 @@ export function useKeyboardNavigation({
   );
 
   const handleKeyDown = useCallback(
-    (event: React.KeyboardEvent) => {
-      if (!hasFocus) return;
+    (event: KeyboardEvent | React.KeyboardEvent) => {
+      // Ignore keyboard events when user is typing in input, textarea, or contenteditable elements
+      const activeElement = document.activeElement;
+      if (
+        activeElement &&
+        (activeElement.tagName === "INPUT" ||
+          activeElement.tagName === "TEXTAREA" ||
+          activeElement.getAttribute("contenteditable") === "true")
+      ) {
+        return;
+      }
 
       // Handle Escape key to clear selection (works even when selectedOffset is null)
       if (event.key === "Escape") {
@@ -140,18 +147,13 @@ export function useKeyboardNavigation({
           break;
         case "Home":
           event.preventDefault();
-          // Move to first byte of current row
-          newOffset = clampOffset(
-            Math.floor(selectedOffset / bytesPerRow) * bytesPerRow
-          );
+          // Move to first byte of the file
+          newOffset = clampOffset(0);
           break;
         case "End":
           event.preventDefault();
-          // Move to last byte of current row
-          const rowStart =
-            Math.floor(selectedOffset / bytesPerRow) * bytesPerRow;
-          const rowEnd = Math.min(dataLength - 1, rowStart + bytesPerRow - 1);
-          newOffset = clampOffset(rowEnd);
+          // Move to last byte of the file
+          newOffset = clampOffset(dataLength - 1);
           break;
         case "PageUp":
           event.preventDefault();
@@ -175,7 +177,6 @@ export function useKeyboardNavigation({
       }
     },
     [
-      hasFocus,
       selectedOffset,
       bytesPerRow,
       dataLength,
