@@ -7,6 +7,7 @@ export interface LayoutMetrics {
   hexByteWidth: number;
   hexByteGap: number;
   asciiCharWidth: number;
+  asciiCellWidth: number;
   borderWidth: number;
   bytesPerRow: number;
   addressPadding: number;
@@ -89,12 +90,12 @@ export function getOffsetFromPosition(
 
     // Check each ASCII character individually
     for (let j = 0; j < row.ascii.length; j++) {
-      const charX = asciiStartX + j * layout.asciiCharWidth;
+      const charX = asciiStartX + j * layout.asciiCellWidth;
       // Use getCellBounds to match rendering exactly
       const bounds = getCellBounds(
         charX,
         0, // rowY not needed for horizontal bounds check
-        layout.asciiCharWidth,
+        layout.asciiCellWidth,
         layout.rowHeight,
         1
       );

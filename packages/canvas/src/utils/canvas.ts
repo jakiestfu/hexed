@@ -69,14 +69,26 @@ export function calculateLayout(
       estimatedBytes = newEstimatedBytes;
     }
 
+    const finalBytesPerRow = Math.max(16, estimatedBytes);
+
+    // Calculate dynamic ASCII cell width to fill remaining canvas width
+    const hexColumnStartX = addressColumnTotalWidth + addressHexGap;
+    const hexColumnEndX = hexColumnStartX + finalBytesPerRow * cellWidth;
+    const asciiColumnX = hexColumnEndX + hexAsciiGap;
+    const asciiStartX = asciiColumnX + borderWidth + asciiPadding;
+    const availableWidthForAsciiCells =
+      dimensions.width - asciiStartX - asciiPadding;
+    const asciiCellWidth = availableWidthForAsciiCells / finalBytesPerRow;
+
     return {
       rowHeight,
       addressColumnWidth: addressColumnTotalWidth,
       hexByteWidth,
       hexByteGap,
       asciiCharWidth,
+      asciiCellWidth,
       borderWidth,
-      bytesPerRow: Math.max(16, estimatedBytes),
+      bytesPerRow: finalBytesPerRow,
       addressPadding,
       cellWidth,
       hexAsciiGap,
@@ -85,6 +97,10 @@ export function calculateLayout(
     };
   } else {
     const calculatedBytes = Math.floor(availableWidth / cellWidth);
+    const finalBytesPerRow = Math.max(16, calculatedBytes);
+
+    // When ASCII is not shown, asciiCellWidth is not used, but we need to provide a default value
+    const asciiCellWidth = asciiCharWidth;
 
     return {
       rowHeight,
@@ -92,8 +108,9 @@ export function calculateLayout(
       hexByteWidth,
       hexByteGap,
       asciiCharWidth,
+      asciiCellWidth,
       borderWidth,
-      bytesPerRow: Math.max(16, calculatedBytes),
+      bytesPerRow: finalBytesPerRow,
       addressPadding,
       cellWidth,
       hexAsciiGap,
@@ -469,13 +486,13 @@ export function drawHexCanvas(
         const isHighlighted = highlightedOffset === offset;
         const isSelected = isOffsetInRange(offset, selectedRange);
         const isByteHovered = hoveredOffset === offset;
-        const charX = asciiStartX + j * layout.asciiCharWidth;
+        const charX = asciiStartX + j * layout.asciiCellWidth;
 
         // Get cell bounds for this ASCII character
         const asciiBounds = getCellBounds(
           charX,
           y,
-          layout.asciiCharWidth,
+          layout.asciiCellWidth,
           layout.rowHeight,
           1
         );
@@ -510,15 +527,16 @@ export function drawHexCanvas(
           );
         }
 
-        // Draw ASCII character text
-        ctx.textAlign = "left"; // ASCII characters are left-aligned
+        // Draw ASCII character text (centered within the cell)
+        ctx.textAlign = "center"; // Center text within each cell
+        const textX = charX + layout.asciiCellWidth / 2;
         if (byteDiff) {
           const diffColor = getDiffColor(byteDiff.type, colors);
           ctx.fillStyle = diffColor.text;
         } else {
           ctx.fillStyle = colors.asciiText;
         }
-        ctx.fillText(row.ascii[j], charX, y + layout.rowHeight / 2);
+        ctx.fillText(row.ascii[j], textX, y + layout.rowHeight / 2);
       }
     }
   }
