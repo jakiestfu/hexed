@@ -194,14 +194,20 @@ export const Logo: FunctionComponent<LogoProps> = ({
               </DropdownMenuCheckboxItem>
               <DropdownMenuCheckboxItem
                 checked={showInterpreter}
-                onCheckedChange={setShowInterpreter}
+                onCheckedChange={(value) => {
+                  setShowInterpreter(value);
+                  if (value) setShowTemplates(false);
+                }}
                 className="cursor-pointer"
               >
                 Show Interpreter
               </DropdownMenuCheckboxItem>
               <DropdownMenuCheckboxItem
                 checked={showTemplates}
-                onCheckedChange={setShowTemplates}
+                onCheckedChange={(value) => {
+                  setShowTemplates(value);
+                  if (value) setShowInterpreter(false);
+                }}
                 className="cursor-pointer"
               >
                 Show Templates

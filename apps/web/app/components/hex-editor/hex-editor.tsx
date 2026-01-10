@@ -111,6 +111,7 @@ export const HexEditor: FunctionComponent<HexEditorProps> = ({
   const currentSnapshot = snapshots[parseInt(activeTab, 10)] || snapshots[0];
   const hasFile = filePath != null && filePath !== "";
   const hasSnapshots = snapshots.length > 0;
+  const hasMultipleSnapshots = snapshots.length > 1;
 
   // Get previous snapshot for the active tab
   const activeTabIndex = parseInt(activeTab, 10);
@@ -224,7 +225,7 @@ export const HexEditor: FunctionComponent<HexEditorProps> = ({
       />
 
       {/* Secondary Toolbar - Tabs */}
-      {hasFile && hasSnapshots && (
+      {hasFile && hasMultipleSnapshots && (
         <div className="border-b">
           <div className="p-4">
             <TabsList>
