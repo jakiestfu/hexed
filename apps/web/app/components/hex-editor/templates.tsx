@@ -12,15 +12,16 @@ import {
   EmptyDescription,
   EmptyMedia,
 } from "@hexed/ui";
-import { X, Maximize2, FileCode } from "lucide-react";
+import { X, Maximize2, FileCode, AlertCircle } from "lucide-react";
 import { usePIP } from "~/hooks/use-pip";
 import type { TemplatesProps } from "./types";
 import { TemplatesCombobox } from "./templates-combobox";
-import { load } from "@hexed/binary-templates";
+import { parse } from "@hexed/binary-templates";
 
 // import Id3v23 from "@hexed/binary-templates/media/id3v2_3.js";
 
 export const Templates: FunctionComponent<TemplatesProps> = ({
+  data,
   onClose,
   onPIPStateChange,
 }) => {
@@ -34,6 +35,8 @@ export const Templates: FunctionComponent<TemplatesProps> = ({
     title: string;
     path: string;
   } | null>(null);
+  const [parsedData, setParsedData] = useState<unknown | null>(null);
+  const [parseError, setParseError] = useState<string | null>(null);
 
   // Notify parent component when PIP state changes
   useEffect(() => {
@@ -46,15 +49,26 @@ export const Templates: FunctionComponent<TemplatesProps> = ({
     path: string;
   }) => {
     setSelectedTemplate(entry);
-    try {
-      // const parserClass = await import("@hexed/binary-templates/media/id3v2_3.js");
-      const ParserClass = await load(entry.path);
+    setParseError(null);
 
-      // console.log("Loaded parser:", parserClass, templates);
-    } catch (error) {
-      console.error("Failed to load parser:", error);
+    if (!data) {
+      console.warn("No data available to parse");
+      setParsedData(null);
+      return;
     }
-    // console.log("Id3v23", Id3v23.Id3v23);
+
+    try {
+      const { parsedData, spec } = await parse(entry.path, data);
+      setParsedData(parsedData);
+      setParseError(null);
+      console.log("Parsed data:", parsedData);
+    } catch (error) {
+      console.error("Failed to parse data:", error);
+      setParsedData(null);
+      const errorMessage =
+        error instanceof Error ? error.message : String(error);
+      setParseError(errorMessage);
+    }
   };
 
   return (
@@ -119,6 +133,19 @@ export const Templates: FunctionComponent<TemplatesProps> = ({
                 <EmptyDescription>
                   Select a template from the dropdown above to parse binary data
                 </EmptyDescription>
+              </EmptyHeader>
+            </Empty>
+          ) : parseError ? (
+            <Empty className="mt-8">
+              <EmptyHeader>
+                <EmptyMedia variant="icon">
+                  <AlertCircle className="h-6 w-6" />
+                </EmptyMedia>
+                <EmptyTitle>
+                  Could not parse data as &quot;{selectedTemplate.name}&quot;
+                  format
+                </EmptyTitle>
+                <EmptyDescription>{parseError}</EmptyDescription>
               </EmptyHeader>
             </Empty>
           ) : (

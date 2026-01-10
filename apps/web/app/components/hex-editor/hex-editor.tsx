@@ -321,6 +321,7 @@ export const HexEditor: FunctionComponent<HexEditorProps> = ({
               }`}
             >
               <Templates
+                data={currentSnapshot?.data}
                 onClose={() => setShowTemplates(false)}
                 onPIPStateChange={setIsTemplatesPIPActive}
               />
