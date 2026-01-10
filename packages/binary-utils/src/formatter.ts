@@ -46,6 +46,27 @@ export function toAsciiString(data: Uint8Array): string {
 }
 
 /**
+ * Format a number as hexadecimal with proper sign handling
+ * @param value - The number to format
+ * @returns Formatted hex string like "0x1A" or "-0x1A"
+ */
+export function formatHex(value: number): string {
+  return (value < 0 ? "-" : "") + "0x" + Math.abs(value).toString(16).toUpperCase();
+}
+
+/**
+ * Format a byte array as a preview string
+ * @param bytes - The byte array to format
+ * @param maxLength - Maximum number of bytes to show (default: 8)
+ * @returns Formatted preview string like "[1, 2, 3, ...]" or "[1, 2, 3]"
+ */
+export function formatBytesPreview(bytes: Uint8Array, maxLength: number = 8): string {
+  const preview = Array.from(bytes.slice(0, maxLength));
+  const suffix = bytes.length > maxLength ? ", ..." : "";
+  return `[${preview.join(", ")}${suffix}]`;
+}
+
+/**
  * Format a row of bytes for display
  */
 export interface FormattedRow {
