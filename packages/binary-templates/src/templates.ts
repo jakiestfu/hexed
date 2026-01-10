@@ -5,91 +5,65 @@
 
 export default {
   "3d/gltf_binary.ksy": () => import("./generated/3d/gltf_binary.js"),
-  "archive/android_bootldr_asus.ksy": () =>
-    import("./generated/archive/android_bootldr_asus.js"),
-  "archive/android_bootldr_huawei.ksy": () =>
-    import("./generated/archive/android_bootldr_huawei.js"),
-  "archive/android_bootldr_qcom.ksy": () =>
-    import("./generated/archive/android_bootldr_qcom.js"),
+  "archive/android_bootldr_asus.ksy": () => import("./generated/archive/android_bootldr_asus.js"),
+  "archive/android_bootldr_huawei.ksy": () => import("./generated/archive/android_bootldr_huawei.js"),
+  "archive/android_bootldr_qcom.ksy": () => import("./generated/archive/android_bootldr_qcom.js"),
   "archive/android_dto.ksy": () => import("./generated/archive/android_dto.js"),
   "archive/android_img.ksy": () => import("./generated/archive/android_img.js"),
-  "archive/android_sparse.ksy": () =>
-    import("./generated/archive/android_sparse.js"),
+  "archive/android_sparse.ksy": () => import("./generated/archive/android_sparse.js"),
   "archive/cpio_old_le.ksy": () => import("./generated/archive/cpio_old_le.js"),
   "archive/gzip.ksy": () => import("./generated/archive/gzip.js"),
   "archive/lzh.ksy": () => import("./generated/archive/lzh.js"),
   "archive/mozilla_mar.ksy": () => import("./generated/archive/mozilla_mar.js"),
-  "archive/phar_without_stub.ksy": () =>
-    import("./generated/archive/phar_without_stub.js"),
+  "archive/phar_without_stub.ksy": () => import("./generated/archive/phar_without_stub.js"),
   "archive/rar.ksy": () => import("./generated/archive/rar.js"),
   "archive/respack.ksy": () => import("./generated/archive/respack.js"),
   "archive/rpm.ksy": () => import("./generated/archive/rpm.js"),
   "archive/xar.ksy": () => import("./generated/archive/xar.js"),
   "archive/zip.ksy": () => import("./generated/archive/zip.js"),
   "archive/zisofs.ksy": () => import("./generated/archive/zisofs.js"),
-  "cad/monomakh_sapr_chg.ksy": () =>
-    import("./generated/cad/monomakh_sapr_chg.js"),
+  "cad/monomakh_sapr_chg.ksy": () => import("./generated/cad/monomakh_sapr_chg.js"),
   "common/bcd.ksy": () => import("./generated/common/bcd.js"),
-  "common/bytes_with_io.ksy": () =>
-    import("./generated/common/bytes_with_io.js"),
+  "common/bytes_with_io.ksy": () => import("./generated/common/bytes_with_io.js"),
   "common/dos_datetime.ksy": () => import("./generated/common/dos_datetime.js"),
   "common/riff.ksy": () => import("./generated/common/riff.js"),
   "common/utf8_string.ksy": () => import("./generated/common/utf8_string.js"),
-  "common/vlq_base128_be.ksy": () =>
-    import("./generated/common/vlq_base128_be.js"),
-  "common/vlq_base128_le.ksy": () =>
-    import("./generated/common/vlq_base128_le.js"),
+  "common/vlq_base128_be.ksy": () => import("./generated/common/vlq_base128_be.js"),
+  "common/vlq_base128_le.ksy": () => import("./generated/common/vlq_base128_le.js"),
   "database/dbf.ksy": () => import("./generated/database/dbf.js"),
   "database/gettext_mo.ksy": () => import("./generated/database/gettext_mo.js"),
   "database/sqlite3.ksy": () => import("./generated/database/sqlite3.js"),
   "database/tsm.ksy": () => import("./generated/database/tsm.js"),
-  "executable/android_nanoapp_header.ksy": () =>
-    import("./generated/executable/android_nanoapp_header.js"),
+  "executable/android_nanoapp_header.ksy": () => import("./generated/executable/android_nanoapp_header.js"),
   "executable/dex.ksy": () => import("./generated/executable/dex.js"),
   "executable/dos_mz.ksy": () => import("./generated/executable/dos_mz.js"),
   "executable/elf.ksy": () => import("./generated/executable/elf.js"),
-  "executable/java_class.ksy": () =>
-    import("./generated/executable/java_class.js"),
-  "executable/mach_o_fat.ksy": () =>
-    import("./generated/executable/mach_o_fat.js"),
+  "executable/java_class.ksy": () => import("./generated/executable/java_class.js"),
+  "executable/mach_o_fat.ksy": () => import("./generated/executable/mach_o_fat.js"),
   "executable/mach_o.ksy": () => import("./generated/executable/mach_o.js"),
-  "executable/microsoft_pe.ksy": () =>
-    import("./generated/executable/microsoft_pe.js"),
-  "executable/python_pyc_27.ksy": () =>
-    import("./generated/executable/python_pyc_27.js"),
+  "executable/microsoft_pe.ksy": () => import("./generated/executable/microsoft_pe.js"),
+  "executable/python_pyc_27.ksy": () => import("./generated/executable/python_pyc_27.js"),
   "executable/swf.ksy": () => import("./generated/executable/swf.js"),
   "executable/uefi_te.ksy": () => import("./generated/executable/uefi_te.js"),
-  "filesystem/amlogic_emmc_partitions.ksy": () =>
-    import("./generated/filesystem/amlogic_emmc_partitions.js"),
-  "filesystem/android_super.ksy": () =>
-    import("./generated/filesystem/android_super.js"),
-  "filesystem/apm_partition_table.ksy": () =>
-    import("./generated/filesystem/apm_partition_table.js"),
-  "filesystem/apple_single_double.ksy": () =>
-    import("./generated/filesystem/apple_single_double.js"),
-  "filesystem/btrfs_stream.ksy": () =>
-    import("./generated/filesystem/btrfs_stream.js"),
+  "filesystem/amlogic_emmc_partitions.ksy": () => import("./generated/filesystem/amlogic_emmc_partitions.js"),
+  "filesystem/android_super.ksy": () => import("./generated/filesystem/android_super.js"),
+  "filesystem/apm_partition_table.ksy": () => import("./generated/filesystem/apm_partition_table.js"),
+  "filesystem/apple_single_double.ksy": () => import("./generated/filesystem/apple_single_double.js"),
+  "filesystem/btrfs_stream.ksy": () => import("./generated/filesystem/btrfs_stream.js"),
   "filesystem/cramfs.ksy": () => import("./generated/filesystem/cramfs.js"),
   "filesystem/ext2.ksy": () => import("./generated/filesystem/ext2.js"),
-  "filesystem/gpt_partition_table.ksy": () =>
-    import("./generated/filesystem/gpt_partition_table.js"),
+  "filesystem/gpt_partition_table.ksy": () => import("./generated/filesystem/gpt_partition_table.js"),
   "filesystem/iso9660.ksy": () => import("./generated/filesystem/iso9660.js"),
   "filesystem/luks.ksy": () => import("./generated/filesystem/luks.js"),
   "filesystem/lvm2.ksy": () => import("./generated/filesystem/lvm2.js"),
-  "filesystem/mbr_partition_table.ksy": () =>
-    import("./generated/filesystem/mbr_partition_table.js"),
-  "filesystem/tr_dos_image.ksy": () =>
-    import("./generated/filesystem/tr_dos_image.js"),
+  "filesystem/mbr_partition_table.ksy": () => import("./generated/filesystem/mbr_partition_table.js"),
+  "filesystem/tr_dos_image.ksy": () => import("./generated/filesystem/tr_dos_image.js"),
   "filesystem/vdi.ksy": () => import("./generated/filesystem/vdi.js"),
   "filesystem/vfat.ksy": () => import("./generated/filesystem/vfat.js"),
-  "filesystem/vmware_vmdk.ksy": () =>
-    import("./generated/filesystem/vmware_vmdk.js"),
-  "filesystem/zx_spectrum_tap.ksy": () =>
-    import("./generated/filesystem/zx_spectrum_tap.js"),
-  "firmware/andes_firmware.ksy": () =>
-    import("./generated/firmware/andes_firmware.js"),
-  "firmware/broadcom_trx.ksy": () =>
-    import("./generated/firmware/broadcom_trx.js"),
+  "filesystem/vmware_vmdk.ksy": () => import("./generated/filesystem/vmware_vmdk.js"),
+  "filesystem/zx_spectrum_tap.ksy": () => import("./generated/filesystem/zx_spectrum_tap.js"),
+  "firmware/andes_firmware.ksy": () => import("./generated/firmware/andes_firmware.js"),
+  "firmware/broadcom_trx.ksy": () => import("./generated/firmware/broadcom_trx.js"),
   "firmware/ines.ksy": () => import("./generated/firmware/ines.js"),
   "firmware/uimage.ksy": () => import("./generated/firmware/uimage.js"),
   "font/grub2_font.ksy": () => import("./generated/font/grub2_font.js"),
@@ -101,30 +75,22 @@ export default {
   "game/fallout_dat.ksy": () => import("./generated/game/fallout_dat.js"),
   "game/fallout2_dat.ksy": () => import("./generated/game/fallout2_dat.js"),
   "game/ftl_dat.ksy": () => import("./generated/game/ftl_dat.js"),
-  "game/gran_turismo_vol.ksy": () =>
-    import("./generated/game/gran_turismo_vol.js"),
+  "game/gran_turismo_vol.ksy": () => import("./generated/game/gran_turismo_vol.js"),
   "game/heaps_pak.ksy": () => import("./generated/game/heaps_pak.js"),
-  "game/heroes_of_might_and_magic_agg.ksy": () =>
-    import("./generated/game/heroes_of_might_and_magic_agg.js"),
-  "game/heroes_of_might_and_magic_bmp.ksy": () =>
-    import("./generated/game/heroes_of_might_and_magic_bmp.js"),
+  "game/heroes_of_might_and_magic_agg.ksy": () => import("./generated/game/heroes_of_might_and_magic_agg.js"),
+  "game/heroes_of_might_and_magic_bmp.ksy": () => import("./generated/game/heroes_of_might_and_magic_bmp.js"),
   "game/minecraft_nbt.ksy": () => import("./generated/game/minecraft_nbt.js"),
   "game/quake_mdl.ksy": () => import("./generated/game/quake_mdl.js"),
   "game/quake_pak.ksy": () => import("./generated/game/quake_pak.js"),
   "game/quake2_md2.ksy": () => import("./generated/game/quake2_md2.js"),
-  "game/renderware_binary_stream.ksy": () =>
-    import("./generated/game/renderware_binary_stream.js"),
-  "game/saints_row_2_vpp_pc.ksy": () =>
-    import("./generated/game/saints_row_2_vpp_pc.js"),
+  "game/renderware_binary_stream.ksy": () => import("./generated/game/renderware_binary_stream.js"),
+  "game/saints_row_2_vpp_pc.ksy": () => import("./generated/game/saints_row_2_vpp_pc.js"),
   "game/warcraft_2_pud.ksy": () => import("./generated/game/warcraft_2_pud.js"),
-  "geospatial/shapefile_index.ksy": () =>
-    import("./generated/geospatial/shapefile_index.js"),
-  "geospatial/shapefile_main.ksy": () =>
-    import("./generated/geospatial/shapefile_main.js"),
+  "geospatial/shapefile_index.ksy": () => import("./generated/geospatial/shapefile_index.js"),
+  "geospatial/shapefile_main.ksy": () => import("./generated/geospatial/shapefile_main.js"),
   "hardware/dtb.ksy": () => import("./generated/hardware/dtb.js"),
   "hardware/edid.ksy": () => import("./generated/hardware/edid.js"),
-  "hardware/mifare/mifare_classic.ksy": () =>
-    import("./generated/hardware/mifare/mifare_classic.js"),
+  "hardware/mifare/mifare_classic.ksy": () => import("./generated/hardware/mifare/mifare_classic.js"),
   "image/bmp.ksy": () => import("./generated/image/bmp.js"),
   "image/dicom.ksy": () => import("./generated/image/dicom.js"),
   "image/exif.ksy": () => import("./generated/image/exif.js"),
@@ -149,126 +115,78 @@ export default {
   "log/sudoers_ts.ksy": () => import("./generated/log/sudoers_ts.js"),
   "log/systemd_journal.ksy": () => import("./generated/log/systemd_journal.js"),
   "log/windows_evt_log.ksy": () => import("./generated/log/windows_evt_log.js"),
-  "machine_code/code_6502.ksy": () =>
-    import("./generated/machine_code/code_6502.js"),
-  "macos/compressed_resource.ksy": () =>
-    import("./generated/macos/compressed_resource.js"),
+  "machine_code/code_6502.ksy": () => import("./generated/machine_code/code_6502.js"),
+  "macos/compressed_resource.ksy": () => import("./generated/macos/compressed_resource.js"),
   "macos/ds_store.ksy": () => import("./generated/macos/ds_store.js"),
-  "macos/mac_os_resource_snd.ksy": () =>
-    import("./generated/macos/mac_os_resource_snd.js"),
-  "macos/resource_compression/dcmp_0.ksy": () =>
-    import("./generated/macos/resource_compression/dcmp_0.js"),
-  "macos/resource_compression/dcmp_1.ksy": () =>
-    import("./generated/macos/resource_compression/dcmp_1.js"),
-  "macos/resource_compression/dcmp_2.ksy": () =>
-    import("./generated/macos/resource_compression/dcmp_2.js"),
-  "macos/resource_compression/dcmp_variable_length_integer.ksy": () =>
-    import(
-      "./generated/macos/resource_compression/dcmp_variable_length_integer.js"
-    ),
+  "macos/mac_os_resource_snd.ksy": () => import("./generated/macos/mac_os_resource_snd.js"),
+  "macos/resource_compression/dcmp_0.ksy": () => import("./generated/macos/resource_compression/dcmp_0.js"),
+  "macos/resource_compression/dcmp_1.ksy": () => import("./generated/macos/resource_compression/dcmp_1.js"),
+  "macos/resource_compression/dcmp_2.ksy": () => import("./generated/macos/resource_compression/dcmp_2.js"),
+  "macos/resource_compression/dcmp_variable_length_integer.ksy": () => import("./generated/macos/resource_compression/dcmp_variable_length_integer.js"),
   "macos/resource_fork.ksy": () => import("./generated/macos/resource_fork.js"),
-  "media/android_opengl_shaders_cache.ksy": () =>
-    import("./generated/media/android_opengl_shaders_cache.js"),
+  "media/android_opengl_shaders_cache.ksy": () => import("./generated/media/android_opengl_shaders_cache.js"),
   "media/au.ksy": () => import("./generated/media/au.js"),
   "media/avi.ksy": () => import("./generated/media/avi.js"),
   "media/blender_blend.ksy": () => import("./generated/media/blender_blend.js"),
-  "media/creative_voice_file.ksy": () =>
-    import("./generated/media/creative_voice_file.js"),
+  "media/creative_voice_file.ksy": () => import("./generated/media/creative_voice_file.js"),
   "media/genmidi_op2.ksy": () => import("./generated/media/genmidi_op2.js"),
   "media/id3v1_1.ksy": () => import("./generated/media/id3v1_1.js"),
   "media/id3v2_3.ksy": () => import("./generated/media/id3v2_3.js"),
   "media/id3v2_4.ksy": () => import("./generated/media/id3v2_4.js"),
-  "media/magicavoxel_vox.ksy": () =>
-    import("./generated/media/magicavoxel_vox.js"),
+  "media/magicavoxel_vox.ksy": () => import("./generated/media/magicavoxel_vox.js"),
   "media/ogg.ksy": () => import("./generated/media/ogg.js"),
   "media/quicktime_mov.ksy": () => import("./generated/media/quicktime_mov.js"),
-  "media/standard_midi_file.ksy": () =>
-    import("./generated/media/standard_midi_file.js"),
+  "media/standard_midi_file.ksy": () => import("./generated/media/standard_midi_file.js"),
   "media/stl.ksy": () => import("./generated/media/stl.js"),
-  "media/tracker_modules/fasttracker_xm_module.ksy": () =>
-    import("./generated/media/tracker_modules/fasttracker_xm_module.js"),
-  "media/tracker_modules/s3m.ksy": () =>
-    import("./generated/media/tracker_modules/s3m.js"),
+  "media/tracker_modules/fasttracker_xm_module.ksy": () => import("./generated/media/tracker_modules/fasttracker_xm_module.js"),
+  "media/tracker_modules/s3m.ksy": () => import("./generated/media/tracker_modules/s3m.js"),
   "media/vp8_duck_ivf.ksy": () => import("./generated/media/vp8_duck_ivf.js"),
   "media/wav.ksy": () => import("./generated/media/wav.js"),
-  "network/bitcoin_transaction.ksy": () =>
-    import("./generated/network/bitcoin_transaction.js"),
-  "network/dime_message.ksy": () =>
-    import("./generated/network/dime_message.js"),
+  "network/bitcoin_transaction.ksy": () => import("./generated/network/bitcoin_transaction.js"),
+  "network/dime_message.ksy": () => import("./generated/network/dime_message.js"),
   "network/dns_packet.ksy": () => import("./generated/network/dns_packet.js"),
-  "network/ethernet_frame.ksy": () =>
-    import("./generated/network/ethernet_frame.js"),
+  "network/ethernet_frame.ksy": () => import("./generated/network/ethernet_frame.js"),
   "network/hccap.ksy": () => import("./generated/network/hccap.js"),
   "network/hccapx.ksy": () => import("./generated/network/hccapx.js"),
   "network/icmp_packet.ksy": () => import("./generated/network/icmp_packet.js"),
   "network/ipv4_packet.ksy": () => import("./generated/network/ipv4_packet.js"),
   "network/ipv6_packet.ksy": () => import("./generated/network/ipv6_packet.js"),
-  "network/microsoft_network_monitor_v2.ksy": () =>
-    import("./generated/network/microsoft_network_monitor_v2.js"),
+  "network/microsoft_network_monitor_v2.ksy": () => import("./generated/network/microsoft_network_monitor_v2.js"),
   "network/packet_ppi.ksy": () => import("./generated/network/packet_ppi.js"),
   "network/pcap.ksy": () => import("./generated/network/pcap.js"),
-  "network/protocol_body.ksy": () =>
-    import("./generated/network/protocol_body.js"),
-  "network/rtcp_payload.ksy": () =>
-    import("./generated/network/rtcp_payload.js"),
+  "network/protocol_body.ksy": () => import("./generated/network/protocol_body.js"),
+  "network/rtcp_payload.ksy": () => import("./generated/network/rtcp_payload.js"),
   "network/rtp_packet.ksy": () => import("./generated/network/rtp_packet.js"),
   "network/rtpdump.ksy": () => import("./generated/network/rtpdump.js"),
-  "network/some_ip/some_ip_container.ksy": () =>
-    import("./generated/network/some_ip/some_ip_container.js"),
-  "network/some_ip/some_ip_sd_entries.ksy": () =>
-    import("./generated/network/some_ip/some_ip_sd_entries.js"),
-  "network/some_ip/some_ip_sd_options.ksy": () =>
-    import("./generated/network/some_ip/some_ip_sd_options.js"),
-  "network/some_ip/some_ip_sd.ksy": () =>
-    import("./generated/network/some_ip/some_ip_sd.js"),
-  "network/some_ip/some_ip.ksy": () =>
-    import("./generated/network/some_ip/some_ip.js"),
+  "network/some_ip/some_ip_container.ksy": () => import("./generated/network/some_ip/some_ip_container.js"),
+  "network/some_ip/some_ip_sd_entries.ksy": () => import("./generated/network/some_ip/some_ip_sd_entries.js"),
+  "network/some_ip/some_ip_sd_options.ksy": () => import("./generated/network/some_ip/some_ip_sd_options.js"),
+  "network/some_ip/some_ip_sd.ksy": () => import("./generated/network/some_ip/some_ip_sd.js"),
+  "network/some_ip/some_ip.ksy": () => import("./generated/network/some_ip/some_ip.js"),
   "network/tcp_segment.ksy": () => import("./generated/network/tcp_segment.js"),
-  "network/tls_client_hello.ksy": () =>
-    import("./generated/network/tls_client_hello.js"),
-  "network/udp_datagram.ksy": () =>
-    import("./generated/network/udp_datagram.js"),
+  "network/tls_client_hello.ksy": () => import("./generated/network/tls_client_hello.js"),
+  "network/udp_datagram.ksy": () => import("./generated/network/udp_datagram.js"),
   "network/websocket.ksy": () => import("./generated/network/websocket.js"),
-  "scientific/nt_mdt/nt_mdt_pal.ksy": () =>
-    import("./generated/scientific/nt_mdt/nt_mdt_pal.js"),
-  "scientific/nt_mdt/nt_mdt.ksy": () =>
-    import("./generated/scientific/nt_mdt/nt_mdt.js"),
-  "scientific/spectroscopy/avantes_roh60.ksy": () =>
-    import("./generated/scientific/spectroscopy/avantes_roh60.js"),
-  "scientific/spectroscopy/specpr.ksy": () =>
-    import("./generated/scientific/spectroscopy/specpr.js"),
-  "security/efivar_signature_list.ksy": () =>
-    import("./generated/security/efivar_signature_list.js"),
-  "security/openpgp_message.ksy": () =>
-    import("./generated/security/openpgp_message.js"),
-  "security/ssh_public_key.ksy": () =>
-    import("./generated/security/ssh_public_key.js"),
-  "serialization/asn1/asn1_der.ksy": () =>
-    import("./generated/serialization/asn1/asn1_der.js"),
+  "scientific/nt_mdt/nt_mdt_pal.ksy": () => import("./generated/scientific/nt_mdt/nt_mdt_pal.js"),
+  "scientific/nt_mdt/nt_mdt.ksy": () => import("./generated/scientific/nt_mdt/nt_mdt.js"),
+  "scientific/spectroscopy/avantes_roh60.ksy": () => import("./generated/scientific/spectroscopy/avantes_roh60.js"),
+  "scientific/spectroscopy/specpr.ksy": () => import("./generated/scientific/spectroscopy/specpr.js"),
+  "security/efivar_signature_list.ksy": () => import("./generated/security/efivar_signature_list.js"),
+  "security/openpgp_message.ksy": () => import("./generated/security/openpgp_message.js"),
+  "security/ssh_public_key.ksy": () => import("./generated/security/ssh_public_key.js"),
+  "serialization/asn1/asn1_der.ksy": () => import("./generated/serialization/asn1/asn1_der.js"),
   "serialization/bson.ksy": () => import("./generated/serialization/bson.js"),
-  "serialization/chrome_pak.ksy": () =>
-    import("./generated/serialization/chrome_pak.js"),
-  "serialization/google_protobuf.ksy": () =>
-    import("./generated/serialization/google_protobuf.js"),
-  "serialization/microsoft_cfb.ksy": () =>
-    import("./generated/serialization/microsoft_cfb.js"),
-  "serialization/msgpack.ksy": () =>
-    import("./generated/serialization/msgpack.js"),
-  "serialization/php_serialized_value.ksy": () =>
-    import("./generated/serialization/php_serialized_value.js"),
-  "serialization/python_pickle.ksy": () =>
-    import("./generated/serialization/python_pickle.js"),
-  "serialization/ruby_marshal.ksy": () =>
-    import("./generated/serialization/ruby_marshal.js"),
+  "serialization/chrome_pak.ksy": () => import("./generated/serialization/chrome_pak.js"),
+  "serialization/google_protobuf.ksy": () => import("./generated/serialization/google_protobuf.js"),
+  "serialization/microsoft_cfb.ksy": () => import("./generated/serialization/microsoft_cfb.js"),
+  "serialization/msgpack.ksy": () => import("./generated/serialization/msgpack.js"),
+  "serialization/php_serialized_value.ksy": () => import("./generated/serialization/php_serialized_value.js"),
+  "serialization/python_pickle.ksy": () => import("./generated/serialization/python_pickle.js"),
+  "serialization/ruby_marshal.ksy": () => import("./generated/serialization/ruby_marshal.js"),
   "windows/regf.ksy": () => import("./generated/windows/regf.js"),
-  "windows/windows_lnk_file.ksy": () =>
-    import("./generated/windows/windows_lnk_file.js"),
-  "windows/windows_minidump.ksy": () =>
-    import("./generated/windows/windows_minidump.js"),
-  "windows/windows_resource_file.ksy": () =>
-    import("./generated/windows/windows_resource_file.js"),
-  "windows/windows_shell_items.ksy": () =>
-    import("./generated/windows/windows_shell_items.js"),
-  "windows/windows_systemtime.ksy": () =>
-    import("./generated/windows/windows_systemtime.js"),
+  "windows/windows_lnk_file.ksy": () => import("./generated/windows/windows_lnk_file.js"),
+  "windows/windows_minidump.ksy": () => import("./generated/windows/windows_minidump.js"),
+  "windows/windows_resource_file.ksy": () => import("./generated/windows/windows_resource_file.js"),
+  "windows/windows_shell_items.ksy": () => import("./generated/windows/windows_shell_items.js"),
+  "windows/windows_systemtime.ksy": () => import("./generated/windows/windows_systemtime.js")
 };

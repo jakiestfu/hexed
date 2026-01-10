@@ -18,6 +18,8 @@ import type { TemplatesProps } from "./types";
 import { TemplatesCombobox } from "./templates-combobox";
 import { load } from "@hexed/binary-templates";
 
+// import Id3v23 from "@hexed/binary-templates/media/id3v2_3.js";
+
 export const Templates: FunctionComponent<TemplatesProps> = ({
   onClose,
   onPIPStateChange,
@@ -45,11 +47,14 @@ export const Templates: FunctionComponent<TemplatesProps> = ({
   }) => {
     setSelectedTemplate(entry);
     try {
-      const parserClass = await load(entry.path);
-      console.log("Loaded parser:", parserClass);
+      // const parserClass = await import("@hexed/binary-templates/media/id3v2_3.js");
+      const ParserClass = await load(entry.path);
+
+      // console.log("Loaded parser:", parserClass, templates);
     } catch (error) {
       console.error("Failed to load parser:", error);
     }
+    // console.log("Id3v23", Id3v23.Id3v23);
   };
 
   return (

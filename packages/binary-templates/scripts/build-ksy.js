@@ -10,6 +10,7 @@ import { join, dirname, basename } from "path";
 import { fileURLToPath } from "url";
 import { execSync } from "child_process";
 import { constants } from "fs";
+import { transform } from "esbuild";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
@@ -26,6 +27,117 @@ function snakeCaseToPascalCase(filename) {
     .split("_")
     .map((word) => word.charAt(0).toUpperCase() + word.slice(1).toLowerCase())
     .join("");
+}
+
+/**
+ * Checks if a file is CommonJS/UMD format (needs conversion to ESM)
+ */
+function isCommonJS(content) {
+  // Check for CommonJS/UMD patterns
+  return (
+    content.includes("typeof exports") ||
+    content.includes("typeof define") ||
+    content.includes("require(") ||
+    content.includes("module.exports")
+  );
+}
+
+/**
+ * Converts a CommonJS/UMD file to ESM format using esbuild
+ */
+async function convertToESM(filePath) {
+  try {
+    let content = await readFile(filePath, "utf-8");
+
+    // Skip if already ESM
+    if (!isCommonJS(content)) {
+      return;
+    }
+
+    // Check if file has require() calls for kaitai-struct
+    const requirePattern = /require\(["']kaitai-struct\/KaitaiStream["']\)/g;
+    const hasRequire = requirePattern.test(content);
+
+    // Convert CommonJS/UMD to ESM using esbuild
+    // Let esbuild try to convert require() calls, but we'll handle any it misses
+    const result = await transform(content, {
+      format: "esm",
+      target: "es2020",
+      loader: "js",
+      platform: "neutral",
+    });
+
+    let convertedCode = result.code;
+
+    // Post-process: Always check for and replace require() calls
+    // esbuild may not convert all require() calls, especially in UMD wrappers
+    const kaitaiRequirePattern =
+      /require\(["']kaitai-struct\/KaitaiStream["']\)/g;
+    const hasKaitaiRequire = kaitaiRequirePattern.test(convertedCode);
+
+    if (hasRequire || hasKaitaiRequire) {
+      // Add import statement at the top if it doesn't exist
+      const importStatement = `import { KaitaiStream } from "kaitai-struct/KaitaiStream";\n`;
+      const hasImport =
+        /import\s+.*?\s+from\s+["']kaitai-struct\/KaitaiStream["']/.test(
+          convertedCode
+        );
+
+      if (!hasImport) {
+        // Find where to insert - after header comments
+        const headerCommentMatch = convertedCode.match(/^(\/\/[^\n]*\n)*/);
+        if (headerCommentMatch) {
+          const header = headerCommentMatch[0];
+          const rest = convertedCode.slice(header.length);
+          convertedCode = header + importStatement + rest;
+        } else {
+          convertedCode = importStatement + convertedCode;
+        }
+      }
+
+      // CRITICAL: Replace ALL require() calls for kaitai-struct/KaitaiStream
+      // Do this multiple times to catch all instances
+      let previousCode = "";
+      while (previousCode !== convertedCode) {
+        previousCode = convertedCode;
+        convertedCode = convertedCode.replace(
+          kaitaiRequirePattern,
+          "KaitaiStream"
+        );
+      }
+    }
+
+    // Final safety check: ensure no require() calls for kaitai-struct remain
+    const finalKaitaiRequires = convertedCode.match(
+      /require\(["']kaitai-struct\/KaitaiStream["']\)/g
+    );
+    if (finalKaitaiRequires && finalKaitaiRequires.length > 0) {
+      // Force replace one more time
+      convertedCode = convertedCode.replace(
+        kaitaiRequirePattern,
+        "KaitaiStream"
+      );
+      console.warn(
+        `  ⚠ Warning: Had to force-replace ${finalKaitaiRequires.length} require() call(s)`
+      );
+    }
+
+    // Check for any other require() calls (non-kaitai)
+    const otherRequires = convertedCode.match(
+      /require\(["'](?!kaitai-struct\/KaitaiStream)([^"']+)["']\)/g
+    );
+    if (otherRequires && otherRequires.length > 0) {
+      console.warn(
+        `  ⚠ Warning: Found other require() calls: ${otherRequires.join(", ")}`
+      );
+    }
+
+    await writeFile(filePath, convertedCode, "utf-8");
+    console.log(`  ↻ Converted to ESM`);
+  } catch (error) {
+    console.error(`  ✗ Failed to convert ${filePath} to ESM:`, error.message);
+    throw error;
+  }
 }
 
 /**
@@ -210,8 +322,17 @@ async function buildKsyFiles() {
 
       try {
         await access(targetFile, constants.F_OK);
-        // File exists, skip compilation
+        // File exists, check if it needs conversion to ESM
         console.log(`⏭ Skipping ${entry.path} (already built)`);
+
+        // Check if file is still CommonJS and convert if needed
+        try {
+          await convertToESM(targetFile);
+        } catch (error) {
+          console.warn(
+            `  ⚠ Warning: Could not convert existing file to ESM: ${error.message}`
+          );
+        }
 
         // Still track it for templates.ts generation
         const className = snakeCaseToPascalCase(originalFilename);
@@ -272,6 +393,9 @@ async function buildKsyFiles() {
           }
           // If hasOriginal is true, file already has correct name, no action needed
         }
+
+        // Convert CommonJS/UMD to ESM
+        await convertToESM(targetFile);
 
         // Track this template for templates.ts generation
         const className = snakeCaseToPascalCase(originalFilename);

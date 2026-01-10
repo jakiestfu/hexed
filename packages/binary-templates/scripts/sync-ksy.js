@@ -183,7 +183,7 @@ function ksyPathToExportPath(ksyPath) {
   const jsPath = ksyPath.replace(/\.ksy$/, ".js");
 
   // Export key and value are the same: ./dist prefix + original path with .js
-  const exportPath = `./dist/${jsPath}`;
+  const exportPath = `./src/generated/${jsPath}`;
 
   return { key: `./${jsPath}`, value: exportPath };
 }
