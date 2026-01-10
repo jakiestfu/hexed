@@ -16,9 +16,19 @@ import {
   TabsTrigger,
   TabsContent,
   Separator,
+  Tooltip,
+  TooltipContent,
+  TooltipTrigger,
 } from "@hexed/ui";
-import { X, Maximize2, FileCode, AlertCircle } from "lucide-react";
+import {
+  X,
+  Maximize2,
+  FileCode,
+  AlertCircle,
+  ArrowLeftRight,
+} from "lucide-react";
 import { usePIP } from "~/hooks/use-pip";
+import { useSidebarPosition } from "~/hooks/use-sidebar-position";
 import type { TemplatesProps } from "./types";
 import { TemplatesCombobox } from "./templates-combobox";
 import { KsySchema, parse } from "@hexed/binary-templates";
@@ -35,6 +45,7 @@ export const Templates: FunctionComponent<TemplatesProps> = ({
   const { isPIPActive, stylesLoaded, togglePIP, isSupported } = usePIP(
     templatesRef as RefObject<HTMLElement>
   );
+  const { toggleSidebarPosition } = useSidebarPosition();
   const [commandOpen, setCommandOpen] = useState(false);
   const [selectedTemplate, setSelectedTemplate] = useState<{
     name: string;
@@ -104,6 +115,20 @@ export const Templates: FunctionComponent<TemplatesProps> = ({
             </div>
             {!isPIPActive && (
               <div className="flex items-center gap-2 shrink-0">
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      onClick={toggleSidebarPosition}
+                      className="h-7 w-7 p-0"
+                      aria-label="Toggle sidebar position"
+                    >
+                      <ArrowLeftRight className="h-4 w-4" />
+                    </Button>
+                  </TooltipTrigger>
+                  <TooltipContent>Toggle sidebar position</TooltipContent>
+                </Tooltip>
                 {isSupported && (
                   <Button
                     variant="ghost"

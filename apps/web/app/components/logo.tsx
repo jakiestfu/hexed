@@ -33,6 +33,7 @@ import { useChecksumVisibility } from "~/hooks/use-checksum-visibility";
 import { useAsciiVisibility } from "~/hooks/use-ascii-visibility";
 import { useInterpreterVisibility } from "~/hooks/use-interpreter-visibility";
 import { useTemplatesVisibility } from "~/hooks/use-templates-visibility";
+import { useSidebarPosition } from "~/hooks/use-sidebar-position";
 import { encodeFilePath } from "~/utils/path-encoding";
 import { cn } from "@hexed/ui";
 
@@ -72,6 +73,7 @@ export const Logo: FunctionComponent<LogoProps> = ({
   const { showAscii, setShowAscii } = useAsciiVisibility();
   const { showInterpreter, setShowInterpreter } = useInterpreterVisibility();
   const { showTemplates, setShowTemplates } = useTemplatesVisibility();
+  const { sidebarPosition, setSidebarPosition } = useSidebarPosition();
 
   const effectiveMenuItems =
     menuItems && menuItems.length > 0 ? menuItems : defaultMenuItems;
@@ -218,6 +220,15 @@ export const Logo: FunctionComponent<LogoProps> = ({
                 className="cursor-pointer"
               >
                 Show Checksums
+              </DropdownMenuCheckboxItem>
+              <DropdownMenuCheckboxItem
+                checked={sidebarPosition === "left"}
+                onCheckedChange={(checked) =>
+                  setSidebarPosition(checked ? "left" : "right")
+                }
+                className="cursor-pointer"
+              >
+                Sidebar on Left
               </DropdownMenuCheckboxItem>
               <DropdownMenuSeparator />
               <DropdownMenuSub>

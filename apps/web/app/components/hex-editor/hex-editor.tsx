@@ -57,6 +57,7 @@ import { useChecksumVisibility } from "~/hooks/use-checksum-visibility";
 import { useAsciiVisibility } from "~/hooks/use-ascii-visibility";
 import { useInterpreterVisibility } from "~/hooks/use-interpreter-visibility";
 import { useTemplatesVisibility } from "~/hooks/use-templates-visibility";
+import { useSidebarPosition } from "~/hooks/use-sidebar-position";
 import { Interpreter } from "./interpreter";
 import { Templates } from "./templates";
 import type { HexEditorProps, HexEditorViewProps } from "./types";
@@ -111,6 +112,7 @@ export const HexEditor: FunctionComponent<HexEditorProps> = ({
   const { showChecksums } = useChecksumVisibility();
   const { showInterpreter, setShowInterpreter } = useInterpreterVisibility();
   const { showTemplates, setShowTemplates } = useTemplatesVisibility();
+  const { sidebarPosition } = useSidebarPosition();
   const currentSnapshot = snapshots[parseInt(activeTab, 10)] || snapshots[0];
   const hasFile = filePath != null && filePath !== "";
   const hasSnapshots = snapshots.length > 0;
@@ -290,22 +292,110 @@ export const HexEditor: FunctionComponent<HexEditorProps> = ({
       // Calculate default sizes based on visible panels
       const hasInterpreter = showInterpreter && !isInterpreterPIPActive;
       const hasTemplates = showTemplates && !isTemplatesPIPActive;
+      const hasSidebars = hasInterpreter || hasTemplates;
 
+      // Calculate sizes for the sidebar group relative to hex canvas
       let hexCanvasDefaultSize = 100;
+      let sidebarGroupDefaultSize = 0;
+
+      if (hasInterpreter && hasTemplates) {
+        hexCanvasDefaultSize = 50;
+        sidebarGroupDefaultSize = 50;
+      } else if (hasInterpreter) {
+        hexCanvasDefaultSize = 70;
+        sidebarGroupDefaultSize = 30;
+      } else if (hasTemplates) {
+        hexCanvasDefaultSize = 75;
+        sidebarGroupDefaultSize = 25;
+      }
+
+      // Calculate sizes for interpreter and templates within the sidebar group
       let interpreterDefaultSize = 0;
       let templatesDefaultSize = 0;
 
       if (hasInterpreter && hasTemplates) {
-        hexCanvasDefaultSize = 50;
-        interpreterDefaultSize = 30;
-        templatesDefaultSize = 20;
+        interpreterDefaultSize = 60; // 60% of sidebar group
+        templatesDefaultSize = 40; // 40% of sidebar group
       } else if (hasInterpreter) {
-        hexCanvasDefaultSize = 70;
-        interpreterDefaultSize = 30;
+        interpreterDefaultSize = 100; // 100% of sidebar group
       } else if (hasTemplates) {
-        hexCanvasDefaultSize = 75;
-        templatesDefaultSize = 25;
+        templatesDefaultSize = 100; // 100% of sidebar group
       }
+
+      // Render panels based on sidebar position
+      const borderClass = sidebarPosition === "left" ? "border-r" : "border-l";
+
+      const interpreterPanel = showInterpreter ? (
+        <ResizablePanel
+          id="interpreter"
+          defaultSize={isInterpreterPIPActive ? 0 : interpreterDefaultSize}
+          minSize={15}
+          collapsible
+        >
+          <div className={`h-full ${borderClass}`}>
+            <Interpreter
+              data={snapshot.data}
+              selectedOffset={selectedOffset}
+              endianness={endianness as "le" | "be"}
+              numberFormat={numberFormat as "dec" | "hex"}
+              onClose={() => setShowInterpreter(false)}
+              onScrollToOffset={setScrollToOffset}
+              onPIPStateChange={setIsInterpreterPIPActive}
+            />
+          </div>
+        </ResizablePanel>
+      ) : null;
+
+      const templatesPanel = showTemplates ? (
+        <ResizablePanel
+          id="templates"
+          defaultSize={isTemplatesPIPActive ? 0 : templatesDefaultSize}
+          minSize={10}
+          collapsible
+        >
+          <div className={`h-full ${borderClass}`}>
+            <Templates
+              data={currentSnapshot?.data}
+              filePath={filePath || undefined}
+              onClose={() => setShowTemplates(false)}
+              onPIPStateChange={setIsTemplatesPIPActive}
+            />
+          </div>
+        </ResizablePanel>
+      ) : null;
+
+      const hexCanvasPanel = (
+        <ResizablePanel
+          id="hex-canvas"
+          defaultSize={hexCanvasDefaultSize}
+          minSize={20}
+        >
+          <HexEditorView
+            scrollToOffset={scrollToOffset}
+            snapshot={snapshot}
+            showAscii={showAscii}
+            diff={diff}
+            selectedOffsetRange={selectedOffsetRange}
+            onSelectedOffsetRangeChange={setSelectedOffsetRange}
+          />
+        </ResizablePanel>
+      );
+
+      // Sidebar group component (nested ResizablePanelGroup)
+      const sidebarGroup = hasSidebars ? (
+        <ResizablePanel
+          id="sidebar-group"
+          defaultSize={sidebarGroupDefaultSize}
+          minSize={15}
+          collapsible
+        >
+          <ResizablePanelGroup direction="horizontal" className="h-full">
+            {interpreterPanel}
+            {showInterpreter && showTemplates && <ResizableHandle withHandle />}
+            {templatesPanel}
+          </ResizablePanelGroup>
+        </ResizablePanel>
+      ) : null;
 
       return (
         <TabsContent
@@ -314,63 +404,17 @@ export const HexEditor: FunctionComponent<HexEditorProps> = ({
           className="h-full"
         >
           <ResizablePanelGroup direction="horizontal" className="h-full">
-            <ResizablePanel
-              id="hex-canvas"
-              defaultSize={hexCanvasDefaultSize}
-              minSize={20}
-            >
-              <HexEditorView
-                scrollToOffset={scrollToOffset}
-                snapshot={snapshot}
-                showAscii={showAscii}
-                diff={diff}
-                selectedOffsetRange={selectedOffsetRange}
-                onSelectedOffsetRangeChange={setSelectedOffsetRange}
-              />
-            </ResizablePanel>
-            {showInterpreter && (
+            {sidebarPosition === "left" ? (
               <>
-                <ResizableHandle withHandle />
-                <ResizablePanel
-                  id="interpreter"
-                  defaultSize={
-                    isInterpreterPIPActive ? 0 : interpreterDefaultSize
-                  }
-                  minSize={15}
-                  collapsible
-                >
-                  <div className="h-full border-l">
-                    <Interpreter
-                      data={snapshot.data}
-                      selectedOffset={selectedOffset}
-                      endianness={endianness as "le" | "be"}
-                      numberFormat={numberFormat as "dec" | "hex"}
-                      onClose={() => setShowInterpreter(false)}
-                      onScrollToOffset={setScrollToOffset}
-                      onPIPStateChange={setIsInterpreterPIPActive}
-                    />
-                  </div>
-                </ResizablePanel>
+                {sidebarGroup}
+                {hasSidebars && <ResizableHandle withHandle />}
+                {hexCanvasPanel}
               </>
-            )}
-            {showTemplates && (
+            ) : (
               <>
-                <ResizableHandle withHandle />
-                <ResizablePanel
-                  id="templates"
-                  defaultSize={isTemplatesPIPActive ? 0 : templatesDefaultSize}
-                  minSize={10}
-                  collapsible
-                >
-                  <div className="h-full border-l">
-                    <Templates
-                      data={currentSnapshot?.data}
-                      filePath={filePath || undefined}
-                      onClose={() => setShowTemplates(false)}
-                      onPIPStateChange={setIsTemplatesPIPActive}
-                    />
-                  </div>
-                </ResizablePanel>
+                {hexCanvasPanel}
+                {hasSidebars && <ResizableHandle withHandle />}
+                {sidebarGroup}
               </>
             )}
           </ResizablePanelGroup>

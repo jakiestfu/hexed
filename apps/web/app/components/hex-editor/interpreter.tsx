@@ -18,9 +18,18 @@ import {
   EmptyTitle,
   EmptyDescription,
   EmptyMedia,
+  Tooltip,
+  TooltipContent,
+  TooltipTrigger,
 } from "@hexed/ui";
 import { formatAddress } from "@hexed/binary-utils/formatter";
-import { X, MousePointerClick, Maximize2, Minimize2 } from "lucide-react";
+import {
+  X,
+  MousePointerClick,
+  Maximize2,
+  Minimize2,
+  ArrowLeftRight,
+} from "lucide-react";
 import {
   formatNumber,
   readUint8,
@@ -50,6 +59,7 @@ import {
   readBinary,
 } from "@hexed/binary-utils/interpreter";
 import { usePIP } from "~/hooks/use-pip";
+import { useSidebarPosition } from "~/hooks/use-sidebar-position";
 import type { InterpreterProps } from "./types";
 
 interface InterpretedValue {
@@ -283,6 +293,7 @@ export const Interpreter: FunctionComponent<InterpreterProps> = ({
   const { isPIPActive, stylesLoaded, togglePIP, isSupported } = usePIP(
     interpreterRef as RefObject<HTMLElement>
   );
+  const { toggleSidebarPosition } = useSidebarPosition();
 
   // Notify parent component when PIP state changes
   useEffect(() => {
@@ -333,6 +344,20 @@ export const Interpreter: FunctionComponent<InterpreterProps> = ({
             </div>
             {!isPIPActive && (
               <div className="flex items-center gap-2 shrink-0">
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      onClick={toggleSidebarPosition}
+                      className="h-7 w-7 p-0"
+                      aria-label="Toggle sidebar position"
+                    >
+                      <ArrowLeftRight className="h-4 w-4" />
+                    </Button>
+                  </TooltipTrigger>
+                  <TooltipContent>Toggle sidebar position</TooltipContent>
+                </Tooltip>
                 {isSupported && (
                   <Button
                     variant="ghost"
