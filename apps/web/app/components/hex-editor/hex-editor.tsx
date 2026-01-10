@@ -316,7 +316,7 @@ export const HexEditor: FunctionComponent<HexEditorProps> = ({
           )}
           {showTemplates && (
             <div
-              className={`w-[650px] shrink-0 h-full border-l ${
+              className={`w-[400px] shrink-0 h-full border-l ${
                 isTemplatesPIPActive ? "hidden" : ""
               }`}
             >

@@ -11,14 +11,18 @@ import {
   EmptyTitle,
   EmptyDescription,
   EmptyMedia,
+  Tabs,
+  TabsList,
+  TabsTrigger,
+  TabsContent,
+  Separator,
 } from "@hexed/ui";
 import { X, Maximize2, FileCode, AlertCircle } from "lucide-react";
 import { usePIP } from "~/hooks/use-pip";
 import type { TemplatesProps } from "./types";
 import { TemplatesCombobox } from "./templates-combobox";
-import { parse } from "@hexed/binary-templates";
-
-// import Id3v23 from "@hexed/binary-templates/media/id3v2_3.js";
+import { KsySchema, parse } from "@hexed/binary-templates";
+import { MarkdownRenderer } from "~/components/markdown-renderer";
 
 export const Templates: FunctionComponent<TemplatesProps> = ({
   data,
@@ -36,6 +40,7 @@ export const Templates: FunctionComponent<TemplatesProps> = ({
     path: string;
   } | null>(null);
   const [parsedData, setParsedData] = useState<unknown | null>(null);
+  const [selectedSpec, setSelectedSpec] = useState<KsySchema | null>(null);
   const [parseError, setParseError] = useState<string | null>(null);
 
   // Notify parent component when PIP state changes
@@ -57,20 +62,23 @@ export const Templates: FunctionComponent<TemplatesProps> = ({
       return;
     }
 
-    try {
-      const { parsedData, spec } = await parse(entry.path, data);
-      setParsedData(parsedData);
-      setParseError(null);
-      console.log("Parsed data:", {
-        data: parsedData,
-        spec,
-      });
-    } catch (error) {
+    const { parsedData, spec, error } = await parse(entry.path, data);
+
+    if (spec) {
+      setSelectedSpec(spec);
+    } else {
+      setSelectedSpec(null);
+    }
+
+    if (error) {
       console.error("Failed to parse data:", error);
       setParsedData(null);
       const errorMessage =
         error instanceof Error ? error.message : String(error);
       setParseError(errorMessage);
+    } else {
+      setParsedData(parsedData);
+      setParseError(null);
     }
   };
 
@@ -126,6 +134,7 @@ export const Templates: FunctionComponent<TemplatesProps> = ({
             placeholder="Search templates..."
             className="w-full"
           />
+
           {selectedTemplate === null ? (
             <Empty className="h-full">
               <EmptyHeader>
@@ -138,26 +147,157 @@ export const Templates: FunctionComponent<TemplatesProps> = ({
                 </EmptyDescription>
               </EmptyHeader>
             </Empty>
-          ) : parseError ? (
-            <Empty className="h-full">
-              <EmptyHeader>
-                <EmptyMedia variant="icon">
-                  <AlertCircle className="h-6 w-6" />
-                </EmptyMedia>
-                <EmptyTitle>
-                  Could not parse data as &quot;{selectedTemplate.name}&quot;
-                  format
-                </EmptyTitle>
-                <EmptyDescription>{parseError}</EmptyDescription>
-              </EmptyHeader>
-            </Empty>
           ) : (
-            <div className="mt-4">
-              <div className="text-sm font-medium mb-2">Template ID</div>
-              <code className="text-xs bg-muted px-2 py-1 rounded font-mono">
-                {selectedTemplate.name}
-              </code>
-            </div>
+            <Tabs defaultValue="inspector" className="gap-4 mt-4">
+              <TabsList className="w-full border">
+                <TabsTrigger value="inspector">Inspector</TabsTrigger>
+                {selectedSpec && (
+                  <TabsTrigger value="details">Details</TabsTrigger>
+                )}
+              </TabsList>
+              <TabsContent value="inspector" className="mt-4">
+                {parseError ? (
+                  <Empty className="h-full">
+                    <EmptyHeader>
+                      <EmptyMedia variant="icon">
+                        <AlertCircle className="h-6 w-6" />
+                      </EmptyMedia>
+                      <EmptyTitle>
+                        Could not parse data as &quot;{selectedTemplate.name}
+                        &quot; format
+                      </EmptyTitle>
+                      <EmptyDescription>{parseError}</EmptyDescription>
+                    </EmptyHeader>
+                  </Empty>
+                ) : (
+                  <div>{/* Inspector content - blank for now */}</div>
+                )}
+              </TabsContent>
+
+              {selectedSpec && (
+                <TabsContent value="details">
+                  <div className="space-y-4">
+                    {selectedSpec?.meta && (
+                      <Card>
+                        <CardContent className="text-sm">
+                          <div className="space-y-3">
+                            <h3 className="text-sm font-semibold mb-3">
+                              Format Information
+                            </h3>
+                            <dl className="space-y-4 text-sm">
+                              {selectedSpec.meta.title && (
+                                <div>
+                                  <dt className="font-medium text-muted-foreground">
+                                    Title
+                                  </dt>
+                                  <dd className="mt-1">
+                                    {selectedSpec.meta.title}
+                                  </dd>
+                                </div>
+                              )}
+                              {selectedSpec.meta.endian && (
+                                <div>
+                                  <dt className="font-medium text-muted-foreground">
+                                    Endian
+                                  </dt>
+                                  <dd className="mt-1">
+                                    {typeof selectedSpec.meta.endian ===
+                                    "string"
+                                      ? selectedSpec.meta.endian.toUpperCase()
+                                      : "Conditional"}
+                                  </dd>
+                                </div>
+                              )}
+                              {selectedSpec.meta["file-extension"] && (
+                                <div>
+                                  <dt className="font-medium text-muted-foreground">
+                                    File Extensions
+                                  </dt>
+                                  <dd className="mt-1">
+                                    {Array.isArray(
+                                      selectedSpec.meta["file-extension"]
+                                    )
+                                      ? selectedSpec.meta[
+                                          "file-extension"
+                                        ].join(", ")
+                                      : selectedSpec.meta["file-extension"]}
+                                  </dd>
+                                </div>
+                              )}
+                              {selectedSpec.meta.license && (
+                                <div>
+                                  <dt className="font-medium text-muted-foreground">
+                                    License
+                                  </dt>
+                                  <dd className="mt-1">
+                                    {selectedSpec.meta.license}
+                                  </dd>
+                                </div>
+                              )}
+                              {selectedSpec.meta.encoding && (
+                                <div>
+                                  <dt className="font-medium text-muted-foreground">
+                                    Encoding
+                                  </dt>
+                                  <dd className="mt-1">
+                                    {selectedSpec.meta.encoding}
+                                  </dd>
+                                </div>
+                              )}
+                              {selectedSpec.meta.application && (
+                                <div>
+                                  <dt className="font-medium text-muted-foreground">
+                                    Application
+                                  </dt>
+                                  <dd className="mt-1">
+                                    {Array.isArray(
+                                      selectedSpec.meta.application
+                                    )
+                                      ? selectedSpec.meta.application.join(", ")
+                                      : selectedSpec.meta.application}
+                                  </dd>
+                                </div>
+                              )}
+                              {selectedSpec.meta.tags &&
+                                selectedSpec.meta.tags.length > 0 && (
+                                  <div>
+                                    <dt className="font-medium text-muted-foreground">
+                                      Tags
+                                    </dt>
+                                    <dd className="mt-1">
+                                      {selectedSpec.meta.tags.join(", ")}
+                                    </dd>
+                                  </div>
+                                )}
+                              {selectedSpec.meta["ks-version"] && (
+                                <div>
+                                  <dt className="font-medium text-muted-foreground">
+                                    KS Version
+                                  </dt>
+                                  <dd className="mt-1">
+                                    {selectedSpec.meta["ks-version"]}
+                                  </dd>
+                                </div>
+                              )}
+                            </dl>
+                          </div>
+                        </CardContent>
+                      </Card>
+                    )}
+                    {selectedSpec?.doc && (
+                      <Card>
+                        <CardContent className="text-sm">
+                          <MarkdownRenderer
+                            compressed
+                            content={selectedSpec.doc}
+                          />
+                        </CardContent>
+                      </Card>
+                    )}
+                  </div>
+                </TabsContent>
+              )}
+            </Tabs>
           )}
         </CardContent>
       </Card>

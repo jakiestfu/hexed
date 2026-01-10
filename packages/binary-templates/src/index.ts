@@ -1,5 +1,7 @@
 import manifestData from "./ksy/manifest.json";
 import { KsySchema } from "./ksy/types";
+export { type KsySchema } from "./ksy/types";
+
 export const manifest = manifestData;
 
 import templates from "./templates";
@@ -71,11 +73,25 @@ export async function parse(
 ): Promise<{
   parsedData: unknown;
   spec: KsySchema;
+  error?: Error | null;
 }> {
   const kaitaiStream = new KaitaiStream(byteData, 0);
   const { ParserClass, spec } = await load(templateId);
+
+  let parsedData: unknown;
+  try {
+    parsedData = new ParserClass(kaitaiStream, 0, 0);
+  } catch (error) {
+    return {
+      error: error as Error,
+      spec,
+      parsedData: null,
+    };
+  }
+
   return {
-    parsedData: new ParserClass(kaitaiStream, 0, 0),
+    parsedData,
     spec,
+    error: null,
   };
 }
