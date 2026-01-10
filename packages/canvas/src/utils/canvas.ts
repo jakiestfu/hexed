@@ -7,6 +7,12 @@ import type { HexCanvasColors } from "../hex-canvas";
 export type SelectionRange = { start: number; end: number } | null;
 
 /**
+ * Minimum number of bytes per row in the hex canvas.
+ * Set to 1 to allow full responsiveness down to 1 byte per row.
+ */
+const MIN_BYTES_PER_ROW = 1;
+
+/**
  * Calculate layout metrics based on canvas dimensions and context
  */
 export function calculateLayout(
@@ -76,7 +82,7 @@ export function calculateLayout(
       hexByteGap,
       asciiCharWidth,
       borderWidth,
-      bytesPerRow: Math.max(16, estimatedBytes),
+      bytesPerRow: Math.max(MIN_BYTES_PER_ROW, estimatedBytes),
       addressPadding,
       cellWidth,
       hexAsciiGap,
@@ -93,7 +99,7 @@ export function calculateLayout(
       hexByteGap,
       asciiCharWidth,
       borderWidth,
-      bytesPerRow: Math.max(16, calculatedBytes),
+      bytesPerRow: Math.max(MIN_BYTES_PER_ROW, calculatedBytes),
       addressPadding,
       cellWidth,
       hexAsciiGap,
