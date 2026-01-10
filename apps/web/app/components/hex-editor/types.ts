@@ -36,6 +36,7 @@ export type InterpreterProps = {
 
 export type TemplatesProps = {
   data?: Uint8Array;
+  filePath?: string;
   onClose?: () => void;
   onPIPStateChange?: (isPIPActive: boolean) => void;
 };

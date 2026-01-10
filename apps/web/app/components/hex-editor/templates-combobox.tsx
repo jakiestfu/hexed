@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useState } from "react";
 import type { FunctionComponent } from "react";
 import { Check, ChevronsUpDown } from "lucide-react";
 import {
@@ -19,12 +19,13 @@ import {
 } from "@hexed/ui/components/popover";
 import { Button } from "@hexed/ui/components/button";
 import { cn } from "@hexed/ui/lib/utils";
-import { manifest, type KsySchema } from "@hexed/binary-templates";
+import { manifest } from "@hexed/binary-templates";
 
 type TemplateEntry = {
   name: string;
   title: string;
   path: string;
+  extension?: string | string[];
 };
 
 type TemplatesComboboxProps = {
@@ -33,6 +34,7 @@ type TemplatesComboboxProps = {
   onTemplateSelect: (entry: TemplateEntry) => void;
   placeholder?: string;
   className?: string;
+  filePath?: string;
 };
 
 // Helper function to capitalize category names
@@ -43,46 +45,131 @@ function capitalizeCategory(name: string): string {
     .join(" ");
 }
 
-// Helper function to extract templates from manifest
-function extractTemplates(entries: ManifestEntry[]): Array<{
-  category: string;
-  templates: TemplateEntry[];
-}> {
-  const result: Array<{ category: string; templates: TemplateEntry[] }> = [];
+// Type guard to check if an entry is a template (has title and path)
+function isTemplate(entry: unknown): entry is {
+  name: string;
+  title: string;
+  path: string;
+  extension?: string | string[];
+} {
+  if (typeof entry !== "object" || entry === null) {
+    return false;
+  }
+  const obj = entry as Record<string, unknown>;
+  return (
+    "title" in obj &&
+    "path" in obj &&
+    "name" in obj &&
+    typeof obj.title === "string" &&
+    typeof obj.path === "string" &&
+    typeof obj.name === "string"
+  );
+}
 
+// Type guard to check if an entry is a category (has children)
+function isCategory(
+  entry: unknown
+): entry is { name: string; children: unknown[] } {
+  if (typeof entry !== "object" || entry === null) {
+    return false;
+  }
+  const obj = entry as Record<string, unknown>;
+  return (
+    "children" in obj &&
+    "name" in obj &&
+    Array.isArray(obj.children) &&
+    typeof obj.name === "string"
+  );
+}
+
+// Helper function to recursively find a template by name in the manifest
+function findTemplate(
+  entries: unknown[],
+  name: string
+): TemplateEntry | undefined {
   for (const entry of entries) {
-    if ("children" in entry) {
-      // This is a category
-      const templates: TemplateEntry[] = [];
-
-      function collectTemplates(children: ManifestEntry[]) {
-        for (const child of children) {
-          if ("title" in child && "path" in child) {
-            // This is a template
-            templates.push({
-              name: child.name,
-              title: child.title,
-              path: child.path,
-            });
-          } else if ("children" in child) {
-            // Nested category, recurse
-            collectTemplates(child.children);
-          }
-        }
-      }
-
-      collectTemplates(entry.children);
-
-      if (templates.length > 0) {
-        result.push({
-          category: entry.name,
-          templates,
-        });
+    if (isTemplate(entry) && entry.name === name) {
+      return {
+        name: entry.name,
+        title: entry.title,
+        path: entry.path,
+        extension: entry.extension,
+      };
+    }
+    if (isCategory(entry)) {
+      const found = findTemplate(entry.children, name);
+      if (found) {
+        return found;
       }
     }
   }
+  return undefined;
+}
 
-  return result;
+// Helper function to recursively collect all templates from children
+function collectTemplatesFromChildren(children: unknown[]): TemplateEntry[] {
+  const templates: TemplateEntry[] = [];
+  for (const child of children) {
+    if (isTemplate(child)) {
+      templates.push({
+        name: child.name,
+        title: child.title,
+        path: child.path,
+        extension: child.extension,
+      });
+    } else if (isCategory(child)) {
+      templates.push(...collectTemplatesFromChildren(child.children));
+    }
+  }
+  return templates;
+}
+
+// Helper function to extract file extension from file path
+function getFileExtension(filePath: string | undefined): string | null {
+  if (!filePath) return null;
+  const parts = filePath.split(".");
+  if (parts.length < 2) return null;
+  const extension = parts[parts.length - 1]?.toLowerCase();
+  return extension || null;
+}
+
+// Helper function to check if a template matches a file extension
+function templateMatchesExtension(
+  template: TemplateEntry,
+  extension: string
+): boolean {
+  if (!template.extension) return false;
+  if (typeof template.extension === "string") {
+    return template.extension.toLowerCase() === extension;
+  }
+  if (Array.isArray(template.extension)) {
+    return template.extension.some((ext) => ext.toLowerCase() === extension);
+  }
+  return false;
+}
+
+// Helper function to find recommended templates based on file extension
+function findRecommendedTemplates(
+  entries: unknown[],
+  extension: string | null
+): TemplateEntry[] {
+  if (!extension) return [];
+  const recommended: TemplateEntry[] = [];
+  for (const entry of entries) {
+    if (isTemplate(entry)) {
+      if (templateMatchesExtension(entry, extension)) {
+        recommended.push({
+          name: entry.name,
+          title: entry.title,
+          path: entry.path,
+          extension: entry.extension,
+        });
+      }
+    } else if (isCategory(entry)) {
+      recommended.push(...findRecommendedTemplates(entry.children, extension));
+    }
+  }
+  return recommended;
 }
 
 export const TemplatesCombobox: FunctionComponent<TemplatesComboboxProps> = ({
@@ -91,24 +178,16 @@ export const TemplatesCombobox: FunctionComponent<TemplatesComboboxProps> = ({
   onTemplateSelect,
   placeholder = "Select template...",
   className,
+  filePath,
 }) => {
   const [value, setValue] = useState("");
   const [searchValue, setSearchValue] = useState("");
 
-  // Process manifest to extract categories and templates
-  const categoriesWithTemplates = useMemo(() => extractTemplates(manifest), []);
-
-  // Flatten all templates to find the selected one
-  const allTemplates = useMemo(() => {
-    const templates: TemplateEntry[] = [];
-    categoriesWithTemplates.forEach(({ templates: categoryTemplates }) => {
-      templates.push(...categoryTemplates);
-    });
-    return templates;
-  }, [categoriesWithTemplates]);
-
-  const selectedTemplate = allTemplates.find(
-    (template) => template.name === value
+  const selectedTemplate = value ? findTemplate(manifest, value) : undefined;
+  const fileExtension = getFileExtension(filePath);
+  const recommendedTemplates = findRecommendedTemplates(
+    manifest,
+    fileExtension
   );
 
   const handleSelect = (template: TemplateEntry) => {
@@ -154,30 +233,87 @@ export const TemplatesCombobox: FunctionComponent<TemplatesComboboxProps> = ({
           />
           <CommandList>
             <CommandEmpty>No templates found.</CommandEmpty>
-            {categoriesWithTemplates.map(({ category, templates }, index) => (
-              <div key={category}>
-                <CommandGroup heading={capitalizeCategory(category)}>
-                  {templates.map((template) => (
-                    <CommandItem
-                      key={template.name}
-                      value={`${template.name} ${template.title}`}
-                      onSelect={() => handleSelect(template)}
-                    >
-                      <Check
-                        className={cn(
-                          "mr-2 h-4 w-4",
-                          value === template.name ? "opacity-100" : "opacity-0"
+            {(() => {
+              // Get recommended templates
+              const recommendedTemplateNames = new Set(
+                recommendedTemplates.map((t) => t.name)
+              );
+
+              // Filter out recommended templates from category groups
+              const categories = manifest.filter(isCategory);
+              const categoriesWithTemplates = categories
+                .map((category) => ({
+                  category,
+                  templates: collectTemplatesFromChildren(
+                    category.children
+                  ).filter(
+                    (template) => !recommendedTemplateNames.has(template.name)
+                  ),
+                }))
+                .filter(({ templates }) => templates.length > 0);
+
+              const hasRecommended = recommendedTemplates.length > 0;
+              const hasCategories = categoriesWithTemplates.length > 0;
+
+              return (
+                <>
+                  {hasRecommended && (
+                    <>
+                      <CommandGroup heading="Recommended">
+                        {recommendedTemplates.map((template) => (
+                          <CommandItem
+                            key={template.name}
+                            value={`${template.name} ${template.title}`}
+                            onSelect={() => handleSelect(template)}
+                          >
+                            <Check
+                              className={cn(
+                                "h-4 w-4",
+                                value === template.name
+                                  ? "opacity-100"
+                                  : "opacity-0"
+                              )}
+                            />
+                            {template.title}
+                          </CommandItem>
+                        ))}
+                      </CommandGroup>
+                      {hasCategories && <CommandSeparator />}
+                    </>
+                  )}
+                  {categoriesWithTemplates.map(
+                    ({ category, templates }, index) => (
+                      <div key={category.name}>
+                        <CommandGroup
+                          heading={capitalizeCategory(category.name)}
+                        >
+                          {templates.map((template) => (
+                            <CommandItem
+                              key={template.name}
+                              value={`${template.name} ${template.title}`}
+                              onSelect={() => handleSelect(template)}
+                            >
+                              <Check
+                                className={cn(
+                                  "h-4 w-4",
+                                  value === template.name
+                                    ? "opacity-100"
+                                    : "opacity-0"
+                                )}
+                              />
+                              {template.title}
+                            </CommandItem>
+                          ))}
+                        </CommandGroup>
+                        {index < categoriesWithTemplates.length - 1 && (
+                          <CommandSeparator />
                         )}
-                      />
-                      {template.title}
-                    </CommandItem>
-                  ))}
-                </CommandGroup>
-                {index < categoriesWithTemplates.length - 1 && (
-                  <CommandSeparator />
-                )}
-              </div>
-            ))}
+                      </div>
+                    )
+                  )}
+                </>
+              );
+            })()}
           </CommandList>
         </Command>
       </PopoverContent>

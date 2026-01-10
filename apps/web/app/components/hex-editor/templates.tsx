@@ -26,6 +26,7 @@ import { MarkdownRenderer } from "~/components/markdown-renderer";
 
 export const Templates: FunctionComponent<TemplatesProps> = ({
   data,
+  filePath,
   onClose,
   onPIPStateChange,
 }) => {
@@ -133,6 +134,7 @@ export const Templates: FunctionComponent<TemplatesProps> = ({
             onTemplateSelect={handleTemplateSelect}
             placeholder="Search templates..."
             className="w-full"
+            filePath={filePath}
           />
 
           {selectedTemplate === null ? (
