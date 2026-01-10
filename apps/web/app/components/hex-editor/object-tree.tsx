@@ -32,15 +32,15 @@ const TreeNodeView: FunctionComponent<TreeNodeViewProps> = ({
       case "object":
         return (
           <span className="text-sm whitespace-nowrap">
-            <span className="text-blue-400">{node.name}</span>{" "}
-            <span className="text-green-400">[{node.className}]</span>
+            <span className="text-primary">{node.name}</span>{" "}
+            <span className="text-muted-foreground">[{node.className}]</span>
           </span>
         );
 
       case "array":
         return (
           <span className="text-sm whitespace-nowrap">
-            <span className="text-blue-400">{node.name}</span>{" "}
+            <span className="text-primary">{node.name}</span>{" "}
             <span className="text-muted-foreground">({node.arrayLength})</span>
           </span>
         );
@@ -48,7 +48,7 @@ const TreeNodeView: FunctionComponent<TreeNodeViewProps> = ({
       case "typedArray":
         return (
           <span className="text-sm whitespace-nowrap">
-            <span className="text-blue-400">{node.name}</span>
+            <span className="text-primary">{node.name}</span>
             {" = "}
             <span className="text-muted-foreground">{node.bytesPreview}</span>
           </span>
@@ -57,7 +57,7 @@ const TreeNodeView: FunctionComponent<TreeNodeViewProps> = ({
       case "primitive":
         return (
           <span className="text-sm whitespace-nowrap">
-            <span className="text-blue-400">{node.name}</span>
+            <span className="text-primary">{node.name}</span>
             {" = "}
             <span className="font-bold text-foreground">
               {node.value}

@@ -20,6 +20,7 @@ import {
 import { Button } from "@hexed/ui/components/button";
 import { cn } from "@hexed/ui/lib/utils";
 import { manifest } from "@hexed/binary-templates";
+import { useQueryParamState } from "~/hooks/use-query-param-state";
 
 type TemplateEntry = {
   name: string;
@@ -180,7 +181,7 @@ export const TemplatesCombobox: FunctionComponent<TemplatesComboboxProps> = ({
   className,
   filePath,
 }) => {
-  const [value, setValue] = useState("");
+  const [value, setValue] = useQueryParamState<string>("template", "");
   const [searchValue, setSearchValue] = useState("");
 
   const selectedTemplate = value ? findTemplate(manifest, value) : undefined;

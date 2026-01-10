@@ -33,6 +33,9 @@ import {
   Tooltip,
   TooltipContent,
   TooltipTrigger,
+  ResizablePanelGroup,
+  ResizablePanel,
+  ResizableHandle,
 } from "@hexed/ui";
 import {
   Eye,
@@ -283,55 +286,97 @@ export const HexEditor: FunctionComponent<HexEditorProps> = ({
       );
     }
 
-    return snapshots.map((snapshot, index) => (
-      <TabsContent
-        key={snapshot.id}
-        value={index.toString()}
-        className="h-full"
-      >
-        <div className="h-full w-full flex min-w-0">
-          <HexEditorView
-            scrollToOffset={scrollToOffset}
-            snapshot={snapshot}
-            showAscii={showAscii}
-            diff={diff}
-            selectedOffsetRange={selectedOffsetRange}
-            onSelectedOffsetRangeChange={setSelectedOffsetRange}
-          />
-          {showInterpreter && (
-            <div
-              className={`w-[650px] shrink-0 h-full border-l ${
-                isInterpreterPIPActive ? "hidden" : ""
-              }`}
+    return snapshots.map((snapshot, index) => {
+      // Calculate default sizes based on visible panels
+      const hasInterpreter = showInterpreter && !isInterpreterPIPActive;
+      const hasTemplates = showTemplates && !isTemplatesPIPActive;
+
+      let hexCanvasDefaultSize = 100;
+      let interpreterDefaultSize = 0;
+      let templatesDefaultSize = 0;
+
+      if (hasInterpreter && hasTemplates) {
+        hexCanvasDefaultSize = 50;
+        interpreterDefaultSize = 30;
+        templatesDefaultSize = 20;
+      } else if (hasInterpreter) {
+        hexCanvasDefaultSize = 70;
+        interpreterDefaultSize = 30;
+      } else if (hasTemplates) {
+        hexCanvasDefaultSize = 75;
+        templatesDefaultSize = 25;
+      }
+
+      return (
+        <TabsContent
+          key={snapshot.id}
+          value={index.toString()}
+          className="h-full"
+        >
+          <ResizablePanelGroup direction="horizontal" className="h-full">
+            <ResizablePanel
+              id="hex-canvas"
+              defaultSize={hexCanvasDefaultSize}
+              minSize={20}
             >
-              <Interpreter
-                data={snapshot.data}
-                selectedOffset={selectedOffset}
-                endianness={endianness as "le" | "be"}
-                numberFormat={numberFormat as "dec" | "hex"}
-                onClose={() => setShowInterpreter(false)}
-                onScrollToOffset={setScrollToOffset}
-                onPIPStateChange={setIsInterpreterPIPActive}
+              <HexEditorView
+                scrollToOffset={scrollToOffset}
+                snapshot={snapshot}
+                showAscii={showAscii}
+                diff={diff}
+                selectedOffsetRange={selectedOffsetRange}
+                onSelectedOffsetRangeChange={setSelectedOffsetRange}
               />
-            </div>
-          )}
-          {showTemplates && (
-            <div
-              className={`w-[400px] shrink-0 h-full border-l ${
-                isTemplatesPIPActive ? "hidden" : ""
-              }`}
-            >
-              <Templates
-                data={currentSnapshot?.data}
-                filePath={filePath || undefined}
-                onClose={() => setShowTemplates(false)}
-                onPIPStateChange={setIsTemplatesPIPActive}
-              />
-            </div>
-          )}
-        </div>
-      </TabsContent>
-    ));
+            </ResizablePanel>
+            {showInterpreter && (
+              <>
+                <ResizableHandle withHandle />
+                <ResizablePanel
+                  id="interpreter"
+                  defaultSize={
+                    isInterpreterPIPActive ? 0 : interpreterDefaultSize
+                  }
+                  minSize={15}
+                  collapsible
+                >
+                  <div className="h-full border-l">
+                    <Interpreter
+                      data={snapshot.data}
+                      selectedOffset={selectedOffset}
+                      endianness={endianness as "le" | "be"}
+                      numberFormat={numberFormat as "dec" | "hex"}
+                      onClose={() => setShowInterpreter(false)}
+                      onScrollToOffset={setScrollToOffset}
+                      onPIPStateChange={setIsInterpreterPIPActive}
+                    />
+                  </div>
+                </ResizablePanel>
+              </>
+            )}
+            {showTemplates && (
+              <>
+                <ResizableHandle withHandle />
+                <ResizablePanel
+                  id="templates"
+                  defaultSize={isTemplatesPIPActive ? 0 : templatesDefaultSize}
+                  minSize={10}
+                  collapsible
+                >
+                  <div className="h-full border-l">
+                    <Templates
+                      data={currentSnapshot?.data}
+                      filePath={filePath || undefined}
+                      onClose={() => setShowTemplates(false)}
+                      onPIPStateChange={setIsTemplatesPIPActive}
+                    />
+                  </div>
+                </ResizablePanel>
+              </>
+            )}
+          </ResizablePanelGroup>
+        </TabsContent>
+      );
+    });
   };
 
   return (

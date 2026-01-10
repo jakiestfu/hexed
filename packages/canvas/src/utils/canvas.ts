@@ -7,6 +7,13 @@ import type { HexCanvasColors } from "../hex-canvas";
 export type SelectionRange = { start: number; end: number } | null;
 
 /**
+ * Minimum number of bytes per row in the hex canvas.
+ * Set to 1 to allow full responsiveness down to 1 byte per row.
+ * This can be increased if you want to enforce a higher minimum.
+ */
+export const MIN_BYTES_PER_ROW = 1;
+
+/**
  * Calculate layout metrics based on canvas dimensions and context
  */
 export function calculateLayout(
@@ -59,8 +66,7 @@ export function calculateLayout(
     for (let i = 0; i < 5; i++) {
       const asciiColumnWidth =
         estimatedBytes * asciiCharWidth + asciiPadding * 2 + borderWidth;
-      const remainingWidth =
-        availableWidth - hexAsciiGap - asciiColumnWidth;
+      const remainingWidth = availableWidth - hexAsciiGap - asciiColumnWidth;
       const newEstimatedBytes = Math.floor(remainingWidth / cellWidth);
 
       if (newEstimatedBytes === estimatedBytes) {
@@ -69,7 +75,7 @@ export function calculateLayout(
       estimatedBytes = newEstimatedBytes;
     }
 
-    const finalBytesPerRow = Math.max(16, estimatedBytes);
+    const finalBytesPerRow = Math.max(MIN_BYTES_PER_ROW, estimatedBytes);
 
     // Calculate dynamic ASCII cell width to fill remaining canvas width
     const hexColumnStartX = addressColumnTotalWidth + addressHexGap;
@@ -97,7 +103,7 @@ export function calculateLayout(
     };
   } else {
     const calculatedBytes = Math.floor(availableWidth / cellWidth);
-    const finalBytesPerRow = Math.max(16, calculatedBytes);
+    const finalBytesPerRow = Math.max(MIN_BYTES_PER_ROW, calculatedBytes);
 
     // When ASCII is not shown, asciiCellWidth is not used, but we need to provide a default value
     const asciiCellWidth = asciiCharWidth;
@@ -130,9 +136,7 @@ export function calculateTotalHeight(
 ): number {
   if (!layout) return 0;
   return (
-    rowsLength * layout.rowHeight +
-    layout.verticalPadding * 2 -
-    viewportHeight
+    rowsLength * layout.rowHeight + layout.verticalPadding * 2 - viewportHeight
   );
 }
 
@@ -145,7 +149,12 @@ export function calculateVisibleRows(
   viewportHeight: number,
   rowsLength: number,
   overscan: number = 5
-): { startRow: number; endRow: number; renderStartRow: number; renderEndRow: number } {
+): {
+  startRow: number;
+  endRow: number;
+  renderStartRow: number;
+  renderEndRow: number;
+} {
   // Calculate visible rows based on scroll position (accounting for vertical padding)
   const scrollTopAdjusted = Math.max(0, scrollTop - layout.verticalPadding);
   const startRow = Math.floor(scrollTopAdjusted / layout.rowHeight);
@@ -173,8 +182,7 @@ export function calculateScrollPosition(
   // Calculate row's top position
   const rowTop = rowIndex * layout.rowHeight + layout.verticalPadding;
   // Center the row in the viewport
-  const targetScrollTop =
-    rowTop + layout.rowHeight / 2 - viewportHeight / 2;
+  const targetScrollTop = rowTop + layout.rowHeight / 2 - viewportHeight / 2;
   return Math.max(0, targetScrollTop); // Ensure we don't scroll to negative values
 }
 
