@@ -6,6 +6,7 @@
         "format": "gltf_binary",
         "title": "GL Transmission Format, binary container",
         "path": "3d/gltf_binary.ksy",
+        "extension": "glb",
         "name": "gltf_binary"
       }
     ]
@@ -17,96 +18,112 @@
         "format": "android_bootldr_asus",
         "title": "ASUS Fugu bootloader.img format (version 2 and later)",
         "path": "archive/android_bootldr_asus.ksy",
+        "extension": "img",
         "name": "android_bootldr_asus"
       },
       {
         "format": "android_bootldr_huawei",
         "title": "Huawei Bootloader packed image format",
         "path": "archive/android_bootldr_huawei.ksy",
+        "extension": "img",
         "name": "android_bootldr_huawei"
       },
       {
         "format": "android_bootldr_qcom",
         "title": "Qualcomm Snapdragon (MSM) bootloader.img format",
         "path": "archive/android_bootldr_qcom.ksy",
+        "extension": "img",
         "name": "android_bootldr_qcom"
       },
       {
         "format": "android_dto",
         "title": "Android DTB/DTBO Partition",
         "path": "archive/android_dto.ksy",
+        "extension": "img",
         "name": "android_dto"
       },
       {
         "format": "android_img",
         "title": "Android Boot Image",
         "path": "archive/android_img.ksy",
+        "extension": "img",
         "name": "android_img"
       },
       {
         "format": "android_sparse",
         "title": "Android sparse image",
         "path": "archive/android_sparse.ksy",
+        "extension": "img",
         "name": "android_sparse"
       },
       {
         "format": "cpio_old_le",
         "title": "cpio archive, old binary variant, little-endian",
         "path": "archive/cpio_old_le.ksy",
+        "extension": "cpio",
         "name": "cpio_old_le"
       },
       {
         "format": "gzip",
         "title": "gzip",
         "path": "archive/gzip.ksy",
+        "extension": "gz",
         "name": "gzip"
       },
       {
         "format": "lzh",
         "title": "lzh",
         "path": "archive/lzh.ksy",
+        "extension": "lzh",
         "name": "lzh"
       },
       {
         "format": "mozilla_mar",
         "title": "Mozilla ARchive",
         "path": "archive/mozilla_mar.ksy",
+        "extension": "mar",
         "name": "mozilla_mar"
       },
       {
         "format": "phar_without_stub",
         "title": "PHP phar archive (without stub)",
         "path": "archive/phar_without_stub.ksy",
+        "extension": "phar",
         "name": "phar_without_stub"
       },
       {
         "format": "rar",
         "title": "RAR (Roshall ARchiver) archive files",
         "path": "archive/rar.ksy",
+        "extension": "rar",
         "name": "rar"
       },
       {
         "format": "respack",
         "title": "ResPack",
         "path": "archive/respack.ksy",
+        "extension": "cfg",
         "name": "respack"
       },
       {
         "format": "rpm",
         "title": "RPM package file",
         "path": "archive/rpm.ksy",
+        "extension": ["rpm", "srpm", "src.rpm", "drpm"],
         "name": "rpm"
       },
       {
         "format": "xar",
         "title": "XAR (eXtensible ARchive)",
         "path": "archive/xar.ksy",
+        "extension": ["xar", "pkg", "xip"],
         "name": "xar"
       },
       {
         "format": "zip",
         "title": "ZIP archive file",
         "path": "archive/zip.ksy",
+        "extension": "zip",
         "name": "zip"
       },
       {
@@ -124,6 +141,7 @@
         "format": "monomakh_sapr_chg",
         "title": "monomakh_sapr_chg",
         "path": "cad/monomakh_sapr_chg.ksy",
+        "extension": "chg",
         "name": "monomakh_sapr_chg"
       }
     ]
@@ -159,6 +177,7 @@
         "format": "utf8_string",
         "title": "UTF-8-encoded string",
         "path": "common/utf8_string.ksy",
+        "extension": "txt",
         "name": "utf8_string"
       },
       {
@@ -182,24 +201,28 @@
         "format": "dbf",
         "title": "dbf",
         "path": "database/dbf.ksy",
+        "extension": "dbf",
         "name": "dbf"
       },
       {
         "format": "gettext_mo",
         "title": "gettext binary database",
         "path": "database/gettext_mo.ksy",
+        "extension": "mo",
         "name": "gettext_mo"
       },
       {
         "format": "sqlite3",
         "title": "SQLite3 database file",
         "path": "database/sqlite3.ksy",
+        "extension": ["sqlite", "db", "db3", "sqlite3"],
         "name": "sqlite3"
       },
       {
         "format": "tsm",
         "title": "InfluxDB TSM file",
         "path": "database/tsm.ksy",
+        "extension": "tsm",
         "name": "tsm"
       }
     ]
@@ -211,18 +234,21 @@
         "format": "android_nanoapp_header",
         "title": "Android nanoapp header",
         "path": "executable/android_nanoapp_header.ksy",
+        "extension": "napp_header",
         "name": "android_nanoapp_header"
       },
       {
         "format": "dex",
         "title": "Android Dalvik VM executable (dex)",
         "path": "executable/dex.ksy",
+        "extension": "dex",
         "name": "dex"
       },
       {
         "format": "dos_mz",
         "title": "DOS MZ executable",
         "path": "executable/dos_mz.ksy",
+        "extension": ["exe", "ovl"],
         "name": "dos_mz"
       },
       {
@@ -235,6 +261,7 @@
         "format": "java_class",
         "title": "java_class",
         "path": "executable/java_class.ksy",
+        "extension": "class",
         "name": "java_class"
       },
       {
@@ -253,24 +280,28 @@
         "format": "microsoft_pe",
         "title": "Microsoft PE (Portable Executable) file format",
         "path": "executable/microsoft_pe.ksy",
+        "extension": ["exe", "dll", "sys"],
         "name": "microsoft_pe"
       },
       {
         "format": "python_pyc_27",
         "title": "python_pyc_27",
         "path": "executable/python_pyc_27.ksy",
+        "extension": "pyc",
         "name": "python_pyc_27"
       },
       {
         "format": "swf",
         "title": "Adobe Flash (AKA Shockwave Flash, Macromedia Flash)",
         "path": "executable/swf.ksy",
+        "extension": "swf",
         "name": "swf"
       },
       {
         "format": "uefi_te",
         "title": "TE (Terse Executable) file",
         "path": "executable/uefi_te.ksy",
+        "extension": ["efi", "te"],
         "name": "uefi_te"
       }
     ]
@@ -288,6 +319,7 @@
         "format": "android_super",
         "title": "Android Dynamic Partitions metadata",
         "path": "filesystem/android_super.ksy",
+        "extension": "img",
         "name": "android_super"
       },
       {
@@ -330,6 +362,7 @@
         "format": "iso9660",
         "title": "ISO9660 CD filesystem",
         "path": "filesystem/iso9660.ksy",
+        "extension": "iso",
         "name": "iso9660"
       },
       {
@@ -354,12 +387,14 @@
         "format": "tr_dos_image",
         "title": "TR-DOS flat-file disk image",
         "path": "filesystem/tr_dos_image.ksy",
+        "extension": "trd",
         "name": "tr_dos_image"
       },
       {
         "format": "vdi",
         "title": "VirtualBox Disk Image",
         "path": "filesystem/vdi.ksy",
+        "extension": "vdi",
         "name": "vdi"
       },
       {
@@ -372,12 +407,14 @@
         "format": "vmware_vmdk",
         "title": "VMWare Virtual Disk",
         "path": "filesystem/vmware_vmdk.ksy",
+        "extension": "vmdk",
         "name": "vmware_vmdk"
       },
       {
         "format": "zx_spectrum_tap",
         "title": "ZX Spectrum tape file",
         "path": "filesystem/zx_spectrum_tap.ksy",
+        "extension": "tap",
         "name": "zx_spectrum_tap"
       }
     ]
@@ -395,12 +432,14 @@
         "format": "broadcom_trx",
         "title": "Broadcom devices .trx firmware packaging",
         "path": "firmware/broadcom_trx.ksy",
+        "extension": "trx",
         "name": "broadcom_trx"
       },
       {
         "format": "ines",
         "title": "ines",
         "path": "firmware/ines.ksy",
+        "extension": "nes",
         "name": "ines"
       },
       {
@@ -418,18 +457,21 @@
         "format": "grub2_font",
         "title": "GRUB 2 font",
         "path": "font/grub2_font.ksy",
+        "extension": "pf2",
         "name": "grub2_font"
       },
       {
         "format": "pcf_font",
         "title": "Portable Compiled Format (PCF) font",
         "path": "font/pcf_font.ksy",
+        "extension": "pcf",
         "name": "pcf_font"
       },
       {
         "format": "ttf",
         "title": "TrueType Font File",
         "path": "font/ttf.ksy",
+        "extension": "ttf",
         "name": "ttf"
       }
     ]
@@ -441,102 +483,119 @@
         "format": "allegro_dat",
         "title": "Allegro data file",
         "path": "game/allegro_dat.ksy",
+        "extension": "dat",
         "name": "allegro_dat"
       },
       {
         "format": "doom_wad",
         "title": "doom_wad",
         "path": "game/doom_wad.ksy",
+        "extension": "wad",
         "name": "doom_wad"
       },
       {
         "format": "dune_2_pak",
         "title": "dune_2_pak",
         "path": "game/dune_2_pak.ksy",
+        "extension": "pak",
         "name": "dune_2_pak"
       },
       {
         "format": "fallout_dat",
         "title": "fallout_dat",
         "path": "game/fallout_dat.ksy",
+        "extension": "dat",
         "name": "fallout_dat"
       },
       {
         "format": "fallout2_dat",
         "title": "fallout2_dat",
         "path": "game/fallout2_dat.ksy",
+        "extension": "dat",
         "name": "fallout2_dat"
       },
       {
         "format": "ftl_dat",
         "title": "ftl_dat",
         "path": "game/ftl_dat.ksy",
+        "extension": "dat",
         "name": "ftl_dat"
       },
       {
         "format": "gran_turismo_vol",
         "title": "Gran Turismo File System (GTFS)",
         "path": "game/gran_turismo_vol.ksy",
+        "extension": "vol",
         "name": "gran_turismo_vol"
       },
       {
         "format": "heaps_pak",
         "title": "heaps_pak",
         "path": "game/heaps_pak.ksy",
+        "extension": "pak",
         "name": "heaps_pak"
       },
       {
         "format": "heroes_of_might_and_magic_agg",
         "title": "heroes_of_might_and_magic_agg",
         "path": "game/heroes_of_might_and_magic_agg.ksy",
+        "extension": "agg",
         "name": "heroes_of_might_and_magic_agg"
       },
       {
         "format": "heroes_of_might_and_magic_bmp",
         "title": "heroes_of_might_and_magic_bmp",
         "path": "game/heroes_of_might_and_magic_bmp.ksy",
+        "extension": "bmp",
         "name": "heroes_of_might_and_magic_bmp"
       },
       {
         "format": "minecraft_nbt",
         "title": "Minecraft NBT (Named Binary Tag)",
         "path": "game/minecraft_nbt.ksy",
+        "extension": ["nbt", "dat", "schematic", "schem"],
         "name": "minecraft_nbt"
       },
       {
         "format": "quake_mdl",
         "title": "Quake 1 (idtech2) model format (MDL version 6)",
         "path": "game/quake_mdl.ksy",
+        "extension": "mdl",
         "name": "quake_mdl"
       },
       {
         "format": "quake_pak",
         "title": "quake_pak",
         "path": "game/quake_pak.ksy",
+        "extension": "pak",
         "name": "quake_pak"
       },
       {
         "format": "quake2_md2",
         "title": "Quake II player model (version 8)",
         "path": "game/quake2_md2.ksy",
+        "extension": "md2",
         "name": "quake2_md2"
       },
       {
         "format": "renderware_binary_stream",
         "title": "RenderWare binary stream",
         "path": "game/renderware_binary_stream.ksy",
+        "extension": ["dff", "txd"],
         "name": "renderware_binary_stream"
       },
       {
         "format": "saints_row_2_vpp_pc",
         "title": "Saints Rows 2 game packages",
         "path": "game/saints_row_2_vpp_pc.ksy",
+        "extension": "vpp_pc",
         "name": "saints_row_2_vpp_pc"
       },
       {
         "format": "warcraft_2_pud",
         "title": "Warcraft II map files",
         "path": "game/warcraft_2_pud.ksy",
+        "extension": "pud",
         "name": "warcraft_2_pud"
       }
     ]
@@ -548,12 +607,14 @@
         "format": "shapefile_index",
         "title": "Shapefile index file",
         "path": "geospatial/shapefile_index.ksy",
+        "extension": "shx",
         "name": "shapefile_index"
       },
       {
         "format": "shapefile_main",
         "title": "Shapefile main file",
         "path": "geospatial/shapefile_main.ksy",
+        "extension": "shp",
         "name": "shapefile_main"
       }
     ]
@@ -565,6 +626,7 @@
         "format": "dtb",
         "title": "Flattened Devicetree Format",
         "path": "hardware/dtb.ksy",
+        "extension": "dtb",
         "name": "dtb"
       },
       {
@@ -580,6 +642,7 @@
             "format": "mifare_classic",
             "title": "Mifare Classic RFID tag dump",
             "path": "hardware/mifare/mifare_classic.ksy",
+            "extension": "mfd",
             "name": "mifare_classic"
           }
         ]
@@ -593,12 +656,14 @@
         "format": "bmp",
         "title": "bmp",
         "path": "image/bmp.ksy",
+        "extension": "bmp",
         "name": "bmp"
       },
       {
         "format": "dicom",
         "title": "Digital Imaging and Communications in Medicine (DICOM) file format",
         "path": "image/dicom.ksy",
+        "extension": "dcm",
         "name": "dicom"
       },
       {
@@ -611,84 +676,107 @@
         "format": "gif",
         "title": "GIF (Graphics Interchange Format) image file",
         "path": "image/gif.ksy",
+        "extension": "gif",
         "name": "gif"
       },
       {
         "format": "gimp_brush",
         "title": "GIMP brush file version 2",
         "path": "image/gimp_brush.ksy",
+        "extension": "gbr",
         "name": "gimp_brush"
       },
       {
         "format": "icc_4",
         "title": "ICC profile, version 4",
         "path": "image/icc_4.ksy",
+        "extension": ["icc", "icm"],
         "name": "icc_4"
       },
       {
         "format": "ico",
         "title": "Microsoft Windows icon file",
         "path": "image/ico.ksy",
+        "extension": "ico",
         "name": "ico"
       },
       {
         "format": "jpeg",
         "title": "JPEG (Joint Photographic Experts Group) File Interchange Format",
         "path": "image/jpeg.ksy",
+        "extension": ["jpg", "jpeg", "jpe", "jif", "jfif", "jfi"],
         "name": "jpeg"
       },
       {
         "format": "nitf",
         "title": "National Imagery Transmission Format",
         "path": "image/nitf.ksy",
+        "extension": [
+          "ntf",
+          "nitf",
+          "ntf.r0",
+          "ntf.r1",
+          "ntf.r2",
+          "ntf.r3",
+          "ntf.r4",
+          "ntf.r5"
+        ],
         "name": "nitf"
       },
       {
         "format": "pcx",
         "title": "pcx",
         "path": "image/pcx.ksy",
+        "extension": "pcx",
         "name": "pcx"
       },
       {
         "format": "pcx_dcx",
         "title": "pcx_dcx",
         "path": "image/pcx_dcx.ksy",
+        "extension": "dcx",
         "name": "pcx_dcx"
       },
       {
         "format": "pif",
         "title": "Portable Image Format",
         "path": "image/pif.ksy",
+        "extension": "pif",
         "name": "pif"
       },
       {
         "format": "png",
         "title": "PNG (Portable Network Graphics) file",
         "path": "image/png.ksy",
+        "extension": ["png", "apng"],
         "name": "png"
       },
       {
         "format": "psx_tim",
         "title": "psx_tim",
         "path": "image/psx_tim.ksy",
+        "extension": "tim",
         "name": "psx_tim"
       },
       {
         "format": "tga",
         "title": "TGA (AKA Truevision TGA, AKA TARGA) raster image file format",
         "path": "image/tga.ksy",
+        "extension": ["tga", "icb", "vda", "vst"],
         "name": "tga"
       },
       {
         "format": "wmf",
         "title": "Windows Metafile (WMF) vector image",
         "path": "image/wmf.ksy",
+        "extension": "wmf",
         "name": "wmf"
       },
       {
         "format": "xwd",
         "title": "xwd (X Window Dump) bitmap image",
         "path": "image/xwd.ksy",
+        "extension": "xwd",
         "name": "xwd"
       }
     ]
@@ -712,12 +800,14 @@
         "format": "hashcat_restore",
         "title": "Hashcat Restore file",
         "path": "log/hashcat_restore.ksy",
+        "extension": "restore",
         "name": "hashcat_restore"
       },
       {
         "format": "mcap",
         "title": "MCAP",
         "path": "log/mcap.ksy",
+        "extension": "mcap",
         "name": "mcap"
       },
       {
@@ -730,12 +820,14 @@
         "format": "systemd_journal",
         "title": "systemd journal file",
         "path": "log/systemd_journal.ksy",
+        "extension": "journal",
         "name": "systemd_journal"
       },
       {
         "format": "windows_evt_log",
         "title": "Windows Event Log (EVT)",
         "path": "log/windows_evt_log.ksy",
+        "extension": "evt",
         "name": "windows_evt_log"
       }
     ]
@@ -764,6 +856,7 @@
         "format": "ds_store",
         "title": "macOS '.DS_Store' format",
         "path": "macos/ds_store.ksy",
+        "extension": "DS_Store",
         "name": "ds_store"
       },
       {
@@ -776,6 +869,7 @@
         "format": "resource_fork",
         "title": "Macintosh resource fork data",
         "path": "macos/resource_fork.ksy",
+        "extension": ["rsrc", "dfont"],
         "name": "resource_fork"
       },
       {
@@ -822,90 +916,105 @@
         "format": "au",
         "title": "AU audio format",
         "path": "media/au.ksy",
+        "extension": ["au", "snd"],
         "name": "au"
       },
       {
         "format": "avi",
         "title": "Microsoft AVI file",
         "path": "media/avi.ksy",
+        "extension": "avi",
         "name": "avi"
       },
       {
         "format": "blender_blend",
         "title": "blender_blend",
         "path": "media/blender_blend.ksy",
+        "extension": "blend",
         "name": "blender_blend"
       },
       {
         "format": "creative_voice_file",
         "title": "Creative Voice File",
         "path": "media/creative_voice_file.ksy",
+        "extension": "voc",
         "name": "creative_voice_file"
       },
       {
         "format": "genmidi_op2",
         "title": "GENMIDI.OP2 OPL2 sound bank",
         "path": "media/genmidi_op2.ksy",
+        "extension": "op2",
         "name": "genmidi_op2"
       },
       {
         "format": "id3v1_1",
         "title": "ID3v1.1 tag for .mp3 files",
         "path": "media/id3v1_1.ksy",
+        "extension": "mp3",
         "name": "id3v1_1"
       },
       {
         "format": "id3v2_3",
         "title": "ID3v2.3 tag for .mp3 files",
         "path": "media/id3v2_3.ksy",
+        "extension": "mp3",
         "name": "id3v2_3"
       },
       {
         "format": "id3v2_4",
         "title": "ID3v2.4 tag for .mp3 files",
         "path": "media/id3v2_4.ksy",
+        "extension": "mp3",
         "name": "id3v2_4"
       },
       {
         "format": "magicavoxel_vox",
         "title": "MagicaVoxel File",
         "path": "media/magicavoxel_vox.ksy",
+        "extension": "vox",
         "name": "magicavoxel_vox"
       },
       {
         "format": "ogg",
         "title": "Ogg media container file",
         "path": "media/ogg.ksy",
+        "extension": ["ogg", "ogv", "oga", "spx", "ogx"],
         "name": "ogg"
       },
       {
         "format": "quicktime_mov",
         "title": "quicktime_mov",
         "path": "media/quicktime_mov.ksy",
+        "extension": "mov",
         "name": "quicktime_mov"
       },
       {
         "format": "standard_midi_file",
         "title": "Standard MIDI file",
         "path": "media/standard_midi_file.ksy",
+        "extension": ["mid", "midi", "smf"],
         "name": "standard_midi_file"
       },
       {
         "format": "stl",
         "title": "stl",
         "path": "media/stl.ksy",
+        "extension": "stl",
         "name": "stl"
       },
       {
         "format": "vp8_duck_ivf",
         "title": "Duck IVF (container format for VP8)",
         "path": "media/vp8_duck_ivf.ksy",
+        "extension": "ivf",
         "name": "vp8_duck_ivf"
       },
       {
         "format": "wav",
         "title": "Microsoft WAVE audio file",
         "path": "media/wav.ksy",
+        "extension": ["wav", "bwf"],
         "name": "wav"
       },
       {
@@ -915,12 +1024,14 @@
             "format": "fasttracker_xm_module",
             "title": "Extended Module",
             "path": "media/tracker_modules/fasttracker_xm_module.ksy",
+            "extension": "xm",
             "name": "fasttracker_xm_module"
           },
           {
             "format": "s3m",
             "title": "Scream Tracker 3 module",
             "path": "media/tracker_modules/s3m.ksy",
+            "extension": "s3m",
             "name": "s3m"
           }
         ]
@@ -940,6 +1051,7 @@
         "format": "dime_message",
         "title": "DIME (Direct Internet Message Encapsulation) Message",
         "path": "network/dime_message.ksy",
+        "extension": ["dim", "dime"],
         "name": "dime_message"
       },
       {
@@ -958,12 +1070,14 @@
         "format": "hccap",
         "title": "Hashcat capture file (old version)",
         "path": "network/hccap.ksy",
+        "extension": "hccap",
         "name": "hccap"
       },
       {
         "format": "hccapx",
         "title": "Hashcat capture file",
         "path": "network/hccapx.ksy",
+        "extension": "hccapx",
         "name": "hccapx"
       },
       {
@@ -988,6 +1102,7 @@
         "format": "microsoft_network_monitor_v2",
         "title": "microsoft_network_monitor_v2",
         "path": "network/microsoft_network_monitor_v2.ksy",
+        "extension": "cap",
         "name": "microsoft_network_monitor_v2"
       },
       {
@@ -1000,6 +1115,7 @@
         "format": "pcap",
         "title": "pcap",
         "path": "network/pcap.ksy",
+        "extension": ["pcap", "pcapdump"],
         "name": "pcap"
       },
       {
@@ -1024,6 +1140,7 @@
         "format": "rtpdump",
         "title": "Rtpdump (rtptools)",
         "path": "network/rtpdump.ksy",
+        "extension": ["rtp", "rtpdump"],
         "name": "rtpdump"
       },
       {
@@ -1097,12 +1214,14 @@
             "format": "nt_mdt",
             "title": "NT-MDT data",
             "path": "scientific/nt_mdt/nt_mdt.ksy",
+            "extension": "mdt",
             "name": "nt_mdt"
           },
           {
             "format": "nt_mdt_pal",
             "title": "NT-MDT palette format",
             "path": "scientific/nt_mdt/nt_mdt_pal.ksy",
+            "extension": "pal",
             "name": "nt_mdt_pal"
           }
         ]
@@ -1114,12 +1233,14 @@
             "format": "avantes_roh60",
             "title": "Avantes USB spectrometer ROH file 6.0",
             "path": "scientific/spectroscopy/avantes_roh60.ksy",
+            "extension": "roh",
             "name": "avantes_roh60"
           },
           {
             "format": "specpr",
             "title": "SPECtrum Processing Routines Data Format 3/4/88",
             "path": "scientific/spectroscopy/specpr.ksy",
+            "extension": "spec",
             "name": "specpr"
           }
         ]
@@ -1139,6 +1260,7 @@
         "format": "openpgp_message",
         "title": "OpenPGP message",
         "path": "security/openpgp_message.ksy",
+        "extension": ["gpg", "pub", "pgp"],
         "name": "openpgp_message"
       },
       {
@@ -1156,12 +1278,14 @@
         "format": "bson",
         "title": "bson",
         "path": "serialization/bson.ksy",
+        "extension": "bson",
         "name": "bson"
       },
       {
         "format": "chrome_pak",
         "title": "Chrome PAK serialization format",
         "path": "serialization/chrome_pak.ksy",
+        "extension": "pak",
         "name": "chrome_pak"
       },
       {
@@ -1192,6 +1316,7 @@
         "format": "python_pickle",
         "title": "Python pickle serialization format",
         "path": "serialization/python_pickle.ksy",
+        "extension": ["pickle", "pkl"],
         "name": "python_pickle"
       },
       {
@@ -1207,6 +1332,7 @@
             "format": "asn1_der",
             "title": "ASN.1 DER (Abstract Syntax Notation One, Distinguished Encoding Rules)",
             "path": "serialization/asn1/asn1_der.ksy",
+            "extension": "der",
             "name": "asn1_der"
           }
         ]
@@ -1226,18 +1352,21 @@
         "format": "windows_lnk_file",
         "title": "Windows shell link file",
         "path": "windows/windows_lnk_file.ksy",
+        "extension": "lnk",
         "name": "windows_lnk_file"
       },
       {
         "format": "windows_minidump",
         "title": "Windows MiniDump",
         "path": "windows/windows_minidump.ksy",
+        "extension": ["dmp", "mdmp"],
         "name": "windows_minidump"
       },
       {
         "format": "windows_resource_file",
         "title": "Windows resource file",
         "path": "windows/windows_resource_file.ksy",
+        "extension": "res",
         "name": "windows_resource_file"
       },
       {

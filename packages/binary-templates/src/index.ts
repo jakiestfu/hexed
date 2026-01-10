@@ -33,7 +33,13 @@ export async function load(path: string): Promise<{
     | undefined;
 
   const defaultExport = parserModule.default;
-  const spec = (parserModule as { spec: KsySchema }).spec;
+  const spec = (
+    parserModule as {
+      spec: {
+        ksy: KsySchema;
+      };
+    }
+  ).spec.ksy;
 
   try {
     ParserClass = Object.values(defaultExport)[0] as new (

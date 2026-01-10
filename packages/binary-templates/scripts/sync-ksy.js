@@ -73,6 +73,7 @@ async function syncKsyFiles() {
         format: metadata.id,
         title: metadata.title,
         path: ksyFile.relativePath,
+        extension: metadata.ksy.meta?.["file-extension"],
       });
     }
 

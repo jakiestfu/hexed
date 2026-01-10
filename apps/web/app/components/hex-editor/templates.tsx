@@ -61,7 +61,10 @@ export const Templates: FunctionComponent<TemplatesProps> = ({
       const { parsedData, spec } = await parse(entry.path, data);
       setParsedData(parsedData);
       setParseError(null);
-      console.log("Parsed data:", parsedData);
+      console.log("Parsed data:", {
+        data: parsedData,
+        spec,
+      });
     } catch (error) {
       console.error("Failed to parse data:", error);
       setParsedData(null);
@@ -124,7 +127,7 @@ export const Templates: FunctionComponent<TemplatesProps> = ({
             className="w-full"
           />
           {selectedTemplate === null ? (
-            <Empty className="mt-8">
+            <Empty className="h-full">
               <EmptyHeader>
                 <EmptyMedia variant="icon">
                   <FileCode className="h-6 w-6" />
@@ -136,7 +139,7 @@ export const Templates: FunctionComponent<TemplatesProps> = ({
               </EmptyHeader>
             </Empty>
           ) : parseError ? (
-            <Empty className="mt-8">
+            <Empty className="h-full">
               <EmptyHeader>
                 <EmptyMedia variant="icon">
                   <AlertCircle className="h-6 w-6" />
