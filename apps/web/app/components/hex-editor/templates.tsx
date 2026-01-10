@@ -16,6 +16,7 @@ import { X, Maximize2, FileCode } from "lucide-react";
 import { usePIP } from "~/hooks/use-pip";
 import type { TemplatesProps } from "./types";
 import { TemplatesCombobox } from "./templates-combobox";
+import { load } from "@hexed/binary-templates";
 
 export const Templates: FunctionComponent<TemplatesProps> = ({
   onClose,
@@ -37,14 +38,18 @@ export const Templates: FunctionComponent<TemplatesProps> = ({
     onPIPStateChange?.(isPIPActive);
   }, [isPIPActive, onPIPStateChange]);
 
-  const handleTemplateSelect = (entry: {
+  const handleTemplateSelect = async (entry: {
     name: string;
     title: string;
     path: string;
   }) => {
     setSelectedTemplate(entry);
-    // TODO: Implement template selection logic
-    console.log("Template selected:", entry);
+    try {
+      const parserClass = await load(entry.path);
+      console.log("Loaded parser:", parserClass);
+    } catch (error) {
+      console.error("Failed to load parser:", error);
+    }
   };
 
   return (

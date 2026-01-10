@@ -172,6 +172,82 @@ function buildNestedManifest(formatEntries) {
   return treeToArray(tree);
 }
 
+/**
+ * Converts a ksy file path to export path entries
+ * Preserves the original path structure without renaming or case conversion
+ * @param ksyPath - The path from the manifest (e.g., "3d/gltf_binary.ksy")
+ * @returns Object with export key and value
+ */
+function ksyPathToExportPath(ksyPath) {
+  // Remove .ksy extension and keep original path structure
+  const jsPath = ksyPath.replace(/\.ksy$/, ".js");
+
+  // Export key and value are the same: ./dist prefix + original path with .js
+  const exportPath = `./dist/${jsPath}`;
+
+  return { key: `./${jsPath}`, value: exportPath };
+}
+
+/**
+ * Generates export paths from manifest format entries
+ * @param formatEntries - Array of format entries with path field
+ * @returns Array of export entries with key and value
+ */
+function generateExportPathsFromManifest(formatEntries) {
+  return formatEntries.map((entry) => ksyPathToExportPath(entry.path));
+}
+
+/**
+ * Updates package.json exports field
+ * Preserves only "." and "./manifest" exports, then adds all new exports
+ * @param exports - Array of export entries with key and value
+ */
+async function updatePackageJsonExports(exports) {
+  const packageJsonPath = join(packageRoot, "package.json");
+  const packageJsonContent = await readFile(packageJsonPath, "utf-8");
+  const packageJson = JSON.parse(packageJsonContent);
+
+  // Preserve only "." and "./manifest" exports
+  const preservedExports = {};
+  if (packageJson.exports?.["."]) {
+    preservedExports["."] = packageJson.exports["."];
+  }
+  if (packageJson.exports?.["./manifest"]) {
+    preservedExports["./manifest"] = packageJson.exports["./manifest"];
+  }
+
+  // Add all new exports
+  const newExports = {};
+  for (const exportEntry of exports) {
+    newExports[exportEntry.key] = exportEntry.value;
+  }
+
+  // Merge and sort exports alphabetically
+  const allExports = { ...preservedExports, ...newExports };
+  const sortedKeys = Object.keys(allExports).sort((a, b) => {
+    // Keep "." first, then "./manifest", then sort the rest
+    if (a === ".") return -1;
+    if (b === ".") return 1;
+    if (a === "./manifest") return -1;
+    if (b === "./manifest") return 1;
+    return a.localeCompare(b);
+  });
+
+  const sortedExports = {};
+  for (const key of sortedKeys) {
+    sortedExports[key] = allExports[key];
+  }
+
+  packageJson.exports = sortedExports;
+
+  // Write updated package.json
+  await writeFile(
+    packageJsonPath,
+    JSON.stringify(packageJson, null, 2) + "\n",
+    "utf-8"
+  );
+}
+
 function generateTypeScriptManifest(manifest) {
   function formatValue(value, indent = 0) {
     const indentStr = "  ".repeat(indent);
@@ -319,9 +395,17 @@ async function syncKsyFiles() {
     const manifestContent = generateTypeScriptManifest(manifest);
     await writeFile(manifestPath, manifestContent, "utf-8");
 
+    // Generate and update package.json exports
+    console.log("Updating package.json exports...");
+    const exportEntries = generateExportPathsFromManifest(formatEntries);
+    await updatePackageJsonExports(exportEntries);
+
     console.log(`✓ Successfully synced ${ksyFiles.length} .ksy files`);
     console.log(`✓ Generated manifest.ts with nested structure`);
     console.log(`✓ Manifest written to ${manifestPath}`);
+    console.log(
+      `✓ Updated package.json with ${exportEntries.length} export(s)`
+    );
   } catch (error) {
     console.error("Error syncing .ksy files:", error);
     hadError = true;
