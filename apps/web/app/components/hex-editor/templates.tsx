@@ -23,6 +23,7 @@ import type { TemplatesProps } from "./types";
 import { TemplatesCombobox } from "./templates-combobox";
 import { KsySchema, parse } from "@hexed/binary-templates";
 import { MarkdownRenderer } from "~/components/markdown-renderer";
+import { ObjectTree } from "./object-tree";
 
 export const Templates: FunctionComponent<TemplatesProps> = ({
   data,
@@ -40,7 +41,9 @@ export const Templates: FunctionComponent<TemplatesProps> = ({
     title: string;
     path: string;
   } | null>(null);
-  const [parsedData, setParsedData] = useState<unknown | null>(null);
+  const [parsedData, setParsedData] = useState<Record<string, unknown> | null>(
+    null
+  );
   const [selectedSpec, setSelectedSpec] = useState<KsySchema | null>(null);
   const [parseError, setParseError] = useState<string | null>(null);
 
@@ -63,7 +66,7 @@ export const Templates: FunctionComponent<TemplatesProps> = ({
       return;
     }
 
-    const { parsedData, spec, error } = await parse(entry.path, data);
+    const { parsedData: result, spec, error } = await parse(entry.path, data);
 
     if (spec) {
       setSelectedSpec(spec);
@@ -78,7 +81,7 @@ export const Templates: FunctionComponent<TemplatesProps> = ({
         error instanceof Error ? error.message : String(error);
       setParseError(errorMessage);
     } else {
-      setParsedData(parsedData);
+      setParsedData(result);
       setParseError(null);
     }
   };
@@ -150,14 +153,14 @@ export const Templates: FunctionComponent<TemplatesProps> = ({
               </EmptyHeader>
             </Empty>
           ) : (
-            <Tabs defaultValue="inspector" className="gap-4 mt-4">
+            <Tabs defaultValue="object-tree" className="gap-4 mt-4">
               <TabsList className="w-full border">
-                <TabsTrigger value="inspector">Inspector</TabsTrigger>
+                <TabsTrigger value="object-tree">Object Tree</TabsTrigger>
                 {selectedSpec && (
                   <TabsTrigger value="details">Details</TabsTrigger>
                 )}
               </TabsList>
-              <TabsContent value="inspector" className="mt-4">
+              <TabsContent value="object-tree" className="mt-4">
                 {parseError ? (
                   <Empty className="h-full">
                     <EmptyHeader>
@@ -172,7 +175,7 @@ export const Templates: FunctionComponent<TemplatesProps> = ({
                     </EmptyHeader>
                   </Empty>
                 ) : (
-                  <div>{/* Inspector content - blank for now */}</div>
+                  <ObjectTree parsedData={parsedData} spec={selectedSpec} />
                 )}
               </TabsContent>
 

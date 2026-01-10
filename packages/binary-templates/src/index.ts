@@ -71,7 +71,7 @@ export async function parse(
   templateId: string,
   byteData: Uint8Array | ArrayBuffer
 ): Promise<{
-  parsedData: unknown;
+  parsedData: Record<string, unknown>;
   spec: KsySchema;
   error?: Error | null;
 }> {
