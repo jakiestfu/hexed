@@ -175,7 +175,9 @@ export const Templates: FunctionComponent<TemplatesProps> = ({
                     </EmptyHeader>
                   </Empty>
                 ) : (
-                  <ObjectTree parsedData={parsedData} spec={selectedSpec} />
+                  <div className="-m-4">
+                    <ObjectTree parsedData={parsedData} spec={selectedSpec} />
+                  </div>
                 )}
               </TabsContent>
 

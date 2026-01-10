@@ -31,7 +31,7 @@ const TreeNodeView: FunctionComponent<TreeNodeViewProps> = ({
     switch (node.type) {
       case "object":
         return (
-          <span className="text-sm">
+          <span className="text-sm whitespace-nowrap">
             <span className="text-blue-400">{node.name}</span>{" "}
             <span className="text-green-400">[{node.className}]</span>
           </span>
@@ -39,7 +39,7 @@ const TreeNodeView: FunctionComponent<TreeNodeViewProps> = ({
 
       case "array":
         return (
-          <span className="text-sm">
+          <span className="text-sm whitespace-nowrap">
             <span className="text-blue-400">{node.name}</span>{" "}
             <span className="text-muted-foreground">({node.arrayLength})</span>
           </span>
@@ -47,7 +47,7 @@ const TreeNodeView: FunctionComponent<TreeNodeViewProps> = ({
 
       case "typedArray":
         return (
-          <span className="text-sm">
+          <span className="text-sm whitespace-nowrap">
             <span className="text-blue-400">{node.name}</span>
             {" = "}
             <span className="text-muted-foreground">{node.bytesPreview}</span>
@@ -56,7 +56,7 @@ const TreeNodeView: FunctionComponent<TreeNodeViewProps> = ({
 
       case "primitive":
         return (
-          <span className="text-sm">
+          <span className="text-sm whitespace-nowrap">
             <span className="text-blue-400">{node.name}</span>
             {" = "}
             <span className="font-bold text-foreground">
@@ -73,7 +73,7 @@ const TreeNodeView: FunctionComponent<TreeNodeViewProps> = ({
 
       default:
         return (
-          <span className="text-sm text-muted-foreground">
+          <span className="text-sm text-muted-foreground whitespace-nowrap">
             {node.name} = {node.value || "<no value>"}
           </span>
         );
@@ -85,12 +85,12 @@ const TreeNodeView: FunctionComponent<TreeNodeViewProps> = ({
       <div
         className={cn(
           "flex items-center py-1 px-2 hover:bg-muted cursor-pointer select-none",
-          "font-mono text-xs"
+          "font-mono text-xs whitespace-nowrap min-w-fit"
         )}
         style={{ paddingLeft: `${indent + 8}px` }}
         onClick={() => onNodeSelect?.(node)}
       >
-        <span className="w-4" /> {/* Spacer for alignment */}
+        <span className="w-4 shrink-0" /> {/* Spacer for alignment */}
         {renderValue()}
       </div>
     );
@@ -101,15 +101,15 @@ const TreeNodeView: FunctionComponent<TreeNodeViewProps> = ({
       <CollapsibleTrigger
         className={cn(
           "flex items-center w-full py-1 px-2 hover:bg-muted cursor-pointer select-none",
-          "font-mono text-xs"
+          "font-mono text-xs whitespace-nowrap min-w-fit"
         )}
         style={{ paddingLeft: `${indent + 8}px` }}
         onClick={() => onNodeSelect?.(node)}
       >
         {isOpen ? (
-          <ChevronDown className="w-4 h-4 mr-1 text-muted-foreground" />
+          <ChevronDown className="w-4 h-4 mr-1 text-muted-foreground shrink-0" />
         ) : (
-          <ChevronRight className="w-4 h-4 mr-1 text-muted-foreground" />
+          <ChevronRight className="w-4 h-4 mr-1 text-muted-foreground shrink-0" />
         )}
         {renderValue()}
       </CollapsibleTrigger>
@@ -142,8 +142,10 @@ export const ObjectTree: FunctionComponent<ObjectTreeProps> = ({
   const rootNode = convertKaitaiToTree(parsedData, "root");
 
   return (
-    <div className="bg-sidebar text-foreground rounded-lg overflow-auto h-full font-mono">
-      <TreeNodeView node={rootNode} />
+    <div className="bg-sidebar text-foreground rounded-lg h-full font-mono overflow-auto">
+      <div className="min-w-fit p-4">
+        <TreeNodeView node={rootNode} />
+      </div>
     </div>
   );
 };
