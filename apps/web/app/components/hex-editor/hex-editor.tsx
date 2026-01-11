@@ -59,6 +59,7 @@ import { useInterpreterVisibility } from "~/hooks/use-interpreter-visibility";
 import { useTemplatesVisibility } from "~/hooks/use-templates-visibility";
 import { useSidebarPosition } from "~/hooks/use-sidebar-position";
 import { Interpreter } from "./interpreter";
+import { MemoryProfiler } from "./memory-profiler";
 import { Templates } from "./templates";
 import type { HexEditorProps, HexEditorViewProps } from "./types";
 import { getBasename } from "./utils";
@@ -128,6 +129,7 @@ export const HexEditor: FunctionComponent<HexEditorProps> = ({
       <span className="text-xs text-muted-foreground">
         {formatFileSize(currentSnapshot?.data.length || 0)}
       </span>
+      <MemoryProfiler />
     </div>
   ) : undefined;
 

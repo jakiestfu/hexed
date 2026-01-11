@@ -51,7 +51,9 @@ export function toAsciiString(data: Uint8Array): string {
  * @returns Formatted hex string like "0x1A" or "-0x1A"
  */
 export function formatHex(value: number): string {
-  return (value < 0 ? "-" : "") + "0x" + Math.abs(value).toString(16).toUpperCase();
+  return (
+    (value < 0 ? "-" : "") + "0x" + Math.abs(value).toString(16).toUpperCase()
+  );
 }
 
 /**
@@ -60,7 +62,10 @@ export function formatHex(value: number): string {
  * @param maxLength - Maximum number of bytes to show (default: 8)
  * @returns Formatted preview string like "[1, 2, 3, ...]" or "[1, 2, 3]"
  */
-export function formatBytesPreview(bytes: Uint8Array, maxLength: number = 8): string {
+export function formatBytesPreview(
+  bytes: Uint8Array,
+  maxLength: number = 8
+): string {
   const preview = Array.from(bytes.slice(0, maxLength));
   const suffix = bytes.length > maxLength ? ", ..." : "";
   return `[${preview.join(", ")}${suffix}]`;
@@ -104,6 +109,37 @@ export function formatDataIntoRows(
 }
 
 /**
+ * Format bytes to appropriate unit (B, KB, MB, GB)
+ * @param bytes - The number of bytes
+ * @returns Formatted string like "512 bytes", "45 KB", "1.2 MB", or "2.5 GB"
+ */
+export function formatBytes(bytes: number): string {
+  if (bytes < 1024) {
+    return `${bytes.toLocaleString()} bytes`;
+  }
+
+  const KB = 1024;
+  const MB = KB * 1024;
+  const GB = MB * 1024;
+
+  if (bytes < MB) {
+    const kb = bytes / KB;
+    const formattedKb = kb % 1 === 0 ? kb.toFixed(0) : kb.toFixed(1);
+    return `${formattedKb} KB`;
+  }
+
+  if (bytes < GB) {
+    const mb = bytes / MB;
+    const formattedMb = mb % 1 === 0 ? mb.toFixed(0) : mb.toFixed(1);
+    return `${formattedMb} MB`;
+  }
+
+  const gb = bytes / GB;
+  const formattedGb = gb % 1 === 0 ? gb.toFixed(0) : gb.toFixed(1);
+  return `${formattedGb} GB`;
+}
+
+/**
  * Format file size with bytes and most relevant unit
  * @param bytes - The number of bytes
  * @returns Formatted string like "512 bytes" or "1,024 bytes • 1 KB"
@@ -123,22 +159,22 @@ export function formatFileSize(bytes: number): string {
   if (bytes < MB) {
     const kb = bytes / KB;
     const formattedKb = kb % 1 === 0 ? kb.toFixed(0) : kb.toFixed(1);
-    return `${formattedBytes} bytes • ${formattedKb}kb`;
+    return `${formattedBytes} bytes (${formattedKb}kb)`;
   }
 
   if (bytes < GB) {
     const mb = bytes / MB;
     const formattedMb = mb % 1 === 0 ? mb.toFixed(0) : mb.toFixed(1);
-    return `${formattedBytes} bytes • ${formattedMb}mb`;
+    return `${formattedBytes} bytes (${formattedMb}mb)`;
   }
 
   if (bytes < TB) {
     const gb = bytes / GB;
     const formattedGb = gb % 1 === 0 ? gb.toFixed(0) : gb.toFixed(1);
-    return `${formattedBytes} bytes • ${formattedGb}gb`;
+    return `${formattedBytes} bytes (${formattedGb}gb)`;
   }
 
   const tb = bytes / TB;
   const formattedTb = tb % 1 === 0 ? tb.toFixed(0) : tb.toFixed(1);
-  return `${formattedBytes} bytes • ${formattedTb}tb`;
+  return `${formattedBytes} bytes (${formattedTb}tb)`;
 }

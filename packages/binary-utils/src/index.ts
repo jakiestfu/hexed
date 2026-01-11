@@ -13,6 +13,7 @@ export {
   toAsciiString,
   formatDataIntoRows,
   formatFileSize,
+  formatBytes,
   formatHex,
   formatBytesPreview,
   type FormattedRow
