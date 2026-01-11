@@ -29,11 +29,75 @@ import {
 } from "lucide-react";
 import { usePIP } from "~/hooks/use-pip";
 import { useSidebarPosition } from "~/hooks/use-sidebar-position";
+import { useQueryParamState } from "~/hooks/use-query-param-state";
 import type { TemplatesProps } from "./types";
 import { TemplatesCombobox } from "./templates-combobox";
-import { KsySchema, parse } from "@hexed/binary-templates";
+import { KsySchema, parse, manifest } from "@hexed/binary-templates";
 import { MarkdownRenderer } from "~/components/markdown-renderer";
 import { ObjectTree } from "./object-tree";
+
+type TemplateEntry = {
+  name: string;
+  title: string;
+  path: string;
+  extension?: string | string[];
+};
+
+// Type guard to check if an entry is a template (has title and path)
+function isTemplate(entry: unknown): entry is TemplateEntry {
+  if (typeof entry !== "object" || entry === null) {
+    return false;
+  }
+  const obj = entry as Record<string, unknown>;
+  return (
+    "title" in obj &&
+    "path" in obj &&
+    "name" in obj &&
+    typeof obj.title === "string" &&
+    typeof obj.path === "string" &&
+    typeof obj.name === "string"
+  );
+}
+
+// Type guard to check if an entry is a category (has children)
+function isCategory(
+  entry: unknown
+): entry is { name: string; children: unknown[] } {
+  if (typeof entry !== "object" || entry === null) {
+    return false;
+  }
+  const obj = entry as Record<string, unknown>;
+  return (
+    "children" in obj &&
+    "name" in obj &&
+    Array.isArray(obj.children) &&
+    typeof obj.name === "string"
+  );
+}
+
+// Helper function to recursively find a template by name in the manifest
+function findTemplate(
+  entries: unknown[],
+  name: string
+): TemplateEntry | undefined {
+  for (const entry of entries) {
+    if (isTemplate(entry) && entry.name === name) {
+      return {
+        name: entry.name,
+        title: entry.title,
+        path: entry.path,
+        extension: entry.extension,
+      };
+    }
+    if (isCategory(entry)) {
+      const found = findTemplate(entry.children, name);
+      if (found) {
+        return found;
+      }
+    }
+  }
+  return undefined;
+}
 
 export const Templates: FunctionComponent<TemplatesProps> = ({
   data,
@@ -47,11 +111,12 @@ export const Templates: FunctionComponent<TemplatesProps> = ({
   );
   const { toggleSidebarPosition } = useSidebarPosition();
   const [commandOpen, setCommandOpen] = useState(false);
-  const [selectedTemplate, setSelectedTemplate] = useState<{
-    name: string;
-    title: string;
-    path: string;
-  } | null>(null);
+  const [templateValue, setTemplateValue] = useQueryParamState<string>(
+    "template",
+    ""
+  );
+  const [selectedTemplate, setSelectedTemplate] =
+    useState<TemplateEntry | null>(null);
   const [parsedData, setParsedData] = useState<Record<string, unknown> | null>(
     null
   );
@@ -63,12 +128,53 @@ export const Templates: FunctionComponent<TemplatesProps> = ({
     onPIPStateChange?.(isPIPActive);
   }, [isPIPActive, onPIPStateChange]);
 
-  const handleTemplateSelect = async (entry: {
-    name: string;
-    title: string;
-    path: string;
-  }) => {
+  // Restore template from URL param on mount or when value changes
+  useEffect(() => {
+    if (templateValue) {
+      const template = findTemplate(manifest, templateValue);
+      if (template && selectedTemplate?.name !== template.name) {
+        // Only update state, don't call handleTemplateSelect to avoid loop
+        setSelectedTemplate(template);
+        setParseError(null);
+
+        if (data) {
+          parse(template.path, data).then(
+            ({ parsedData: result, spec, error }) => {
+              if (spec) {
+                setSelectedSpec(spec);
+              } else {
+                setSelectedSpec(null);
+              }
+
+              if (error) {
+                console.error("Failed to parse data:", error);
+                setParsedData(null);
+                const errorMessage =
+                  error instanceof Error ? error.message : String(error);
+                setParseError(errorMessage);
+              } else {
+                setParsedData(result);
+                setParseError(null);
+              }
+            }
+          );
+        } else {
+          console.warn("No data available to parse");
+          setParsedData(null);
+        }
+      }
+    } else if (!templateValue && selectedTemplate) {
+      setSelectedTemplate(null);
+      setParsedData(null);
+      setSelectedSpec(null);
+      setParseError(null);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [templateValue, data]);
+
+  const handleTemplateSelect = async (entry: TemplateEntry) => {
     setSelectedTemplate(entry);
+    setTemplateValue(entry.name);
     setParseError(null);
 
     if (!data) {
@@ -93,6 +199,16 @@ export const Templates: FunctionComponent<TemplatesProps> = ({
       setParseError(errorMessage);
     } else {
       setParsedData(result);
+      setParseError(null);
+    }
+  };
+
+  const handleTemplateValueChange = (value: string) => {
+    setTemplateValue(value);
+    if (!value) {
+      setSelectedTemplate(null);
+      setParsedData(null);
+      setSelectedSpec(null);
       setParseError(null);
     }
   };
@@ -160,6 +276,8 @@ export const Templates: FunctionComponent<TemplatesProps> = ({
             open={commandOpen}
             onOpenChange={setCommandOpen}
             onTemplateSelect={handleTemplateSelect}
+            value={templateValue}
+            onValueChange={handleTemplateValueChange}
             placeholder="Search templates..."
             className="w-full"
             filePath={filePath}

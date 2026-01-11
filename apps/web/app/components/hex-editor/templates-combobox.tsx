@@ -20,7 +20,6 @@ import {
 import { Button } from "@hexed/ui/components/button";
 import { cn } from "@hexed/ui/lib/utils";
 import { manifest } from "@hexed/binary-templates";
-import { useQueryParamState } from "~/hooks/use-query-param-state";
 
 type TemplateEntry = {
   name: string;
@@ -33,6 +32,8 @@ type TemplatesComboboxProps = {
   open?: boolean;
   onOpenChange?: (open: boolean) => void;
   onTemplateSelect: (entry: TemplateEntry) => void;
+  value?: string;
+  onValueChange?: (value: string) => void;
   placeholder?: string;
   className?: string;
   filePath?: string;
@@ -81,30 +82,6 @@ function isCategory(
     Array.isArray(obj.children) &&
     typeof obj.name === "string"
   );
-}
-
-// Helper function to recursively find a template by name in the manifest
-function findTemplate(
-  entries: unknown[],
-  name: string
-): TemplateEntry | undefined {
-  for (const entry of entries) {
-    if (isTemplate(entry) && entry.name === name) {
-      return {
-        name: entry.name,
-        title: entry.title,
-        path: entry.path,
-        extension: entry.extension,
-      };
-    }
-    if (isCategory(entry)) {
-      const found = findTemplate(entry.children, name);
-      if (found) {
-        return found;
-      }
-    }
-  }
-  return undefined;
 }
 
 // Helper function to recursively collect all templates from children
@@ -177,14 +154,60 @@ export const TemplatesCombobox: FunctionComponent<TemplatesComboboxProps> = ({
   open,
   onOpenChange,
   onTemplateSelect,
+  value = "",
+  onValueChange,
   placeholder = "Select template...",
   className,
   filePath,
 }) => {
-  const [value, setValue] = useQueryParamState<string>("template", "");
   const [searchValue, setSearchValue] = useState("");
 
-  const selectedTemplate = value ? findTemplate(manifest, value) : undefined;
+  const selectedTemplate = value
+    ? (() => {
+        // Find template by name in manifest
+        for (const entry of manifest) {
+          if (isTemplate(entry) && entry.name === value) {
+            return {
+              name: entry.name,
+              title: entry.title,
+              path: entry.path,
+              extension: entry.extension,
+            };
+          }
+          if (isCategory(entry)) {
+            const found = findTemplateInCategory(entry.children, value);
+            if (found) {
+              return found;
+            }
+          }
+        }
+        return undefined;
+      })()
+    : undefined;
+
+  // Helper function to recursively find a template by name
+  function findTemplateInCategory(
+    entries: unknown[],
+    name: string
+  ): TemplateEntry | undefined {
+    for (const entry of entries) {
+      if (isTemplate(entry) && entry.name === name) {
+        return {
+          name: entry.name,
+          title: entry.title,
+          path: entry.path,
+          extension: entry.extension,
+        };
+      }
+      if (isCategory(entry)) {
+        const found = findTemplateInCategory(entry.children, name);
+        if (found) {
+          return found;
+        }
+      }
+    }
+    return undefined;
+  }
   const fileExtension = getFileExtension(filePath);
   const recommendedTemplates = findRecommendedTemplates(
     manifest,
@@ -193,7 +216,7 @@ export const TemplatesCombobox: FunctionComponent<TemplatesComboboxProps> = ({
 
   const handleSelect = (template: TemplateEntry) => {
     const newValue = value === template.name ? "" : template.name;
-    setValue(newValue);
+    onValueChange?.(newValue);
     setSearchValue("");
     onOpenChange?.(false);
 
