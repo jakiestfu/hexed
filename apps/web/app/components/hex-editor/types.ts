@@ -2,7 +2,25 @@ import type { BinarySnapshot, DiffResult } from "@hexed/types";
 import type { RecentFile } from "~/hooks/use-recent-files";
 import type { Endianness, NumberFormat } from "@hexed/binary-utils/interpreter";
 
-export type FileSource = "path" | "client" | "url";
+export type FileSource = "upload" | "url" | "disk";
+
+/**
+ * Get the display name for a FileSource type
+ * @param source - The file source type
+ * @returns The display name: "Disk" for "path", "Upload" for "client", "URL" for "url"
+ */
+export function getFileSourceDisplayName(source: FileSource): string {
+  switch (source) {
+    case "disk":
+      return "Disk";
+    case "upload":
+      return "Upload";
+    case "url":
+      return "URL";
+    default:
+      return source;
+  }
+}
 
 export type HexEditorProps = {
   snapshots: BinarySnapshot[];

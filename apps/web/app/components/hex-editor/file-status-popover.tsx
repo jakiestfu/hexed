@@ -39,7 +39,7 @@ export const FileStatusPopover: FunctionComponent<FileStatusPopoverProps> = ({
     if (fileSource === "url") {
       return "Fetched from URL";
     }
-    return "Client-side file upload";
+    return "Upload";
   };
 
   return (
@@ -62,7 +62,7 @@ export const FileStatusPopover: FunctionComponent<FileStatusPopoverProps> = ({
           {fileSource === "path" && (
             <>
               <div className="text-xs text-muted-foreground font-mono break-all">
-                <span className="font-semibold">Path:</span> {originalSource}
+                <span className="font-semibold">Disk:</span> {originalSource}
               </div>
               <div className="text-sm text-muted-foreground">
                 <p>
@@ -90,7 +90,7 @@ export const FileStatusPopover: FunctionComponent<FileStatusPopoverProps> = ({
           {fileSource === "client" && (
             <>
               <div className="text-xs text-muted-foreground font-mono break-all">
-                <span className="font-semibold">File:</span> {originalSource}
+                <span className="font-semibold">Upload:</span> {originalSource}
               </div>
               <div className="text-sm text-muted-foreground">
                 <p>

@@ -22,6 +22,7 @@ import { createSnapshotFromFile, formatTimestamp, getBasename } from "./utils";
 import { useQueryParamState } from "~/hooks/use-query-param-state";
 import { encodeFilePath } from "~/utils/path-encoding";
 import { FileSourceIcon } from "./file-source-icon";
+import { FileSource } from "~/components/hex-editor/types";
 
 type DataPickerProps = {
   onFileSelect: (filePath: string | BinarySnapshot) => void;
@@ -83,11 +84,12 @@ export const DataPicker: FunctionComponent<DataPickerProps> = ({
   const router = useRouter();
   const [isInElectron, setIsInElectron] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
-  const [activeTab, setActiveTabState] = useQueryParamState<
-    "file" | "url" | "path"
-  >("tab", "file");
+  const [activeTab, setActiveTabState] = useQueryParamState<FileSource>(
+    "tab",
+    "upload"
+  );
   const setActiveTab = (value: string) => {
-    setActiveTabState(value as "file" | "url" | "path");
+    setActiveTabState(value as FileSource);
   };
   const [url, setUrl] = useState("");
   const [pathInput, setPathInput] = useState("");
@@ -187,24 +189,24 @@ export const DataPicker: FunctionComponent<DataPickerProps> = ({
                 : "repeat(2, 1fr)",
             }}
           >
-            <TabsTrigger value="file">
-              <FileSourceIcon fileSource="client" className="mr-2" />
-              File
+            <TabsTrigger value="upload">
+              <FileSourceIcon fileSource="upload" className="mr-2" />
+              Upload
             </TabsTrigger>
             <TabsTrigger value="url">
               <FileSourceIcon fileSource="url" className="mr-2" />
               URL
             </TabsTrigger>
             {isDevelopment && (
-              <TabsTrigger value="path">
-                <FileSourceIcon fileSource="path" className="mr-2" />
-                Path
+              <TabsTrigger value="disk">
+                <FileSourceIcon fileSource="disk" className="mr-2" />
+                Disk
               </TabsTrigger>
             )}
           </TabsList>
 
-          {/* File Tab */}
-          <TabsContent value="file" className="space-y-2 mt-4">
+          {/* Upload Tab */}
+          <TabsContent value="upload" className="space-y-2 mt-4">
             {isInElectron ? (
               <>
                 <label className="text-sm font-medium">Select a file</label>
@@ -298,12 +300,12 @@ export const DataPicker: FunctionComponent<DataPickerProps> = ({
             </form>
           </TabsContent>
 
-          {/* Path Tab (Development Only) */}
+          {/* Disk Tab (Development Only) */}
           {isDevelopment && (
-            <TabsContent value="path" className="space-y-2 mt-4">
+            <TabsContent value="disk" className="space-y-2 mt-4">
               <form onSubmit={handlePathSubmit} className="space-y-2">
                 <label htmlFor="path-input" className="text-sm font-medium">
-                  Enter file path
+                  Enter disk path
                 </label>
                 <div className="flex gap-2">
                   <div className="flex-1 flex gap-2">

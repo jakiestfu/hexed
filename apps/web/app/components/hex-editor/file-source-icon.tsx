@@ -3,9 +3,10 @@
 import { FunctionComponent } from "react";
 import { HardDrive, Upload, Link as LinkIcon } from "lucide-react";
 import { cn } from "@hexed/ui";
+import { FileSource } from "~/components/hex-editor/types";
 
 export type FileSourceIconProps = {
-  fileSource: "path" | "client" | "url";
+  fileSource: FileSource;
   className?: string;
 };
 
@@ -16,9 +17,9 @@ export const FileSourceIcon: FunctionComponent<FileSourceIconProps> = ({
   const iconClassName = cn("h-4 w-4", className);
 
   switch (fileSource) {
-    case "path":
+    case "disk":
       return <HardDrive className={iconClassName} />;
-    case "client":
+    case "upload":
       return <Upload className={iconClassName} />;
     case "url":
       return <LinkIcon className={iconClassName} />;
