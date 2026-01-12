@@ -12,6 +12,7 @@ import {
 } from "@hexed/ui";
 import { Search, X, ChevronLeft, ChevronRight } from "lucide-react";
 import { searchHexAll, searchTextAll } from "@hexed/binary-utils/search";
+import { toHexString, toAsciiString } from "@hexed/binary-utils/formatter";
 import { useHexInput } from "~/hooks/use-hex-input";
 import { useLocalStorage } from "~/hooks/use-local-storage";
 
@@ -20,6 +21,7 @@ export type FindInputProps = {
   onMatchFound?: (offset: number, length: number) => void;
   onClose?: () => void;
   inputRef?: RefObject<HTMLInputElement | null>;
+  syncRangeToFindInput?: { start: number; end: number } | null;
 };
 
 export const FindInput: FunctionComponent<FindInputProps> = ({
@@ -27,6 +29,7 @@ export const FindInput: FunctionComponent<FindInputProps> = ({
   onMatchFound,
   onClose,
   inputRef: externalInputRef,
+  syncRangeToFindInput,
 }) => {
   const [searchMode, setSearchMode] = useLocalStorage<"hex" | "text">(
     "hexed:find-input-mode",
@@ -48,6 +51,7 @@ export const FindInput: FunctionComponent<FindInputProps> = ({
     handleKeyDown: handleHexKeyDown,
     handlePaste,
     clear,
+    setValue,
   } = useHexInput({
     mode: searchMode,
     setMode: setSearchMode,
@@ -60,6 +64,79 @@ export const FindInput: FunctionComponent<FindInputProps> = ({
   useEffect(() => {
     onMatchFoundRef.current = onMatchFound;
   }, [onMatchFound]);
+
+  // Track the last synced range to prevent unnecessary updates
+  const lastSyncedRangeRef = useRef<{ start: number; end: number } | null>(
+    null
+  );
+
+  // Sync with syncRangeToFindInput when it changes (from link clicks)
+  useEffect(() => {
+    if (!syncRangeToFindInput || data.length === 0) {
+      lastSyncedRangeRef.current = null;
+      return;
+    }
+
+    const start = Math.min(
+      syncRangeToFindInput.start,
+      syncRangeToFindInput.end
+    );
+    const end = Math.max(syncRangeToFindInput.start, syncRangeToFindInput.end);
+
+    // Check if this is the same range we already synced
+    if (
+      lastSyncedRangeRef.current &&
+      lastSyncedRangeRef.current.start === start &&
+      lastSyncedRangeRef.current.end === end
+    ) {
+      return;
+    }
+
+    // Ensure indices are within bounds
+    const clampedStart = Math.max(0, Math.min(start, data.length - 1));
+    const clampedEnd = Math.max(0, Math.min(end, data.length - 1));
+
+    if (clampedStart > clampedEnd) return;
+
+    // Extract bytes from the selected range
+    const selectedBytes = data.slice(clampedStart, clampedEnd + 1);
+    if (selectedBytes.length === 0) return;
+
+    // Format based on current search mode
+    let formattedValue: string;
+    if (searchMode === "hex") {
+      formattedValue = toHexString(selectedBytes, " ");
+    } else {
+      // For text mode, try UTF-8 decoding first, fallback to ASCII
+      try {
+        const decoder = new TextDecoder("utf-8", { fatal: false });
+        formattedValue = decoder.decode(selectedBytes);
+        // If UTF-8 decoding produces replacement characters, fall back to ASCII
+        if (formattedValue.includes("\uFFFD")) {
+          formattedValue = toAsciiString(selectedBytes);
+        }
+      } catch {
+        formattedValue = toAsciiString(selectedBytes);
+      }
+    }
+
+    // Check if any current match already covers this range (meaning search already found it)
+    const rangeAlreadyMatches = matches.some((match) => {
+      const matchStart = match.offset;
+      const matchEnd = match.offset + match.length - 1;
+      return matchStart === clampedStart && matchEnd === clampedEnd;
+    });
+
+    // Update the ref to track this range, even if we don't update the value
+    lastSyncedRangeRef.current = { start: clampedStart, end: clampedEnd };
+
+    // Only update the input value if:
+    // 1. The range doesn't already match current search results (to avoid loops)
+    // 2. The formatted value is different from current search query
+    if (!rangeAlreadyMatches && formattedValue !== searchQuery) {
+      setValue(formattedValue);
+    }
+  }, [syncRangeToFindInput, data, searchMode, searchQuery, setValue, matches]);
 
   // Find all matches when query or mode changes
   useEffect(() => {

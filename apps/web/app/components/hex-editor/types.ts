@@ -46,5 +46,6 @@ export type StringsProps = {
   onClose?: () => void;
   onScrollToOffset?: (offset: number) => void;
   onSelectedOffsetRangeChange?: (range: SelectionRange) => void;
+  onRangeSelectedForSearch?: (range: SelectionRange) => void;
   onPIPStateChange?: (isPIPActive: boolean) => void;
 };

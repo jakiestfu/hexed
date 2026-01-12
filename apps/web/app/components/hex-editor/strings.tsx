@@ -44,6 +44,7 @@ export const Strings: FunctionComponent<StringsProps> = ({
   onClose,
   onScrollToOffset,
   onSelectedOffsetRangeChange,
+  onRangeSelectedForSearch,
   onPIPStateChange,
 }) => {
   const stringsRef = useRef<HTMLDivElement>(null);
@@ -240,14 +241,18 @@ export const Strings: FunctionComponent<StringsProps> = ({
                               !isPIPActive ? (
                                 <button
                                   onClick={() => {
+                                    const range = {
+                                      start: match.offset,
+                                      end: match.offset + match.length - 1,
+                                    };
                                     if (onScrollToOffset) {
                                       onScrollToOffset(match.offset);
                                     }
                                     if (onSelectedOffsetRangeChange) {
-                                      onSelectedOffsetRangeChange({
-                                        start: match.offset,
-                                        end: match.offset + match.length - 1,
-                                      });
+                                      onSelectedOffsetRangeChange(range);
+                                    }
+                                    if (onRangeSelectedForSearch) {
+                                      onRangeSelectedForSearch(range);
                                     }
                                   }}
                                   className="hover:text-foreground hover:underline transition-colors cursor-pointer text-left"

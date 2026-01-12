@@ -156,6 +156,10 @@ export const HexEditor: FunctionComponent<HexEditorProps> = ({
     start: number;
     end: number;
   } | null>(null);
+  const [rangeToSyncToFindInput, setRangeToSyncToFindInput] = useState<{
+    start: number;
+    end: number;
+  } | null>(null);
   const [isInterpreterPIPActive, setIsInterpreterPIPActive] = useState(false);
   const [isTemplatesPIPActive, setIsTemplatesPIPActive] = useState(false);
   const [isStringsPIPActive, setIsStringsPIPActive] = useState(false);
@@ -191,6 +195,22 @@ export const HexEditor: FunctionComponent<HexEditorProps> = ({
   const handleDeselectBytes = () => {
     setSelectedOffsetRange(null);
   };
+
+  const handleRangeSelectedForSearch = (
+    range: {
+      start: number;
+      end: number;
+    } | null
+  ) => {
+    setRangeToSyncToFindInput(range);
+  };
+
+  // Clear rangeToSyncToFindInput after it's been processed or when search closes
+  useEffect(() => {
+    if (!showSearch) {
+      setRangeToSyncToFindInput(null);
+    }
+  }, [showSearch]);
 
   // Global keyboard shortcuts
   useGlobalKeyboard({
@@ -315,6 +335,7 @@ export const HexEditor: FunctionComponent<HexEditorProps> = ({
           <FindInput
             data={currentSnapshot?.data}
             inputRef={searchInputRef}
+            syncRangeToFindInput={showSearch ? rangeToSyncToFindInput : null}
             onMatchFound={(offset, length) => {
               setScrollToOffset(offset);
               setSelectedOffsetRange({
@@ -476,6 +497,7 @@ export const HexEditor: FunctionComponent<HexEditorProps> = ({
               onClose={() => setShowStrings(false)}
               onScrollToOffset={setScrollToOffset}
               onSelectedOffsetRangeChange={setSelectedOffsetRange}
+              onRangeSelectedForSearch={handleRangeSelectedForSearch}
               onPIPStateChange={setIsStringsPIPActive}
             />
           </div>
