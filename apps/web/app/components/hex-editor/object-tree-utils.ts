@@ -22,6 +22,12 @@ export interface TreeNode {
   bytesPreview?: string;
   // For arrays
   arrayLength?: number;
+  // Original Kaitai-parsed node object (for accessing _debug)
+  originalNode?: any;
+  // Parent original node (for accessing parent's _debug for array items)
+  parentOriginalNode?: any;
+  // Root original node (for accessing root._debug)
+  rootOriginalNode?: any;
 }
 
 function getObjectType(obj: any): TreeNodeType {
@@ -35,13 +41,20 @@ function getObjectType(obj: any): TreeNodeType {
 export function convertKaitaiToTree(
   obj: any,
   name: string = "root",
-  path: string[] = []
+  path: string[] = [],
+  parentOriginalNode?: any,
+  rootOriginalNode?: any
 ): TreeNode {
   const type = getObjectType(obj);
+  // Use provided root or set current as root if this is the root node
+  const rootNode = rootOriginalNode || (name === "root" ? obj : undefined);
   const node: TreeNode = {
     name,
     type,
     path: [...path, name],
+    originalNode: obj,
+    parentOriginalNode,
+    rootOriginalNode: rootNode,
   };
 
   switch (type) {
@@ -64,7 +77,7 @@ export function convertKaitaiToTree(
       const arr = obj as any[];
       node.arrayLength = arr.length;
       node.children = arr.map((item, i) =>
-        convertKaitaiToTree(item, String(i), node.path)
+        convertKaitaiToTree(item, String(i), node.path, obj, rootNode)
       );
       break;
 
@@ -81,7 +94,9 @@ export function convertKaitaiToTree(
           // Skip functions and internal properties
           if (typeof value === "function" || key === "constructor") continue;
 
-          node.children.push(convertKaitaiToTree(value, key, node.path));
+          node.children.push(
+            convertKaitaiToTree(value, key, node.path, obj, rootNode)
+          );
         } catch (e) {
           // Handle lazy-loaded properties that throw errors
           node.children.push({
@@ -89,6 +104,8 @@ export function convertKaitaiToTree(
             type: "undefined",
             path: [...node.path, key],
             value: "<lazy instance>",
+            parentOriginalNode: obj,
+            rootOriginalNode: rootNode,
           });
         }
       }

@@ -38,6 +38,8 @@ export type TemplatesProps = {
   data?: Uint8Array;
   filePath?: string;
   onClose?: () => void;
+  onScrollToOffset?: (offset: number) => void;
+  onSelectedOffsetRangeChange?: (range: SelectionRange) => void;
   onPIPStateChange?: (isPIPActive: boolean) => void;
 };
 

@@ -84,7 +84,7 @@ async function buildKsyFiles() {
         // -t javascript: generate javascript
         // Output directory maintains folder structure
         execSync(
-          `kaitai-struct-compiler -t javascript "${inputPath}" --outdir "${outputDir}"`,
+          `kaitai-struct-compiler --read-pos -t javascript "${inputPath}" --outdir "${outputDir}"`,
           { stdio: "inherit", cwd: packageRoot }
         );
 

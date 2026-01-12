@@ -9,12 +9,13 @@ import { convertKaitaiToTree, type TreeNode } from "./object-tree-utils";
 export type ObjectTreeProps = {
   parsedData: Record<string, unknown> | null;
   spec: KsySchema | null;
+  onNodeSelect?: (range: { start: number; end: number }) => void;
 };
 
 interface TreeNodeViewProps {
   node: TreeNode;
   level?: number;
-  onNodeSelect?: (node: TreeNode) => void;
+  onNodeSelect?: (range: { start: number; end: number }) => void;
 }
 
 const TreeNodeView: FunctionComponent<TreeNodeViewProps> = ({
@@ -26,6 +27,109 @@ const TreeNodeView: FunctionComponent<TreeNodeViewProps> = ({
 
   const hasChildren = node.children && node.children.length > 0;
   const indent = level * 20;
+
+  const handleNodeClick = () => {
+    if (!onNodeSelect) return;
+
+    // Try to extract start/end from _debug
+    let debugInfo: { start?: number; end?: number } | undefined;
+    console.log("NODE", node);
+    // Use root's _debug and path to navigate to the correct debug info
+    if (node.rootOriginalNode?._debug) {
+      const rootDebug = node.rootOriginalNode._debug;
+      const path = node.path;
+
+      // Handle root node click (path is just ["root"])
+      if (path.length === 1 && path[0] === "root") {
+        // Root node itself - check if root debug has start/end
+        if (
+          typeof rootDebug.start === "number" &&
+          typeof rootDebug.end === "number"
+        ) {
+          debugInfo = { start: rootDebug.start, end: rootDebug.end };
+        }
+      } else if (path.length > 1 && path[0] === "root") {
+        // Navigate through the path, handling arrays specially
+        // Path is like ["root", "chunks", "0"] or ["root", "magic"]
+        let current: any = rootDebug;
+
+        // Navigate through the path, handling arrays specially
+        for (let i = 1; i < path.length; i++) {
+          const segment = path[i];
+          const isArrayIndex = !isNaN(Number(segment));
+
+          if (isArrayIndex && current.arr) {
+            // This is an array index, access arr[index]
+            const index = Number(segment);
+            if (Array.isArray(current.arr) && current.arr[index]) {
+              current = current.arr[index];
+            } else {
+              current = undefined;
+              break;
+            }
+          } else if (current[segment]) {
+            // Regular property access
+            current = current[segment];
+          } else {
+            current = undefined;
+            break;
+          }
+        }
+
+        if (
+          current &&
+          typeof current.start === "number" &&
+          typeof current.end === "number"
+        ) {
+          debugInfo = current;
+        }
+      }
+    }
+
+    // Fallback: try parent's _debug for direct properties
+    if (!debugInfo && node.parentOriginalNode?._debug) {
+      const parentDebug = node.parentOriginalNode._debug;
+      const nodeName = node.name;
+
+      // Check if this is an array item (numeric name)
+      if (!isNaN(Number(nodeName)) && parentDebug.arr) {
+        const index = Number(nodeName);
+        if (Array.isArray(parentDebug.arr) && parentDebug.arr[index]) {
+          debugInfo = parentDebug.arr[index];
+        }
+      } else if (parentDebug[nodeName]) {
+        // Regular property
+        debugInfo = parentDebug[nodeName];
+      }
+    }
+
+    // Fallback: try node's own _debug if it exists (for root node)
+    if (!debugInfo && node.originalNode?._debug) {
+      const nodeDebug = node.originalNode._debug;
+      // Check if this node's name exists in the debug
+      if (nodeDebug[node.name]) {
+        debugInfo = nodeDebug[node.name];
+      } else if (nodeDebug.start !== undefined && nodeDebug.end !== undefined) {
+        // Node itself has debug info (might be root or a direct property)
+        debugInfo = nodeDebug;
+      }
+    }
+
+    // If we found valid debug info, call the callback
+    // Note: end is exclusive in _debug, so subtract 1 to make it inclusive for selection
+    // ioOffset represents the base offset in the IO stream, so add it to start and end
+    if (
+      debugInfo &&
+      typeof debugInfo.start === "number" &&
+      typeof debugInfo.end === "number"
+    ) {
+      const ioOffset =
+        typeof debugInfo.ioOffset === "number" ? debugInfo.ioOffset : 0;
+      const start = debugInfo.start + ioOffset;
+      const end = debugInfo.end + ioOffset - 1; // Subtract 1 because end is exclusive
+      onNodeSelect({ start, end });
+    }
+  };
 
   const renderValue = () => {
     switch (node.type) {
@@ -88,7 +192,7 @@ const TreeNodeView: FunctionComponent<TreeNodeViewProps> = ({
           "font-mono text-xs whitespace-nowrap min-w-fit"
         )}
         style={{ paddingLeft: `${indent + 8}px` }}
-        onClick={() => onNodeSelect?.(node)}
+        onClick={handleNodeClick}
       >
         <span className="w-4 shrink-0" /> {/* Spacer for alignment */}
         {renderValue()}
@@ -104,7 +208,7 @@ const TreeNodeView: FunctionComponent<TreeNodeViewProps> = ({
           "font-mono text-xs whitespace-nowrap min-w-fit"
         )}
         style={{ paddingLeft: `${indent + 8}px` }}
-        onClick={() => onNodeSelect?.(node)}
+        onClick={handleNodeClick}
       >
         {isOpen ? (
           <ChevronDown className="w-4 h-4 mr-1 text-muted-foreground shrink-0" />
@@ -130,6 +234,7 @@ const TreeNodeView: FunctionComponent<TreeNodeViewProps> = ({
 export const ObjectTree: FunctionComponent<ObjectTreeProps> = ({
   parsedData,
   spec,
+  onNodeSelect,
 }) => {
   if (!parsedData) {
     return (
@@ -144,7 +249,7 @@ export const ObjectTree: FunctionComponent<ObjectTreeProps> = ({
   return (
     <div className="bg-sidebar text-foreground rounded-lg h-full font-mono overflow-auto">
       <div className="min-w-fit p-4">
-        <TreeNodeView node={rootNode} />
+        <TreeNodeView node={rootNode} onNodeSelect={onNodeSelect} />
       </div>
     </div>
   );

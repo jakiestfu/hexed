@@ -478,6 +478,8 @@ export const HexEditor: FunctionComponent<HexEditorProps> = ({
               data={currentSnapshot?.data}
               filePath={filePath || undefined}
               onClose={() => setShowTemplates(false)}
+              onScrollToOffset={setScrollToOffset}
+              onSelectedOffsetRangeChange={setSelectedOffsetRange}
               onPIPStateChange={setIsTemplatesPIPActive}
             />
           </div>

@@ -103,6 +103,8 @@ export const Templates: FunctionComponent<TemplatesProps> = ({
   data,
   filePath,
   onClose,
+  onScrollToOffset,
+  onSelectedOffsetRangeChange,
   onPIPStateChange,
 }) => {
   const templatesRef = useRef<HTMLDivElement>(null);
@@ -319,7 +321,18 @@ export const Templates: FunctionComponent<TemplatesProps> = ({
                   </Empty>
                 ) : (
                   <div className="-m-4">
-                    <ObjectTree parsedData={parsedData} spec={selectedSpec} />
+                    <ObjectTree
+                      parsedData={parsedData}
+                      spec={selectedSpec}
+                      onNodeSelect={(range) => {
+                        if (onScrollToOffset) {
+                          onScrollToOffset(range.start);
+                        }
+                        if (onSelectedOffsetRangeChange) {
+                          onSelectedOffsetRangeChange(range);
+                        }
+                      }}
+                    />
                   </div>
                 )}
               </TabsContent>
