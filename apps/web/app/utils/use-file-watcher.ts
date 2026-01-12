@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, useCallback } from "react";
 import type { BinarySnapshot, SSEMessage } from "@hexed/types";
 
 export function useFileWatcher(filePath: string | null) {
@@ -6,9 +6,16 @@ export function useFileWatcher(filePath: string | null) {
   const [isConnected, setIsConnected] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const eventSourceRef = useRef<EventSource | null>(null);
+  const filePathRef = useRef<string | null>(filePath);
 
+  // Update ref when filePath changes
   useEffect(() => {
-    if (!filePath) {
+    filePathRef.current = filePath;
+  }, [filePath]);
+
+  const connect = useCallback(() => {
+    const currentFilePath = filePathRef.current;
+    if (!currentFilePath) {
       setSnapshots([]);
       setIsConnected(false);
       setError(null);
@@ -25,7 +32,7 @@ export function useFileWatcher(filePath: string | null) {
     setError(null);
 
     // Create new SSE connection
-    const url = `/api/watch?file=${encodeURIComponent(filePath)}`;
+    const url = `/api/watch?file=${encodeURIComponent(currentFilePath)}`;
     const eventSource = new EventSource(url);
     eventSourceRef.current = eventSource;
 
@@ -70,14 +77,24 @@ export function useFileWatcher(filePath: string | null) {
       setIsConnected(false);
       setError("Connection lost");
     };
+  }, []);
+
+  useEffect(() => {
+    connect();
 
     // Cleanup
     return () => {
-      eventSource.close();
-      eventSourceRef.current = null;
+      if (eventSourceRef.current) {
+        eventSourceRef.current.close();
+        eventSourceRef.current = null;
+      }
       setIsConnected(false);
     };
-  }, [filePath]);
+  }, [connect]);
 
-  return { snapshots, isConnected, error };
+  const restart = useCallback(() => {
+    connect();
+  }, [connect]);
+
+  return { snapshots, isConnected, error, restart };
 }

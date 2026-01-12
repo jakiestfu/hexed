@@ -11,6 +11,11 @@ export type HexEditorProps = {
   onFileSelect?: (filePath: string | BinarySnapshot) => void;
   recentFiles?: RecentFile[];
   className?: string;
+  fileSource?: "path" | "client" | "url";
+  originalSource?: string;
+  error?: string | null;
+  onRestartWatching?: () => void;
+  onAddSnapshot?: (snapshot: BinarySnapshot) => void;
 };
 
 export type SelectionRange = { start: number; end: number } | null;

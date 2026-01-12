@@ -28,7 +28,7 @@ export default function EditPage() {
     return decoded;
   }, [encodedPath, addRecentFile]);
 
-  const { snapshots, isConnected, error } = useFileWatcher(filePath);
+  const { snapshots, isConnected, error, restart } = useFileWatcher(filePath);
 
   const handleFileSelect = React.useCallback(
     (input: string | BinarySnapshot) => {
@@ -87,8 +87,9 @@ export default function EditPage() {
     );
   }
 
-  // Error state
-  if (error) {
+  // Only show full-page error if we have no snapshots (initial load error)
+  // Watching errors will be shown in the popover
+  if (error && snapshots.length === 0) {
     return (
       <div className="flex items-center justify-center min-h-screen py-8 px-4">
         <Card className="w-full max-w-md border-destructive">
@@ -123,6 +124,10 @@ export default function EditPage() {
       isConnected={isConnected}
       loading={snapshots.length === 0 && !error}
       onClose={handleClose}
+      fileSource="path"
+      originalSource={filePath || ""}
+      error={error}
+      onRestartWatching={restart}
     />
   );
 }

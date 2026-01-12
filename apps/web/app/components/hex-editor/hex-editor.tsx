@@ -68,6 +68,7 @@ import { MemoryProfiler } from "./memory-profiler";
 import { Templates } from "./templates";
 import { Strings } from "./strings";
 import { FindInput } from "./find-input";
+import { FileStatusPopover } from "./file-status-popover";
 import type { HexEditorProps, HexEditorViewProps } from "./types";
 import { getBasename } from "./utils";
 
@@ -110,6 +111,10 @@ export const HexEditor: FunctionComponent<HexEditorProps> = ({
   onFileSelect,
   recentFiles = [],
   className = "",
+  fileSource = "path",
+  originalSource,
+  error,
+  onRestartWatching,
 }) => {
   const [activeTab, setActiveTab] = useState<string>("0");
   const { showAscii, setShowAscii } = useAsciiVisibility();
@@ -334,31 +339,32 @@ export const HexEditor: FunctionComponent<HexEditorProps> = ({
               </span>
             </div>
           ) : (
-            <Tooltip>
-              <TooltipTrigger asChild>
-                <div className="flex items-center gap-2 min-w-0 cursor-default">
-                  <File className="h-4 w-4 text-muted-foreground shrink-0" />
-                  <span className="font-mono text-sm truncate" title={filePath}>
-                    {getBasename(filePath!)}
-                  </span>
-                  <div
-                    className={`inline-flex h-2 w-2 rounded-full shrink-0 ${
-                      isConnected ? "bg-green-500" : "bg-red-500"
-                    }`}
-                    title={
-                      isConnected
-                        ? "Watching for changes"
-                        : "Not watching for change"
-                    }
-                  />
-                </div>
-              </TooltipTrigger>
-              <TooltipContent>
-                {isConnected
-                  ? "Watching for changes"
-                  : "Not watching for change"}
-              </TooltipContent>
-            </Tooltip>
+            <FileStatusPopover
+              fileSource={fileSource}
+              originalSource={originalSource || filePath || ""}
+              isConnected={isConnected}
+              error={error}
+              onRestartWatching={onRestartWatching}
+            >
+              <div className="flex items-center gap-2 min-w-0 cursor-pointer hover:opacity-80 transition-opacity group">
+                <File className="h-4 w-4 text-muted-foreground shrink-0" />
+                <span
+                  className="font-mono text-sm truncate group-hover:underline"
+                  title={filePath}
+                >
+                  {getBasename(filePath!)}
+                </span>
+                <div
+                  className={`inline-flex h-2 w-2 rounded-full shrink-0 ${
+                    fileSource === "path"
+                      ? isConnected
+                        ? "bg-green-500"
+                        : "bg-red-500"
+                      : "bg-gray-500"
+                  }`}
+                />
+              </div>
+            </FileStatusPopover>
           )
         }
         right={

@@ -18,6 +18,15 @@ export default function Home() {
   const [directFilePath, setDirectFilePath] = React.useState<string | null>(
     null
   );
+  const [fileSource, setFileSource] = React.useState<"client" | "url">("client");
+  const [originalSource, setOriginalSource] = React.useState<string>("");
+
+  const handleAddSnapshot = React.useCallback(
+    (snapshot: BinarySnapshot) => {
+      setDirectSnapshots((prev) => [...prev, snapshot]);
+    },
+    []
+  );
 
   const handleFileSelect = React.useCallback(
     (input: string | BinarySnapshot) => {
@@ -27,13 +36,24 @@ export default function Home() {
         const encodedPath = encodeFilePath(input);
         router.push(`/edit/${encodedPath}`);
       } else {
-        // BinarySnapshot - load directly without file watcher
-        addRecentFile(input.filePath);
-        setDirectSnapshots([input]);
-        setDirectFilePath(input.filePath);
+        // BinarySnapshot - check if we should add as snapshot or replace
+        const isUrl = input.filePath.startsWith("http://") || input.filePath.startsWith("https://");
+        const currentFileSource = isUrl ? "url" : "client";
+        
+        // If we already have snapshots and the current file is client/url based, add as snapshot
+        if (directSnapshots.length > 0 && (fileSource === "client" || fileSource === "url")) {
+          handleAddSnapshot(input);
+        } else {
+          // Otherwise, replace/replace
+          addRecentFile(input.filePath);
+          setDirectSnapshots([input]);
+          setDirectFilePath(input.filePath);
+          setFileSource(currentFileSource);
+          setOriginalSource(input.filePath);
+        }
       }
     },
-    [addRecentFile, router]
+    [addRecentFile, router, directSnapshots.length, fileSource, handleAddSnapshot]
   );
 
   // Register the file select handler with drag-drop provider
@@ -47,6 +67,8 @@ export default function Home() {
   const handleClose = () => {
     setDirectSnapshots([]);
     setDirectFilePath(null);
+    setFileSource("client");
+    setOriginalSource("");
   };
 
   // If we have direct snapshots, render editor with them
@@ -58,6 +80,9 @@ export default function Home() {
         isConnected={false}
         onClose={handleClose}
         recentFiles={recentFiles}
+        fileSource={fileSource}
+        originalSource={originalSource}
+        onAddSnapshot={handleAddSnapshot}
       />
     );
   }
