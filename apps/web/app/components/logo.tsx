@@ -1,75 +1,22 @@
 "use client";
 
-import {
-  Button,
-  DropdownMenu,
-  DropdownMenuCheckboxItem,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuSeparator,
-  DropdownMenuSub,
-  DropdownMenuSubContent,
-  DropdownMenuSubTrigger,
-  DropdownMenuTrigger,
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-} from "@hexed/ui";
-import {
-  ChevronDown,
-  File,
-  Ghost,
-  Github,
-  Home,
-  Monitor,
-  Moon,
-  Palette,
-  Sun,
-  Settings,
-  FolderOpen,
-  BarChart3,
-} from "lucide-react";
-import { useTheme } from "next-themes";
-import Link from "next/link";
+import { Button, DropdownMenu, DropdownMenuTrigger } from "@hexed/ui";
+import { ChevronDown, Ghost } from "lucide-react";
 import { FunctionComponent, ReactNode, useState } from "react";
-import { useRecentFiles } from "~/hooks/use-recent-files";
-import { useChecksumVisibility } from "~/hooks/use-checksum-visibility";
-import { useAsciiVisibility } from "~/hooks/use-ascii-visibility";
-import { useInterpreterVisibility } from "~/hooks/use-interpreter-visibility";
-import { useTemplatesVisibility } from "~/hooks/use-templates-visibility";
-import { useStringsVisibility } from "~/hooks/use-strings-visibility";
-import { useSidebarPosition } from "~/hooks/use-sidebar-position";
-import { encodeFilePath } from "~/utils/path-encoding";
 import { cn } from "@hexed/ui";
 import type { BinarySnapshot } from "@hexed/types";
-import { Histogram } from "~/components/hex-editor/histogram";
+import { LogoMenu, type LogoMenuItem } from "~/components/logo-menu";
 
-export type LogoMenuItem = {
-  label: string;
-  icon?: ReactNode;
-  onClick?: () => void;
-  href?: string;
-};
+export type { LogoMenuItem } from "~/components/logo-menu";
 
 export type LogoProps = {
   menuItems?: LogoMenuItem[];
   githubUrl?: string;
   inline?: boolean;
   currentSnapshot?: BinarySnapshot | null;
+  showHistogram?: boolean;
+  onShowHistogramChange?: (show: boolean) => void;
 };
-
-const isInternalLink = (href: string): boolean => {
-  return href.startsWith("/");
-};
-
-const defaultMenuItems: LogoMenuItem[] = [
-  {
-    label: "Home",
-    href: "/",
-    icon: <Home className="mr-2 h-4 w-4" />,
-  },
-];
 
 export const Brand: FunctionComponent<{
   className?: string;
@@ -97,21 +44,15 @@ export const Logo: FunctionComponent<LogoProps> = ({
   githubUrl = "https://github.com/jakiestfu/hexed",
   inline = false,
   currentSnapshot,
+  showHistogram: controlledShowHistogram,
+  onShowHistogramChange: controlledOnShowHistogramChange,
 }) => {
-  const { setTheme } = useTheme();
-  const { recentFiles } = useRecentFiles();
-  const { showChecksums, setShowChecksums } = useChecksumVisibility();
-  const { showAscii, setShowAscii } = useAsciiVisibility();
-  const { showInterpreter, setShowInterpreter } = useInterpreterVisibility();
-  const { showTemplates, setShowTemplates } = useTemplatesVisibility();
-  const { showStrings, setShowStrings } = useStringsVisibility();
-  const { sidebarPosition, setSidebarPosition } = useSidebarPosition();
-  const [showHistogram, setShowHistogram] = useState(false);
+  const [internalShowHistogram, setInternalShowHistogram] = useState(false);
 
-  const effectiveMenuItems =
-    menuItems && menuItems.length > 0 ? menuItems : defaultMenuItems;
-  const hasDropdown =
-    (effectiveMenuItems && effectiveMenuItems.length > 0) || githubUrl;
+  // Use controlled state if provided, otherwise use internal state
+  const showHistogram = controlledShowHistogram ?? internalShowHistogram;
+  const onShowHistogramChange =
+    controlledOnShowHistogramChange ?? setInternalShowHistogram;
 
   if (inline) return <Brand />;
 
@@ -125,219 +66,14 @@ export const Logo: FunctionComponent<LogoProps> = ({
             <ChevronDown className="opacity-50 h-4 w-4" />
           </Button>
         </DropdownMenuTrigger>
-        <DropdownMenuContent align="start">
-          {effectiveMenuItems?.map((item, index) => {
-            if (item.href) {
-              const isInternal = isInternalLink(item.href);
-              const content = (
-                <>
-                  {item.icon}
-                  {item.label}
-                </>
-              );
-
-              if (isInternal) {
-                return (
-                  <DropdownMenuItem key={index} asChild>
-                    <Link
-                      href={item.href}
-                      onClick={item.onClick}
-                      className="flex items-center gap-2 cursor-pointer"
-                    >
-                      {content}
-                    </Link>
-                  </DropdownMenuItem>
-                );
-              } else {
-                return (
-                  <DropdownMenuItem key={index} asChild>
-                    <a
-                      href={item.href}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      onClick={item.onClick}
-                      className="flex items-center gap-2 cursor-pointer"
-                    >
-                      {content}
-                    </a>
-                  </DropdownMenuItem>
-                );
-              }
-            }
-
-            return (
-              <DropdownMenuItem
-                key={index}
-                onClick={item.onClick}
-                className="cursor-pointer"
-              >
-                {item.icon}
-                {item.label}
-              </DropdownMenuItem>
-            );
-          })}
-          {effectiveMenuItems && effectiveMenuItems.length > 0 && (
-            <DropdownMenuSeparator />
-          )}
-          <DropdownMenuSub>
-            <DropdownMenuSubTrigger className="cursor-pointer">
-              <FolderOpen className="mr-2 h-4 w-4" />
-              Open Recent
-            </DropdownMenuSubTrigger>
-            <DropdownMenuSubContent>
-              {recentFiles.length > 0 ? (
-                recentFiles.map((file) => {
-                  const encodedPath = encodeFilePath(file.path);
-                  const basename = file.path.split("/").pop() || file.path;
-                  return (
-                    <DropdownMenuItem key={file.path} asChild>
-                      <Link
-                        href={`/edit/${encodedPath}`}
-                        className="flex items-center gap-2 cursor-pointer"
-                      >
-                        <File className="mr-2 h-4 w-4" />
-                        {basename}
-                      </Link>
-                    </DropdownMenuItem>
-                  );
-                })
-              ) : (
-                <DropdownMenuItem disabled className="text-muted-foreground">
-                  No recent files
-                </DropdownMenuItem>
-              )}
-            </DropdownMenuSubContent>
-          </DropdownMenuSub>
-          <DropdownMenuSub>
-            <DropdownMenuSubTrigger className="cursor-pointer">
-              <Settings className="mr-2 h-4 w-4" />
-              Settings
-            </DropdownMenuSubTrigger>
-            <DropdownMenuSubContent>
-              <DropdownMenuCheckboxItem
-                checked={showAscii}
-                onCheckedChange={setShowAscii}
-                className="cursor-pointer"
-              >
-                Show ASCII
-              </DropdownMenuCheckboxItem>
-              <DropdownMenuCheckboxItem
-                checked={showInterpreter}
-                onCheckedChange={(value) => {
-                  setShowInterpreter(value);
-                  if (value) setShowTemplates(false);
-                }}
-                className="cursor-pointer"
-              >
-                Show Interpreter
-              </DropdownMenuCheckboxItem>
-              <DropdownMenuCheckboxItem
-                checked={showTemplates}
-                onCheckedChange={(value) => {
-                  setShowTemplates(value);
-                  if (value) setShowInterpreter(false);
-                }}
-                className="cursor-pointer"
-              >
-                Show Templates
-              </DropdownMenuCheckboxItem>
-              <DropdownMenuCheckboxItem
-                checked={showStrings}
-                onCheckedChange={(value) => {
-                  setShowStrings(value);
-                  if (value) {
-                    setShowInterpreter(false);
-                    setShowTemplates(false);
-                  }
-                }}
-                className="cursor-pointer"
-              >
-                Show Strings
-              </DropdownMenuCheckboxItem>
-              <DropdownMenuCheckboxItem
-                checked={showChecksums}
-                onCheckedChange={setShowChecksums}
-                className="cursor-pointer"
-              >
-                Show Checksums
-              </DropdownMenuCheckboxItem>
-              <DropdownMenuItem
-                onClick={() => setShowHistogram(true)}
-                disabled={!currentSnapshot?.data}
-                className="cursor-pointer"
-              >
-                <BarChart3 className="mr-2 h-4 w-4" />
-                Show Histogram
-              </DropdownMenuItem>
-              <DropdownMenuCheckboxItem
-                checked={sidebarPosition === "left"}
-                onCheckedChange={(checked) =>
-                  setSidebarPosition(checked ? "left" : "right")
-                }
-                className="cursor-pointer"
-              >
-                Sidebar on Left
-              </DropdownMenuCheckboxItem>
-              <DropdownMenuSeparator />
-              <DropdownMenuSub>
-                <DropdownMenuSubTrigger className="cursor-pointer">
-                  <Palette className="mr-2 h-4 w-4" />
-                  Theme
-                </DropdownMenuSubTrigger>
-                <DropdownMenuSubContent>
-                  <DropdownMenuItem
-                    onClick={() => setTheme("light")}
-                    className="cursor-pointer"
-                  >
-                    <Sun className="mr-2 h-4 w-4" />
-                    Light
-                  </DropdownMenuItem>
-                  <DropdownMenuItem
-                    onClick={() => setTheme("dark")}
-                    className="cursor-pointer"
-                  >
-                    <Moon className="mr-2 h-4 w-4" />
-                    Dark
-                  </DropdownMenuItem>
-                  <DropdownMenuItem
-                    onClick={() => setTheme("system")}
-                    className="cursor-pointer"
-                  >
-                    <Monitor className="mr-2 h-4 w-4" />
-                    System
-                  </DropdownMenuItem>
-                </DropdownMenuSubContent>
-              </DropdownMenuSub>
-            </DropdownMenuSubContent>
-          </DropdownMenuSub>
-          {githubUrl && (
-            <>
-              <DropdownMenuSeparator />
-              <DropdownMenuItem asChild>
-                <a
-                  href={githubUrl}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="flex items-center gap-2 cursor-pointer"
-                >
-                  <Github className="mr-2 h-4 w-4" />
-                  View on GitHub
-                </a>
-              </DropdownMenuItem>
-            </>
-          )}
-        </DropdownMenuContent>
+        <LogoMenu
+          menuItems={menuItems}
+          githubUrl={githubUrl}
+          currentSnapshot={currentSnapshot}
+          showHistogram={showHistogram}
+          onShowHistogramChange={onShowHistogramChange}
+        />
       </DropdownMenu>
-      {currentSnapshot?.data && (
-        <Dialog open={showHistogram} onOpenChange={setShowHistogram}>
-          <DialogContent className="max-w-7xl w-[95vw]">
-            <DialogHeader>
-              <DialogTitle>Byte Frequency Histogram</DialogTitle>
-            </DialogHeader>
-            <Histogram data={currentSnapshot.data} />
-          </DialogContent>
-        </Dialog>
-      )}
     </div>
   );
 };

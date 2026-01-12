@@ -36,10 +36,6 @@ import {
   ResizablePanelGroup,
   ResizablePanel,
   ResizableHandle,
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
   cn,
 } from "@hexed/ui";
 import {
@@ -71,7 +67,6 @@ import { Interpreter } from "./interpreter";
 import { MemoryProfiler } from "./memory-profiler";
 import { Templates } from "./templates";
 import { Strings } from "./strings";
-import { Histogram } from "./histogram";
 import { FindInput } from "./find-input";
 import type { HexEditorProps, HexEditorViewProps } from "./types";
 import { getBasename } from "./utils";
@@ -122,11 +117,11 @@ export const HexEditor: FunctionComponent<HexEditorProps> = ({
   const [dataType, setDataType] = useState<string>("Signed Int");
   const [endianness, setEndianness] = useState<string>("le");
   const [numberFormat, setNumberFormat] = useState<string>("dec");
-  const { showChecksums } = useChecksumVisibility();
+  const { showChecksums, setShowChecksums } = useChecksumVisibility();
   const { showInterpreter, setShowInterpreter } = useInterpreterVisibility();
   const { showTemplates, setShowTemplates } = useTemplatesVisibility();
   const { showStrings, setShowStrings } = useStringsVisibility();
-  const { sidebarPosition } = useSidebarPosition();
+  const { sidebarPosition, setSidebarPosition } = useSidebarPosition();
   const currentSnapshot = snapshots[parseInt(activeTab, 10)] || snapshots[0];
   const hasFile = filePath != null && filePath !== "";
   const hasSnapshots = snapshots.length > 0;
@@ -205,6 +200,56 @@ export const HexEditor: FunctionComponent<HexEditorProps> = ({
     setRangeToSyncToFindInput(range);
   };
 
+  // Callbacks for new keyboard shortcuts
+  const handleToggleAscii = () => {
+    setShowAscii((prev) => !prev);
+  };
+
+  const handleToggleChecksums = () => {
+    setShowChecksums((prev) => !prev);
+  };
+
+  const handleToggleHistogram = () => {
+    setShowHistogram((prev) => !prev);
+  };
+
+  const handleToggleInterpreter = () => {
+    setShowInterpreter((prev) => {
+      const newValue = !prev;
+      if (newValue) {
+        setShowTemplates(false);
+        setShowStrings(false);
+      }
+      return newValue;
+    });
+  };
+
+  const handleToggleTemplates = () => {
+    setShowTemplates((prev) => {
+      const newValue = !prev;
+      if (newValue) {
+        setShowInterpreter(false);
+        setShowStrings(false);
+      }
+      return newValue;
+    });
+  };
+
+  const handleToggleStrings = () => {
+    setShowStrings((prev) => {
+      const newValue = !prev;
+      if (newValue) {
+        setShowInterpreter(false);
+        setShowTemplates(false);
+      }
+      return newValue;
+    });
+  };
+
+  const handleToggleSidebarPosition = () => {
+    setSidebarPosition((prev) => (prev === "left" ? "right" : "left"));
+  };
+
   // Clear rangeToSyncToFindInput after it's been processed or when search closes
   useEffect(() => {
     if (!showSearch) {
@@ -224,6 +269,13 @@ export const HexEditor: FunctionComponent<HexEditorProps> = ({
     onCloseSearch: () => setShowSearch(false),
     onCloseSidebars: handleCloseSidebars,
     onDeselectBytes: handleDeselectBytes,
+    onToggleAscii: handleToggleAscii,
+    onToggleChecksums: handleToggleChecksums,
+    onToggleHistogram: handleToggleHistogram,
+    onToggleInterpreter: handleToggleInterpreter,
+    onToggleTemplates: handleToggleTemplates,
+    onToggleStrings: handleToggleStrings,
+    onToggleSidebarPosition: handleToggleSidebarPosition,
   });
 
   // Focus search input when search toolbar is shown
@@ -266,7 +318,13 @@ export const HexEditor: FunctionComponent<HexEditorProps> = ({
     <CardHeader className="p-0! gap-0 m-0 bg-muted/30">
       {/* Primary Toolbar */}
       <HexToolbar
-        left={<Logo currentSnapshot={currentSnapshot} />}
+        left={
+          <Logo
+            currentSnapshot={currentSnapshot}
+            showHistogram={showHistogram}
+            onShowHistogramChange={setShowHistogram}
+          />
+        }
         center={
           !hasFile ? (
             <div className="flex items-center gap-2 min-w-0">
@@ -744,16 +802,6 @@ export const HexEditor: FunctionComponent<HexEditorProps> = ({
             {renderCardContent(false)}
           </CardContent>
         </>
-      )}
-      {hasSnapshots && currentSnapshot?.data && (
-        <Dialog open={showHistogram} onOpenChange={setShowHistogram}>
-          <DialogContent className="max-w-none! w-[90vw] p-0 overflow-hidden">
-            <DialogHeader className="p-6 hidden">
-              <DialogTitle>Byte Frequency Histogram</DialogTitle>
-            </DialogHeader>
-            <Histogram data={currentSnapshot.data} />
-          </DialogContent>
-        </Dialog>
       )}
     </Card>
   );

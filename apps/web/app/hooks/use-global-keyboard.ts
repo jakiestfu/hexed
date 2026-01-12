@@ -25,6 +25,20 @@ export interface UseGlobalKeyboardOptions {
   onDeselectBytes: () => void;
   /** Optional callback when bytes are copied (for notifications, etc.) */
   onCopy?: (hexString: string) => void;
+  /** Callback to toggle ASCII visibility */
+  onToggleAscii?: () => void;
+  /** Callback to toggle checksums visibility */
+  onToggleChecksums?: () => void;
+  /** Callback to toggle histogram dialog */
+  onToggleHistogram?: () => void;
+  /** Callback to toggle interpreter sidebar */
+  onToggleInterpreter?: () => void;
+  /** Callback to toggle templates sidebar */
+  onToggleTemplates?: () => void;
+  /** Callback to toggle strings sidebar */
+  onToggleStrings?: () => void;
+  /** Callback to toggle sidebar position */
+  onToggleSidebarPosition?: () => void;
 }
 
 /**
@@ -32,6 +46,13 @@ export interface UseGlobalKeyboardOptions {
  * - Ctrl+C/meta+C: Copy selected bytes as hex string
  * - Escape: Cascading logic (close find input → close sidebars → deselect)
  * - Ctrl+F/meta+F: Toggle search input
+ * - Ctrl+Shift+A/meta+Shift+A: Toggle ASCII visibility
+ * - Ctrl+Shift+C/meta+Shift+C: Toggle checksums visibility
+ * - Ctrl+Shift+H/meta+Shift+H: Toggle histogram dialog
+ * - Ctrl+1/meta+1: Toggle interpreter sidebar
+ * - Ctrl+2/meta+2: Toggle templates sidebar
+ * - Ctrl+3/meta+3: Toggle strings sidebar
+ * - Ctrl+Shift+P/meta+Shift+P: Toggle sidebar position
  */
 export function useGlobalKeyboard({
   selectedOffsetRange,
@@ -45,6 +66,13 @@ export function useGlobalKeyboard({
   onCloseSidebars,
   onDeselectBytes,
   onCopy,
+  onToggleAscii,
+  onToggleChecksums,
+  onToggleHistogram,
+  onToggleInterpreter,
+  onToggleTemplates,
+  onToggleStrings,
+  onToggleSidebarPosition,
 }: UseGlobalKeyboardOptions): void {
   // Ensure we're on the client side
   const [isClient, setIsClient] = useState(false);
@@ -196,5 +224,124 @@ export function useGlobalKeyboard({
       enableOnFormTags: false,
     },
     [isClient, onToggleSearch, isTypingInInput]
+  );
+
+  // Toggle ASCII: Ctrl+Shift+A or meta+Shift+A
+  useHotkeys(
+    "ctrl+shift+a, meta+shift+a",
+    (event) => {
+      if (isTypingInInput()) return;
+      if (!onToggleAscii) return;
+
+      event.preventDefault();
+      onToggleAscii();
+    },
+    {
+      enabled: isClient && !!onToggleAscii,
+      enableOnFormTags: false,
+    },
+    [isClient, onToggleAscii, isTypingInInput]
+  );
+
+  // Toggle checksums: Ctrl+Shift+C or meta+Shift+C
+  useHotkeys(
+    "ctrl+shift+c, meta+shift+c",
+    (event) => {
+      if (isTypingInInput()) return;
+      if (!onToggleChecksums) return;
+
+      event.preventDefault();
+      onToggleChecksums();
+    },
+    {
+      enabled: isClient && !!onToggleChecksums,
+      enableOnFormTags: false,
+    },
+    [isClient, onToggleChecksums, isTypingInInput]
+  );
+
+  // Toggle histogram: Ctrl+Shift+H or meta+Shift+H
+  useHotkeys(
+    "ctrl+shift+h, meta+shift+h",
+    (event) => {
+      if (isTypingInInput()) return;
+      if (!onToggleHistogram) return;
+
+      event.preventDefault();
+      onToggleHistogram();
+    },
+    {
+      enabled: isClient && !!onToggleHistogram,
+      enableOnFormTags: false,
+    },
+    [isClient, onToggleHistogram, isTypingInInput]
+  );
+
+  // Toggle interpreter: Ctrl+1 or meta+1
+  useHotkeys(
+    "ctrl+1, meta+1",
+    (event) => {
+      if (isTypingInInput()) return;
+      if (!onToggleInterpreter) return;
+
+      event.preventDefault();
+      onToggleInterpreter();
+    },
+    {
+      enabled: isClient && !!onToggleInterpreter,
+      enableOnFormTags: false,
+    },
+    [isClient, onToggleInterpreter, isTypingInInput]
+  );
+
+  // Toggle templates: Ctrl+2 or meta+2
+  useHotkeys(
+    "ctrl+2, meta+2",
+    (event) => {
+      if (isTypingInInput()) return;
+      if (!onToggleTemplates) return;
+
+      event.preventDefault();
+      onToggleTemplates();
+    },
+    {
+      enabled: isClient && !!onToggleTemplates,
+      enableOnFormTags: false,
+    },
+    [isClient, onToggleTemplates, isTypingInInput]
+  );
+
+  // Toggle strings: Ctrl+3 or meta+3
+  useHotkeys(
+    "ctrl+3, meta+3",
+    (event) => {
+      if (isTypingInInput()) return;
+      if (!onToggleStrings) return;
+
+      event.preventDefault();
+      onToggleStrings();
+    },
+    {
+      enabled: isClient && !!onToggleStrings,
+      enableOnFormTags: false,
+    },
+    [isClient, onToggleStrings, isTypingInInput]
+  );
+
+  // Toggle sidebar position: Ctrl+Shift+P or meta+Shift+P
+  useHotkeys(
+    "ctrl+shift+p, meta+shift+p",
+    (event) => {
+      if (isTypingInInput()) return;
+      if (!onToggleSidebarPosition) return;
+
+      event.preventDefault();
+      onToggleSidebarPosition();
+    },
+    {
+      enabled: isClient && !!onToggleSidebarPosition,
+      enableOnFormTags: false,
+    },
+    [isClient, onToggleSidebarPosition, isTypingInInput]
   );
 }
