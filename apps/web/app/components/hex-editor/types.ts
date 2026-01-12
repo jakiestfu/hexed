@@ -45,5 +45,6 @@ export type StringsProps = {
   data: Uint8Array;
   onClose?: () => void;
   onScrollToOffset?: (offset: number) => void;
+  onSelectedOffsetRangeChange?: (range: SelectionRange) => void;
   onPIPStateChange?: (isPIPActive: boolean) => void;
 };

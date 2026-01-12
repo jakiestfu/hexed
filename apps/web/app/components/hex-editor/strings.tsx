@@ -43,6 +43,7 @@ export const Strings: FunctionComponent<StringsProps> = ({
   data,
   onClose,
   onScrollToOffset,
+  onSelectedOffsetRangeChange,
   onPIPStateChange,
 }) => {
   const stringsRef = useRef<HTMLDivElement>(null);
@@ -234,9 +235,21 @@ export const Strings: FunctionComponent<StringsProps> = ({
                         return (
                           <TableRow key={`${match.offset}-${index}`}>
                             <TableCell className="font-mono text-xs">
-                              {onScrollToOffset && !isPIPActive ? (
+                              {(onScrollToOffset ||
+                                onSelectedOffsetRangeChange) &&
+                              !isPIPActive ? (
                                 <button
-                                  onClick={() => onScrollToOffset(match.offset)}
+                                  onClick={() => {
+                                    if (onScrollToOffset) {
+                                      onScrollToOffset(match.offset);
+                                    }
+                                    if (onSelectedOffsetRangeChange) {
+                                      onSelectedOffsetRangeChange({
+                                        start: match.offset,
+                                        end: match.offset + match.length - 1,
+                                      });
+                                    }
+                                  }}
                                   className="hover:text-foreground hover:underline transition-colors cursor-pointer text-left"
                                   aria-label={`Scroll to offset ${hexOffset}`}
                                 >

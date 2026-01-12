@@ -400,6 +400,7 @@ export const HexEditor: FunctionComponent<HexEditorProps> = ({
               data={snapshot.data}
               onClose={() => setShowStrings(false)}
               onScrollToOffset={setScrollToOffset}
+              onSelectedOffsetRangeChange={setSelectedOffsetRange}
               onPIPStateChange={setIsStringsPIPActive}
             />
           </div>
