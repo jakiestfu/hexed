@@ -66,4 +66,6 @@ export {
 export {
   searchHex,
   searchText,
+  searchHexAll,
+  searchTextAll,
 } from './search';

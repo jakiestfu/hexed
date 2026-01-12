@@ -16,8 +16,8 @@ import {
   ToggleGroup,
   ToggleGroupItem,
 } from "@hexed/ui";
-import { Search, X } from "lucide-react";
-import { searchHex, searchText } from "@hexed/binary-utils/search";
+import { Search, X, ChevronLeft, ChevronRight } from "lucide-react";
+import { searchHexAll, searchTextAll } from "@hexed/binary-utils/search";
 
 export type FindInputProps = {
   data: Uint8Array;
@@ -34,34 +34,81 @@ export const FindInput: FunctionComponent<FindInputProps> = ({
 }) => {
   const [searchQuery, setSearchQuery] = useState("");
   const [searchMode, setSearchMode] = useState<"hex" | "text">("text");
+  const [matches, setMatches] = useState<
+    Array<{ offset: number; length: number }>
+  >([]);
+  const [currentMatchIndex, setCurrentMatchIndex] = useState(0);
   const internalInputRef = useRef<HTMLInputElement>(null);
   const inputRef = externalInputRef || internalInputRef;
+  const onMatchFoundRef = useRef(onMatchFound);
 
-  const handleSearch = useCallback(() => {
+  // Keep ref updated with latest callback
+  useEffect(() => {
+    onMatchFoundRef.current = onMatchFound;
+  }, [onMatchFound]);
+
+  // Find all matches when query or mode changes
+  useEffect(() => {
     if (!searchQuery.trim() || data.length === 0) {
+      setMatches([]);
+      setCurrentMatchIndex(0);
       return;
     }
 
-    let match: { offset: number; length: number } | null = null;
+    let allMatches: Array<{ offset: number; length: number }> = [];
 
     if (searchMode === "hex") {
-      match = searchHex(data, searchQuery);
+      allMatches = searchHexAll(data, searchQuery);
     } else {
-      match = searchText(data, searchQuery);
+      allMatches = searchTextAll(data, searchQuery);
     }
 
-    if (match) {
-      onMatchFound?.(match.offset, match.length);
+    setMatches(allMatches);
+    setCurrentMatchIndex(0);
+
+    // Highlight first match if available
+    if (allMatches.length > 0) {
+      onMatchFoundRef.current?.(allMatches[0].offset, allMatches[0].length);
     }
-  }, [searchQuery, searchMode, data, onMatchFound]);
+  }, [searchQuery, searchMode, data]);
+
+  // Navigate to match at current index
+  useEffect(() => {
+    if (
+      matches.length > 0 &&
+      currentMatchIndex >= 0 &&
+      currentMatchIndex < matches.length
+    ) {
+      const match = matches[currentMatchIndex];
+      onMatchFoundRef.current?.(match.offset, match.length);
+    }
+  }, [currentMatchIndex, matches]);
+
+  const handleNext = () => {
+    if (matches.length === 0) return;
+    const nextIndex = (currentMatchIndex + 1) % matches.length;
+    setCurrentMatchIndex(nextIndex);
+  };
+
+  const handlePrevious = () => {
+    if (matches.length === 0) return;
+    const prevIndex =
+      currentMatchIndex === 0 ? matches.length - 1 : currentMatchIndex - 1;
+    setCurrentMatchIndex(prevIndex);
+  };
 
   const handleKeyDown = (event: React.KeyboardEvent<HTMLInputElement>) => {
     if (event.key === "Enter") {
       event.preventDefault();
-      handleSearch();
+      if (matches.length > 0) {
+        // Cycle to next match, wrapping around
+        handleNext();
+      }
     } else if (event.key === "Escape") {
       event.preventDefault();
       setSearchQuery("");
+      setMatches([]);
+      setCurrentMatchIndex(0);
       inputRef.current?.blur();
       onClose?.();
     }
@@ -69,6 +116,8 @@ export const FindInput: FunctionComponent<FindInputProps> = ({
 
   const handleClose = () => {
     setSearchQuery("");
+    setMatches([]);
+    setCurrentMatchIndex(0);
     inputRef.current?.blur();
     onClose?.();
   };
@@ -102,27 +151,40 @@ export const FindInput: FunctionComponent<FindInputProps> = ({
           onChange={(e) => setSearchQuery(e.target.value)}
           onKeyDown={handleKeyDown}
         />
-        {/* <InputGroupAddon align="inline-end">
-          <ToggleGroup
-            type="single"
-            value={searchMode}
-            onValueChange={(value) => {
-              if (value === "hex" || value === "text") {
-                setSearchMode(value);
-              }
-            }}
-            variant="outline"
-            size="sm"
-          >
-            <ToggleGroupItem value="hex" aria-label="Hex mode">
-              Hex
-            </ToggleGroupItem>
-            <ToggleGroupItem value="text" aria-label="Text mode">
-              Text
-            </ToggleGroupItem>
-          </ToggleGroup>
-        </InputGroupAddon> */}
-        <InputGroupAddon align="inline-end">12 results</InputGroupAddon>
+        <InputGroupAddon align="inline-end">
+          <div className="flex items-center gap-1">
+            {matches.length > 0 ? (
+              <>
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  onClick={handlePrevious}
+                  disabled={matches.length === 0}
+                  className="h-6 w-6"
+                  aria-label="Previous match"
+                >
+                  <ChevronLeft className="h-3 w-3" />
+                </Button>
+                <span className="text-xs text-muted-foreground min-w-[80px] text-center">
+                  {currentMatchIndex + 1} of {matches.length} result
+                  {matches.length !== 1 ? "s" : ""}
+                </span>
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  onClick={handleNext}
+                  disabled={matches.length === 0}
+                  className="h-6 w-6"
+                  aria-label="Next match"
+                >
+                  <ChevronRight className="h-3 w-3" />
+                </Button>
+              </>
+            ) : searchQuery.trim() ? (
+              <span className="text-xs text-muted-foreground">No results</span>
+            ) : null}
+          </div>
+        </InputGroupAddon>
       </InputGroup>
       <Button
         variant="ghost"

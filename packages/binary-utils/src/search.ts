@@ -34,7 +34,7 @@ function parseHexString(hexString: string): Uint8Array | null {
 }
 
 /**
- * Search for a byte sequence in binary data
+ * Search for a byte sequence in binary data (returns first match)
  */
 function searchBytes(
   data: Uint8Array,
@@ -58,6 +58,35 @@ function searchBytes(
   }
 
   return null;
+}
+
+/**
+ * Search for all occurrences of a byte sequence in binary data
+ */
+function searchBytesAll(
+  data: Uint8Array,
+  pattern: Uint8Array
+): Array<{ offset: number; length: number }> {
+  const matches: Array<{ offset: number; length: number }> = [];
+  
+  if (pattern.length === 0 || pattern.length > data.length) {
+    return matches;
+  }
+
+  for (let i = 0; i <= data.length - pattern.length; i++) {
+    let match = true;
+    for (let j = 0; j < pattern.length; j++) {
+      if (data[i + j] !== pattern[j]) {
+        match = false;
+        break;
+      }
+    }
+    if (match) {
+      matches.push({ offset: i, length: pattern.length });
+    }
+  }
+
+  return matches;
 }
 
 /**
@@ -95,4 +124,41 @@ export function searchText(
   }
 
   return searchBytes(data, pattern);
+}
+
+/**
+ * Search for all occurrences of hex bytes in binary data
+ */
+export function searchHexAll(
+  data: Uint8Array,
+  hexString: string
+): Array<{ offset: number; length: number }> {
+  const pattern = parseHexString(hexString);
+  if (!pattern || pattern.length === 0) {
+    return [];
+  }
+
+  return searchBytesAll(data, pattern);
+}
+
+/**
+ * Search for all occurrences of text string in binary data (UTF-8 encoded)
+ */
+export function searchTextAll(
+  data: Uint8Array,
+  text: string
+): Array<{ offset: number; length: number }> {
+  if (text.length === 0) {
+    return [];
+  }
+
+  // Convert text to UTF-8 bytes
+  const encoder = new TextEncoder();
+  const pattern = encoder.encode(text);
+
+  if (pattern.length === 0) {
+    return [];
+  }
+
+  return searchBytesAll(data, pattern);
 }
