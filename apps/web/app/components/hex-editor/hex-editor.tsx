@@ -40,6 +40,7 @@ import {
   DialogContent,
   DialogHeader,
   DialogTitle,
+  cn,
 } from "@hexed/ui";
 import {
   Eye,
@@ -282,24 +283,30 @@ export const HexEditor: FunctionComponent<HexEditorProps> = ({
       />
 
       {/* Secondary Toolbar - Search */}
-      {hasFile && showSearch && hasSnapshots && currentSnapshot?.data && (
-        <div className="border-b">
-          <div className="p-4">
-            <FindInput
-              data={currentSnapshot.data}
-              inputRef={searchInputRef}
-              onMatchFound={(offset, length) => {
-                setScrollToOffset(offset);
-                setSelectedOffsetRange({
-                  start: offset,
-                  end: offset + length - 1,
-                });
-              }}
-              onClose={() => setShowSearch(false)}
-            />
-          </div>
+
+      <div
+        className={cn(
+          "border-b",
+          hasFile && showSearch && hasSnapshots && currentSnapshot?.data
+            ? ""
+            : "hidden"
+        )}
+      >
+        <div className="p-4">
+          <FindInput
+            data={currentSnapshot?.data}
+            inputRef={searchInputRef}
+            onMatchFound={(offset, length) => {
+              setScrollToOffset(offset);
+              setSelectedOffsetRange({
+                start: offset,
+                end: offset + length - 1,
+              });
+            }}
+            onClose={() => setShowSearch(false)}
+          />
         </div>
-      )}
+      </div>
 
       {/* Secondary Toolbar - Tabs */}
       {hasFile && hasMultipleSnapshots && (

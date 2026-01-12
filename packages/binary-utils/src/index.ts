@@ -68,4 +68,5 @@ export {
   searchText,
   searchHexAll,
   searchTextAll,
+  parseHexString,
 } from './search';

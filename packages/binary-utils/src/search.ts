@@ -6,7 +6,7 @@
  * Parse a hex string into a Uint8Array
  * Supports formats: "41 42 43", "414243", "41-42-43", etc.
  */
-function parseHexString(hexString: string): Uint8Array | null {
+export function parseHexString(hexString: string): Uint8Array | null {
   // Remove spaces, dashes, and other separators
   const cleaned = hexString.replace(/[\s\-_]/g, "").toLowerCase();
 

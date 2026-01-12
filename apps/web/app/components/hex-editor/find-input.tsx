@@ -1,23 +1,19 @@
 "use client";
 
-import { useState, useRef, useEffect, useCallback } from "react";
+import { useState, useRef, useEffect } from "react";
 import type { FunctionComponent, RefObject } from "react";
 import {
   Button,
   cn,
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
   InputGroup,
   InputGroupAddon,
   InputGroupButton,
   InputGroupInput,
-  ToggleGroup,
-  ToggleGroupItem,
 } from "@hexed/ui";
 import { Search, X, ChevronLeft, ChevronRight } from "lucide-react";
 import { searchHexAll, searchTextAll } from "@hexed/binary-utils/search";
+import { useHexInput } from "~/hooks/use-hex-input";
+import { useLocalStorage } from "~/hooks/use-local-storage";
 
 export type FindInputProps = {
   data: Uint8Array;
@@ -32,8 +28,10 @@ export const FindInput: FunctionComponent<FindInputProps> = ({
   onClose,
   inputRef: externalInputRef,
 }) => {
-  const [searchQuery, setSearchQuery] = useState("");
-  const [searchMode, setSearchMode] = useState<"hex" | "text">("text");
+  const [searchMode, setSearchMode] = useLocalStorage<"hex" | "text">(
+    "hexed:find-input-mode",
+    "text"
+  );
   const [matches, setMatches] = useState<
     Array<{ offset: number; length: number }>
   >([]);
@@ -42,6 +40,22 @@ export const FindInput: FunctionComponent<FindInputProps> = ({
   const inputRef = externalInputRef || internalInputRef;
   const onMatchFoundRef = useRef(onMatchFound);
 
+  // Use the hex input hook for formatted input
+  const {
+    value: searchQuery,
+    bytes,
+    handleChange,
+    handleKeyDown: handleHexKeyDown,
+    handlePaste,
+    clear,
+  } = useHexInput({
+    mode: searchMode,
+    setMode: setSearchMode,
+    onChange: () => {
+      // Search will be triggered by useEffect watching searchQuery
+    },
+  });
+
   // Keep ref updated with latest callback
   useEffect(() => {
     onMatchFoundRef.current = onMatchFound;
@@ -49,7 +63,7 @@ export const FindInput: FunctionComponent<FindInputProps> = ({
 
   // Find all matches when query or mode changes
   useEffect(() => {
-    if (!searchQuery.trim() || data.length === 0) {
+    if (!searchQuery.trim() || data.length === 0 || bytes.length === 0) {
       setMatches([]);
       setCurrentMatchIndex(0);
       return;
@@ -58,8 +72,10 @@ export const FindInput: FunctionComponent<FindInputProps> = ({
     let allMatches: Array<{ offset: number; length: number }> = [];
 
     if (searchMode === "hex") {
+      // Use the formatted hex string from the hook
       allMatches = searchHexAll(data, searchQuery);
     } else {
+      // For text mode, use the hook's value directly (already converted to text)
       allMatches = searchTextAll(data, searchQuery);
     }
 
@@ -70,7 +86,7 @@ export const FindInput: FunctionComponent<FindInputProps> = ({
     if (allMatches.length > 0) {
       onMatchFoundRef.current?.(allMatches[0].offset, allMatches[0].length);
     }
-  }, [searchQuery, searchMode, data]);
+  }, [searchQuery, searchMode, data, bytes]);
 
   // Navigate to match at current index
   useEffect(() => {
@@ -98,24 +114,32 @@ export const FindInput: FunctionComponent<FindInputProps> = ({
   };
 
   const handleKeyDown = (event: React.KeyboardEvent<HTMLInputElement>) => {
+    // Handle Enter and Escape before the hex hook processes them
     if (event.key === "Enter") {
       event.preventDefault();
       if (matches.length > 0) {
         // Cycle to next match, wrapping around
         handleNext();
       }
-    } else if (event.key === "Escape") {
+      return;
+    }
+
+    if (event.key === "Escape") {
       event.preventDefault();
-      setSearchQuery("");
+      clear();
       setMatches([]);
       setCurrentMatchIndex(0);
       inputRef.current?.blur();
       onClose?.();
+      return;
     }
+
+    // Let the hex input hook handle its own keys
+    handleHexKeyDown(event);
   };
 
   const handleClose = () => {
-    setSearchQuery("");
+    clear();
     setMatches([]);
     setCurrentMatchIndex(0);
     inputRef.current?.blur();
@@ -148,8 +172,10 @@ export const FindInput: FunctionComponent<FindInputProps> = ({
             searchMode === "hex" ? "Search hex..." : "Search text..."
           }
           value={searchQuery}
-          onChange={(e) => setSearchQuery(e.target.value)}
+          onChange={handleChange}
           onKeyDown={handleKeyDown}
+          onPaste={handlePaste}
+          className={cn(searchMode === "hex" ? "font-mono" : "")}
         />
         <InputGroupAddon align="inline-end">
           <div className="flex items-center gap-1">
