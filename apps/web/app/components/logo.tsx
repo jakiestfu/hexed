@@ -11,6 +11,10 @@ import {
   DropdownMenuSubContent,
   DropdownMenuSubTrigger,
   DropdownMenuTrigger,
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
 } from "@hexed/ui";
 import {
   ChevronDown,
@@ -24,10 +28,11 @@ import {
   Sun,
   Settings,
   FolderOpen,
+  BarChart3,
 } from "lucide-react";
 import { useTheme } from "next-themes";
 import Link from "next/link";
-import { FunctionComponent, ReactNode } from "react";
+import { FunctionComponent, ReactNode, useState } from "react";
 import { useRecentFiles } from "~/hooks/use-recent-files";
 import { useChecksumVisibility } from "~/hooks/use-checksum-visibility";
 import { useAsciiVisibility } from "~/hooks/use-ascii-visibility";
@@ -36,6 +41,8 @@ import { useTemplatesVisibility } from "~/hooks/use-templates-visibility";
 import { useSidebarPosition } from "~/hooks/use-sidebar-position";
 import { encodeFilePath } from "~/utils/path-encoding";
 import { cn } from "@hexed/ui";
+import type { BinarySnapshot } from "@hexed/types";
+import { Histogram } from "~/components/hex-editor/histogram";
 
 export type LogoMenuItem = {
   label: string;
@@ -48,6 +55,7 @@ export type LogoProps = {
   menuItems?: LogoMenuItem[];
   githubUrl?: string;
   inline?: boolean;
+  currentSnapshot?: BinarySnapshot | null;
 };
 
 const isInternalLink = (href: string): boolean => {
@@ -62,10 +70,32 @@ const defaultMenuItems: LogoMenuItem[] = [
   },
 ];
 
+export const Brand: FunctionComponent<{
+  className?: string;
+  glitch?: boolean;
+}> = ({ className, glitch }) => (
+  <div
+    className={cn(
+      "flex justify-center items-center gap-2 logo-container-inline",
+      className
+    )}
+  >
+    <Ghost />
+
+    <div
+      className={cn("font-mono font-bold", glitch && "glitch layers")}
+      data-text="hexed"
+    >
+      <span>hexed</span>
+    </div>
+  </div>
+);
+
 export const Logo: FunctionComponent<LogoProps> = ({
   menuItems,
   githubUrl = "https://github.com/jakiestfu/hexed",
   inline = false,
+  currentSnapshot,
 }) => {
   const { setTheme } = useTheme();
   const { recentFiles } = useRecentFiles();
@@ -74,19 +104,14 @@ export const Logo: FunctionComponent<LogoProps> = ({
   const { showInterpreter, setShowInterpreter } = useInterpreterVisibility();
   const { showTemplates, setShowTemplates } = useTemplatesVisibility();
   const { sidebarPosition, setSidebarPosition } = useSidebarPosition();
+  const [showHistogram, setShowHistogram] = useState(false);
 
   const effectiveMenuItems =
     menuItems && menuItems.length > 0 ? menuItems : defaultMenuItems;
   const hasDropdown =
     (effectiveMenuItems && effectiveMenuItems.length > 0) || githubUrl;
 
-  if (inline)
-    return (
-      <div className="flex justify-center items-center gap-2 logo-container-inline">
-        <Ghost />
-        <span className="font-mono font-bold">hexed</span>
-      </div>
-    );
+  if (inline) return <Brand />;
 
   return (
     <div className="flex justify-center gap-2 logo-container">
@@ -221,6 +246,14 @@ export const Logo: FunctionComponent<LogoProps> = ({
               >
                 Show Checksums
               </DropdownMenuCheckboxItem>
+              <DropdownMenuItem
+                onClick={() => setShowHistogram(true)}
+                disabled={!currentSnapshot?.data}
+                className="cursor-pointer"
+              >
+                <BarChart3 className="mr-2 h-4 w-4" />
+                Show Histogram
+              </DropdownMenuItem>
               <DropdownMenuCheckboxItem
                 checked={sidebarPosition === "left"}
                 onCheckedChange={(checked) =>
@@ -280,6 +313,16 @@ export const Logo: FunctionComponent<LogoProps> = ({
           )}
         </DropdownMenuContent>
       </DropdownMenu>
+      {currentSnapshot?.data && (
+        <Dialog open={showHistogram} onOpenChange={setShowHistogram}>
+          <DialogContent className="max-w-7xl w-[95vw]">
+            <DialogHeader>
+              <DialogTitle>Byte Frequency Histogram</DialogTitle>
+            </DialogHeader>
+            <Histogram data={currentSnapshot.data} />
+          </DialogContent>
+        </Dialog>
+      )}
     </div>
   );
 };

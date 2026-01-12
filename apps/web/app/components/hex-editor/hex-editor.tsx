@@ -36,6 +36,10 @@ import {
   ResizablePanelGroup,
   ResizablePanel,
   ResizableHandle,
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
 } from "@hexed/ui";
 import {
   Eye,
@@ -47,6 +51,7 @@ import {
   CaseSensitive,
   Binary,
   FileText,
+  BarChart3,
 } from "lucide-react";
 import { DiffViewer } from "./diff-viewer";
 import { EmptyState } from "./empty-state";
@@ -61,6 +66,7 @@ import { useSidebarPosition } from "~/hooks/use-sidebar-position";
 import { Interpreter } from "./interpreter";
 import { MemoryProfiler } from "./memory-profiler";
 import { Templates } from "./templates";
+import { Histogram } from "./histogram";
 import type { HexEditorProps, HexEditorViewProps } from "./types";
 import { getBasename } from "./utils";
 
@@ -145,6 +151,7 @@ export const HexEditor: FunctionComponent<HexEditorProps> = ({
   } | null>(null);
   const [isInterpreterPIPActive, setIsInterpreterPIPActive] = useState(false);
   const [isTemplatesPIPActive, setIsTemplatesPIPActive] = useState(false);
+  const [showHistogram, setShowHistogram] = useState(false);
 
   // Calculate earliest byte for interpreter
   const selectedOffset = selectedOffsetRange
@@ -175,7 +182,7 @@ export const HexEditor: FunctionComponent<HexEditorProps> = ({
     <CardHeader className="p-0! gap-0 m-0 bg-muted/30">
       {/* Primary Toolbar */}
       <HexToolbar
-        left={<Logo />}
+        left={<Logo currentSnapshot={currentSnapshot} />}
         center={
           !hasFile ? (
             <div className="flex items-center gap-2 min-w-0">
@@ -519,6 +526,20 @@ export const HexEditor: FunctionComponent<HexEditorProps> = ({
                     </TooltipTrigger>
                     <TooltipContent>Toggle ASCII view</TooltipContent>
                   </Tooltip>
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => setShowHistogram(true)}
+                        disabled={!hasSnapshots || !currentSnapshot?.data}
+                        aria-label="Show histogram"
+                      >
+                        <BarChart3 className="h-4 w-4" />
+                      </Button>
+                    </TooltipTrigger>
+                    <TooltipContent>Show Histogram</TooltipContent>
+                  </Tooltip>
                   <ToggleGroup
                     type="single"
                     value={paneToggleValue}
@@ -572,6 +593,16 @@ export const HexEditor: FunctionComponent<HexEditorProps> = ({
             {renderCardContent(false)}
           </CardContent>
         </>
+      )}
+      {hasSnapshots && currentSnapshot?.data && (
+        <Dialog open={showHistogram} onOpenChange={setShowHistogram}>
+          <DialogContent className="max-w-none! w-[90vw] p-0 overflow-hidden">
+            <DialogHeader className="p-6 hidden">
+              <DialogTitle>Byte Frequency Histogram</DialogTitle>
+            </DialogHeader>
+            <Histogram data={currentSnapshot.data} />
+          </DialogContent>
+        </Dialog>
       )}
     </Card>
   );
