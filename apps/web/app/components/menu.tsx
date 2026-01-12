@@ -13,8 +13,10 @@ import {
   DropdownMenuSubTrigger,
   Dialog,
   DialogContent,
+  DialogDescription,
   DialogHeader,
   DialogTitle,
+  Button,
 } from "@hexed/ui";
 import {
   File,
@@ -31,10 +33,12 @@ import {
   FileText,
   Type,
   PanelLeft,
+  Trash2,
 } from "lucide-react";
+import { FileSourceIcon } from "~/components/hex-editor/file-source-icon";
 import { useTheme } from "next-themes";
 import Link from "next/link";
-import { FunctionComponent, ReactNode } from "react";
+import { FunctionComponent, ReactNode, useState } from "react";
 import { useRecentFiles } from "~/hooks/use-recent-files";
 import { useChecksumVisibility } from "~/hooks/use-checksum-visibility";
 import { useAsciiVisibility } from "~/hooks/use-ascii-visibility";
@@ -46,16 +50,17 @@ import { encodeFilePath } from "~/utils/path-encoding";
 import type { BinarySnapshot } from "@hexed/types";
 import { Histogram } from "~/components/hex-editor/histogram";
 import { Hotkeys } from "~/utils/hotkey-format";
+import { formatFilenameForDisplay } from "~/components/hex-editor/utils";
 
-export type LogoMenuItem = {
+export type MenuItem = {
   label: string;
   icon?: ReactNode;
   onClick?: () => void;
   href?: string;
 };
 
-export type LogoMenuProps = {
-  menuItems?: LogoMenuItem[];
+export type MenuProps = {
+  menuItems?: MenuItem[];
   githubUrl?: string;
   currentSnapshot?: BinarySnapshot | null;
   showHistogram: boolean;
@@ -66,7 +71,7 @@ const isInternalLink = (href: string): boolean => {
   return href.startsWith("/");
 };
 
-const defaultMenuItems: LogoMenuItem[] = [
+const defaultMenuItems: MenuItem[] = [
   {
     label: "Home",
     href: "/",
@@ -74,7 +79,7 @@ const defaultMenuItems: LogoMenuItem[] = [
   },
 ];
 
-export const LogoMenu: FunctionComponent<LogoMenuProps> = ({
+export const Menu: FunctionComponent<MenuProps> = ({
   menuItems,
   githubUrl = "https://github.com/jakiestfu/hexed",
   currentSnapshot,
@@ -82,13 +87,17 @@ export const LogoMenu: FunctionComponent<LogoMenuProps> = ({
   onShowHistogramChange,
 }) => {
   const { theme, setTheme } = useTheme();
-  const { recentFiles } = useRecentFiles();
+  const { recentFiles, clearRecentFiles, removeRecentFile } = useRecentFiles();
   const { showChecksums, setShowChecksums } = useChecksumVisibility();
   const { showAscii, setShowAscii } = useAsciiVisibility();
   const { showInterpreter, setShowInterpreter } = useInterpreterVisibility();
   const { showTemplates, setShowTemplates } = useTemplatesVisibility();
   const { showStrings, setShowStrings } = useStringsVisibility();
   const { sidebarPosition, setSidebarPosition } = useSidebarPosition();
+  const [showClientFileDialog, setShowClientFileDialog] = useState(false);
+  const [clickedClientFilePath, setClickedClientFilePath] = useState<
+    string | null
+  >(null);
 
   const effectiveMenuItems =
     menuItems && menuItems.length > 0 ? menuItems : defaultMenuItems;
@@ -185,21 +194,58 @@ export const LogoMenu: FunctionComponent<LogoMenuProps> = ({
           </DropdownMenuSubTrigger>
           <DropdownMenuSubContent>
             {recentFiles.length > 0 ? (
-              recentFiles.map((file) => {
-                const encodedPath = encodeFilePath(file.path);
-                const basename = file.path.split("/").pop() || file.path;
-                return (
-                  <DropdownMenuItem key={file.path} asChild>
-                    <Link
-                      href={`/edit/${encodedPath}`}
-                      className="flex items-center gap-2 cursor-pointer"
-                    >
-                      <File className="mr-2 h-4 w-4" />
-                      {basename}
-                    </Link>
-                  </DropdownMenuItem>
-                );
-              })
+              <>
+                {recentFiles.map((file) => {
+                  const encodedPath = encodeFilePath(file.path);
+                  // Use stored source, fallback to "path" for backward compatibility
+                  const fileSource = file.source || "path";
+                  const isClientFile = fileSource === "client";
+
+                  if (isClientFile) {
+                    return (
+                      <DropdownMenuItem
+                        key={file.path}
+                        onClick={() => {
+                          setClickedClientFilePath(file.path);
+                          setShowClientFileDialog(true);
+                        }}
+                        className="cursor-pointer"
+                      >
+                        <FileSourceIcon
+                          fileSource={fileSource}
+                          className="mr-2"
+                        />
+                        <span className="text-muted-foreground">
+                          {formatFilenameForDisplay(file.path)}
+                        </span>
+                      </DropdownMenuItem>
+                    );
+                  }
+
+                  return (
+                    <DropdownMenuItem key={file.path} asChild>
+                      <Link
+                        href={`/edit/${encodedPath}`}
+                        className="flex items-center gap-2 cursor-pointer"
+                      >
+                        <FileSourceIcon
+                          fileSource={fileSource}
+                          className="mr-2"
+                        />
+                        {formatFilenameForDisplay(file.path)}
+                      </Link>
+                    </DropdownMenuItem>
+                  );
+                })}
+                <DropdownMenuSeparator />
+                <DropdownMenuItem
+                  onClick={clearRecentFiles}
+                  className="cursor-pointer text-destructive focus:text-destructive"
+                >
+                  <Trash2 className="mr-2 h-4 w-4" />
+                  Clear Recent
+                </DropdownMenuItem>
+              </>
             ) : (
               <DropdownMenuItem disabled className="text-muted-foreground">
                 No recent files
@@ -361,6 +407,39 @@ export const LogoMenu: FunctionComponent<LogoMenuProps> = ({
           </DialogContent>
         </Dialog>
       )}
+      <Dialog
+        open={showClientFileDialog}
+        onOpenChange={setShowClientFileDialog}
+      >
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Could not restore client file</DialogTitle>
+            <DialogDescription>
+              Client uploads are temporary files that were uploaded directly
+              from your browser. Since the file data isn't stored on the server,
+              it can't be restored later. Please upload the file again if you
+              need to view it.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="flex justify-end gap-2 mt-4">
+            <Button
+              variant="outline"
+              onClick={() => {
+                if (clickedClientFilePath) {
+                  removeRecentFile(clickedClientFilePath);
+                }
+                setShowClientFileDialog(false);
+                setClickedClientFilePath(null);
+              }}
+            >
+              Remove from recent files
+            </Button>
+            <Button onClick={() => setShowClientFileDialog(false)}>
+              Close
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
     </>
   );
 };

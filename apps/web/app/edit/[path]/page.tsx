@@ -6,11 +6,12 @@ import { HexEditor } from "~/components/hex-editor/hex-editor";
 import { Button, Card, CardContent } from "@hexed/ui";
 import { useFileWatcher } from "~/utils/use-file-watcher";
 import { useRecentFiles } from "~/hooks/use-recent-files";
-import { decodeFilePath } from "~/utils/path-encoding";
+import { decodeFilePath, isUrlPath } from "~/utils/path-encoding";
 import { AlertCircle } from "lucide-react";
 import { useDragDrop } from "~/components/hex-editor/drag-drop-provider";
 import { encodeFilePath } from "~/utils/path-encoding";
 import type { BinarySnapshot } from "@hexed/types";
+import { createSnapshotFromURL } from "~/components/hex-editor/utils";
 
 export default function EditPage() {
   const params = useParams();
@@ -23,23 +24,66 @@ export default function EditPage() {
   const filePath = React.useMemo(() => {
     const decoded = decodeFilePath(encodedPath);
     if (decoded) {
-      addRecentFile(decoded);
+      // Determine source type: URL or path
+      const source = isUrlPath(decoded) ? "url" : "path";
+      addRecentFile(decoded, source);
     }
     return decoded;
   }, [encodedPath, addRecentFile]);
 
-  const { snapshots, isConnected, error, restart } = useFileWatcher(filePath);
+  const isUrl = React.useMemo(() => {
+    return filePath ? isUrlPath(filePath) : false;
+  }, [filePath]);
+
+  // State for URL-based snapshots
+  const [urlSnapshots, setUrlSnapshots] = React.useState<BinarySnapshot[]>([]);
+  const [urlLoading, setUrlLoading] = React.useState(false);
+  const [urlError, setUrlError] = React.useState<string | null>(null);
+
+  // Fetch URL if it's a URL source
+  React.useEffect(() => {
+    if (isUrl && filePath) {
+      setUrlLoading(true);
+      setUrlError(null);
+      createSnapshotFromURL(filePath)
+        .then((snapshot) => {
+          setUrlSnapshots([snapshot]);
+          setUrlLoading(false);
+        })
+        .catch((error) => {
+          setUrlError(
+            error instanceof Error ? error.message : "Failed to fetch URL"
+          );
+          setUrlLoading(false);
+        });
+    } else {
+      setUrlSnapshots([]);
+      setUrlError(null);
+    }
+  }, [isUrl, filePath]);
+
+  // Use file watcher for file paths
+  const {
+    snapshots: fileSnapshots,
+    isConnected,
+    error: fileError,
+    restart,
+  } = useFileWatcher(isUrl ? null : filePath);
+
+  // Determine which snapshots and error to use
+  const snapshots = isUrl ? urlSnapshots : fileSnapshots;
+  const error = isUrl ? urlError : fileError;
 
   const handleFileSelect = React.useCallback(
     (input: string | BinarySnapshot) => {
       if (typeof input === "string") {
         // String path - navigate to new file
-        addRecentFile(input);
+        addRecentFile(input, "path");
         const encodedPath = encodeFilePath(input);
         router.push(`/edit/${encodedPath}`);
       } else {
-        // BinarySnapshot - navigate to home with snapshot
-        addRecentFile(input.filePath);
+        // BinarySnapshot - navigate to home with snapshot (client upload)
+        addRecentFile(input.filePath, "client");
         router.push("/");
         // The home page will handle the snapshot via its own state
       }
@@ -121,13 +165,13 @@ export default function EditPage() {
     <HexEditor
       snapshots={snapshots}
       filePath={filePath}
-      isConnected={isConnected}
-      loading={snapshots.length === 0 && !error}
+      isConnected={isUrl ? false : isConnected}
+      loading={snapshots.length === 0 && !error && (isUrl ? urlLoading : true)}
       onClose={handleClose}
-      fileSource="path"
+      fileSource={isUrl ? "url" : "path"}
       originalSource={filePath || ""}
       error={error}
-      onRestartWatching={restart}
+      onRestartWatching={isUrl ? undefined : restart}
     />
   );
 }

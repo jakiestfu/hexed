@@ -1,6 +1,8 @@
 "use client";
 
 import * as React from "react";
+import { FileSource } from "~/components/hex-editor/types";
+import { isUrlPath } from "~/utils/path-encoding";
 
 const STORAGE_KEY = "hexed:recent-files";
 const MAX_RECENT_FILES = 10;
@@ -8,6 +10,7 @@ const MAX_RECENT_FILES = 10;
 export interface RecentFile {
   path: string;
   timestamp: number;
+  source?: FileSource;
 }
 
 /**
@@ -24,8 +27,19 @@ export function useRecentFiles() {
       const stored = localStorage.getItem(STORAGE_KEY);
       if (stored) {
         const parsed = JSON.parse(stored) as RecentFile[];
+        // Migrate old data: infer source for files without source field
+        const migrated = parsed.map((file): RecentFile => {
+          if (!file.source) {
+            // Infer source from path for backward compatibility
+            const inferredSource: FileSource = isUrlPath(file.path)
+              ? "url"
+              : "path";
+            return { ...file, source: inferredSource };
+          }
+          return file;
+        });
         // Sort by most recent first
-        const sorted = parsed.sort((a, b) => b.timestamp - a.timestamp);
+        const sorted = migrated.sort((a, b) => b.timestamp - a.timestamp);
         setRecentFiles(sorted);
       }
     } catch (error) {
@@ -33,28 +47,31 @@ export function useRecentFiles() {
     }
   }, []);
 
-  const addRecentFile = React.useCallback((filePath: string) => {
-    if (typeof window === "undefined") return;
+  const addRecentFile = React.useCallback(
+    (filePath: string, source: FileSource = "path") => {
+      if (typeof window === "undefined") return;
 
-    try {
-      const stored = localStorage.getItem(STORAGE_KEY);
-      const existing: RecentFile[] = stored ? JSON.parse(stored) : [];
+      try {
+        const stored = localStorage.getItem(STORAGE_KEY);
+        const existing: RecentFile[] = stored ? JSON.parse(stored) : [];
 
-      // Remove if already exists (to avoid duplicates)
-      const filtered = existing.filter((file) => file.path !== filePath);
+        // Remove if already exists (to avoid duplicates)
+        const filtered = existing.filter((file) => file.path !== filePath);
 
-      // Add new file at the beginning
-      const updated: RecentFile[] = [
-        { path: filePath, timestamp: Date.now() },
-        ...filtered,
-      ].slice(0, MAX_RECENT_FILES); // Limit to max files
+        // Add new file at the beginning
+        const updated: RecentFile[] = [
+          { path: filePath, timestamp: Date.now(), source },
+          ...filtered,
+        ].slice(0, MAX_RECENT_FILES); // Limit to max files
 
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(updated));
-      setRecentFiles(updated);
-    } catch (error) {
-      console.error("Failed to save recent file to localStorage:", error);
-    }
-  }, []);
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(updated));
+        setRecentFiles(updated);
+      } catch (error) {
+        console.error("Failed to save recent file to localStorage:", error);
+      }
+    },
+    []
+  );
 
   const removeRecentFile = React.useCallback((filePath: string) => {
     if (typeof window === "undefined") return;

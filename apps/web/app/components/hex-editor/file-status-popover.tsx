@@ -3,9 +3,10 @@
 import { FunctionComponent, ReactNode } from "react";
 import { Popover, PopoverContent, PopoverTrigger, Button } from "@hexed/ui";
 import { AlertCircle, RefreshCw } from "lucide-react";
+import { FileSource } from "~/components/hex-editor/types";
 
 export type FileStatusPopoverProps = {
-  fileSource: "path" | "client" | "url";
+  fileSource: FileSource;
   originalSource: string;
   isConnected?: boolean;
   error?: string | null;

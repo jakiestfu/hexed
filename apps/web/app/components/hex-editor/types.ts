@@ -2,6 +2,8 @@ import type { BinarySnapshot, DiffResult } from "@hexed/types";
 import type { RecentFile } from "~/hooks/use-recent-files";
 import type { Endianness, NumberFormat } from "@hexed/binary-utils/interpreter";
 
+export type FileSource = "path" | "client" | "url";
+
 export type HexEditorProps = {
   snapshots: BinarySnapshot[];
   filePath?: string | null;
@@ -11,7 +13,7 @@ export type HexEditorProps = {
   onFileSelect?: (filePath: string | BinarySnapshot) => void;
   recentFiles?: RecentFile[];
   className?: string;
-  fileSource?: "path" | "client" | "url";
+  fileSource?: FileSource;
   originalSource?: string;
   error?: string | null;
   onRestartWatching?: () => void;

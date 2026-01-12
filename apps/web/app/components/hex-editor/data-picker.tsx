@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef } from "react";
 import type { FunctionComponent, FormEvent } from "react";
+import { useRouter } from "next/navigation";
 import {
   Card,
   CardContent,
@@ -13,24 +14,14 @@ import {
   TabsContent,
   Input,
 } from "@hexed/ui";
-import {
-  FileIcon,
-  Clock,
-  FolderOpen,
-  Link as LinkIcon,
-  Code,
-  Loader2,
-} from "lucide-react";
+import { Clock, FolderOpen, Link as LinkIcon, Loader2 } from "lucide-react";
 import type { RecentFile } from "~/hooks/use-recent-files";
 import type { BinarySnapshot } from "@hexed/types";
 import { isElectron, openFileDialog } from "~/utils/electron";
-import {
-  createSnapshotFromFile,
-  createSnapshotFromURL,
-  formatTimestamp,
-  getBasename,
-} from "./utils";
+import { createSnapshotFromFile, formatTimestamp, getBasename } from "./utils";
 import { useQueryParamState } from "~/hooks/use-query-param-state";
+import { encodeFilePath } from "~/utils/path-encoding";
+import { FileSourceIcon } from "./file-source-icon";
 
 type DataPickerProps = {
   onFileSelect: (filePath: string | BinarySnapshot) => void;
@@ -89,9 +80,15 @@ export const DataPicker: FunctionComponent<DataPickerProps> = ({
   onFileSelect,
   recentFiles,
 }) => {
+  const router = useRouter();
   const [isInElectron, setIsInElectron] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
-  const [activeTab, setActiveTab] = useQueryParamState("tab", "file");
+  const [activeTab, setActiveTabState] = useQueryParamState<
+    "file" | "url" | "path"
+  >("tab", "file");
+  const setActiveTab = (value: string) => {
+    setActiveTabState(value as "file" | "url" | "path");
+  };
   const [url, setUrl] = useState("");
   const [pathInput, setPathInput] = useState("");
   const [isMounted, setIsMounted] = useState(false);
@@ -155,15 +152,12 @@ export const DataPicker: FunctionComponent<DataPickerProps> = ({
 
     setIsLoading(true);
     try {
-      const snapshot = await createSnapshotFromURL(url.trim());
-      onFileSelect(snapshot);
+      const urlToEncode = url.trim();
+      const encodedUrl = encodeFilePath(urlToEncode);
+      router.push(`/edit/${encodedUrl}`);
     } catch (error) {
-      console.error("Error fetching URL:", error);
-      alert(
-        error instanceof Error
-          ? `Failed to fetch URL: ${error.message}`
-          : "Failed to fetch URL"
-      );
+      console.error("Error encoding URL:", error);
+      alert("Failed to encode URL");
     } finally {
       setIsLoading(false);
     }
@@ -194,16 +188,16 @@ export const DataPicker: FunctionComponent<DataPickerProps> = ({
             }}
           >
             <TabsTrigger value="file">
-              <FileIcon className="h-4 w-4 mr-2" />
+              <FileSourceIcon fileSource="client" className="mr-2" />
               File
             </TabsTrigger>
             <TabsTrigger value="url">
-              <LinkIcon className="h-4 w-4 mr-2" />
+              <FileSourceIcon fileSource="url" className="mr-2" />
               URL
             </TabsTrigger>
             {isDevelopment && (
               <TabsTrigger value="path">
-                <Code className="h-4 w-4 mr-2" />
+                <FileSourceIcon fileSource="path" className="mr-2" />
                 Path
               </TabsTrigger>
             )}

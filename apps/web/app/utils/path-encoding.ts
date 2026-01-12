@@ -3,6 +3,15 @@
  */
 
 /**
+ * Checks if a path is a URL (starts with http:// or https://)
+ * @param path - The path to check
+ * @returns true if the path is a URL, false otherwise
+ */
+export function isUrlPath(path: string): boolean {
+  return path.startsWith("http://") || path.startsWith("https://");
+}
+
+/**
  * Encodes a file path to a URL-safe base64 string
  * @param path - The file path to encode
  * @returns URL-safe base64 encoded string

@@ -69,8 +69,9 @@ import { Templates } from "./templates";
 import { Strings } from "./strings";
 import { FindInput } from "./find-input";
 import { FileStatusPopover } from "./file-status-popover";
+import { FileSourceIcon } from "./file-source-icon";
 import type { HexEditorProps, HexEditorViewProps } from "./types";
-import { getBasename } from "./utils";
+import { formatFilenameForDisplay } from "./utils";
 
 const HexEditorView: FunctionComponent<HexEditorViewProps> = ({
   scrollToOffset,
@@ -347,12 +348,15 @@ export const HexEditor: FunctionComponent<HexEditorProps> = ({
               onRestartWatching={onRestartWatching}
             >
               <div className="flex items-center gap-2 min-w-0 cursor-pointer hover:opacity-80 transition-opacity group">
-                <File className="h-4 w-4 text-muted-foreground shrink-0" />
+                <FileSourceIcon
+                  fileSource={fileSource}
+                  className="text-muted-foreground shrink-0"
+                />
                 <span
                   className="font-mono text-sm truncate group-hover:underline"
                   title={filePath}
                 >
-                  {getBasename(filePath!)}
+                  {formatFilenameForDisplay(filePath!)}
                 </span>
                 <div
                   className={`inline-flex h-2 w-2 rounded-full shrink-0 ${

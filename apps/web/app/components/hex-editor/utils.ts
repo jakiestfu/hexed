@@ -1,10 +1,38 @@
 import type { BinarySnapshot } from "@hexed/types";
 
 /**
- * Get the basename from a file path
+ * Remove query parameters from a path or URL
+ */
+function removeQueryParams(path: string): string {
+  try {
+    // Handle URLs
+    if (path.includes("?")) {
+      return path.split("?")[0];
+    }
+    return path;
+  } catch {
+    return path;
+  }
+}
+
+/**
+ * Get the basename from a file path, removing query parameters
  */
 export function getBasename(filePath: string): string {
-  return filePath.split("/").pop() || filePath.split("\\").pop() || filePath;
+  const pathWithoutQuery = removeQueryParams(filePath);
+  return (
+    pathWithoutQuery.split("/").pop() ||
+    pathWithoutQuery.split("\\").pop() ||
+    pathWithoutQuery
+  );
+}
+
+/**
+ * Format filename for display, removing query parameters
+ * This is a consolidated helper for rendering filenames consistently
+ */
+export function formatFilenameForDisplay(filePath: string): string {
+  return getBasename(filePath);
 }
 
 /**

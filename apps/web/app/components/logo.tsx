@@ -5,12 +5,12 @@ import { ChevronDown, Ghost } from "lucide-react";
 import { FunctionComponent, ReactNode, useState } from "react";
 import { cn } from "@hexed/ui";
 import type { BinarySnapshot } from "@hexed/types";
-import { LogoMenu, type LogoMenuItem } from "~/components/logo-menu";
+import { Menu, type MenuItem } from "~/components/menu";
 
-export type { LogoMenuItem } from "~/components/logo-menu";
+export type { MenuItem } from "~/components/menu";
 
 export type LogoProps = {
-  menuItems?: LogoMenuItem[];
+  menuItems?: MenuItem[];
   githubUrl?: string;
   inline?: boolean;
   currentSnapshot?: BinarySnapshot | null;
@@ -66,7 +66,7 @@ export const Logo: FunctionComponent<LogoProps> = ({
             <ChevronDown className="opacity-50 h-4 w-4" />
           </Button>
         </DropdownMenuTrigger>
-        <LogoMenu
+        <Menu
           menuItems={menuItems}
           githubUrl={githubUrl}
           currentSnapshot={currentSnapshot}
