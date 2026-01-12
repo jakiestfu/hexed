@@ -579,6 +579,7 @@ export const HexCanvas = forwardRef<HexCanvasRef, HexCanvasProps>(
             left: 0,
             zIndex: 1,
             userSelect: "none",
+            outline: "none",
           }}
           onMouseDown={handleMouseDown}
           onMouseMove={handleMouseMove}

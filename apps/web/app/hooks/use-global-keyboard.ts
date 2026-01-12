@@ -185,7 +185,6 @@ export function useGlobalKeyboard({
   useHotkeys(
     "ctrl+f, meta+f",
     (event) => {
-      console.log("toggle search");
       // Don't interfere if user is typing in an input
       if (isTypingInInput()) return;
 
