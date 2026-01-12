@@ -380,6 +380,34 @@ export const HexCanvas = forwardRef<HexCanvasRef, HexCanvasProps>(
 
         const offset = getOffsetFromPosition(mouseX, mouseY);
         if (offset !== null) {
+          // Handle shift-click to extend selection
+          if (event.shiftKey) {
+            if (selectedRange !== null && onSelectedOffsetRangeChange) {
+              // Extend selection: keep the start of the current selection as anchor,
+              // extend the end to the clicked offset
+              const anchor = selectedRange.start;
+              onSelectedOffsetRangeChange({
+                start: anchor,
+                end: offset,
+              });
+            } else if (selectedOffset !== null && onSelectedOffsetRangeChange) {
+              // Fallback: extend from current single selection
+              // Use the selected offset as anchor
+              onSelectedOffsetRangeChange({
+                start: selectedOffset,
+                end: offset,
+              });
+            } else if (onSelectedOffsetRangeChange) {
+              // No existing selection, just select the clicked offset
+              onSelectedOffsetRangeChange({ start: offset, end: offset });
+            } else {
+              // Fallback to single selection handler
+              handleSelectionClick(offset);
+            }
+            // Don't start dragging on shift-click
+            return;
+          }
+
           // Check if clicking an already-selected single byte to deselect it
           const shouldDeselect =
             selectedRange !== null &&
@@ -410,6 +438,7 @@ export const HexCanvas = forwardRef<HexCanvasRef, HexCanvasProps>(
         handleSelectionClick,
         onSelectedOffsetRangeChange,
         selectedRange,
+        selectedOffset,
       ]
     );
 
