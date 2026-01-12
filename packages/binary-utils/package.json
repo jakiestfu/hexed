@@ -12,7 +12,8 @@
     "./interpreter": "./src/interpreter.ts",
     "./parser": "./src/parser.ts",
     "./storage": "./src/storage.ts",
-    "./strings": "./src/strings.ts"
+    "./strings": "./src/strings.ts",
+    "./search": "./src/search.ts"
   },
   "scripts": {
     "typecheck": "tsc --noEmit",

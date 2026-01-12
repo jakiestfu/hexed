@@ -61,3 +61,9 @@ export {
   type StringEncoding,
   type StringsOptions,
 } from './strings';
+
+// Search
+export {
+  searchHex,
+  searchText,
+} from './search';

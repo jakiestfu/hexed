@@ -70,6 +70,7 @@ import { MemoryProfiler } from "./memory-profiler";
 import { Templates } from "./templates";
 import { Strings } from "./strings";
 import { Histogram } from "./histogram";
+import { FindInput } from "./find-input";
 import type { HexEditorProps, HexEditorViewProps } from "./types";
 import { getBasename } from "./utils";
 
@@ -157,11 +158,40 @@ export const HexEditor: FunctionComponent<HexEditorProps> = ({
   const [isTemplatesPIPActive, setIsTemplatesPIPActive] = useState(false);
   const [isStringsPIPActive, setIsStringsPIPActive] = useState(false);
   const [showHistogram, setShowHistogram] = useState(false);
+  const [showSearch, setShowSearch] = useState(false);
+  const searchInputRef = useRef<HTMLInputElement>(null);
 
   // Calculate earliest byte for interpreter
   const selectedOffset = selectedOffsetRange
     ? Math.min(selectedOffsetRange.start, selectedOffsetRange.end)
     : null;
+
+  // Handle Cmd/Ctrl+F keyboard shortcut for search
+  useEffect(() => {
+    const handleKeyDown = (event: KeyboardEvent) => {
+      // Check for Cmd+F (Mac) or Ctrl+F (Windows/Linux)
+      if ((event.metaKey || event.ctrlKey) && event.key === "f") {
+        event.preventDefault();
+        setShowSearch(true);
+        // Focus input after state update
+        setTimeout(() => {
+          searchInputRef.current?.focus();
+        }, 0);
+      }
+    };
+
+    window.addEventListener("keydown", handleKeyDown);
+    return () => {
+      window.removeEventListener("keydown", handleKeyDown);
+    };
+  }, []);
+
+  // Focus search input when search toolbar is shown
+  useEffect(() => {
+    if (showSearch && searchInputRef.current) {
+      searchInputRef.current.focus();
+    }
+  }, [showSearch]);
 
   // Derived value for toggle group
   const paneToggleValue = showInterpreter
@@ -174,22 +204,22 @@ export const HexEditor: FunctionComponent<HexEditorProps> = ({
 
   // Handle pane toggle group change
   const handlePaneToggleChange = (value: string) => {
-    if (value === "interpreter") {
-      setShowInterpreter(true);
-      setShowTemplates(false);
-      setShowStrings(false);
-    } else if (value === "templates") {
-      setShowTemplates(true);
-      setShowInterpreter(false);
-      setShowStrings(false);
-    } else if (value === "strings") {
-      setShowStrings(true);
-      setShowInterpreter(false);
-      setShowTemplates(false);
-    } else {
-      setShowInterpreter(false);
-      setShowTemplates(false);
-      setShowStrings(false);
+    setShowInterpreter(false);
+    setShowTemplates(false);
+    setShowStrings(false);
+
+    switch (value) {
+      case "interpreter":
+        setShowInterpreter(true);
+        break;
+      case "templates":
+        setShowTemplates(true);
+        break;
+      case "strings":
+        setShowStrings(true);
+        break;
+      default:
+        break;
     }
   };
   const headerContent = (
@@ -244,13 +274,32 @@ export const HexEditor: FunctionComponent<HexEditorProps> = ({
                 onClick={onClose}
                 className="ml-2 shrink-0"
               >
-                {/* <X className="h-4 w-4" /> */}
                 Done
               </Button>
             )
           )
         }
       />
+
+      {/* Secondary Toolbar - Search */}
+      {hasFile && showSearch && hasSnapshots && currentSnapshot?.data && (
+        <div className="border-b">
+          <div className="p-4">
+            <FindInput
+              data={currentSnapshot.data}
+              inputRef={searchInputRef}
+              onMatchFound={(offset, length) => {
+                setScrollToOffset(offset);
+                setSelectedOffsetRange({
+                  start: offset,
+                  end: offset + length - 1,
+                });
+              }}
+              onClose={() => setShowSearch(false)}
+            />
+          </div>
+        </div>
+      )}
 
       {/* Secondary Toolbar - Tabs */}
       {hasFile && hasMultipleSnapshots && (
@@ -436,7 +485,9 @@ export const HexEditor: FunctionComponent<HexEditorProps> = ({
             {interpreterPanel}
             {showInterpreter && showTemplates && <ResizableHandle withHandle />}
             {templatesPanel}
-            {showStrings && (showInterpreter || showTemplates) && <ResizableHandle withHandle />}
+            {showStrings && (showInterpreter || showTemplates) && (
+              <ResizableHandle withHandle />
+            )}
             {stringsPanel}
           </ResizablePanelGroup>
         </ResizablePanel>
