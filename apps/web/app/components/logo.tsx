@@ -38,6 +38,7 @@ import { useChecksumVisibility } from "~/hooks/use-checksum-visibility";
 import { useAsciiVisibility } from "~/hooks/use-ascii-visibility";
 import { useInterpreterVisibility } from "~/hooks/use-interpreter-visibility";
 import { useTemplatesVisibility } from "~/hooks/use-templates-visibility";
+import { useStringsVisibility } from "~/hooks/use-strings-visibility";
 import { useSidebarPosition } from "~/hooks/use-sidebar-position";
 import { encodeFilePath } from "~/utils/path-encoding";
 import { cn } from "@hexed/ui";
@@ -103,6 +104,7 @@ export const Logo: FunctionComponent<LogoProps> = ({
   const { showAscii, setShowAscii } = useAsciiVisibility();
   const { showInterpreter, setShowInterpreter } = useInterpreterVisibility();
   const { showTemplates, setShowTemplates } = useTemplatesVisibility();
+  const { showStrings, setShowStrings } = useStringsVisibility();
   const { sidebarPosition, setSidebarPosition } = useSidebarPosition();
   const [showHistogram, setShowHistogram] = useState(false);
 
@@ -238,6 +240,19 @@ export const Logo: FunctionComponent<LogoProps> = ({
                 className="cursor-pointer"
               >
                 Show Templates
+              </DropdownMenuCheckboxItem>
+              <DropdownMenuCheckboxItem
+                checked={showStrings}
+                onCheckedChange={(value) => {
+                  setShowStrings(value);
+                  if (value) {
+                    setShowInterpreter(false);
+                    setShowTemplates(false);
+                  }
+                }}
+                className="cursor-pointer"
+              >
+                Show Strings
               </DropdownMenuCheckboxItem>
               <DropdownMenuCheckboxItem
                 checked={showChecksums}

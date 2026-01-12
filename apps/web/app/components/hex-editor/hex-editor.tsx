@@ -52,6 +52,7 @@ import {
   Binary,
   FileText,
   BarChart3,
+  Type,
 } from "lucide-react";
 import { DiffViewer } from "./diff-viewer";
 import { EmptyState } from "./empty-state";
@@ -62,10 +63,12 @@ import { useChecksumVisibility } from "~/hooks/use-checksum-visibility";
 import { useAsciiVisibility } from "~/hooks/use-ascii-visibility";
 import { useInterpreterVisibility } from "~/hooks/use-interpreter-visibility";
 import { useTemplatesVisibility } from "~/hooks/use-templates-visibility";
+import { useStringsVisibility } from "~/hooks/use-strings-visibility";
 import { useSidebarPosition } from "~/hooks/use-sidebar-position";
 import { Interpreter } from "./interpreter";
 import { MemoryProfiler } from "./memory-profiler";
 import { Templates } from "./templates";
+import { Strings } from "./strings";
 import { Histogram } from "./histogram";
 import type { HexEditorProps, HexEditorViewProps } from "./types";
 import { getBasename } from "./utils";
@@ -119,6 +122,7 @@ export const HexEditor: FunctionComponent<HexEditorProps> = ({
   const { showChecksums } = useChecksumVisibility();
   const { showInterpreter, setShowInterpreter } = useInterpreterVisibility();
   const { showTemplates, setShowTemplates } = useTemplatesVisibility();
+  const { showStrings, setShowStrings } = useStringsVisibility();
   const { sidebarPosition } = useSidebarPosition();
   const currentSnapshot = snapshots[parseInt(activeTab, 10)] || snapshots[0];
   const hasFile = filePath != null && filePath !== "";
@@ -151,6 +155,7 @@ export const HexEditor: FunctionComponent<HexEditorProps> = ({
   } | null>(null);
   const [isInterpreterPIPActive, setIsInterpreterPIPActive] = useState(false);
   const [isTemplatesPIPActive, setIsTemplatesPIPActive] = useState(false);
+  const [isStringsPIPActive, setIsStringsPIPActive] = useState(false);
   const [showHistogram, setShowHistogram] = useState(false);
 
   // Calculate earliest byte for interpreter
@@ -163,6 +168,8 @@ export const HexEditor: FunctionComponent<HexEditorProps> = ({
     ? "interpreter"
     : showTemplates
     ? "templates"
+    : showStrings
+    ? "strings"
     : "";
 
   // Handle pane toggle group change
@@ -170,12 +177,19 @@ export const HexEditor: FunctionComponent<HexEditorProps> = ({
     if (value === "interpreter") {
       setShowInterpreter(true);
       setShowTemplates(false);
+      setShowStrings(false);
     } else if (value === "templates") {
       setShowTemplates(true);
       setShowInterpreter(false);
+      setShowStrings(false);
+    } else if (value === "strings") {
+      setShowStrings(true);
+      setShowInterpreter(false);
+      setShowTemplates(false);
     } else {
       setShowInterpreter(false);
       setShowTemplates(false);
+      setShowStrings(false);
     }
   };
   const headerContent = (
@@ -301,7 +315,8 @@ export const HexEditor: FunctionComponent<HexEditorProps> = ({
       // Calculate default sizes based on visible panels
       const hasInterpreter = showInterpreter && !isInterpreterPIPActive;
       const hasTemplates = showTemplates && !isTemplatesPIPActive;
-      const hasSidebars = hasInterpreter || hasTemplates;
+      const hasStrings = showStrings && !isStringsPIPActive;
+      const hasSidebars = hasInterpreter || hasTemplates || hasStrings;
 
       // Calculate sizes for the sidebar group relative to hex canvas
       let hexCanvasDefaultSize = 100;
@@ -310,17 +325,15 @@ export const HexEditor: FunctionComponent<HexEditorProps> = ({
       if (hasInterpreter && hasTemplates) {
         hexCanvasDefaultSize = 50;
         sidebarGroupDefaultSize = 50;
-      } else if (hasInterpreter) {
+      } else if (hasInterpreter || hasTemplates || hasStrings) {
         hexCanvasDefaultSize = 70;
         sidebarGroupDefaultSize = 30;
-      } else if (hasTemplates) {
-        hexCanvasDefaultSize = 75;
-        sidebarGroupDefaultSize = 25;
       }
 
-      // Calculate sizes for interpreter and templates within the sidebar group
+      // Calculate sizes for interpreter, templates, and strings within the sidebar group
       let interpreterDefaultSize = 0;
       let templatesDefaultSize = 0;
+      let stringsDefaultSize = 0;
 
       if (hasInterpreter && hasTemplates) {
         interpreterDefaultSize = 60; // 60% of sidebar group
@@ -329,6 +342,8 @@ export const HexEditor: FunctionComponent<HexEditorProps> = ({
         interpreterDefaultSize = 100; // 100% of sidebar group
       } else if (hasTemplates) {
         templatesDefaultSize = 100; // 100% of sidebar group
+      } else if (hasStrings) {
+        stringsDefaultSize = 100; // 100% of sidebar group
       }
 
       // Render panels based on sidebar position
@@ -373,6 +388,24 @@ export const HexEditor: FunctionComponent<HexEditorProps> = ({
         </ResizablePanel>
       ) : null;
 
+      const stringsPanel = showStrings ? (
+        <ResizablePanel
+          id="strings"
+          defaultSize={isStringsPIPActive ? 0 : stringsDefaultSize}
+          minSize={10}
+          collapsible
+        >
+          <div className={`h-full ${borderClass}`}>
+            <Strings
+              data={snapshot.data}
+              onClose={() => setShowStrings(false)}
+              onScrollToOffset={setScrollToOffset}
+              onPIPStateChange={setIsStringsPIPActive}
+            />
+          </div>
+        </ResizablePanel>
+      ) : null;
+
       const hexCanvasPanel = (
         <ResizablePanel
           id="hex-canvas"
@@ -402,6 +435,8 @@ export const HexEditor: FunctionComponent<HexEditorProps> = ({
             {interpreterPanel}
             {showInterpreter && showTemplates && <ResizableHandle withHandle />}
             {templatesPanel}
+            {showStrings && (showInterpreter || showTemplates) && <ResizableHandle withHandle />}
+            {stringsPanel}
           </ResizablePanelGroup>
         </ResizablePanel>
       ) : null;
@@ -578,6 +613,20 @@ export const HexEditor: FunctionComponent<HexEditorProps> = ({
                         </ToggleGroupItem>
                       </TooltipTrigger>
                       <TooltipContent>Toggle templates panel</TooltipContent>
+                    </Tooltip>
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <ToggleGroupItem
+                          value="strings"
+                          aria-label="Toggle strings panel"
+                          className={
+                            paneToggleValue === "strings" ? "bg-accent" : ""
+                          }
+                        >
+                          <Type />
+                        </ToggleGroupItem>
+                      </TooltipTrigger>
+                      <TooltipContent>Toggle strings panel</TooltipContent>
                     </Tooltip>
                   </ToggleGroup>
                 </div>

@@ -53,3 +53,11 @@ export {
   type Endianness,
   type NumberFormat,
 } from './interpreter';
+
+// Strings
+export {
+  extractStrings,
+  type StringMatch,
+  type StringEncoding,
+  type StringsOptions,
+} from './strings';

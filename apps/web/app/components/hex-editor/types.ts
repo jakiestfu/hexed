@@ -40,3 +40,10 @@ export type TemplatesProps = {
   onClose?: () => void;
   onPIPStateChange?: (isPIPActive: boolean) => void;
 };
+
+export type StringsProps = {
+  data: Uint8Array;
+  onClose?: () => void;
+  onScrollToOffset?: (offset: number) => void;
+  onPIPStateChange?: (isPIPActive: boolean) => void;
+};
