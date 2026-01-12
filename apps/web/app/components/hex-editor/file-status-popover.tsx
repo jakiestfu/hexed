@@ -52,14 +52,10 @@ export const FileStatusPopover: FunctionComponent<FileStatusPopoverProps> = ({
                 className={`inline-flex h-2 w-2 rounded-full ${getDotColor()}`}
               />
               <span className="text-sm font-medium">
-                {getStatusText()}: {error}
+                {getStatusText()}
+                {error ? `: ${error}` : ""}
               </span>
             </div>
-            {/* {filePath && (
-              <p className="text-xs text-muted-foreground font-mono truncate">
-                {filePath}
-              </p>
-            )} */}
           </div>
 
           {fileSource === "path" && (
