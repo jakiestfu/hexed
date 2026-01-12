@@ -213,14 +213,14 @@ export const Strings: FunctionComponent<StringsProps> = ({
                   </EmptyHeader>
                 </Empty>
               ) : (
-                <div className="border rounded-md overflow-hidden">
+                <div className="overflow-hidden -mx-4">
                   <Table>
                     <TableHeader>
                       <TableRow>
-                        <TableHead className="w-[120px]">Offset</TableHead>
+                        <TableHead className="w-[120px] pl-4">Offset</TableHead>
                         <TableHead className="w-[80px]">Length</TableHead>
-                        <TableHead className="w-[100px]">Encoding</TableHead>
-                        <TableHead>String</TableHead>
+                        {/* <TableHead className="w-[100px]">Encoding</TableHead> */}
+                        <TableHead className="pr-4">String</TableHead>
                       </TableRow>
                     </TableHeader>
                     <TableBody>
@@ -234,7 +234,7 @@ export const Strings: FunctionComponent<StringsProps> = ({
 
                         return (
                           <TableRow key={`${match.offset}-${index}`}>
-                            <TableCell className="font-mono text-xs">
+                            <TableCell className="font-mono text-xs pl-4">
                               {(onScrollToOffset ||
                                 onSelectedOffsetRangeChange) &&
                               !isPIPActive ? (
@@ -272,10 +272,10 @@ export const Strings: FunctionComponent<StringsProps> = ({
                             <TableCell className="font-mono text-xs">
                               {match.length}
                             </TableCell>
-                            <TableCell className="text-xs">
+                            {/* <TableCell className="text-xs">
                               {match.encoding.toUpperCase()}
-                            </TableCell>
-                            <TableCell className="font-mono text-xs break-all">
+                            </TableCell> */}
+                            <TableCell className="font-mono text-xs break-all pr-4">
                               {displayText}
                             </TableCell>
                           </TableRow>

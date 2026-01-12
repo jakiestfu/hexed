@@ -66,6 +66,7 @@ import { useInterpreterVisibility } from "~/hooks/use-interpreter-visibility";
 import { useTemplatesVisibility } from "~/hooks/use-templates-visibility";
 import { useStringsVisibility } from "~/hooks/use-strings-visibility";
 import { useSidebarPosition } from "~/hooks/use-sidebar-position";
+import { useGlobalKeyboard } from "~/hooks/use-global-keyboard";
 import { Interpreter } from "./interpreter";
 import { MemoryProfiler } from "./memory-profiler";
 import { Templates } from "./templates";
@@ -160,32 +161,50 @@ export const HexEditor: FunctionComponent<HexEditorProps> = ({
   const [isStringsPIPActive, setIsStringsPIPActive] = useState(false);
   const [showHistogram, setShowHistogram] = useState(false);
   const [showSearch, setShowSearch] = useState(false);
-  const searchInputRef = useRef<HTMLInputElement>(null);
+  const searchInputRef = useRef<HTMLInputElement | null>(null);
 
   // Calculate earliest byte for interpreter
   const selectedOffset = selectedOffsetRange
     ? Math.min(selectedOffsetRange.start, selectedOffsetRange.end)
     : null;
 
-  // Handle Cmd/Ctrl+F keyboard shortcut for search
-  useEffect(() => {
-    const handleKeyDown = (event: KeyboardEvent) => {
-      // Check for Cmd+F (Mac) or Ctrl+F (Windows/Linux)
-      if ((event.metaKey || event.ctrlKey) && event.key === "f") {
-        event.preventDefault();
-        setShowSearch(true);
-        // Focus input after state update
+  // Callbacks for keyboard shortcuts
+  const handleToggleSearch = () => {
+    setShowSearch((prev) => {
+      const newValue = !prev;
+      // Focus input after state update if opening
+      if (newValue) {
         setTimeout(() => {
           searchInputRef.current?.focus();
         }, 0);
       }
-    };
+      return newValue;
+    });
+  };
 
-    window.addEventListener("keydown", handleKeyDown);
-    return () => {
-      window.removeEventListener("keydown", handleKeyDown);
-    };
-  }, []);
+  const handleCloseSidebars = () => {
+    setShowInterpreter(false);
+    setShowTemplates(false);
+    setShowStrings(false);
+  };
+
+  const handleDeselectBytes = () => {
+    setSelectedOffsetRange(null);
+  };
+
+  // Global keyboard shortcuts
+  useGlobalKeyboard({
+    selectedOffsetRange,
+    data: currentSnapshot?.data || new Uint8Array(),
+    showSearch,
+    showInterpreter,
+    showTemplates,
+    showStrings,
+    onToggleSearch: handleToggleSearch,
+    onCloseSearch: () => setShowSearch(false),
+    onCloseSidebars: handleCloseSidebars,
+    onDeselectBytes: handleDeselectBytes,
+  });
 
   // Focus search input when search toolbar is shown
   useEffect(() => {

@@ -19,7 +19,7 @@ export type FindInputProps = {
   data: Uint8Array;
   onMatchFound?: (offset: number, length: number) => void;
   onClose?: () => void;
-  inputRef?: RefObject<HTMLInputElement>;
+  inputRef?: RefObject<HTMLInputElement | null>;
 };
 
 export const FindInput: FunctionComponent<FindInputProps> = ({
