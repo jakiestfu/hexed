@@ -517,9 +517,9 @@ export function drawHexCanvas(
         if (styles.fillStyle) {
           ctx.fillStyle = styles.fillStyle;
           ctx.fillRect(
-            asciiBounds.x,
+            asciiBounds.x + 1,
             asciiBounds.y,
-            asciiBounds.width,
+            asciiBounds.width - 2,
             asciiBounds.height
           );
         }

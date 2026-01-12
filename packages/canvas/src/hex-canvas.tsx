@@ -549,7 +549,6 @@ export const HexCanvas = forwardRef<HexCanvasRef, HexCanvasProps>(
             top: 0,
             left: 0,
             zIndex: 1,
-            outline: hasFocus ? "2px solid var(--ring)" : "none",
             userSelect: "none",
           }}
           onMouseDown={handleMouseDown}
@@ -559,8 +558,6 @@ export const HexCanvas = forwardRef<HexCanvasRef, HexCanvasProps>(
         />
         {/* Spacer to make container scrollable to total height */}
         <div style={{ height: `${totalHeight}px`, width: "100%" }} />
-
-        {/* <ScrollBar orientation="horizontal" /> */}
       </div>
     );
   }
