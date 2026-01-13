@@ -1,22 +1,27 @@
-import type { Metadata } from "next";
-import * as React from "react";
-import "@hexed/ui/styles";
-import { ThemeProvider } from "~/providers/theme-provider";
-import { ClientLayoutWrapper } from "~/components/client-layout-wrapper";
+import * as React from "react"
+import type { Metadata } from "next"
+
+import "@hexed/ui/styles"
+
+import { ClientLayoutWrapper } from "~/components/client-layout-wrapper"
+import { ThemeProvider } from "~/providers/theme-provider"
 
 export const metadata: Metadata = {
   title: "Hexed - Binary File Inspector",
   description:
-    "A modern hex editor for inspecting and tracking binary file changes",
-};
+    "A modern hex editor for inspecting and tracking binary file changes"
+}
 
 export default function RootLayout({
-  children,
+  children
 }: {
-  children: React.ReactNode;
+  children: React.ReactNode
 }) {
   return (
-    <html lang="en" suppressHydrationWarning>
+    <html
+      lang="en"
+      suppressHydrationWarning
+    >
       <head>
         <script
           dangerouslySetInnerHTML={{
@@ -26,7 +31,7 @@ export default function RootLayout({
                   document.documentElement.setAttribute('data-electron', 'true');
                 }
               })();
-            `,
+            `
           }}
         />
       </head>
@@ -43,5 +48,5 @@ export default function RootLayout({
         </ThemeProvider>
       </body>
     </html>
-  );
+  )
 }
