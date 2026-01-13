@@ -1,0 +1,19 @@
+{
+  "name": "@hexed/{{ name }}",
+  "private": true,
+  "version": "0.0.0",
+  "type": "module",
+  "scripts": {
+    "clean": "git clean -xdf .cache .turbo build dist node_modules",
+    "format": "prettier --check \"**/*.{js,cjs,mjs,ts,tsx,mdx}\" --ignore-path=\"../../.prettierignore\"",
+    "lint": "eslint . --max-warnings 0",
+    "lint:fix": "eslint --fix .",
+    "typecheck": "tsc --noEmit"
+  },
+  "devDependencies": {
+    "@hexed/eslint-config": "workspace:*",
+    "@hexed/prettier-config": "workspace:*",
+    "@hexed/typescript-config": "workspace:*"
+  },
+  "prettier": "@hexed/prettier-config"
+}
