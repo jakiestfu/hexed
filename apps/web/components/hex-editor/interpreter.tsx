@@ -1,82 +1,84 @@
-import { useMemo, useRef, useEffect } from "react";
-import type { FunctionComponent, RefObject } from "react";
+import { useEffect, useMemo, useRef } from "react"
+import type { FunctionComponent, RefObject } from "react"
 import {
+  ArrowLeftRight,
+  Maximize2,
+  Minimize2,
+  MousePointerClick,
+  X
+} from "lucide-react"
+
+import { formatAddress } from "@hexed/binary-utils/formatter"
+import {
+  formatNumber,
+  readBinary,
+  readFloat16,
+  readFloat32,
+  readFloat64,
+  readInt8,
+  readInt16,
+  readInt24,
+  readInt32,
+  readInt64,
+  readLEB128,
+  readMacHFSDateTime,
+  readMacHFSPlusDateTime,
+  readMSDOSDateTime,
+  readOLEDateTime,
+  readRational,
+  readSLEB128,
+  readSRational,
+  readUint8,
+  readUint16,
+  readUint24,
+  readUint32,
+  readUint64,
+  readUnixDateTime,
+  readUTF8Char,
+  readUTF16Char
+} from "@hexed/binary-utils/interpreter"
+import {
+  Badge,
+  Button,
+  Card,
+  CardContent,
+  CardHeader,
+  CardTitle,
+  Empty,
+  EmptyDescription,
+  EmptyHeader,
+  EmptyMedia,
+  EmptyTitle,
   Table,
   TableBody,
   TableCell,
   TableHead,
   TableHeader,
   TableRow,
-  Card,
-  CardContent,
-  CardHeader,
-  CardTitle,
-  Button,
-  Badge,
-  Empty,
-  EmptyHeader,
-  EmptyTitle,
-  EmptyDescription,
-  EmptyMedia,
   Tooltip,
   TooltipContent,
-  TooltipTrigger,
-} from "@hexed/ui";
-import { formatAddress } from "@hexed/binary-utils/formatter";
-import {
-  X,
-  MousePointerClick,
-  Maximize2,
-  Minimize2,
-  ArrowLeftRight,
-} from "lucide-react";
-import {
-  formatNumber,
-  readUint8,
-  readInt8,
-  readUint16,
-  readInt16,
-  readUint24,
-  readInt24,
-  readUint32,
-  readInt32,
-  readUint64,
-  readInt64,
-  readFloat16,
-  readFloat32,
-  readFloat64,
-  readLEB128,
-  readSLEB128,
-  readRational,
-  readSRational,
-  readMSDOSDateTime,
-  readOLEDateTime,
-  readUnixDateTime,
-  readMacHFSDateTime,
-  readMacHFSPlusDateTime,
-  readUTF8Char,
-  readUTF16Char,
-  readBinary,
-} from "@hexed/binary-utils/interpreter";
-import { usePIP } from "~/hooks/use-pip";
-import { useSidebarPosition } from "~/hooks/use-sidebar-position";
-import type { InterpreterProps } from "./types";
+  TooltipTrigger
+} from "@hexed/ui"
+
+import { usePIP } from "~/hooks/use-pip"
+import { useSidebarPosition } from "~/hooks/use-sidebar-position"
+import type { InterpreterProps } from "./types"
 
 interface InterpretedValue {
-  type: string;
-  unsigned?: string;
-  signed?: string;
+  type: string
+  unsigned?: string
+  signed?: string
 }
 
 function formatDate(date: Date): string {
-  const year = date.getUTCFullYear();
-  const month = String(date.getUTCMonth() + 1).padStart(2, "0");
-  const day = String(date.getUTCDate()).padStart(2, "0");
-  const hours = String(date.getUTCHours()).padStart(2, "0");
-  const minutes = String(date.getUTCMinutes()).padStart(2, "0");
-  const seconds = String(date.getUTCSeconds()).padStart(2, "0");
-  const milliseconds = String(date.getUTCMilliseconds()).padStart(3, "0");
-  return `${year}-${month}-${day} ${hours}:${minutes}:${seconds}.${milliseconds} UTC`;
+  const year = date.getUTCFullYear()
+  const month = String(date.getUTCMonth() + 1).padStart(2, "0")
+  const day = String(date.getUTCDate()).padStart(2, "0")
+  const hours = String(date.getUTCHours()).padStart(2, "0")
+  const minutes = String(date.getUTCMinutes()).padStart(2, "0")
+  const seconds = String(date.getUTCSeconds()).padStart(2, "0")
+  const milliseconds = String(date.getUTCMilliseconds()).padStart(3, "0")
+  return `${year}-${month}-${day} ${hours}:${minutes}:${seconds}.${milliseconds} UTC`
 }
 
 export const Interpreter: FunctionComponent<InterpreterProps> = ({
@@ -86,7 +88,7 @@ export const Interpreter: FunctionComponent<InterpreterProps> = ({
   numberFormat = "dec",
   onClose,
   onScrollToOffset,
-  onPIPStateChange,
+  onPIPStateChange
 }) => {
   const interpretedData = useMemo<InterpretedValue[]>(() => {
     if (
@@ -94,14 +96,14 @@ export const Interpreter: FunctionComponent<InterpreterProps> = ({
       selectedOffset < 0 ||
       selectedOffset >= data.length
     ) {
-      return [];
+      return []
     }
 
-    const results: InterpretedValue[] = [];
+    const results: InterpretedValue[] = []
 
     // 8-bit Integer
-    const uint8Result = readUint8(data, selectedOffset);
-    const int8Result = readInt8(data, selectedOffset);
+    const uint8Result = readUint8(data, selectedOffset)
+    const int8Result = readInt8(data, selectedOffset)
     results.push({
       type: "8-bit Integer",
       unsigned: uint8Result.error
@@ -109,12 +111,12 @@ export const Interpreter: FunctionComponent<InterpreterProps> = ({
         : formatNumber(uint8Result.value!, numberFormat),
       signed: int8Result.error
         ? undefined
-        : formatNumber(int8Result.value!, numberFormat),
-    });
+        : formatNumber(int8Result.value!, numberFormat)
+    })
 
     // 16-bit Integer
-    const uint16Result = readUint16(data, selectedOffset, endianness);
-    const int16Result = readInt16(data, selectedOffset, endianness);
+    const uint16Result = readUint16(data, selectedOffset, endianness)
+    const int16Result = readInt16(data, selectedOffset, endianness)
     results.push({
       type: "16-bit Integer",
       unsigned: uint16Result.error
@@ -122,12 +124,12 @@ export const Interpreter: FunctionComponent<InterpreterProps> = ({
         : formatNumber(uint16Result.value!, numberFormat),
       signed: int16Result.error
         ? undefined
-        : formatNumber(int16Result.value!, numberFormat),
-    });
+        : formatNumber(int16Result.value!, numberFormat)
+    })
 
     // 24-bit Integer
-    const uint24Result = readUint24(data, selectedOffset, endianness);
-    const int24Result = readInt24(data, selectedOffset, endianness);
+    const uint24Result = readUint24(data, selectedOffset, endianness)
+    const int24Result = readInt24(data, selectedOffset, endianness)
     results.push({
       type: "24-bit Integer",
       unsigned: uint24Result.error
@@ -135,12 +137,12 @@ export const Interpreter: FunctionComponent<InterpreterProps> = ({
         : formatNumber(uint24Result.value!, numberFormat),
       signed: int24Result.error
         ? undefined
-        : formatNumber(int24Result.value!, numberFormat),
-    });
+        : formatNumber(int24Result.value!, numberFormat)
+    })
 
     // 32-bit Integer
-    const uint32Result = readUint32(data, selectedOffset, endianness);
-    const int32Result = readInt32(data, selectedOffset, endianness);
+    const uint32Result = readUint32(data, selectedOffset, endianness)
+    const int32Result = readInt32(data, selectedOffset, endianness)
     results.push({
       type: "32-bit Integer",
       unsigned: uint32Result.error
@@ -148,169 +150,167 @@ export const Interpreter: FunctionComponent<InterpreterProps> = ({
         : formatNumber(uint32Result.value!, numberFormat),
       signed: int32Result.error
         ? undefined
-        : formatNumber(int32Result.value!, numberFormat),
-    });
+        : formatNumber(int32Result.value!, numberFormat)
+    })
 
     // 64-bit Integer
-    const uint64Result = readUint64(data, selectedOffset, endianness);
-    const int64Result = readInt64(data, selectedOffset, endianness);
+    const uint64Result = readUint64(data, selectedOffset, endianness)
+    const int64Result = readInt64(data, selectedOffset, endianness)
     results.push({
       type: "64-bit Integer (+)",
       unsigned: uint64Result.error
         ? undefined
-        : formatNumber(Number(uint64Result.value!), numberFormat),
-    });
+        : formatNumber(Number(uint64Result.value!), numberFormat)
+    })
     results.push({
       type: "64-bit Integer (±)",
       signed: int64Result.error
         ? undefined
-        : formatNumber(Number(int64Result.value!), numberFormat),
-    });
+        : formatNumber(Number(int64Result.value!), numberFormat)
+    })
 
     // 16-bit Float
-    const float16Result = readFloat16(data, selectedOffset, endianness);
+    const float16Result = readFloat16(data, selectedOffset, endianness)
     results.push({
       type: "16-bit Float. P.",
       unsigned: float16Result.error
         ? undefined
-        : float16Result.value!.toString(),
-    });
+        : float16Result.value!.toString()
+    })
 
     // 32-bit Float
-    const float32Result = readFloat32(data, selectedOffset, endianness);
+    const float32Result = readFloat32(data, selectedOffset, endianness)
     results.push({
       type: "32-bit Float. P.",
       unsigned: float32Result.error
         ? undefined
-        : float32Result.value!.toString(),
-    });
+        : float32Result.value!.toString()
+    })
 
     // 64-bit Float
-    const float64Result = readFloat64(data, selectedOffset, endianness);
+    const float64Result = readFloat64(data, selectedOffset, endianness)
     results.push({
       type: "64-bit Float. P.",
       unsigned: float64Result.error
         ? undefined
-        : float64Result.value!.toString(),
-    });
+        : float64Result.value!.toString()
+    })
 
     // LEB128
-    const leb128Result = readLEB128(data, selectedOffset);
+    const leb128Result = readLEB128(data, selectedOffset)
     results.push({
       type: "LEB128 (+)",
       unsigned: leb128Result.error
         ? undefined
-        : formatNumber(Number(leb128Result.value!), numberFormat),
-    });
-    const sleb128Result = readSLEB128(data, selectedOffset);
+        : formatNumber(Number(leb128Result.value!), numberFormat)
+    })
+    const sleb128Result = readSLEB128(data, selectedOffset)
     results.push({
       type: "LEB128 (±)",
       signed: sleb128Result.error
         ? undefined
-        : formatNumber(Number(sleb128Result.value!), numberFormat),
-    });
+        : formatNumber(Number(sleb128Result.value!), numberFormat)
+    })
 
     // Rational
-    const rationalResult = readRational(data, selectedOffset, endianness);
+    const rationalResult = readRational(data, selectedOffset, endianness)
     results.push({
       type: "Rational (+)",
-      unsigned: rationalResult.error ? undefined : rationalResult.value!,
-    });
-    const srationalResult = readSRational(data, selectedOffset, endianness);
+      unsigned: rationalResult.error ? undefined : rationalResult.value!
+    })
+    const srationalResult = readSRational(data, selectedOffset, endianness)
     results.push({
       type: "SRational (±)",
-      signed: srationalResult.error ? undefined : srationalResult.value!,
-    });
+      signed: srationalResult.error ? undefined : srationalResult.value!
+    })
 
     // MS-DOS DateTime
-    const msdosResult = readMSDOSDateTime(data, selectedOffset, endianness);
+    const msdosResult = readMSDOSDateTime(data, selectedOffset, endianness)
     results.push({
       type: "MS-DOS DateTime",
-      unsigned: msdosResult.error ? undefined : formatDate(msdosResult.value!),
-    });
+      unsigned: msdosResult.error ? undefined : formatDate(msdosResult.value!)
+    })
 
     // OLE 2.0 DateTime
-    const oleResult = readOLEDateTime(data, selectedOffset, endianness);
+    const oleResult = readOLEDateTime(data, selectedOffset, endianness)
     results.push({
       type: "OLE 2.0 DateTime",
-      unsigned: oleResult.error ? undefined : formatDate(oleResult.value!),
-    });
+      unsigned: oleResult.error ? undefined : formatDate(oleResult.value!)
+    })
 
     // UNIX 32-bit DateTime
-    const unixResult = readUnixDateTime(data, selectedOffset, endianness);
+    const unixResult = readUnixDateTime(data, selectedOffset, endianness)
     results.push({
       type: "UNIX 32-bit DateTime",
-      unsigned: unixResult.error ? undefined : formatDate(unixResult.value!),
-    });
+      unsigned: unixResult.error ? undefined : formatDate(unixResult.value!)
+    })
 
     // Macintosh HFS DateTime
-    const macHFSResult = readMacHFSDateTime(data, selectedOffset, endianness);
+    const macHFSResult = readMacHFSDateTime(data, selectedOffset, endianness)
     results.push({
       type: "Macintosh HFS DateTime",
-      unsigned: macHFSResult.error
-        ? undefined
-        : formatDate(macHFSResult.value!),
-    });
+      unsigned: macHFSResult.error ? undefined : formatDate(macHFSResult.value!)
+    })
 
     // Macintosh HFS+ DateTime
     const macHFSPlusResult = readMacHFSPlusDateTime(
       data,
       selectedOffset,
       endianness
-    );
+    )
     results.push({
       type: "Macintosh HFS+ DateTime",
       unsigned: macHFSPlusResult.error
         ? undefined
-        : formatDate(macHFSPlusResult.value!),
-    });
+        : formatDate(macHFSPlusResult.value!)
+    })
 
     // UTF-8 Character
-    const utf8Result = readUTF8Char(data, selectedOffset);
+    const utf8Result = readUTF8Char(data, selectedOffset)
     results.push({
       type: "UTF-8 Character",
-      unsigned: utf8Result.error ? undefined : utf8Result.value!,
-    });
+      unsigned: utf8Result.error ? undefined : utf8Result.value!
+    })
 
     // UTF-16 Character
-    const utf16Result = readUTF16Char(data, selectedOffset, endianness);
+    const utf16Result = readUTF16Char(data, selectedOffset, endianness)
     results.push({
       type: "UTF-16 Character",
-      unsigned: utf16Result.error ? undefined : utf16Result.value!,
-    });
+      unsigned: utf16Result.error ? undefined : utf16Result.value!
+    })
 
     // Binary
-    const binaryResult = readBinary(data, selectedOffset);
+    const binaryResult = readBinary(data, selectedOffset)
     results.push({
       type: "Binary",
-      unsigned: binaryResult.error ? undefined : binaryResult.value!,
-    });
+      unsigned: binaryResult.error ? undefined : binaryResult.value!
+    })
 
-    return results;
-  }, [data, selectedOffset, endianness, numberFormat]);
+    return results
+  }, [data, selectedOffset, endianness, numberFormat])
 
-  const interpreterRef = useRef<HTMLDivElement>(null);
+  const interpreterRef = useRef<HTMLDivElement>(null)
   const { isPIPActive, stylesLoaded, togglePIP, isSupported } = usePIP(
     interpreterRef as RefObject<HTMLElement>
-  );
-  const { toggleSidebarPosition } = useSidebarPosition();
+  )
+  const { toggleSidebarPosition } = useSidebarPosition()
 
   // Notify parent component when PIP state changes
   useEffect(() => {
-    onPIPStateChange?.(isPIPActive);
-  }, [isPIPActive, onPIPStateChange]);
+    onPIPStateChange?.(isPIPActive)
+  }, [isPIPActive, onPIPStateChange])
 
   const hexAddress =
-    selectedOffset !== null ? formatAddress(selectedOffset) : "";
+    selectedOffset !== null ? formatAddress(selectedOffset) : ""
   const byteOffset =
-    selectedOffset !== null ? selectedOffset.toLocaleString() : "";
+    selectedOffset !== null ? selectedOffset.toLocaleString() : ""
 
   return (
     <div
       ref={interpreterRef}
       className="h-full"
       style={{
-        visibility: isPIPActive && !stylesLoaded ? "hidden" : "visible",
+        visibility: isPIPActive && !stylesLoaded ? "hidden" : "visible"
       }}
     >
       <Card className="h-full flex flex-col p-0 rounded-none border-none bg-sidebar overflow-hidden gap-0">
@@ -420,8 +420,8 @@ export const Interpreter: FunctionComponent<InterpreterProps> = ({
                           {row.type.includes("DateTime")
                             ? "Invalid date"
                             : row.type.includes("Character")
-                            ? "Null"
-                            : "Invalid number"}
+                              ? "Null"
+                              : "Invalid number"}
                         </span>
                       )}
                     </TableCell>
@@ -433,8 +433,8 @@ export const Interpreter: FunctionComponent<InterpreterProps> = ({
                           {row.type.includes("DateTime")
                             ? "Invalid date"
                             : row.type.includes("Character")
-                            ? "Null"
-                            : "Invalid number"}
+                              ? "Null"
+                              : "Invalid number"}
                         </span>
                       )}
                     </TableCell>
@@ -446,5 +446,5 @@ export const Interpreter: FunctionComponent<InterpreterProps> = ({
         </CardContent>
       </Card>
     </div>
-  );
-};
+  )
+}

@@ -1,19 +1,20 @@
-import React from "react";
-import ReactMarkdown from "react-markdown";
-import type { Components } from "react-markdown";
-import { Separator } from "@hexed/ui";
-import { cn } from "@hexed/ui/lib/utils";
+import React from "react"
+import ReactMarkdown from "react-markdown"
+import type { Components } from "react-markdown"
+
+import { Separator } from "@hexed/ui"
+import { cn } from "@hexed/ui/lib/utils"
 
 export interface MarkdownRendererProps {
-  content: string;
-  className?: string;
-  compressed?: boolean;
+  content: string
+  className?: string
+  compressed?: boolean
 }
 
 export const MarkdownRenderer: React.FC<MarkdownRendererProps> = ({
   content,
   className,
-  compressed = false,
+  compressed = false
 }) => {
   const spacing = {
     paragraphMargin: compressed
@@ -24,8 +25,8 @@ export const MarkdownRenderer: React.FC<MarkdownRendererProps> = ({
     listMarginY: compressed ? "my-4" : "my-6",
     listMarginLeft: compressed ? "ml-4" : "ml-6",
     codeBlockMargin: compressed ? "my-4" : "my-6",
-    tableMargin: compressed ? "my-4" : "my-6",
-  };
+    tableMargin: compressed ? "my-4" : "my-6"
+  }
 
   const components: Components = {
     h1: ({ children, ...props }) => (
@@ -77,7 +78,10 @@ export const MarkdownRenderer: React.FC<MarkdownRendererProps> = ({
       </h6>
     ),
     p: ({ children, ...props }) => (
-      <p className={cn(spacing.paragraphMargin)} {...props}>
+      <p
+        className={cn(spacing.paragraphMargin)}
+        {...props}
+      >
         {children}
       </p>
     ),
@@ -119,7 +123,7 @@ export const MarkdownRenderer: React.FC<MarkdownRendererProps> = ({
     ),
     li: ({ children, ...props }) => <li {...props}>{children}</li>,
     code: ({ className, children, ...props }) => {
-      const isInline = !className;
+      const isInline = !className
       if (isInline) {
         return (
           <code
@@ -128,22 +132,28 @@ export const MarkdownRenderer: React.FC<MarkdownRendererProps> = ({
           >
             {children}
           </code>
-        );
+        )
       }
       return (
-        <code className={cn("font-mono text-sm", className)} {...props}>
+        <code
+          className={cn("font-mono text-sm", className)}
+          {...props}
+        >
           {children}
         </code>
-      );
+      )
     },
     pre: ({ children, ...props }) => {
       return (
         <div className={cn("w-full overflow-y-auto", spacing.codeBlockMargin)}>
-          <pre className="bg-muted rounded-lg p-4 overflow-x-auto" {...props}>
+          <pre
+            className="bg-muted rounded-lg p-4 overflow-x-auto"
+            {...props}
+          >
             {children}
           </pre>
         </div>
-      );
+      )
     },
     a: ({ children, ...props }) => (
       <a
@@ -157,7 +167,10 @@ export const MarkdownRenderer: React.FC<MarkdownRendererProps> = ({
     ),
     table: ({ children, ...props }) => (
       <div className={cn("w-full overflow-y-auto", spacing.tableMargin)}>
-        <table className="w-full" {...props}>
+        <table
+          className="w-full"
+          {...props}
+        >
           {children}
         </table>
       </div>
@@ -165,7 +178,10 @@ export const MarkdownRenderer: React.FC<MarkdownRendererProps> = ({
     thead: ({ children, ...props }) => <thead {...props}>{children}</thead>,
     tbody: ({ children, ...props }) => <tbody {...props}>{children}</tbody>,
     tr: ({ children, ...props }) => (
-      <tr className="even:bg-muted m-0 border-t p-0" {...props}>
+      <tr
+        className="even:bg-muted m-0 border-t p-0"
+        {...props}
+      >
         {children}
       </tr>
     ),
@@ -187,20 +203,26 @@ export const MarkdownRenderer: React.FC<MarkdownRendererProps> = ({
     ),
     hr: () => <Separator className="my-4" />,
     strong: ({ children, ...props }) => (
-      <strong className="font-semibold" {...props}>
+      <strong
+        className="font-semibold"
+        {...props}
+      >
         {children}
       </strong>
     ),
     em: ({ children, ...props }) => (
-      <em className="italic" {...props}>
+      <em
+        className="italic"
+        {...props}
+      >
         {children}
       </em>
-    ),
-  };
+    )
+  }
 
   return (
     <div className={cn(className)}>
       <ReactMarkdown components={components}>{content}</ReactMarkdown>
     </div>
-  );
-};
+  )
+}

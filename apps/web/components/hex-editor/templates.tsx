@@ -1,54 +1,56 @@
-import { useRef, useEffect, useState } from "react";
-import type { FunctionComponent, RefObject } from "react";
+import { useEffect, useRef, useState } from "react"
+import type { FunctionComponent, RefObject } from "react"
 import {
+  AlertCircle,
+  ArrowLeftRight,
+  FileCode,
+  Maximize2,
+  X
+} from "lucide-react"
+
+import { KsySchema, manifest, parse } from "@hexed/binary-templates"
+import {
+  Button,
   Card,
   CardContent,
   CardHeader,
   CardTitle,
-  Button,
   Empty,
-  EmptyHeader,
-  EmptyTitle,
   EmptyDescription,
+  EmptyHeader,
   EmptyMedia,
+  EmptyTitle,
+  Separator,
   Tabs,
+  TabsContent,
   TabsList,
   TabsTrigger,
-  TabsContent,
-  Separator,
   Tooltip,
   TooltipContent,
-  TooltipTrigger,
-} from "@hexed/ui";
-import {
-  X,
-  Maximize2,
-  FileCode,
-  AlertCircle,
-  ArrowLeftRight,
-} from "lucide-react";
-import { usePIP } from "~/hooks/use-pip";
-import { useSidebarPosition } from "~/hooks/use-sidebar-position";
-import { useQueryParamState } from "~/hooks/use-query-param-state";
-import type { TemplatesProps } from "~/components/hex-editor/types";
-import { TemplatesCombobox } from "~/components/hex-editor/templates-combobox";
-import { KsySchema, parse, manifest } from "@hexed/binary-templates";
-import { MarkdownRenderer } from "~/components/markdown-renderer";
-import { ObjectTree } from "~/components/hex-editor/object-tree";
+  TooltipTrigger
+} from "@hexed/ui"
+
+import { ObjectTree } from "~/components/hex-editor/object-tree"
+import { TemplatesCombobox } from "~/components/hex-editor/templates-combobox"
+import type { TemplatesProps } from "~/components/hex-editor/types"
+import { MarkdownRenderer } from "~/components/markdown-renderer"
+import { usePIP } from "~/hooks/use-pip"
+import { useQueryParamState } from "~/hooks/use-query-param-state"
+import { useSidebarPosition } from "~/hooks/use-sidebar-position"
 
 type TemplateEntry = {
-  name: string;
-  title: string;
-  path: string;
-  extension?: string | string[];
-};
+  name: string
+  title: string
+  path: string
+  extension?: string | string[]
+}
 
 // Type guard to check if an entry is a template (has title and path)
 function isTemplate(entry: unknown): entry is TemplateEntry {
   if (typeof entry !== "object" || entry === null) {
-    return false;
+    return false
   }
-  const obj = entry as Record<string, unknown>;
+  const obj = entry as Record<string, unknown>
   return (
     "title" in obj &&
     "path" in obj &&
@@ -56,7 +58,7 @@ function isTemplate(entry: unknown): entry is TemplateEntry {
     typeof obj.title === "string" &&
     typeof obj.path === "string" &&
     typeof obj.name === "string"
-  );
+  )
 }
 
 // Type guard to check if an entry is a category (has children)
@@ -64,15 +66,15 @@ function isCategory(
   entry: unknown
 ): entry is { name: string; children: unknown[] } {
   if (typeof entry !== "object" || entry === null) {
-    return false;
+    return false
   }
-  const obj = entry as Record<string, unknown>;
+  const obj = entry as Record<string, unknown>
   return (
     "children" in obj &&
     "name" in obj &&
     Array.isArray(obj.children) &&
     typeof obj.name === "string"
-  );
+  )
 }
 
 // Helper function to recursively find a template by name in the manifest
@@ -86,17 +88,17 @@ function findTemplate(
         name: entry.name,
         title: entry.title,
         path: entry.path,
-        extension: entry.extension,
-      };
+        extension: entry.extension
+      }
     }
     if (isCategory(entry)) {
-      const found = findTemplate(entry.children, name);
+      const found = findTemplate(entry.children, name)
       if (found) {
-        return found;
+        return found
       }
     }
   }
-  return undefined;
+  return undefined
 }
 
 export const Templates: FunctionComponent<TemplatesProps> = ({
@@ -105,122 +107,122 @@ export const Templates: FunctionComponent<TemplatesProps> = ({
   onClose,
   onScrollToOffset,
   onSelectedOffsetRangeChange,
-  onPIPStateChange,
+  onPIPStateChange
 }) => {
-  const templatesRef = useRef<HTMLDivElement>(null);
+  const templatesRef = useRef<HTMLDivElement>(null)
   const { isPIPActive, stylesLoaded, togglePIP, isSupported } = usePIP(
     templatesRef as RefObject<HTMLElement>
-  );
-  const { toggleSidebarPosition } = useSidebarPosition();
-  const [commandOpen, setCommandOpen] = useState(false);
+  )
+  const { toggleSidebarPosition } = useSidebarPosition()
+  const [commandOpen, setCommandOpen] = useState(false)
   const [templateValue, setTemplateValue] = useQueryParamState<string>(
     "template",
     ""
-  );
+  )
   const [selectedTemplate, setSelectedTemplate] =
-    useState<TemplateEntry | null>(null);
+    useState<TemplateEntry | null>(null)
   const [parsedData, setParsedData] = useState<Record<string, unknown> | null>(
     null
-  );
-  const [selectedSpec, setSelectedSpec] = useState<KsySchema | null>(null);
-  const [parseError, setParseError] = useState<string | null>(null);
+  )
+  const [selectedSpec, setSelectedSpec] = useState<KsySchema | null>(null)
+  const [parseError, setParseError] = useState<string | null>(null)
 
   // Notify parent component when PIP state changes
   useEffect(() => {
-    onPIPStateChange?.(isPIPActive);
-  }, [isPIPActive, onPIPStateChange]);
+    onPIPStateChange?.(isPIPActive)
+  }, [isPIPActive, onPIPStateChange])
 
   // Restore template from URL param on mount or when value changes
   useEffect(() => {
     if (templateValue) {
-      const template = findTemplate(manifest, templateValue);
+      const template = findTemplate(manifest, templateValue)
       if (template && selectedTemplate?.name !== template.name) {
         // Only update state, don't call handleTemplateSelect to avoid loop
-        setSelectedTemplate(template);
-        setParseError(null);
+        setSelectedTemplate(template)
+        setParseError(null)
 
         if (data) {
           parse(template.path, data).then(
             ({ parsedData: result, spec, error }) => {
               if (spec) {
-                setSelectedSpec(spec);
+                setSelectedSpec(spec)
               } else {
-                setSelectedSpec(null);
+                setSelectedSpec(null)
               }
 
               if (error) {
-                console.error("Failed to parse data:", error);
-                setParsedData(null);
+                console.error("Failed to parse data:", error)
+                setParsedData(null)
                 const errorMessage =
-                  error instanceof Error ? error.message : String(error);
-                setParseError(errorMessage);
+                  error instanceof Error ? error.message : String(error)
+                setParseError(errorMessage)
               } else {
-                setParsedData(result);
-                setParseError(null);
+                setParsedData(result)
+                setParseError(null)
               }
             }
-          );
+          )
         } else {
-          console.warn("No data available to parse");
-          setParsedData(null);
+          console.warn("No data available to parse")
+          setParsedData(null)
         }
       }
     } else if (!templateValue && selectedTemplate) {
-      setSelectedTemplate(null);
-      setParsedData(null);
-      setSelectedSpec(null);
-      setParseError(null);
+      setSelectedTemplate(null)
+      setParsedData(null)
+      setSelectedSpec(null)
+      setParseError(null)
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [templateValue, data]);
+  }, [templateValue, data])
 
   const handleTemplateSelect = async (entry: TemplateEntry) => {
-    setSelectedTemplate(entry);
-    setTemplateValue(entry.name);
-    setParseError(null);
+    setSelectedTemplate(entry)
+    setTemplateValue(entry.name)
+    setParseError(null)
 
     if (!data) {
-      console.warn("No data available to parse");
-      setParsedData(null);
-      return;
+      console.warn("No data available to parse")
+      setParsedData(null)
+      return
     }
 
-    const { parsedData: result, spec, error } = await parse(entry.path, data);
+    const { parsedData: result, spec, error } = await parse(entry.path, data)
 
     if (spec) {
-      setSelectedSpec(spec);
+      setSelectedSpec(spec)
     } else {
-      setSelectedSpec(null);
+      setSelectedSpec(null)
     }
 
     if (error) {
-      console.error("Failed to parse data:", error);
-      setParsedData(null);
+      console.error("Failed to parse data:", error)
+      setParsedData(null)
       const errorMessage =
-        error instanceof Error ? error.message : String(error);
-      setParseError(errorMessage);
+        error instanceof Error ? error.message : String(error)
+      setParseError(errorMessage)
     } else {
-      setParsedData(result);
-      setParseError(null);
+      setParsedData(result)
+      setParseError(null)
     }
-  };
+  }
 
   const handleTemplateValueChange = (value: string) => {
-    setTemplateValue(value);
+    setTemplateValue(value)
     if (!value) {
-      setSelectedTemplate(null);
-      setParsedData(null);
-      setSelectedSpec(null);
-      setParseError(null);
+      setSelectedTemplate(null)
+      setParsedData(null)
+      setSelectedSpec(null)
+      setParseError(null)
     }
-  };
+  }
 
   return (
     <div
       ref={templatesRef}
       className="h-full"
       style={{
-        visibility: isPIPActive && !stylesLoaded ? "hidden" : "visible",
+        visibility: isPIPActive && !stylesLoaded ? "hidden" : "visible"
       }}
     >
       <Card className="h-full flex flex-col p-0 rounded-none border-none bg-sidebar overflow-hidden gap-0">
@@ -298,14 +300,20 @@ export const Templates: FunctionComponent<TemplatesProps> = ({
               </EmptyHeader>
             </Empty>
           ) : (
-            <Tabs defaultValue="object-tree" className="gap-4 mt-4">
+            <Tabs
+              defaultValue="object-tree"
+              className="gap-4 mt-4"
+            >
               <TabsList className="w-full border">
                 <TabsTrigger value="object-tree">Object Tree</TabsTrigger>
                 {selectedSpec && (
                   <TabsTrigger value="details">Details</TabsTrigger>
                 )}
               </TabsList>
-              <TabsContent value="object-tree" className="mt-4">
+              <TabsContent
+                value="object-tree"
+                className="mt-4"
+              >
                 {parseError ? (
                   <Empty className="h-full">
                     <EmptyHeader>
@@ -326,10 +334,10 @@ export const Templates: FunctionComponent<TemplatesProps> = ({
                       spec={selectedSpec}
                       onNodeSelect={(range) => {
                         if (onScrollToOffset) {
-                          onScrollToOffset(range.start);
+                          onScrollToOffset(range.start)
                         }
                         if (onSelectedOffsetRangeChange) {
-                          onSelectedOffsetRangeChange(range);
+                          onSelectedOffsetRangeChange(range)
                         }
                       }}
                     />
@@ -465,5 +473,5 @@ export const Templates: FunctionComponent<TemplatesProps> = ({
         </CardContent>
       </Card>
     </div>
-  );
-};
+  )
+}

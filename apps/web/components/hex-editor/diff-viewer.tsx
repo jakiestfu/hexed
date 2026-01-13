@@ -1,35 +1,36 @@
-import type { FunctionComponent } from "react";
-import type { DiffResult } from "@hexed/types";
+import type { FunctionComponent } from "react"
+import { RefreshCw, TrendingDown, TrendingUp } from "lucide-react"
+
+import type { DiffResult } from "@hexed/types"
 import {
   Select,
   SelectContent,
   SelectItem,
   SelectTrigger,
   SelectValue,
-  Separator,
-} from "@hexed/ui";
-import { TrendingUp, TrendingDown, RefreshCw } from "lucide-react";
+  Separator
+} from "@hexed/ui"
 
 type DiffViewerProps = {
-  diff: DiffResult;
-  onScrollToOffset: (offset: number) => void;
-};
+  diff: DiffResult
+  onScrollToOffset: (offset: number) => void
+}
 
 function formatOffset(offset: number): string {
-  return `0x${offset.toString(16).toUpperCase().padStart(8, "0")}`;
+  return `0x${offset.toString(16).toUpperCase().padStart(8, "0")}`
 }
 
 export const DiffViewer: FunctionComponent<DiffViewerProps> = ({
   diff,
-  onScrollToOffset,
+  onScrollToOffset
 }) => {
-  const added = diff.diffs.filter((d) => d.type === "added");
-  const removed = diff.diffs.filter((d) => d.type === "removed");
-  const modified = diff.diffs.filter((d) => d.type === "modified");
+  const added = diff.diffs.filter((d) => d.type === "added")
+  const removed = diff.diffs.filter((d) => d.type === "removed")
+  const modified = diff.diffs.filter((d) => d.type === "modified")
 
-  const addedOffsets = added.map((d) => d.offset).sort((a, b) => a - b);
-  const removedOffsets = removed.map((d) => d.offset).sort((a, b) => a - b);
-  const modifiedOffsets = modified.map((d) => d.offset).sort((a, b) => a - b);
+  const addedOffsets = added.map((d) => d.offset).sort((a, b) => a - b)
+  const removedOffsets = removed.map((d) => d.offset).sort((a, b) => a - b)
+  const modifiedOffsets = modified.map((d) => d.offset).sort((a, b) => a - b)
 
   return (
     <div className="flex divide-x border-b">
@@ -43,7 +44,7 @@ export const DiffViewer: FunctionComponent<DiffViewerProps> = ({
         {addedOffsets.length > 0 && (
           <Select
             onValueChange={(value) => {
-              onScrollToOffset(parseInt(value, 16));
+              onScrollToOffset(parseInt(value, 16))
             }}
           >
             <SelectTrigger className="h-8 text-xs w-full">
@@ -51,7 +52,10 @@ export const DiffViewer: FunctionComponent<DiffViewerProps> = ({
             </SelectTrigger>
             <SelectContent>
               {addedOffsets.map((offset) => (
-                <SelectItem key={offset} value={offset.toString(16)}>
+                <SelectItem
+                  key={offset}
+                  value={offset.toString(16)}
+                >
                   {formatOffset(offset)}
                 </SelectItem>
               ))}
@@ -70,7 +74,7 @@ export const DiffViewer: FunctionComponent<DiffViewerProps> = ({
         {removedOffsets.length > 0 && (
           <Select
             onValueChange={(value) => {
-              onScrollToOffset(parseInt(value, 16));
+              onScrollToOffset(parseInt(value, 16))
             }}
           >
             <SelectTrigger className="h-8 text-xs w-full">
@@ -78,7 +82,10 @@ export const DiffViewer: FunctionComponent<DiffViewerProps> = ({
             </SelectTrigger>
             <SelectContent>
               {removedOffsets.map((offset) => (
-                <SelectItem key={offset} value={offset.toString(16)}>
+                <SelectItem
+                  key={offset}
+                  value={offset.toString(16)}
+                >
                   {formatOffset(offset)}
                 </SelectItem>
               ))}
@@ -99,7 +106,7 @@ export const DiffViewer: FunctionComponent<DiffViewerProps> = ({
         {modifiedOffsets.length > 0 && (
           <Select
             onValueChange={(value) => {
-              onScrollToOffset(parseInt(value, 16));
+              onScrollToOffset(parseInt(value, 16))
             }}
           >
             <SelectTrigger className="h-8 text-xs w-full">
@@ -107,7 +114,10 @@ export const DiffViewer: FunctionComponent<DiffViewerProps> = ({
             </SelectTrigger>
             <SelectContent>
               {modifiedOffsets.map((offset) => (
-                <SelectItem key={offset} value={offset.toString(16)}>
+                <SelectItem
+                  key={offset}
+                  value={offset.toString(16)}
+                >
                   {formatOffset(offset)}
                 </SelectItem>
               ))}
@@ -116,5 +126,5 @@ export const DiffViewer: FunctionComponent<DiffViewerProps> = ({
         )}
       </div>
     </div>
-  );
-};
+  )
+}

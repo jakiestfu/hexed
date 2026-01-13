@@ -1,12 +1,12 @@
-import type { NextConfig } from "next";
+import type { NextConfig } from "next"
 
 const nextConfig: NextConfig = {
   reactStrictMode: true,
   typescript: {
-    ignoreBuildErrors: false,
+    ignoreBuildErrors: false
   },
-  devIndicators: false,
+  devIndicators: false
   // Path aliases are handled by tsconfig.json
-};
+}
 
-export default nextConfig;
+export default nextConfig

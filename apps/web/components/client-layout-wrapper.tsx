@@ -1,11 +1,11 @@
-"use client";
+"use client"
 
-import { DragDropProvider } from "./hex-editor/drag-drop-provider";
+import { DragDropProvider } from "./hex-editor/drag-drop-provider"
 
 export function ClientLayoutWrapper({
-  children,
+  children
 }: {
-  children: React.ReactNode;
+  children: React.ReactNode
 }) {
-  return <DragDropProvider>{children}</DragDropProvider>;
+  return <DragDropProvider>{children}</DragDropProvider>
 }

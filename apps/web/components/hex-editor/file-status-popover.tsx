@@ -1,18 +1,20 @@
-"use client";
+"use client"
 
-import { FunctionComponent, ReactNode } from "react";
-import { Popover, PopoverContent, PopoverTrigger, Button } from "@hexed/ui";
-import { AlertCircle, RefreshCw } from "lucide-react";
-import { FileSource } from "./types";
+import { FunctionComponent, ReactNode } from "react"
+import { AlertCircle, RefreshCw } from "lucide-react"
+
+import { Button, Popover, PopoverContent, PopoverTrigger } from "@hexed/ui"
+
+import { FileSource } from "./types"
 
 export type FileStatusPopoverProps = {
-  fileSource: FileSource;
-  originalSource: string;
-  isConnected?: boolean;
-  error?: string | null;
-  onRestartWatching?: () => void;
-  children: ReactNode;
-};
+  fileSource: FileSource
+  originalSource: string
+  isConnected?: boolean
+  error?: string | null
+  onRestartWatching?: () => void
+  children: ReactNode
+}
 
 export const FileStatusPopover: FunctionComponent<FileStatusPopoverProps> = ({
   fileSource,
@@ -20,32 +22,36 @@ export const FileStatusPopover: FunctionComponent<FileStatusPopoverProps> = ({
   isConnected = false,
   error = null,
   onRestartWatching,
-  children,
+  children
 }) => {
   const getDotColor = () => {
     if (fileSource === "disk") {
-      return isConnected ? "bg-green-500" : "bg-red-500";
+      return isConnected ? "bg-green-500" : "bg-red-500"
     }
-    return "bg-gray-500";
-  };
-  console.log({ fileSource, originalSource, isConnected, error });
+    return "bg-gray-500"
+  }
+  console.log({ fileSource, originalSource, isConnected, error })
   const getStatusText = () => {
     if (fileSource === "disk") {
       if (error) {
-        return "Error watching file";
+        return "Error watching file"
       }
-      return isConnected ? "Watching for changes" : "Not watching for changes";
+      return isConnected ? "Watching for changes" : "Not watching for changes"
     }
     if (fileSource === "url") {
-      return "Fetched from URL";
+      return "Fetched from URL"
     }
-    return "Upload";
-  };
+    return "Upload"
+  }
 
   return (
     <Popover>
       <PopoverTrigger asChild>{children}</PopoverTrigger>
-      <PopoverContent side="bottom" align="center" className="w-md">
+      <PopoverContent
+        side="bottom"
+        align="center"
+        className="w-md"
+      >
         <div className="space-y-3">
           <div>
             <div className="flex items-center gap-2 mb-1">
@@ -117,5 +123,5 @@ export const FileStatusPopover: FunctionComponent<FileStatusPopoverProps> = ({
         </div>
       </PopoverContent>
     </Popover>
-  );
-};
+  )
+}

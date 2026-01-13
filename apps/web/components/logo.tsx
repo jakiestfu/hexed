@@ -1,26 +1,27 @@
-"use client";
+"use client"
 
-import { Button, DropdownMenu, DropdownMenuTrigger } from "@hexed/ui";
-import { ChevronDown, Ghost } from "lucide-react";
-import { FunctionComponent, ReactNode, useState } from "react";
-import { cn } from "@hexed/ui";
-import type { BinarySnapshot } from "@hexed/types";
-import { Menu, type MenuItem } from "./menu";
+import { FunctionComponent, ReactNode, useState } from "react"
+import { ChevronDown, Ghost } from "lucide-react"
 
-export type { MenuItem } from "./menu";
+import type { BinarySnapshot } from "@hexed/types"
+import { Button, cn, DropdownMenu, DropdownMenuTrigger } from "@hexed/ui"
+
+import { Menu, type MenuItem } from "./menu"
+
+export type { MenuItem } from "./menu"
 
 export type LogoProps = {
-  menuItems?: MenuItem[];
-  githubUrl?: string;
-  inline?: boolean;
-  currentSnapshot?: BinarySnapshot | null;
-  showHistogram?: boolean;
-  onShowHistogramChange?: (show: boolean) => void;
-};
+  menuItems?: MenuItem[]
+  githubUrl?: string
+  inline?: boolean
+  currentSnapshot?: BinarySnapshot | null
+  showHistogram?: boolean
+  onShowHistogramChange?: (show: boolean) => void
+}
 
 export const Brand: FunctionComponent<{
-  className?: string;
-  glitch?: boolean;
+  className?: string
+  glitch?: boolean
 }> = ({ className, glitch }) => (
   <div
     className={cn(
@@ -37,7 +38,7 @@ export const Brand: FunctionComponent<{
       <span>hexed</span>
     </div>
   </div>
-);
+)
 
 export const Logo: FunctionComponent<LogoProps> = ({
   menuItems,
@@ -45,16 +46,16 @@ export const Logo: FunctionComponent<LogoProps> = ({
   inline = false,
   currentSnapshot,
   showHistogram: controlledShowHistogram,
-  onShowHistogramChange: controlledOnShowHistogramChange,
+  onShowHistogramChange: controlledOnShowHistogramChange
 }) => {
-  const [internalShowHistogram, setInternalShowHistogram] = useState(false);
+  const [internalShowHistogram, setInternalShowHistogram] = useState(false)
 
   // Use controlled state if provided, otherwise use internal state
-  const showHistogram = controlledShowHistogram ?? internalShowHistogram;
+  const showHistogram = controlledShowHistogram ?? internalShowHistogram
   const onShowHistogramChange =
-    controlledOnShowHistogramChange ?? setInternalShowHistogram;
+    controlledOnShowHistogramChange ?? setInternalShowHistogram
 
-  if (inline) return <Brand />;
+  if (inline) return <Brand />
 
   return (
     <div className="flex justify-center gap-2 logo-container">
@@ -75,5 +76,5 @@ export const Logo: FunctionComponent<LogoProps> = ({
         />
       </DropdownMenu>
     </div>
-  );
-};
+  )
+}

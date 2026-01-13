@@ -1,27 +1,27 @@
-"use client";
+"use client"
 
-import { useState, useEffect } from "react";
+import { useEffect, useState } from "react"
 
 /**
  * Extended Performance interface for memory API (Chrome/Edge)
  */
 interface PerformanceMemory {
-  usedJSHeapSize: number;
-  totalJSHeapSize: number;
-  jsHeapSizeLimit: number;
+  usedJSHeapSize: number
+  totalJSHeapSize: number
+  jsHeapSizeLimit: number
 }
 
 interface PerformanceWithMemory extends Performance {
-  memory?: PerformanceMemory;
+  memory?: PerformanceMemory
 }
 
 /**
  * Performance metrics returned by the hook
  */
 export interface PerformanceMetrics {
-  usedHeapBytes: number | null;
-  totalHeapBytes: number | null;
-  heapLimitBytes: number | null;
+  usedHeapBytes: number | null
+  totalHeapBytes: number | null
+  heapLimitBytes: number | null
 }
 
 /**
@@ -37,53 +37,53 @@ export function usePerformanceMetrics(
   const [metrics, setMetrics] = useState<PerformanceMetrics>({
     usedHeapBytes: null,
     totalHeapBytes: null,
-    heapLimitBytes: null,
-  });
+    heapLimitBytes: null
+  })
 
   useEffect(() => {
     // Check if performance.memory API is available
-    const perf = performance as PerformanceWithMemory;
+    const perf = performance as PerformanceWithMemory
     if (!perf.memory) {
       // API not available, return null metrics
       setMetrics({
         usedHeapBytes: null,
         totalHeapBytes: null,
-        heapLimitBytes: null,
-      });
-      return;
+        heapLimitBytes: null
+      })
+      return
     }
 
     // Function to update metrics
     const updateMetrics = () => {
-      const memory = perf.memory;
+      const memory = perf.memory
       if (!memory) {
         setMetrics({
           usedHeapBytes: null,
           totalHeapBytes: null,
-          heapLimitBytes: null,
-        });
-        return;
+          heapLimitBytes: null
+        })
+        return
       }
 
       // Return raw byte values
       setMetrics({
         usedHeapBytes: memory.usedJSHeapSize,
         totalHeapBytes: memory.totalJSHeapSize,
-        heapLimitBytes: memory.jsHeapSizeLimit,
-      });
-    };
+        heapLimitBytes: memory.jsHeapSizeLimit
+      })
+    }
 
     // Initial update
-    updateMetrics();
+    updateMetrics()
 
     // Set up interval for periodic updates
-    const intervalId = setInterval(updateMetrics, updateInterval);
+    const intervalId = setInterval(updateMetrics, updateInterval)
 
     // Cleanup interval on unmount
     return () => {
-      clearInterval(intervalId);
-    };
-  }, [updateInterval]);
+      clearInterval(intervalId)
+    }
+  }, [updateInterval])
 
-  return metrics;
+  return metrics
 }

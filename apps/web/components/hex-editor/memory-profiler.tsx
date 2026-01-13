@@ -1,34 +1,36 @@
-"use client";
+"use client"
 
-import type { FunctionComponent } from "react";
-import { formatBytes } from "@hexed/binary-utils/formatter";
-import { Popover, PopoverTrigger, PopoverContent } from "@hexed/ui";
-import { usePerformanceMetrics } from "~/hooks/use-performance-metrics";
+import type { FunctionComponent } from "react"
+
+import { formatBytes } from "@hexed/binary-utils/formatter"
+import { Popover, PopoverContent, PopoverTrigger } from "@hexed/ui"
+
+import { usePerformanceMetrics } from "~/hooks/use-performance-metrics"
 
 /**
  * Memory profiler component that displays browser memory usage
  * Shows a compact label with detailed information in a popover
  */
 export const MemoryProfiler: FunctionComponent = () => {
-  const performanceMetrics = usePerformanceMetrics();
+  const performanceMetrics = usePerformanceMetrics()
 
   if (
     performanceMetrics.heapLimitBytes === null ||
     performanceMetrics.usedHeapBytes === null
   ) {
-    return null;
+    return null
   }
 
   const heap = {
     used: performanceMetrics.usedHeapBytes,
     limit: performanceMetrics.heapLimitBytes,
-    total: performanceMetrics.totalHeapBytes ?? 0,
-  };
+    total: performanceMetrics.totalHeapBytes ?? 0
+  }
 
-  const pct = heap.limit ? heap.used / heap.limit : 0;
+  const pct = heap.limit ? heap.used / heap.limit : 0
   const label = `Mem: ${formatBytes(heap.used)} / ${formatBytes(
     heap.limit
-  )} (${Math.round(pct * 100)}%)`;
+  )} (${Math.round(pct * 100)}%)`
 
   return (
     <>
@@ -42,7 +44,10 @@ export const MemoryProfiler: FunctionComponent = () => {
             {label}
           </span>
         </PopoverTrigger>
-        <PopoverContent className="w-64 p-3" align="center">
+        <PopoverContent
+          className="w-64 p-3"
+          align="center"
+        >
           <div className="space-y-2 font-mono text-xs">
             <div className="font-semibold text-sm mt-1 mb-2 text-foreground">
               Memory Usage
@@ -79,5 +84,5 @@ export const MemoryProfiler: FunctionComponent = () => {
         </PopoverContent>
       </Popover>
     </>
-  );
-};
+  )
+}

@@ -1,11 +1,11 @@
 // Type definitions for Electron API exposed via preload script
 interface ElectronAPI {
-  openFileDialog: () => Promise<string | null>;
+  openFileDialog: () => Promise<string | null>
 }
 
 declare global {
   interface Window {
-    electron?: ElectronAPI;
+    electron?: ElectronAPI
   }
 }
 
@@ -13,7 +13,7 @@ declare global {
  * Checks if the app is running in Electron
  */
 export function isElectron(): boolean {
-  return typeof window !== "undefined" && window.electron !== undefined;
+  return typeof window !== "undefined" && window.electron !== undefined
 }
 
 /**
@@ -22,8 +22,7 @@ export function isElectron(): boolean {
  */
 export async function openFileDialog(): Promise<string | null> {
   if (!isElectron() || !window.electron) {
-    throw new Error("File dialog is only available in Electron");
+    throw new Error("File dialog is only available in Electron")
   }
-  return window.electron.openFileDialog();
+  return window.electron.openFileDialog()
 }
-

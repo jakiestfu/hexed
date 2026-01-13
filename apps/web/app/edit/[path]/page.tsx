@@ -1,108 +1,113 @@
-"use client";
+"use client"
 
-import * as React from "react";
-import { useParams, useRouter } from "next/navigation";
-import { HexEditor } from "~/components/hex-editor/hex-editor";
-import { Button, Card, CardContent } from "@hexed/ui";
-import { useFileWatcher } from "~/hooks/use-file-watcher";
-import { useRecentFiles } from "~/hooks/use-recent-files";
-import { decodeFilePath, isUrlPath } from "~/utils/path-encoding";
-import { AlertCircle } from "lucide-react";
-import { useDragDrop } from "~/components/hex-editor/drag-drop-provider";
-import { encodeFilePath } from "~/utils/path-encoding";
-import type { BinarySnapshot } from "@hexed/types";
-import { createSnapshotFromURL } from "~/components/hex-editor/utils";
+import * as React from "react"
+import { useParams, useRouter } from "next/navigation"
+import { AlertCircle } from "lucide-react"
+
+import type { BinarySnapshot } from "@hexed/types"
+import { Button, Card, CardContent } from "@hexed/ui"
+
+import { useDragDrop } from "~/components/hex-editor/drag-drop-provider"
+import { HexEditor } from "~/components/hex-editor/hex-editor"
+import { createSnapshotFromURL } from "~/components/hex-editor/utils"
+import { useFileWatcher } from "~/hooks/use-file-watcher"
+import { useRecentFiles } from "~/hooks/use-recent-files"
+import {
+  decodeFilePath,
+  encodeFilePath,
+  isUrlPath
+} from "~/utils/path-encoding"
 
 export default function EditPage() {
-  const params = useParams();
-  const router = useRouter();
-  const { addRecentFile } = useRecentFiles();
-  const { setOnFileSelect } = useDragDrop();
+  const params = useParams()
+  const router = useRouter()
+  const { addRecentFile } = useRecentFiles()
+  const { setOnFileSelect } = useDragDrop()
 
   // Decode the file path from the URL parameter
-  const encodedPath = params.path as string;
+  const encodedPath = params.path as string
   const filePath = React.useMemo(() => {
-    const decoded = decodeFilePath(encodedPath);
+    const decoded = decodeFilePath(encodedPath)
     if (decoded) {
       // Determine source type: URL or path
-      const source = isUrlPath(decoded) ? "url" : "disk";
-      addRecentFile(decoded, source);
+      const source = isUrlPath(decoded) ? "url" : "disk"
+      addRecentFile(decoded, source)
     }
-    return decoded;
-  }, [encodedPath, addRecentFile]);
+    return decoded
+  }, [encodedPath, addRecentFile])
 
   const isUrl = React.useMemo(() => {
-    return filePath ? isUrlPath(filePath) : false;
-  }, [filePath]);
+    return filePath ? isUrlPath(filePath) : false
+  }, [filePath])
 
   // State for URL-based snapshots
-  const [urlSnapshots, setUrlSnapshots] = React.useState<BinarySnapshot[]>([]);
-  const [urlLoading, setUrlLoading] = React.useState(false);
-  const [urlError, setUrlError] = React.useState<string | null>(null);
+  const [urlSnapshots, setUrlSnapshots] = React.useState<BinarySnapshot[]>([])
+  const [urlLoading, setUrlLoading] = React.useState(false)
+  const [urlError, setUrlError] = React.useState<string | null>(null)
 
   // Fetch URL if it's a URL source
   React.useEffect(() => {
     if (isUrl && filePath) {
-      setUrlLoading(true);
-      setUrlError(null);
+      setUrlLoading(true)
+      setUrlError(null)
       createSnapshotFromURL(filePath)
         .then((snapshot) => {
-          setUrlSnapshots([snapshot]);
-          setUrlLoading(false);
+          setUrlSnapshots([snapshot])
+          setUrlLoading(false)
         })
         .catch((error) => {
           setUrlError(
             error instanceof Error ? error.message : "Failed to fetch URL"
-          );
-          setUrlLoading(false);
-        });
+          )
+          setUrlLoading(false)
+        })
     } else {
-      setUrlSnapshots([]);
-      setUrlError(null);
+      setUrlSnapshots([])
+      setUrlError(null)
     }
-  }, [isUrl, filePath]);
+  }, [isUrl, filePath])
 
   // Use file watcher for file paths
   const {
     snapshots: fileSnapshots,
     isConnected,
     error: fileError,
-    restart,
-  } = useFileWatcher(isUrl ? null : filePath);
+    restart
+  } = useFileWatcher(isUrl ? null : filePath)
 
   // Determine which snapshots and error to use
-  const snapshots = isUrl ? urlSnapshots : fileSnapshots;
-  const error = isUrl ? urlError : fileError;
+  const snapshots = isUrl ? urlSnapshots : fileSnapshots
+  const error = isUrl ? urlError : fileError
 
   const handleFileSelect = React.useCallback(
     (input: string | BinarySnapshot) => {
       if (typeof input === "string") {
         // String path - determine source type and navigate
-        const source = isUrlPath(input) ? "url" : "disk";
-        addRecentFile(input, source);
-        const encodedPath = encodeFilePath(input);
-        router.push(`/edit/${encodedPath}`);
+        const source = isUrlPath(input) ? "url" : "disk"
+        addRecentFile(input, source)
+        const encodedPath = encodeFilePath(input)
+        router.push(`/edit/${encodedPath}`)
       } else {
         // BinarySnapshot - navigate to home with snapshot (client upload)
-        addRecentFile(input.filePath, "upload");
-        router.push("/");
+        addRecentFile(input.filePath, "upload")
+        router.push("/")
         // The home page will handle the snapshot via its own state
       }
     },
     [addRecentFile, router]
-  );
+  )
 
   // Register the file select handler with drag-drop provider
   React.useEffect(() => {
-    setOnFileSelect(handleFileSelect);
+    setOnFileSelect(handleFileSelect)
     return () => {
-      setOnFileSelect(null);
-    };
-  }, [handleFileSelect, setOnFileSelect]);
+      setOnFileSelect(null)
+    }
+  }, [handleFileSelect, setOnFileSelect])
 
   const handleClose = () => {
-    router.push("/");
-  };
+    router.push("/")
+  }
 
   // Invalid path error
   if (!filePath) {
@@ -122,14 +127,17 @@ export default function EditPage() {
                   The file path in the URL could not be decoded.
                 </p>
               </div>
-              <Button onClick={handleClose} variant="outline">
+              <Button
+                onClick={handleClose}
+                variant="outline"
+              >
                 Go Back
               </Button>
             </div>
           </CardContent>
         </Card>
       </div>
-    );
+    )
   }
 
   // Only show full-page error if we have no snapshots (initial load error)
@@ -152,14 +160,17 @@ export default function EditPage() {
                   {filePath}
                 </p>
               </div>
-              <Button onClick={handleClose} variant="outline">
+              <Button
+                onClick={handleClose}
+                variant="outline"
+              >
                 Go Back
               </Button>
             </div>
           </CardContent>
         </Card>
       </div>
-    );
+    )
   }
 
   return (
@@ -174,5 +185,5 @@ export default function EditPage() {
       error={error}
       onRestartWatching={isUrl ? undefined : restart}
     />
-  );
+  )
 }

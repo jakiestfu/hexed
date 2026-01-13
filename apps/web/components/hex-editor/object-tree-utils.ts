@@ -1,41 +1,41 @@
-import { formatHex, formatBytesPreview } from "@hexed/binary-utils/formatter";
+import { formatBytesPreview, formatHex } from "@hexed/binary-utils/formatter"
 
 export type TreeNodeType =
   | "object"
   | "array"
   | "primitive"
   | "typedArray"
-  | "undefined";
+  | "undefined"
 
 export interface TreeNode {
-  name: string;
-  type: TreeNodeType;
-  value?: any;
-  className?: string; // For Kaitai Struct class names
-  children?: TreeNode[];
-  isExpanded?: boolean;
-  path: string[];
+  name: string
+  type: TreeNodeType
+  value?: any
+  className?: string // For Kaitai Struct class names
+  children?: TreeNode[]
+  isExpanded?: boolean
+  path: string[]
   // For primitives
-  primitiveValue?: any;
-  enumStringValue?: string;
+  primitiveValue?: any
+  enumStringValue?: string
   // For typed arrays
-  bytesPreview?: string;
+  bytesPreview?: string
   // For arrays
-  arrayLength?: number;
+  arrayLength?: number
   // Original Kaitai-parsed node object (for accessing _debug)
-  originalNode?: any;
+  originalNode?: any
   // Parent original node (for accessing parent's _debug for array items)
-  parentOriginalNode?: any;
+  parentOriginalNode?: any
   // Root original node (for accessing root._debug)
-  rootOriginalNode?: any;
+  rootOriginalNode?: any
 }
 
 function getObjectType(obj: any): TreeNodeType {
-  if (obj instanceof Uint8Array) return "typedArray";
-  if (obj === null || obj === undefined) return "undefined";
-  if (typeof obj !== "object") return "primitive";
-  if (Array.isArray(obj)) return "array";
-  return "object";
+  if (obj instanceof Uint8Array) return "typedArray"
+  if (obj === null || obj === undefined) return "undefined"
+  if (typeof obj !== "object") return "primitive"
+  if (Array.isArray(obj)) return "array"
+  return "object"
 }
 
 export function convertKaitaiToTree(
@@ -45,58 +45,58 @@ export function convertKaitaiToTree(
   parentOriginalNode?: any,
   rootOriginalNode?: any
 ): TreeNode {
-  const type = getObjectType(obj);
+  const type = getObjectType(obj)
   // Use provided root or set current as root if this is the root node
-  const rootNode = rootOriginalNode || (name === "root" ? obj : undefined);
+  const rootNode = rootOriginalNode || (name === "root" ? obj : undefined)
   const node: TreeNode = {
     name,
     type,
     path: [...path, name],
     originalNode: obj,
     parentOriginalNode,
-    rootOriginalNode: rootNode,
-  };
+    rootOriginalNode: rootNode
+  }
 
   switch (type) {
     case "primitive":
-      node.primitiveValue = obj;
+      node.primitiveValue = obj
       // Check if it's an enum (you might need to pass enum info separately)
       if (typeof obj === "number" && Number.isInteger(obj)) {
-        node.value = formatHex(obj);
+        node.value = formatHex(obj)
       } else {
-        node.value = String(obj);
+        node.value = String(obj)
       }
-      break;
+      break
 
     case "typedArray":
-      node.bytesPreview = formatBytesPreview(obj as Uint8Array);
-      node.value = `[${(obj as Uint8Array).length} bytes]`;
-      break;
+      node.bytesPreview = formatBytesPreview(obj as Uint8Array)
+      node.value = `[${(obj as Uint8Array).length} bytes]`
+      break
 
     case "array":
-      const arr = obj as any[];
-      node.arrayLength = arr.length;
+      const arr = obj as any[]
+      node.arrayLength = arr.length
       node.children = arr.map((item, i) =>
         convertKaitaiToTree(item, String(i), node.path, obj, rootNode)
-      );
-      break;
+      )
+      break
 
     case "object":
-      node.className = obj.constructor?.name || "Object";
-      node.children = [];
+      node.className = obj.constructor?.name || "Object"
+      node.children = []
 
       // Get all properties (excluding private/internal ones)
-      const keys = Object.keys(obj).filter((key) => !key.startsWith("_"));
+      const keys = Object.keys(obj).filter((key) => !key.startsWith("_"))
 
       for (const key of keys) {
         try {
-          const value = obj[key];
+          const value = obj[key]
           // Skip functions and internal properties
-          if (typeof value === "function" || key === "constructor") continue;
+          if (typeof value === "function" || key === "constructor") continue
 
           node.children.push(
             convertKaitaiToTree(value, key, node.path, obj, rootNode)
-          );
+          )
         } catch (e) {
           // Handle lazy-loaded properties that throw errors
           node.children.push({
@@ -105,16 +105,16 @@ export function convertKaitaiToTree(
             path: [...node.path, key],
             value: "<lazy instance>",
             parentOriginalNode: obj,
-            rootOriginalNode: rootNode,
-          });
+            rootOriginalNode: rootNode
+          })
         }
       }
-      break;
+      break
 
     case "undefined":
-      node.value = "<no value>";
-      break;
+      node.value = "<no value>"
+      break
   }
 
-  return node;
+  return node
 }

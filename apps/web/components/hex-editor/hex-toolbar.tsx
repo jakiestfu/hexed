@@ -1,28 +1,30 @@
-import { useEffect, useState } from "react";
-import type { FunctionComponent, ReactNode } from "react";
-import { isElectron } from "~/utils/electron";
-import { cn } from "@hexed/ui";
+import { useEffect, useState } from "react"
+import type { FunctionComponent, ReactNode } from "react"
+
+import { cn } from "@hexed/ui"
+
+import { isElectron } from "~/utils/electron"
 
 type HexToolbarProps = {
-  left?: ReactNode;
-  center?: ReactNode;
-  right?: ReactNode;
-};
+  left?: ReactNode
+  center?: ReactNode
+  right?: ReactNode
+}
 
 export const HexToolbar: FunctionComponent<HexToolbarProps> = ({
   left,
   center,
-  right,
+  right
 }) => {
-  const [isInElectron, setIsInElectron] = useState(false);
+  const [isInElectron, setIsInElectron] = useState(false)
 
   useEffect(() => {
-    const inElectron = isElectron();
-    setIsInElectron(inElectron);
+    const inElectron = isElectron()
+    setIsInElectron(inElectron)
 
     if (inElectron) {
       // Add global style to ensure interactive elements are not draggable
-      const style = document.createElement("style");
+      const style = document.createElement("style")
       style.textContent = `
         [data-electron-drag-region] button,
         [data-electron-drag-region] input,
@@ -32,14 +34,14 @@ export const HexToolbar: FunctionComponent<HexToolbarProps> = ({
         [data-electron-drag-region] [role="menuitem"] {
           -webkit-app-region: no-drag !important;
         }
-      `;
-      document.head.appendChild(style);
+      `
+      document.head.appendChild(style)
 
       return () => {
-        document.head.removeChild(style);
-      };
+        document.head.removeChild(style)
+      }
     }
-  }, []);
+  }, [])
 
   return (
     <div
@@ -48,7 +50,7 @@ export const HexToolbar: FunctionComponent<HexToolbarProps> = ({
       style={
         isInElectron
           ? {
-              WebkitAppRegion: "drag",
+              WebkitAppRegion: "drag"
             }
           : undefined
       }
@@ -61,5 +63,5 @@ export const HexToolbar: FunctionComponent<HexToolbarProps> = ({
         <div className="flex items-end justify-end flex-1 min-w-0">{right}</div>
       )}
     </div>
-  );
-};
+  )
+}

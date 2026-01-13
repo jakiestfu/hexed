@@ -1,43 +1,45 @@
-import { useMemo, useRef, useEffect, useState } from "react";
-import type { FunctionComponent, RefObject } from "react";
+import { useEffect, useMemo, useRef, useState } from "react"
+import type { FunctionComponent, RefObject } from "react"
+import { ArrowLeftRight, Maximize2, Type, X } from "lucide-react"
+
+import { formatAddress } from "@hexed/binary-utils/formatter"
 import {
+  extractStrings,
+  type StringEncoding,
+  type StringMatch
+} from "@hexed/binary-utils/strings"
+import {
+  Button,
+  Card,
+  CardContent,
+  CardHeader,
+  CardTitle,
+  Empty,
+  EmptyDescription,
+  EmptyHeader,
+  EmptyMedia,
+  EmptyTitle,
+  Input,
+  Label,
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
   Table,
   TableBody,
   TableCell,
   TableHead,
   TableHeader,
   TableRow,
-  Card,
-  CardContent,
-  CardHeader,
-  CardTitle,
-  Button,
-  Empty,
-  EmptyHeader,
-  EmptyTitle,
-  EmptyDescription,
-  EmptyMedia,
   Tooltip,
   TooltipContent,
-  TooltipTrigger,
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-  Input,
-  Label,
-} from "@hexed/ui";
-import { formatAddress } from "@hexed/binary-utils/formatter";
-import {
-  extractStrings,
-  type StringMatch,
-  type StringEncoding,
-} from "@hexed/binary-utils/strings";
-import { X, Type, Maximize2, ArrowLeftRight } from "lucide-react";
-import { usePIP } from "~/hooks/use-pip";
-import { useSidebarPosition } from "~/hooks/use-sidebar-position";
-import type { StringsProps } from "./types";
+  TooltipTrigger
+} from "@hexed/ui"
+
+import { usePIP } from "~/hooks/use-pip"
+import { useSidebarPosition } from "~/hooks/use-sidebar-position"
+import type { StringsProps } from "./types"
 
 export const Strings: FunctionComponent<StringsProps> = ({
   data,
@@ -45,50 +47,50 @@ export const Strings: FunctionComponent<StringsProps> = ({
   onScrollToOffset,
   onSelectedOffsetRangeChange,
   onRangeSelectedForSearch,
-  onPIPStateChange,
+  onPIPStateChange
 }) => {
-  const stringsRef = useRef<HTMLDivElement>(null);
+  const stringsRef = useRef<HTMLDivElement>(null)
   const { isPIPActive, stylesLoaded, togglePIP, isSupported } = usePIP(
     stringsRef as RefObject<HTMLElement>
-  );
-  const { toggleSidebarPosition } = useSidebarPosition();
-  const [minLength, setMinLength] = useState<number>(4);
-  const [encoding, setEncoding] = useState<StringEncoding>("ascii");
+  )
+  const { toggleSidebarPosition } = useSidebarPosition()
+  const [minLength, setMinLength] = useState<number>(4)
+  const [encoding, setEncoding] = useState<StringEncoding>("ascii")
 
   // Notify parent component when PIP state changes
   useEffect(() => {
-    onPIPStateChange?.(isPIPActive);
-  }, [isPIPActive, onPIPStateChange]);
+    onPIPStateChange?.(isPIPActive)
+  }, [isPIPActive, onPIPStateChange])
 
   const extractedStrings = useMemo<StringMatch[]>(() => {
     if (!data || data.length === 0) {
-      return [];
+      return []
     }
 
     try {
       return extractStrings(data, {
         minLength,
-        encoding,
-      });
+        encoding
+      })
     } catch (error) {
-      console.error("Failed to extract strings:", error);
-      return [];
+      console.error("Failed to extract strings:", error)
+      return []
     }
-  }, [data, minLength, encoding]);
+  }, [data, minLength, encoding])
 
   const handleMinLengthChange = (value: string) => {
-    const num = parseInt(value, 10);
+    const num = parseInt(value, 10)
     if (!isNaN(num) && num > 0) {
-      setMinLength(num);
+      setMinLength(num)
     }
-  };
+  }
 
   return (
     <div
       ref={stringsRef}
       className="h-full"
       style={{
-        visibility: isPIPActive && !stylesLoaded ? "hidden" : "visible",
+        visibility: isPIPActive && !stylesLoaded ? "hidden" : "visible"
       }}
     >
       <Card className="h-full flex flex-col p-0 rounded-none border-none bg-sidebar overflow-hidden gap-0">
@@ -159,7 +161,10 @@ export const Strings: FunctionComponent<StringsProps> = ({
               {/* Controls */}
               <div className="flex items-end gap-4 flex-wrap">
                 <div className="flex flex-col gap-2 min-w-[120px]">
-                  <Label htmlFor="min-length" className="text-xs">
+                  <Label
+                    htmlFor="min-length"
+                    className="text-xs"
+                  >
                     Min Length
                   </Label>
                   <Input
@@ -172,7 +177,10 @@ export const Strings: FunctionComponent<StringsProps> = ({
                   />
                 </div>
                 <div className="flex flex-col gap-2 min-w-[160px]">
-                  <Label htmlFor="encoding" className="text-xs">
+                  <Label
+                    htmlFor="encoding"
+                    className="text-xs"
+                  >
                     Encoding
                   </Label>
                   <Select
@@ -181,7 +189,10 @@ export const Strings: FunctionComponent<StringsProps> = ({
                       setEncoding(value as StringEncoding)
                     }
                   >
-                    <SelectTrigger id="encoding" className="h-8">
+                    <SelectTrigger
+                      id="encoding"
+                      className="h-8"
+                    >
                       <SelectValue />
                     </SelectTrigger>
                     <SelectContent>
@@ -226,12 +237,12 @@ export const Strings: FunctionComponent<StringsProps> = ({
                     </TableHeader>
                     <TableBody>
                       {extractedStrings.map((match, index) => {
-                        const hexOffset = formatAddress(match.offset);
-                        const decimalOffset = match.offset.toLocaleString();
+                        const hexOffset = formatAddress(match.offset)
+                        const decimalOffset = match.offset.toLocaleString()
                         const displayText =
                           match.text.length > 100
                             ? `${match.text.slice(0, 100)}...`
-                            : match.text;
+                            : match.text
 
                         return (
                           <TableRow key={`${match.offset}-${index}`}>
@@ -243,16 +254,16 @@ export const Strings: FunctionComponent<StringsProps> = ({
                                   onClick={() => {
                                     const range = {
                                       start: match.offset,
-                                      end: match.offset + match.length - 1,
-                                    };
+                                      end: match.offset + match.length - 1
+                                    }
                                     if (onScrollToOffset) {
-                                      onScrollToOffset(match.offset);
+                                      onScrollToOffset(match.offset)
                                     }
                                     if (onSelectedOffsetRangeChange) {
-                                      onSelectedOffsetRangeChange(range);
+                                      onSelectedOffsetRangeChange(range)
                                     }
                                     if (onRangeSelectedForSearch) {
-                                      onRangeSelectedForSearch(range);
+                                      onRangeSelectedForSearch(range)
                                     }
                                   }}
                                   className="hover:text-foreground hover:underline transition-colors cursor-pointer text-left"
@@ -284,7 +295,7 @@ export const Strings: FunctionComponent<StringsProps> = ({
                               {displayText}
                             </TableCell>
                           </TableRow>
-                        );
+                        )
                       })}
                     </TableBody>
                   </Table>
@@ -295,5 +306,5 @@ export const Strings: FunctionComponent<StringsProps> = ({
         </CardContent>
       </Card>
     </div>
-  );
-};
+  )
+}

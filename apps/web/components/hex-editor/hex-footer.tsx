@@ -1,15 +1,15 @@
-import type { FunctionComponent, ReactNode } from "react";
+import type { FunctionComponent, ReactNode } from "react"
 
 type HexFooterProps = {
-  left?: ReactNode;
-  center?: ReactNode;
-  right?: ReactNode;
-};
+  left?: ReactNode
+  center?: ReactNode
+  right?: ReactNode
+}
 
 export const HexFooter: FunctionComponent<HexFooterProps> = ({
   left,
   center,
-  right,
+  right
 }) => {
   return (
     <div className="flex items-center justify-between w-full border-t bg-muted/30 p-4">
@@ -25,5 +25,5 @@ export const HexFooter: FunctionComponent<HexFooterProps> = ({
         <span />
       )}
     </div>
-  );
-};
+  )
+}

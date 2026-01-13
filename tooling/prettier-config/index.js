@@ -2,33 +2,33 @@
 
 /** @type { PrettierConfig } */
 const config = {
-  endOfLine: 'auto',
-  semi: true,
+  endOfLine: "auto",
+  semi: false,
   useTabs: false,
-  singleQuote: true,
+  singleQuote: false,
   jsxSingleQuote: false,
   tabWidth: 2,
-  trailingComma: 'none',
+  trailingComma: "none",
   bracketSpacing: true,
-  arrowParens: 'always',
+  arrowParens: "always",
   singleAttributePerLine: true,
   importOrder: [
-    '^(react/(.*)$)|^(react$)',
-    '^(next/(.*)$)|^(next$)',
-    '<THIRD_PARTY_MODULES>',
-    '^types$',
-    '',
-    '^@hexed/(.*)$',
-    '',
-    '^~/(.*)$',
-    '^#(.*)$',
-    '^[./]'
+    "^(react/(.*)$)|^(react$)",
+    "^(next/(.*)$)|^(next$)",
+    "<THIRD_PARTY_MODULES>",
+    "^types$",
+    "",
+    "^@hexed/(.*)$",
+    "",
+    "^~/(.*)$",
+    "^#(.*)$",
+    "^[./]"
   ],
-  importOrderParserPlugins: ['typescript', 'jsx', 'decorators-legacy'],
+  importOrderParserPlugins: ["typescript", "jsx", "decorators-legacy"],
   plugins: [
-    'prettier-plugin-tailwindcss',
-    '@ianvs/prettier-plugin-sort-imports'
+    "prettier-plugin-tailwindcss",
+    "@ianvs/prettier-plugin-sort-imports"
   ]
-};
+}
 
-export default config;
+export default config

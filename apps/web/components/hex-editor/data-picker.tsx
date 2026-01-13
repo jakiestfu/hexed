@@ -1,40 +1,42 @@
-import { useState, useEffect, useRef } from "react";
-import type { FunctionComponent, FormEvent } from "react";
-import { useRouter } from "next/navigation";
+import { useEffect, useRef, useState } from "react"
+import type { FormEvent, FunctionComponent } from "react"
+import { useRouter } from "next/navigation"
+import { Clock, FolderOpen, Link as LinkIcon, Loader2 } from "lucide-react"
+
+import type { BinarySnapshot } from "@hexed/types"
 import {
+  Button,
   Card,
   CardContent,
-  Button,
+  Input,
   Popover,
   PopoverContent,
   PopoverTrigger,
   Tabs,
-  TabsList,
-  TabsTrigger,
   TabsContent,
-  Input,
-} from "@hexed/ui";
-import { Clock, FolderOpen, Link as LinkIcon, Loader2 } from "lucide-react";
-import type { RecentFile } from "~/hooks/use-recent-files";
-import type { BinarySnapshot } from "@hexed/types";
-import { isElectron, openFileDialog } from "~/utils/electron";
-import { createSnapshotFromFile, formatTimestamp, getBasename } from "./utils";
-import { useQueryParamState } from "~/hooks/use-query-param-state";
-import { encodeFilePath, isUrlPath } from "~/utils/path-encoding";
-import { FileSourceIcon } from "./file-source-icon";
-import { FileSource } from "./types";
+  TabsList,
+  TabsTrigger
+} from "@hexed/ui"
+
+import { useQueryParamState } from "~/hooks/use-query-param-state"
+import type { RecentFile } from "~/hooks/use-recent-files"
+import { isElectron, openFileDialog } from "~/utils/electron"
+import { encodeFilePath, isUrlPath } from "~/utils/path-encoding"
+import { FileSourceIcon } from "./file-source-icon"
+import { FileSource } from "./types"
+import { createSnapshotFromFile, formatTimestamp, getBasename } from "./utils"
 
 type DataPickerProps = {
-  onFileSelect: (filePath: string | BinarySnapshot) => void;
-  recentFiles: RecentFile[];
-};
+  onFileSelect: (filePath: string | BinarySnapshot) => void
+  recentFiles: RecentFile[]
+}
 
 // Recent Files Component
 const RecentFilesDropdown: FunctionComponent<{
-  recentFiles: RecentFile[];
-  onSelect: (path: string) => void;
+  recentFiles: RecentFile[]
+  onSelect: (path: string) => void
 }> = ({ recentFiles, onSelect }) => {
-  if (recentFiles.length === 0) return null;
+  if (recentFiles.length === 0) return null
 
   return (
     <Popover>
@@ -48,7 +50,10 @@ const RecentFilesDropdown: FunctionComponent<{
           <Clock className="h-4 w-4" />
         </Button>
       </PopoverTrigger>
-      <PopoverContent className="w-[400px] p-2" align="end">
+      <PopoverContent
+        className="w-[400px] p-2"
+        align="end"
+      >
         <div className="space-y-1">
           <div className="px-2 py-1.5 text-xs font-semibold text-muted-foreground">
             Recent Files
@@ -74,115 +79,115 @@ const RecentFilesDropdown: FunctionComponent<{
         </div>
       </PopoverContent>
     </Popover>
-  );
-};
+  )
+}
 
 export const DataPicker: FunctionComponent<DataPickerProps> = ({
   onFileSelect,
-  recentFiles,
+  recentFiles
 }) => {
-  const router = useRouter();
-  const [isInElectron, setIsInElectron] = useState(false);
-  const [isLoading, setIsLoading] = useState(false);
+  const router = useRouter()
+  const [isInElectron, setIsInElectron] = useState(false)
+  const [isLoading, setIsLoading] = useState(false)
   const [activeTab, setActiveTabState] = useQueryParamState<FileSource>(
     "tab",
     "upload"
-  );
+  )
   const setActiveTab = (value: string) => {
-    setActiveTabState(value as FileSource);
-  };
-  const [url, setUrl] = useState("");
-  const [pathInput, setPathInput] = useState("");
-  const [isMounted, setIsMounted] = useState(false);
-  const fileInputRef = useRef<HTMLInputElement>(null);
-  const isDevelopment = process.env.NODE_ENV === "development";
+    setActiveTabState(value as FileSource)
+  }
+  const [url, setUrl] = useState("")
+  const [pathInput, setPathInput] = useState("")
+  const [isMounted, setIsMounted] = useState(false)
+  const fileInputRef = useRef<HTMLInputElement>(null)
+  const isDevelopment = process.env.NODE_ENV === "development"
 
   useEffect(() => {
-    setIsInElectron(isElectron());
+    setIsInElectron(isElectron())
     // Wait for component mount and local storage restoration
     const timer = setTimeout(() => {
-      setIsMounted(true);
-    }, 100);
-    return () => clearTimeout(timer);
-  }, []);
+      setIsMounted(true)
+    }, 100)
+    return () => clearTimeout(timer)
+  }, [])
 
   const handleRecentFileSelect = (path: string) => {
     // Find the recent file to get its source
-    const recentFile = recentFiles.find((file) => file.path === path);
-    const source = recentFile?.source || (isUrlPath(path) ? "url" : "disk");
+    const recentFile = recentFiles.find((file) => file.path === path)
+    const source = recentFile?.source || (isUrlPath(path) ? "url" : "disk")
 
     // If it's a URL, navigate directly to the edit page
     if (source === "url") {
-      const encodedUrl = encodeFilePath(path);
-      router.push(`/edit/${encodedUrl}`);
+      const encodedUrl = encodeFilePath(path)
+      router.push(`/edit/${encodedUrl}`)
     } else {
       // For disk files, use the onFileSelect callback
-      onFileSelect(path);
+      onFileSelect(path)
     }
-  };
+  }
 
   // File Tab Handlers
   const handleNativeFilePicker = async () => {
-    if (!isInElectron) return;
+    if (!isInElectron) return
 
-    setIsLoading(true);
+    setIsLoading(true)
     try {
-      const selectedPath = await openFileDialog();
+      const selectedPath = await openFileDialog()
       if (selectedPath) {
-        onFileSelect(selectedPath);
+        onFileSelect(selectedPath)
       }
     } catch (error) {
-      console.error("Error opening file dialog:", error);
+      console.error("Error opening file dialog:", error)
     } finally {
-      setIsLoading(false);
+      setIsLoading(false)
     }
-  };
+  }
 
   const handleFileInputChange = async (
     event: React.ChangeEvent<HTMLInputElement>
   ) => {
-    const file = event.target.files?.[0];
-    if (!file) return;
+    const file = event.target.files?.[0]
+    if (!file) return
 
-    setIsLoading(true);
+    setIsLoading(true)
     try {
-      const snapshot = await createSnapshotFromFile(file);
-      onFileSelect(snapshot);
+      const snapshot = await createSnapshotFromFile(file)
+      onFileSelect(snapshot)
     } catch (error) {
-      console.error("Error reading file:", error);
+      console.error("Error reading file:", error)
     } finally {
-      setIsLoading(false);
+      setIsLoading(false)
       if (fileInputRef.current) {
-        fileInputRef.current.value = "";
+        fileInputRef.current.value = ""
       }
     }
-  };
+  }
 
   // URL Tab Handlers
   const handleUrlSubmit = async (event: FormEvent) => {
-    event.preventDefault();
-    if (!url.trim()) return;
+    event.preventDefault()
+    if (!url.trim()) return
 
-    setIsLoading(true);
+    setIsLoading(true)
     try {
-      const urlToEncode = url.trim();
-      const encodedUrl = encodeFilePath(urlToEncode);
-      router.push(`/edit/${encodedUrl}`);
+      const urlToEncode = url.trim()
+      const encodedUrl = encodeFilePath(urlToEncode)
+      router.push(`/edit/${encodedUrl}`)
     } catch (error) {
-      console.error("Error encoding URL:", error);
-      alert("Failed to encode URL");
+      console.error("Error encoding URL:", error)
+      alert("Failed to encode URL")
     } finally {
-      setIsLoading(false);
+      setIsLoading(false)
     }
-  };
+  }
 
   // Path Tab Handlers
   const handlePathSubmit = (event: FormEvent) => {
-    event.preventDefault();
+    event.preventDefault()
     if (pathInput.trim()) {
-      onFileSelect(pathInput.trim());
+      onFileSelect(pathInput.trim())
     }
-  };
+  }
 
   return (
     <Card
@@ -191,33 +196,48 @@ export const DataPicker: FunctionComponent<DataPickerProps> = ({
       }`}
     >
       <CardContent className="space-y-4">
-        <Tabs value={activeTab} onValueChange={setActiveTab}>
+        <Tabs
+          value={activeTab}
+          onValueChange={setActiveTab}
+        >
           <TabsList
             className="grid w-full"
             style={{
               gridTemplateColumns: isDevelopment
                 ? "repeat(3, 1fr)"
-                : "repeat(2, 1fr)",
+                : "repeat(2, 1fr)"
             }}
           >
             <TabsTrigger value="upload">
-              <FileSourceIcon fileSource="upload" className="mr-2" />
+              <FileSourceIcon
+                fileSource="upload"
+                className="mr-2"
+              />
               Upload
             </TabsTrigger>
             <TabsTrigger value="url">
-              <FileSourceIcon fileSource="url" className="mr-2" />
+              <FileSourceIcon
+                fileSource="url"
+                className="mr-2"
+              />
               URL
             </TabsTrigger>
             {isDevelopment && (
               <TabsTrigger value="disk">
-                <FileSourceIcon fileSource="disk" className="mr-2" />
+                <FileSourceIcon
+                  fileSource="disk"
+                  className="mr-2"
+                />
                 Disk
               </TabsTrigger>
             )}
           </TabsList>
 
           {/* Upload Tab */}
-          <TabsContent value="upload" className="space-y-2 mt-4">
+          <TabsContent
+            value="upload"
+            className="space-y-2 mt-4"
+          >
             {isInElectron ? (
               <>
                 <label className="text-sm font-medium">Select a file</label>
@@ -246,7 +266,10 @@ export const DataPicker: FunctionComponent<DataPickerProps> = ({
               </>
             ) : (
               <>
-                <label htmlFor="file-input" className="text-sm font-medium">
+                <label
+                  htmlFor="file-input"
+                  className="text-sm font-medium"
+                >
                   Select a file
                 </label>
                 <div className="flex gap-2">
@@ -274,9 +297,18 @@ export const DataPicker: FunctionComponent<DataPickerProps> = ({
           </TabsContent>
 
           {/* URL Tab */}
-          <TabsContent value="url" className="space-y-2 mt-4">
-            <form onSubmit={handleUrlSubmit} className="space-y-2">
-              <label htmlFor="url-input" className="text-sm font-medium">
+          <TabsContent
+            value="url"
+            className="space-y-2 mt-4"
+          >
+            <form
+              onSubmit={handleUrlSubmit}
+              className="space-y-2"
+            >
+              <label
+                htmlFor="url-input"
+                className="text-sm font-medium"
+              >
                 Enter URL
               </label>
               <div className="flex gap-2">
@@ -295,7 +327,10 @@ export const DataPicker: FunctionComponent<DataPickerProps> = ({
                     onSelect={handleRecentFileSelect}
                   />
                 </div>
-                <Button type="submit" disabled={isLoading || !url.trim()}>
+                <Button
+                  type="submit"
+                  disabled={isLoading || !url.trim()}
+                >
                   {isLoading ? (
                     <Loader2 className="h-4 w-4 mr-2 animate-spin" />
                   ) : (
@@ -313,9 +348,18 @@ export const DataPicker: FunctionComponent<DataPickerProps> = ({
 
           {/* Disk Tab (Development Only) */}
           {isDevelopment && (
-            <TabsContent value="disk" className="space-y-2 mt-4">
-              <form onSubmit={handlePathSubmit} className="space-y-2">
-                <label htmlFor="path-input" className="text-sm font-medium">
+            <TabsContent
+              value="disk"
+              className="space-y-2 mt-4"
+            >
+              <form
+                onSubmit={handlePathSubmit}
+                className="space-y-2"
+              >
+                <label
+                  htmlFor="path-input"
+                  className="text-sm font-medium"
+                >
                   Enter disk path
                 </label>
                 <div className="flex gap-2">
@@ -345,5 +389,5 @@ export const DataPicker: FunctionComponent<DataPickerProps> = ({
         </Tabs>
       </CardContent>
     </Card>
-  );
-};
+  )
+}

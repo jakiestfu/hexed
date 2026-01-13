@@ -8,7 +8,7 @@
  * @returns true if the path is a URL, false otherwise
  */
 export function isUrlPath(path: string): boolean {
-  return path.startsWith("http://") || path.startsWith("https://");
+  return path.startsWith("http://") || path.startsWith("https://")
 }
 
 /**
@@ -18,14 +18,14 @@ export function isUrlPath(path: string): boolean {
  */
 export function encodeFilePath(path: string): string {
   if (!path) {
-    return '';
+    return ""
   }
-  
+
   // Convert to base64
-  const base64 = btoa(unescape(encodeURIComponent(path)));
-  
+  const base64 = btoa(unescape(encodeURIComponent(path)))
+
   // Make it URL-safe: replace + with -, / with _, and remove padding =
-  return base64.replace(/\+/g, '-').replace(/\//g, '_').replace(/=/g, '');
+  return base64.replace(/\+/g, "-").replace(/\//g, "_").replace(/=/g, "")
 }
 
 /**
@@ -35,24 +35,23 @@ export function encodeFilePath(path: string): string {
  */
 export function decodeFilePath(encoded: string): string | null {
   if (!encoded) {
-    return null;
+    return null
   }
-  
+
   try {
     // Restore URL-safe characters: replace - with +, _ with /
-    let base64 = encoded.replace(/-/g, '+').replace(/_/g, '/');
-    
+    let base64 = encoded.replace(/-/g, "+").replace(/_/g, "/")
+
     // Add padding if needed (base64 strings should be multiples of 4)
     while (base64.length % 4) {
-      base64 += '=';
+      base64 += "="
     }
-    
+
     // Decode from base64
-    const decoded = decodeURIComponent(escape(atob(base64)));
-    return decoded;
+    const decoded = decodeURIComponent(escape(atob(base64)))
+    return decoded
   } catch (error) {
-    console.error('Failed to decode file path:', error);
-    return null;
+    console.error("Failed to decode file path:", error)
+    return null
   }
 }
-

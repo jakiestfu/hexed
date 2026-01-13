@@ -2,11 +2,11 @@
  * Detects if the current platform is macOS
  */
 function isMac(): boolean {
-  if (typeof window === "undefined") return false;
+  if (typeof window === "undefined") return false
   return (
     navigator.platform.toUpperCase().indexOf("MAC") >= 0 ||
     navigator.userAgent.toUpperCase().indexOf("MAC") >= 0
-  );
+  )
 }
 
 /**
@@ -15,54 +15,54 @@ function isMac(): boolean {
  * @returns Formatted string like "⌘⇧A" (Mac) or "Ctrl+Shift+A" (Windows/Linux)
  */
 export function formatHotkey(keys: string[]): string {
-  const isMacPlatform = isMac();
-  const formatted: string[] = [];
+  const isMacPlatform = isMac()
+  const formatted: string[] = []
 
   for (const key of keys) {
-    const lowerKey = key.toLowerCase();
+    const lowerKey = key.toLowerCase()
 
     if (isMacPlatform) {
       // Mac formatting
       switch (lowerKey) {
         case "meta":
         case "cmd":
-          formatted.push("⌘");
-          break;
+          formatted.push("⌘")
+          break
         case "ctrl":
-          formatted.push("⌃");
-          break;
+          formatted.push("⌃")
+          break
         case "alt":
-          formatted.push("⌥");
-          break;
+          formatted.push("⌥")
+          break
         case "shift":
-          formatted.push("⇧");
-          break;
+          formatted.push("⇧")
+          break
         default:
-          formatted.push(key.toUpperCase());
+          formatted.push(key.toUpperCase())
       }
     } else {
       // Windows/Linux formatting
       switch (lowerKey) {
         case "meta":
         case "cmd":
-          formatted.push("Ctrl");
-          break;
+          formatted.push("Ctrl")
+          break
         case "ctrl":
-          formatted.push("Ctrl");
-          break;
+          formatted.push("Ctrl")
+          break
         case "alt":
-          formatted.push("Alt");
-          break;
+          formatted.push("Alt")
+          break
         case "shift":
-          formatted.push("Shift");
-          break;
+          formatted.push("Shift")
+          break
         default:
-          formatted.push(key.toUpperCase());
+          formatted.push(key.toUpperCase())
       }
     }
   }
 
-  return isMacPlatform ? formatted.join("") : formatted.join("+");
+  return isMacPlatform ? formatted.join("") : formatted.join("+")
 }
 
 /**
@@ -75,5 +75,5 @@ export const Hotkeys = {
   toggleInterpreter: () => formatHotkey(["meta", "1"]),
   toggleTemplates: () => formatHotkey(["meta", "2"]),
   toggleStrings: () => formatHotkey(["meta", "3"]),
-  toggleSidebarPosition: () => formatHotkey(["meta", "shift", "p"]),
-} as const;
+  toggleSidebarPosition: () => formatHotkey(["meta", "shift", "p"])
+} as const

@@ -1,100 +1,101 @@
-import { useState, useEffect, useRef, useCallback } from "react";
-import type { BinarySnapshot, SSEMessage } from "@hexed/types";
+import { useCallback, useEffect, useRef, useState } from "react"
+
+import type { BinarySnapshot, SSEMessage } from "@hexed/types"
 
 export function useFileWatcher(filePath: string | null) {
-  const [snapshots, setSnapshots] = useState<BinarySnapshot[]>([]);
-  const [isConnected, setIsConnected] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-  const eventSourceRef = useRef<EventSource | null>(null);
-  const filePathRef = useRef<string | null>(filePath);
+  const [snapshots, setSnapshots] = useState<BinarySnapshot[]>([])
+  const [isConnected, setIsConnected] = useState(false)
+  const [error, setError] = useState<string | null>(null)
+  const eventSourceRef = useRef<EventSource | null>(null)
+  const filePathRef = useRef<string | null>(filePath)
 
   // Update ref when filePath changes
   useEffect(() => {
-    filePathRef.current = filePath;
-  }, [filePath]);
+    filePathRef.current = filePath
+  }, [filePath])
 
   const connect = useCallback(() => {
-    const currentFilePath = filePathRef.current;
+    const currentFilePath = filePathRef.current
     if (!currentFilePath) {
-      setSnapshots([]);
-      setIsConnected(false);
-      setError(null);
-      return;
+      setSnapshots([])
+      setIsConnected(false)
+      setError(null)
+      return
     }
 
     // Close existing connection
     if (eventSourceRef.current) {
-      eventSourceRef.current.close();
+      eventSourceRef.current.close()
     }
 
     // Reset state
-    setSnapshots([]);
-    setError(null);
+    setSnapshots([])
+    setError(null)
 
     // Create new SSE connection
-    const url = `/api/watch?file=${encodeURIComponent(currentFilePath)}`;
-    const eventSource = new EventSource(url);
-    eventSourceRef.current = eventSource;
+    const url = `/api/watch?file=${encodeURIComponent(currentFilePath)}`
+    const eventSource = new EventSource(url)
+    eventSourceRef.current = eventSource
 
     eventSource.onopen = () => {
-      setIsConnected(true);
-    };
+      setIsConnected(true)
+    }
 
     eventSource.onmessage = (event) => {
       try {
-        const message: SSEMessage = JSON.parse(event.data);
+        const message: SSEMessage = JSON.parse(event.data)
 
         switch (message.type) {
           case "connected":
-            setIsConnected(true);
-            break;
+            setIsConnected(true)
+            break
 
           case "snapshot":
             if (message.data) {
               // Convert array back to Uint8Array
               const snapshot: BinarySnapshot = {
                 ...message.data,
-                data: new Uint8Array(message.data.data as any),
-              };
-              setSnapshots((prev) => [...prev, snapshot]);
+                data: new Uint8Array(message.data.data as any)
+              }
+              setSnapshots((prev) => [...prev, snapshot])
             }
-            break;
+            break
 
           case "error":
-            setError(message.error || "Unknown error");
-            break;
+            setError(message.error || "Unknown error")
+            break
 
           case "disconnected":
-            setIsConnected(false);
-            break;
+            setIsConnected(false)
+            break
         }
       } catch (err) {
-        console.error("Failed to parse SSE message:", err);
+        console.error("Failed to parse SSE message:", err)
       }
-    };
+    }
 
     eventSource.onerror = () => {
-      setIsConnected(false);
-      setError("Connection lost");
-    };
-  }, []);
+      setIsConnected(false)
+      setError("Connection lost")
+    }
+  }, [])
 
   useEffect(() => {
-    connect();
+    connect()
 
     // Cleanup
     return () => {
       if (eventSourceRef.current) {
-        eventSourceRef.current.close();
-        eventSourceRef.current = null;
+        eventSourceRef.current.close()
+        eventSourceRef.current = null
       }
-      setIsConnected(false);
-    };
-  }, [connect]);
+      setIsConnected(false)
+    }
+  }, [connect])
 
   const restart = useCallback(() => {
-    connect();
-  }, [connect]);
+    connect()
+  }, [connect])
 
-  return { snapshots, isConnected, error, restart };
+  return { snapshots, isConnected, error, restart }
 }

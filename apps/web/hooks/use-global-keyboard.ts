@@ -1,44 +1,45 @@
-import { useCallback, useEffect, useMemo, useState } from "react";
-import { useHotkeys } from "react-hotkeys-hook";
-import { toHexString } from "@hexed/binary-utils/formatter";
+import { useCallback, useEffect, useMemo, useState } from "react"
+import { useHotkeys } from "react-hotkeys-hook"
+
+import { toHexString } from "@hexed/binary-utils/formatter"
 
 export interface UseGlobalKeyboardOptions {
   /** Current selection range */
-  selectedOffsetRange: { start: number; end: number } | null;
+  selectedOffsetRange: { start: number; end: number } | null
   /** Current snapshot data */
-  data: Uint8Array;
+  data: Uint8Array
   /** Whether search input is visible */
-  showSearch: boolean;
+  showSearch: boolean
   /** Whether interpreter sidebar is visible */
-  showInterpreter: boolean;
+  showInterpreter: boolean
   /** Whether templates sidebar is visible */
-  showTemplates: boolean;
+  showTemplates: boolean
   /** Whether strings sidebar is visible */
-  showStrings: boolean;
+  showStrings: boolean
   /** Callback to toggle search input */
-  onToggleSearch: () => void;
+  onToggleSearch: () => void
   /** Callback to close search input */
-  onCloseSearch: () => void;
+  onCloseSearch: () => void
   /** Callback to close all sidebars */
-  onCloseSidebars: () => void;
+  onCloseSidebars: () => void
   /** Callback to deselect bytes */
-  onDeselectBytes: () => void;
+  onDeselectBytes: () => void
   /** Optional callback when bytes are copied (for notifications, etc.) */
-  onCopy?: (hexString: string) => void;
+  onCopy?: (hexString: string) => void
   /** Callback to toggle ASCII visibility */
-  onToggleAscii?: () => void;
+  onToggleAscii?: () => void
   /** Callback to toggle checksums visibility */
-  onToggleChecksums?: () => void;
+  onToggleChecksums?: () => void
   /** Callback to toggle histogram dialog */
-  onToggleHistogram?: () => void;
+  onToggleHistogram?: () => void
   /** Callback to toggle interpreter sidebar */
-  onToggleInterpreter?: () => void;
+  onToggleInterpreter?: () => void
   /** Callback to toggle templates sidebar */
-  onToggleTemplates?: () => void;
+  onToggleTemplates?: () => void
   /** Callback to toggle strings sidebar */
-  onToggleStrings?: () => void;
+  onToggleStrings?: () => void
   /** Callback to toggle sidebar position */
-  onToggleSidebarPosition?: () => void;
+  onToggleSidebarPosition?: () => void
 }
 
 /**
@@ -72,14 +73,14 @@ export function useGlobalKeyboard({
   onToggleInterpreter,
   onToggleTemplates,
   onToggleStrings,
-  onToggleSidebarPosition,
+  onToggleSidebarPosition
 }: UseGlobalKeyboardOptions): void {
   // Ensure we're on the client side
-  const [isClient, setIsClient] = useState(false);
+  const [isClient, setIsClient] = useState(false)
 
   useEffect(() => {
-    setIsClient(true);
-  }, []);
+    setIsClient(true)
+  }, [])
 
   /**
    * Check if user is currently typing in an input field
@@ -87,18 +88,18 @@ export function useGlobalKeyboard({
   const isTypingInInput = useCallback((): boolean => {
     // Check if we're in a browser environment (Next.js SSR)
     if (!isClient || typeof document === "undefined") {
-      return false;
+      return false
     }
 
-    const activeElement = document.activeElement;
-    if (!activeElement) return false;
+    const activeElement = document.activeElement
+    if (!activeElement) return false
 
-    const tagName = activeElement.tagName;
+    const tagName = activeElement.tagName
     const isContentEditable =
-      activeElement.getAttribute("contenteditable") === "true";
+      activeElement.getAttribute("contenteditable") === "true"
 
-    return tagName === "INPUT" || tagName === "TEXTAREA" || isContentEditable;
-  }, [isClient]);
+    return tagName === "INPUT" || tagName === "TEXTAREA" || isContentEditable
+  }, [isClient])
 
   /**
    * Copy selected bytes to clipboard as hex string
@@ -106,39 +107,36 @@ export function useGlobalKeyboard({
   const handleCopyBytes = useCallback((): void => {
     // Check if we're in a browser environment (Next.js SSR)
     if (typeof window === "undefined" || typeof navigator === "undefined") {
-      return;
+      return
     }
 
-    if (!selectedOffsetRange || data.length === 0) return;
+    if (!selectedOffsetRange || data.length === 0) return
 
     try {
-      const start = Math.min(
-        selectedOffsetRange.start,
-        selectedOffsetRange.end
-      );
-      const end = Math.max(selectedOffsetRange.start, selectedOffsetRange.end);
+      const start = Math.min(selectedOffsetRange.start, selectedOffsetRange.end)
+      const end = Math.max(selectedOffsetRange.start, selectedOffsetRange.end)
 
       // Ensure indices are within bounds
-      const clampedStart = Math.max(0, Math.min(start, data.length - 1));
-      const clampedEnd = Math.max(0, Math.min(end, data.length - 1));
+      const clampedStart = Math.max(0, Math.min(start, data.length - 1))
+      const clampedEnd = Math.max(0, Math.min(end, data.length - 1))
 
-      if (clampedStart > clampedEnd) return;
+      if (clampedStart > clampedEnd) return
 
       // Extract bytes and format as hex string
-      const selectedBytes = data.slice(clampedStart, clampedEnd + 1);
-      const hexString = toHexString(selectedBytes, " ");
+      const selectedBytes = data.slice(clampedStart, clampedEnd + 1)
+      const hexString = toHexString(selectedBytes, " ")
 
       // Copy to clipboard
       if (navigator.clipboard && navigator.clipboard.writeText) {
         navigator.clipboard.writeText(hexString).then(() => {
-          onCopy?.(hexString);
-        });
+          onCopy?.(hexString)
+        })
       }
     } catch (error) {
       // Silently fail if clipboard API is not available or permission denied
-      console.error("Failed to copy bytes to clipboard:", error);
+      console.error("Failed to copy bytes to clipboard:", error)
     }
-  }, [selectedOffsetRange, data, onCopy]);
+  }, [selectedOffsetRange, data, onCopy])
 
   /**
    * Handle cascading Escape key logic
@@ -147,13 +145,13 @@ export function useGlobalKeyboard({
   const handleEscape = useCallback((): void => {
     if (showSearch) {
       // First priority: close find input
-      onCloseSearch();
+      onCloseSearch()
     } else if (showInterpreter || showTemplates || showStrings) {
       // Second priority: close sidebars
-      onCloseSidebars();
+      onCloseSidebars()
     } else if (selectedOffsetRange !== null) {
       // Third priority: deselect bytes
-      onDeselectBytes();
+      onDeselectBytes()
     }
   }, [
     showSearch,
@@ -163,38 +161,38 @@ export function useGlobalKeyboard({
     selectedOffsetRange,
     onCloseSearch,
     onCloseSidebars,
-    onDeselectBytes,
-  ]);
+    onDeselectBytes
+  ])
 
   // Copy shortcut: Ctrl+C or meta+C
   useHotkeys(
     "ctrl+c, meta+c",
     (event) => {
       // Don't interfere if user is typing in an input
-      if (isTypingInInput()) return;
+      if (isTypingInInput()) return
 
       // Only copy if there's a selection
       if (selectedOffsetRange !== null) {
-        event.preventDefault();
-        handleCopyBytes();
+        event.preventDefault()
+        handleCopyBytes()
       }
     },
     {
       enabled: isClient && selectedOffsetRange !== null,
-      enableOnFormTags: false,
+      enableOnFormTags: false
     },
     [isClient, selectedOffsetRange, handleCopyBytes, isTypingInInput]
-  );
+  )
 
   // Escape key: Cascading logic
   useHotkeys(
     "esc",
     (event) => {
       // Don't interfere if user is typing in an input (let input handle its own Escape)
-      if (isTypingInInput()) return;
+      if (isTypingInInput()) return
 
-      event.preventDefault();
-      handleEscape();
+      event.preventDefault()
+      handleEscape()
     },
     {
       enabled:
@@ -204,144 +202,144 @@ export function useGlobalKeyboard({
           showTemplates ||
           showStrings ||
           selectedOffsetRange !== null),
-      enableOnFormTags: false,
+      enableOnFormTags: false
     },
     [isClient, handleEscape, isTypingInInput]
-  );
+  )
 
   // Toggle search: Ctrl+F or meta+F
   useHotkeys(
     "ctrl+f, meta+f",
     (event) => {
       // Don't interfere if user is typing in an input
-      if (isTypingInInput()) return;
+      if (isTypingInInput()) return
 
-      event.preventDefault();
-      onToggleSearch();
+      event.preventDefault()
+      onToggleSearch()
     },
     {
       enabled: isClient,
-      enableOnFormTags: false,
+      enableOnFormTags: false
     },
     [isClient, onToggleSearch, isTypingInInput]
-  );
+  )
 
   // Toggle ASCII: Ctrl+Shift+A or meta+Shift+A
   useHotkeys(
     "ctrl+shift+a, meta+shift+a",
     (event) => {
-      if (isTypingInInput()) return;
-      if (!onToggleAscii) return;
+      if (isTypingInInput()) return
+      if (!onToggleAscii) return
 
-      event.preventDefault();
-      onToggleAscii();
+      event.preventDefault()
+      onToggleAscii()
     },
     {
       enabled: isClient && !!onToggleAscii,
-      enableOnFormTags: false,
+      enableOnFormTags: false
     },
     [isClient, onToggleAscii, isTypingInInput]
-  );
+  )
 
   // Toggle checksums: Ctrl+Shift+C or meta+Shift+C
   useHotkeys(
     "ctrl+shift+c, meta+shift+c",
     (event) => {
-      if (isTypingInInput()) return;
-      if (!onToggleChecksums) return;
+      if (isTypingInInput()) return
+      if (!onToggleChecksums) return
 
-      event.preventDefault();
-      onToggleChecksums();
+      event.preventDefault()
+      onToggleChecksums()
     },
     {
       enabled: isClient && !!onToggleChecksums,
-      enableOnFormTags: false,
+      enableOnFormTags: false
     },
     [isClient, onToggleChecksums, isTypingInInput]
-  );
+  )
 
   // Toggle histogram: Ctrl+Shift+H or meta+Shift+H
   useHotkeys(
     "ctrl+shift+h, meta+shift+h",
     (event) => {
-      if (isTypingInInput()) return;
-      if (!onToggleHistogram) return;
+      if (isTypingInInput()) return
+      if (!onToggleHistogram) return
 
-      event.preventDefault();
-      onToggleHistogram();
+      event.preventDefault()
+      onToggleHistogram()
     },
     {
       enabled: isClient && !!onToggleHistogram,
-      enableOnFormTags: false,
+      enableOnFormTags: false
     },
     [isClient, onToggleHistogram, isTypingInInput]
-  );
+  )
 
   // Toggle interpreter: Ctrl+1 or meta+1
   useHotkeys(
     "ctrl+1, meta+1",
     (event) => {
-      if (isTypingInInput()) return;
-      if (!onToggleInterpreter) return;
+      if (isTypingInInput()) return
+      if (!onToggleInterpreter) return
 
-      event.preventDefault();
-      onToggleInterpreter();
+      event.preventDefault()
+      onToggleInterpreter()
     },
     {
       enabled: isClient && !!onToggleInterpreter,
-      enableOnFormTags: false,
+      enableOnFormTags: false
     },
     [isClient, onToggleInterpreter, isTypingInInput]
-  );
+  )
 
   // Toggle templates: Ctrl+2 or meta+2
   useHotkeys(
     "ctrl+2, meta+2",
     (event) => {
-      if (isTypingInInput()) return;
-      if (!onToggleTemplates) return;
+      if (isTypingInInput()) return
+      if (!onToggleTemplates) return
 
-      event.preventDefault();
-      onToggleTemplates();
+      event.preventDefault()
+      onToggleTemplates()
     },
     {
       enabled: isClient && !!onToggleTemplates,
-      enableOnFormTags: false,
+      enableOnFormTags: false
     },
     [isClient, onToggleTemplates, isTypingInInput]
-  );
+  )
 
   // Toggle strings: Ctrl+3 or meta+3
   useHotkeys(
     "ctrl+3, meta+3",
     (event) => {
-      if (isTypingInInput()) return;
-      if (!onToggleStrings) return;
+      if (isTypingInInput()) return
+      if (!onToggleStrings) return
 
-      event.preventDefault();
-      onToggleStrings();
+      event.preventDefault()
+      onToggleStrings()
     },
     {
       enabled: isClient && !!onToggleStrings,
-      enableOnFormTags: false,
+      enableOnFormTags: false
     },
     [isClient, onToggleStrings, isTypingInInput]
-  );
+  )
 
   // Toggle sidebar position: Ctrl+Shift+P or meta+Shift+P
   useHotkeys(
     "ctrl+shift+p, meta+shift+p",
     (event) => {
-      if (isTypingInInput()) return;
-      if (!onToggleSidebarPosition) return;
+      if (isTypingInInput()) return
+      if (!onToggleSidebarPosition) return
 
-      event.preventDefault();
-      onToggleSidebarPosition();
+      event.preventDefault()
+      onToggleSidebarPosition()
     },
     {
       enabled: isClient && !!onToggleSidebarPosition,
-      enableOnFormTags: false,
+      enableOnFormTags: false
     },
     [isClient, onToggleSidebarPosition, isTypingInInput]
-  );
+  )
 }

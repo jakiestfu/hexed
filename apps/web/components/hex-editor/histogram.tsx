@@ -1,36 +1,37 @@
-"use client";
+"use client"
 
-import { useMemo, useState, type FunctionComponent } from "react";
+import { useMemo, useState, type FunctionComponent } from "react"
+import { Check, ChevronsUpDown, X } from "lucide-react"
+import { Bar, BarChart, CartesianGrid, XAxis, YAxis } from "recharts"
+
+import { byteToHex } from "@hexed/binary-utils/formatter"
 import {
+  Badge,
+  Button,
   ChartContainer,
   ChartTooltip,
   ChartTooltipContent,
   Command,
-  CommandInput,
-  CommandList,
   CommandEmpty,
   CommandGroup,
+  CommandInput,
   CommandItem,
-  Popover,
-  PopoverTrigger,
-  PopoverContent,
-  Button,
-  Badge,
-  Switch,
-  Label,
+  CommandList,
   InputGroup,
   InputGroupAddon,
   InputGroupInput,
   InputGroupText,
-} from "@hexed/ui";
-import { BarChart, Bar, XAxis, YAxis, CartesianGrid } from "recharts";
-import { byteToHex } from "@hexed/binary-utils/formatter";
-import { Check, ChevronsUpDown, X } from "lucide-react";
-import { cn } from "@hexed/ui/lib/utils";
+  Label,
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+  Switch
+} from "@hexed/ui"
+import { cn } from "@hexed/ui/lib/utils"
 
 export type HistogramProps = {
-  data: Uint8Array;
-};
+  data: Uint8Array
+}
 
 /**
  * Calculates byte frequency distribution for binary data
@@ -40,26 +41,26 @@ function calculateByteFrequencies(
   rangeStart: number = 0,
   rangeEnd: number = data.length - 1
 ): Array<{
-  byte: number;
-  count: number;
-  hex: string;
+  byte: number
+  count: number
+  hex: string
 }> {
-  const frequencies = new Array(256).fill(0);
+  const frequencies = new Array(256).fill(0)
 
   // Count occurrences of each byte value within the range
-  const start = Math.max(0, rangeStart);
-  const end = Math.min(data.length - 1, rangeEnd);
+  const start = Math.max(0, rangeStart)
+  const end = Math.min(data.length - 1, rangeEnd)
 
   for (let i = start; i <= end; i++) {
-    frequencies[data[i]]++;
+    frequencies[data[i]]++
   }
 
   // Convert to array format for chart
   return frequencies.map((count, byte) => ({
     byte,
     count,
-    hex: byteToHex(byte),
-  }));
+    hex: byteToHex(byte)
+  }))
 }
 
 /**
@@ -68,25 +69,25 @@ function calculateByteFrequencies(
 function generateHexOptions(): Array<{ value: number; label: string }> {
   return Array.from({ length: 256 }, (_, i) => ({
     value: i,
-    label: `0x${byteToHex(i)}`,
-  }));
+    label: `0x${byteToHex(i)}`
+  }))
 }
 
 export const Histogram: FunctionComponent<HistogramProps> = ({ data }) => {
   // State management
-  const [selectedBytes, setSelectedBytes] = useState<number[]>([]);
-  const [showOnlySelected, setShowOnlySelected] = useState<boolean>(true);
-  const [rangeStart, setRangeStart] = useState<number>(0);
-  const [rangeEnd, setRangeEnd] = useState<number>(data.length - 1);
-  const [hexComboboxOpen, setHexComboboxOpen] = useState(false);
-  const [hexSearchValue, setHexSearchValue] = useState("");
+  const [selectedBytes, setSelectedBytes] = useState<number[]>([])
+  const [showOnlySelected, setShowOnlySelected] = useState<boolean>(true)
+  const [rangeStart, setRangeStart] = useState<number>(0)
+  const [rangeEnd, setRangeEnd] = useState<number>(data.length - 1)
+  const [hexComboboxOpen, setHexComboboxOpen] = useState(false)
+  const [hexSearchValue, setHexSearchValue] = useState("")
 
   // Generate hex options
-  const hexOptions = useMemo(() => generateHexOptions(), []);
+  const hexOptions = useMemo(() => generateHexOptions(), [])
 
   // Calculate filtered chart data
   const chartData = useMemo(() => {
-    let frequencies = calculateByteFrequencies(data, rangeStart, rangeEnd);
+    let frequencies = calculateByteFrequencies(data, rangeStart, rangeEnd)
 
     // Apply hex filter if bytes are selected
     if (selectedBytes.length > 0) {
@@ -94,24 +95,24 @@ export const Histogram: FunctionComponent<HistogramProps> = ({ data }) => {
         // Show only selected bytes
         frequencies = frequencies.filter((item) =>
           selectedBytes.includes(item.byte)
-        );
+        )
       } else {
         // Hide selected bytes
         frequencies = frequencies.filter(
           (item) => !selectedBytes.includes(item.byte)
-        );
+        )
       }
     }
 
-    return frequencies;
-  }, [data, rangeStart, rangeEnd, selectedBytes, showOnlySelected]);
+    return frequencies
+  }, [data, rangeStart, rangeEnd, selectedBytes, showOnlySelected])
 
   const chartConfig = {
     count: {
       label: "Frequency",
-      color: "hsl(var(--primary))",
-    },
-  };
+      color: "hsl(var(--primary))"
+    }
+  }
 
   // Handle hex byte selection
   const handleHexSelect = (byteValue: number) => {
@@ -119,39 +120,39 @@ export const Histogram: FunctionComponent<HistogramProps> = ({ data }) => {
       prev.includes(byteValue)
         ? prev.filter((b) => b !== byteValue)
         : [...prev, byteValue]
-    );
-    setHexSearchValue("");
-  };
+    )
+    setHexSearchValue("")
+  }
 
   // Handle range validation
   const handleRangeStartChange = (value: number) => {
-    const numValue = Math.max(0, Math.min(value, data.length - 1));
-    setRangeStart(numValue);
+    const numValue = Math.max(0, Math.min(value, data.length - 1))
+    setRangeStart(numValue)
     if (numValue > rangeEnd) {
-      setRangeEnd(numValue);
+      setRangeEnd(numValue)
     }
-  };
+  }
 
   const handleRangeEndChange = (value: number) => {
-    const numValue = Math.max(0, Math.min(value, data.length - 1));
-    setRangeEnd(numValue);
+    const numValue = Math.max(0, Math.min(value, data.length - 1))
+    setRangeEnd(numValue)
     if (numValue < rangeStart) {
-      setRangeStart(numValue);
+      setRangeStart(numValue)
     }
-  };
+  }
 
   // Filter hex options by search
   const filteredHexOptions = useMemo(() => {
-    if (!hexSearchValue) return hexOptions;
-    const searchLower = hexSearchValue.toLowerCase();
+    if (!hexSearchValue) return hexOptions
+    const searchLower = hexSearchValue.toLowerCase()
     return hexOptions.filter(
       (option) =>
         option.label.toLowerCase().includes(searchLower) ||
         option.value.toString().includes(searchLower)
-    );
-  }, [hexOptions, hexSearchValue]);
+    )
+  }, [hexOptions, hexSearchValue])
 
-  const maxValue = data.length - 1;
+  const maxValue = data.length - 1
 
   return (
     <div className="flex flex-col h-full">
@@ -160,7 +161,10 @@ export const Histogram: FunctionComponent<HistogramProps> = ({ data }) => {
         <div className="flex flex-wrap items-center gap-2">
           {/* Hex Filter */}
           <div className="flex items-center gap-2 flex-1 min-w-0">
-            <Popover open={hexComboboxOpen} onOpenChange={setHexComboboxOpen}>
+            <Popover
+              open={hexComboboxOpen}
+              onOpenChange={setHexComboboxOpen}
+            >
               <PopoverTrigger asChild>
                 <Button
                   variant="outline"
@@ -175,7 +179,10 @@ export const Histogram: FunctionComponent<HistogramProps> = ({ data }) => {
                   <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
                 </Button>
               </PopoverTrigger>
-              <PopoverContent className="w-[300px] p-0" align="start">
+              <PopoverContent
+                className="w-[300px] p-0"
+                align="start"
+              >
                 <Command>
                   <CommandInput
                     placeholder="Search hex values..."
@@ -186,7 +193,7 @@ export const Histogram: FunctionComponent<HistogramProps> = ({ data }) => {
                     <CommandEmpty>No hex value found.</CommandEmpty>
                     <CommandGroup>
                       {filteredHexOptions.map((option) => {
-                        const isSelected = selectedBytes.includes(option.value);
+                        const isSelected = selectedBytes.includes(option.value)
                         return (
                           <CommandItem
                             key={option.value}
@@ -201,7 +208,7 @@ export const Histogram: FunctionComponent<HistogramProps> = ({ data }) => {
                             />
                             {option.label} ({option.value})
                           </CommandItem>
-                        );
+                        )
                       })}
                     </CommandGroup>
                   </CommandList>
@@ -298,7 +305,7 @@ export const Histogram: FunctionComponent<HistogramProps> = ({ data }) => {
             height={64}
             label={{
               value: "Byte Value (Hex)",
-              position: "insideBottom",
+              position: "insideBottom"
             }}
           />
           <YAxis
@@ -309,19 +316,23 @@ export const Histogram: FunctionComponent<HistogramProps> = ({ data }) => {
               <ChartTooltipContent
                 formatter={(value, name) => [
                   `${value?.toLocaleString()} occurrences`,
-                  "Frequency",
+                  "Frequency"
                 ]}
                 labelFormatter={(label, payload) => {
-                  if (!payload || payload.length === 0) return "";
-                  const item = payload[0];
-                  return `Byte 0x${item.payload.hex} (${item.payload.byte})`;
+                  if (!payload || payload.length === 0) return ""
+                  const item = payload[0]
+                  return `Byte 0x${item.payload.hex} (${item.payload.byte})`
                 }}
               />
             }
           />
-          <Bar dataKey="count" fill="var(--primary)" radius={[2, 2, 0, 0]} />
+          <Bar
+            dataKey="count"
+            fill="var(--primary)"
+            radius={[2, 2, 0, 0]}
+          />
         </BarChart>
       </ChartContainer>
     </div>
-  );
-};
+  )
+}

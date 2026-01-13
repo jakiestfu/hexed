@@ -1,20 +1,17 @@
-"use client";
+"use client"
 
-import { useLocalStorage } from "./use-local-storage";
+import { useLocalStorage } from "./use-local-storage"
 
-const STORAGE_KEY = "hexed:show-ascii";
+const STORAGE_KEY = "hexed:show-ascii"
 
 /**
  * Hook for managing ASCII visibility preference in localStorage
  */
 export function useAsciiVisibility() {
-  const [showAscii, setShowAscii] = useLocalStorage<boolean>(
-    STORAGE_KEY,
-    true
-  );
+  const [showAscii, setShowAscii] = useLocalStorage<boolean>(STORAGE_KEY, true)
 
   return {
     showAscii,
-    setShowAscii,
-  };
+    setShowAscii
+  }
 }
