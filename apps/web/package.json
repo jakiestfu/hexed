@@ -3,6 +3,9 @@
   "version": "0.0.1",
   "private": true,
   "scripts": {
+    "copy:worker": "node scripts/copy-worker.js",
+    "predev": "pnpm --filter @hexed/worker build && npm run copy:worker",
+    "prebuild": "pnpm --filter @hexed/worker build && npm run copy:worker",
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
@@ -15,6 +18,7 @@
     "@hexed/canvas": "workspace:*",
     "@hexed/types": "workspace:*",
     "@hexed/ui": "workspace:*",
+    "@hexed/worker": "workspace:*",
     "@tailwindcss/postcss": "^4.1.0",
     "chokidar": "^4.0.3",
     "lucide-react": "^0.468.0",

@@ -287,16 +287,24 @@ function handleConnect(port: MessagePort): void {
 /**
  * SharedWorker global scope handler
  */
-if (typeof self !== "undefined" && "SharedWorkerGlobalScope" in self) {
-  // SharedWorker context
-  const sharedWorkerScope = self as unknown as SharedWorkerGlobalScope;
+// if (typeof self !== "undefined" && "SharedWorkerGlobalScope" in self) {
+//   // SharedWorker context
+//   const sharedWorkerScope = self as unknown as SharedWorkerGlobalScope;
 
-  sharedWorkerScope.onconnect = (event: MessageEvent) => {
-    const port = event.ports[0];
-    handleConnect(port);
-  };
-} else if (typeof self !== "undefined") {
-  // Fallback for regular Worker context (for testing)
-  const workerScope = self as unknown as Worker;
-  handleConnect(workerScope as unknown as MessagePort);
-}
+//   sharedWorkerScope.onconnect = (event: MessageEvent) => {
+//     const port = event.ports[0];
+//     handleConnect(port);
+//   };
+// } else if (typeof self !== "undefined") {
+//   // Fallback for regular Worker context (for testing)
+//   const workerScope = self as unknown as Worker;
+//   handleConnect(workerScope as unknown as MessagePort);
+// }
+self.onconnect = (event) => {
+  const port = event.ports[0];
+
+  // Required in some browsers to start receiving messages
+  port.start();
+
+  handleConnect(port);
+};

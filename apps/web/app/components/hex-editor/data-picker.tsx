@@ -27,6 +27,7 @@ import { FileSource } from "~/components/hex-editor/types";
 type DataPickerProps = {
   onFileSelect: (filePath: string | BinarySnapshot) => void;
   recentFiles: RecentFile[];
+  onFileHandleSelect?: (handle: FileSystemFileHandle, fileId: string) => void;
 };
 
 // Recent Files Component
@@ -80,9 +81,11 @@ const RecentFilesDropdown: FunctionComponent<{
 export const DataPicker: FunctionComponent<DataPickerProps> = ({
   onFileSelect,
   recentFiles,
+  onFileHandleSelect,
 }) => {
   const router = useRouter();
   const [isInElectron, setIsInElectron] = useState(false);
+  const [hasFileSystemAccess, setHasFileSystemAccess] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [activeTab, setActiveTabState] = useQueryParamState<FileSource>(
     "tab",
@@ -99,6 +102,10 @@ export const DataPicker: FunctionComponent<DataPickerProps> = ({
 
   useEffect(() => {
     setIsInElectron(isElectron());
+    // Check for File System Access API support
+    setHasFileSystemAccess(
+      typeof window !== "undefined" && "showOpenFilePicker" in window
+    );
     // Wait for component mount and local storage restoration
     const timer = setTimeout(() => {
       setIsMounted(true);
@@ -122,6 +129,44 @@ export const DataPicker: FunctionComponent<DataPickerProps> = ({
       }
     } catch (error) {
       console.error("Error opening file dialog:", error);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  // Handle File System Access API picker (for worker-based virtual loading)
+  const handleNativeFilePickerWithHandle = async () => {
+    if (!hasFileSystemAccess || !onFileHandleSelect) return;
+
+    setIsLoading(true);
+    try {
+      // @ts-expect-error - showOpenFilePicker may not be in types
+      const [fileHandle] = await window.showOpenFilePicker({
+        // types: [
+        //   {
+        //     description: "Binary Files",
+        //     accept: {
+        //       "application/octet-stream": ["*"],
+        //     },
+        //   },
+        // ],
+        excludeAcceptAllOption: false,
+        multiple: false,
+      });
+
+      const file = await fileHandle.getFile();
+      const fileId = `${file.name}-${file.size}-${Date.now()}`;
+
+      onFileHandleSelect(fileHandle, fileId);
+    } catch (error) {
+      // User cancelled or error occurred
+      if (
+        error instanceof Error &&
+        error.name !== "AbortError" &&
+        error.name !== "NotAllowedError"
+      ) {
+        console.error("Error opening file picker:", error);
+      }
     } finally {
       setIsLoading(false);
     }
@@ -248,6 +293,21 @@ export const DataPicker: FunctionComponent<DataPickerProps> = ({
                       disabled={isLoading}
                       className="flex-1 h-9 w-full min-w-0 rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-xs transition-[color,box-shadow] outline-none file:inline-flex file:h-7 file:border-0 file:bg-transparent file:text-sm file:font-medium disabled:pointer-events-none disabled:cursor-not-allowed disabled:opacity-50 focus-visible:border-ring focus-visible:ring-ring/50 focus-visible:ring-[3px]"
                     />
+                    {hasFileSystemAccess && onFileHandleSelect && (
+                      <Button
+                        onClick={handleNativeFilePickerWithHandle}
+                        disabled={isLoading}
+                        variant="outline"
+                        size="icon"
+                        title="Open with File System Access API (virtual loading)"
+                      >
+                        {isLoading ? (
+                          <Loader2 className="h-4 w-4 animate-spin" />
+                        ) : (
+                          <FolderOpen className="h-4 w-4" />
+                        )}
+                      </Button>
+                    )}
                     <RecentFilesDropdown
                       recentFiles={recentFiles}
                       onSelect={handleRecentFileSelect}
@@ -256,6 +316,9 @@ export const DataPicker: FunctionComponent<DataPickerProps> = ({
                 </div>
                 <p className="text-xs text-muted-foreground">
                   Choose a file or drag and drop it anywhere on the screen
+                  {hasFileSystemAccess &&
+                    onFileHandleSelect &&
+                    " (use folder icon for virtual loading)"}
                   {recentFiles.length > 0 && " or select from recent files"}
                 </p>
               </>

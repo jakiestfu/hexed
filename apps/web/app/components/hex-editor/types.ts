@@ -36,6 +36,9 @@ export type HexEditorProps = {
   error?: string | null;
   onRestartWatching?: () => void;
   onAddSnapshot?: (snapshot: BinarySnapshot) => void;
+  fileHandle?: FileSystemFileHandle | null;
+  fileId?: string | null;
+  onFileHandleSelect?: (handle: FileSystemFileHandle, fileId: string) => void;
 };
 
 export type SelectionRange = { start: number; end: number } | null;
@@ -47,6 +50,7 @@ export type HexEditorViewProps = {
   showAscii: boolean;
   selectedOffsetRange: SelectionRange;
   onSelectedOffsetRangeChange: (range: SelectionRange) => void;
+  dataProvider?: import("@hexed/canvas").VirtualDataProvider;
 };
 
 export type InterpreterProps = {

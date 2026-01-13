@@ -29,8 +29,21 @@ import {
 import { useSelection } from "./hooks/use-selection";
 import { useKeyboardNavigation } from "./hooks/use-keyboard-navigation";
 
+/**
+ * Virtual data provider interface for on-demand byte range loading
+ * This interface should match the one defined in apps/web/app/components/hex-editor/virtual-data-provider.ts
+ */
+export interface VirtualDataProvider {
+  getByteRange(start: number, end: number): Promise<Uint8Array>;
+  getFileSize(): Promise<number>;
+  isVirtual(): boolean;
+}
+
 export interface HexCanvasProps {
-  data: Uint8Array;
+  /** Full data array (deprecated, use dataProvider instead) */
+  data?: Uint8Array;
+  /** Virtual data provider for on-demand loading */
+  dataProvider?: VirtualDataProvider;
   showAscii?: boolean;
   className?: string;
   diff?: DiffResult | null;
@@ -64,7 +77,8 @@ export interface HexCanvasColors {
 export const HexCanvas = forwardRef<HexCanvasRef, HexCanvasProps>(
   (
     {
-      data,
+      data: dataProp,
+      dataProvider,
       showAscii = true,
       className = "",
       diff = null,
@@ -96,11 +110,144 @@ export const HexCanvas = forwardRef<HexCanvasRef, HexCanvasProps>(
       null
     );
 
+    // Virtual data state
+    const [fileSize, setFileSize] = useState<number | null>(null);
+    const [loadedRanges, setLoadedRanges] = useState<
+      Map<string, { start: number; end: number; data: Uint8Array }>
+    >(new Map());
+    const [pendingRanges, setPendingRanges] = useState<Set<string>>(new Set());
+    const loadingAbortControllerRef = useRef<AbortController | null>(null);
+
     // Use prop if provided, otherwise use internal state
     const highlightedOffset =
       propHighlightedOffset !== null
         ? propHighlightedOffset
         : internalHighlightedOffset;
+
+    // Determine if we're using virtual data
+    const isVirtual = dataProvider?.isVirtual() ?? false;
+    const effectiveData = useMemo(() => {
+      if (dataProvider && !isVirtual) {
+        // FullDataProvider - get full data synchronously
+        const fullProvider = dataProvider as any;
+        return fullProvider.getFullData?.() ?? null;
+      }
+      return dataProp ?? null;
+    }, [dataProvider, isVirtual, dataProp]);
+
+    // Initialize file size for virtual data
+    useEffect(() => {
+      if (dataProvider && isVirtual) {
+        dataProvider
+          .getFileSize()
+          .then((size) => {
+            setFileSize(size);
+          })
+          .catch((error) => {
+            console.error("Failed to get file size:", error);
+          });
+      } else if (effectiveData) {
+        setFileSize(effectiveData.length);
+      } else {
+        setFileSize(null);
+      }
+    }, [dataProvider, isVirtual, effectiveData]);
+
+    // Calculate visible byte range and load if needed
+    useEffect(() => {
+      if (!isVirtual || !dataProvider || !layout || fileSize === null) {
+        return;
+      }
+
+      const bytesPerRow = layout.bytesPerRow;
+      const overscanRows = 10; // Load extra rows above and below viewport
+
+      // Calculate visible rows
+      const scrollTopAdjusted = Math.max(
+        0,
+        scrollTop - layout.verticalPadding
+      );
+      const visibleStartRow = Math.floor(scrollTopAdjusted / layout.rowHeight);
+      const visibleEndRow = Math.min(
+        Math.ceil((scrollTopAdjusted + dimensions.height) / layout.rowHeight),
+        Math.ceil(fileSize / bytesPerRow)
+      );
+
+      // Calculate byte range with overscan
+      const renderStartRow = Math.max(0, visibleStartRow - overscanRows);
+      const renderEndRow = Math.min(
+        Math.ceil(fileSize / bytesPerRow),
+        visibleEndRow + overscanRows
+      );
+
+      const startByte = renderStartRow * bytesPerRow;
+      const endByte = Math.min(fileSize, renderEndRow * bytesPerRow);
+
+      // Check if range is already loaded
+      const rangeKey = `${startByte}-${endByte}`;
+      if (loadedRanges.has(rangeKey) || pendingRanges.has(rangeKey)) {
+        return;
+      }
+
+      // Cancel previous loading if still pending
+      if (loadingAbortControllerRef.current) {
+        loadingAbortControllerRef.current.abort();
+      }
+
+      // Create new abort controller
+      const abortController = new AbortController();
+      loadingAbortControllerRef.current = abortController;
+
+      // Mark as pending
+      setPendingRanges((prev) => new Set(prev).add(rangeKey));
+
+      // Load the range
+      dataProvider
+        .getByteRange(startByte, endByte)
+        .then((data) => {
+          if (abortController.signal.aborted) {
+            return;
+          }
+
+          // Store loaded range
+          setLoadedRanges((prev) => {
+            const newMap = new Map(prev);
+            newMap.set(rangeKey, { start: startByte, end: endByte, data });
+            return newMap;
+          });
+
+          // Remove from pending
+          setPendingRanges((prev) => {
+            const newSet = new Set(prev);
+            newSet.delete(rangeKey);
+            return newSet;
+          });
+        })
+        .catch((error) => {
+          if (abortController.signal.aborted) {
+            return;
+          }
+          console.error("Failed to load byte range:", error);
+          setPendingRanges((prev) => {
+            const newSet = new Set(prev);
+            newSet.delete(rangeKey);
+            return newSet;
+          });
+        });
+
+      return () => {
+        abortController.abort();
+      };
+    }, [
+      isVirtual,
+      dataProvider,
+      layout,
+      fileSize,
+      scrollTop,
+      dimensions.height,
+      loadedRanges,
+      pendingRanges,
+    ]);
 
     // Watch for theme changes (dark mode)
     useEffect(() => {
@@ -151,8 +298,72 @@ export const HexCanvas = forwardRef<HexCanvasRef, HexCanvasProps>(
     // Format data into rows
     const rows = useMemo(() => {
       if (!layout) return [];
-      return formatDataIntoRows(data, layout.bytesPerRow);
-    }, [data, layout]);
+
+      if (isVirtual && fileSize !== null) {
+        // Virtual mode: create rows from loaded ranges
+        const bytesPerRow = layout.bytesPerRow;
+        const totalRows = Math.ceil(fileSize / bytesPerRow);
+        const rows: any[] = [];
+
+        // Create a sparse array to hold loaded data
+        const dataMap = new Map<number, number>();
+        for (const range of loadedRanges.values()) {
+          for (let i = 0; i < range.data.length; i++) {
+            const offset = range.start + i;
+            if (offset < fileSize) {
+              dataMap.set(offset, range.data[i]);
+            }
+          }
+        }
+
+        // Generate rows
+        for (let rowIndex = 0; rowIndex < totalRows; rowIndex++) {
+          const startOffset = rowIndex * bytesPerRow;
+          const endOffset = Math.min(startOffset + bytesPerRow, fileSize);
+          const rowData: number[] = [];
+
+          // Fill row data from loaded ranges or zeros
+          for (let offset = startOffset; offset < endOffset; offset++) {
+            rowData.push(dataMap.get(offset) ?? 0);
+          }
+
+          const dataArray = new Uint8Array(rowData);
+          const hexBytes = Array.from(dataArray).map((byte, idx) => {
+            const offset = startOffset + idx;
+            const isLoaded = dataMap.has(offset);
+            return isLoaded
+              ? byte.toString(16).padStart(2, "0").toUpperCase()
+              : "??";
+          });
+          const ascii = Array.from(dataArray)
+            .map((byte, idx) => {
+              const offset = startOffset + idx;
+              if (!dataMap.has(offset)) return "?";
+              return byte >= 32 && byte <= 126
+                ? String.fromCharCode(byte)
+                : ".";
+            })
+            .join("");
+
+          rows.push({
+            address: `0x${startOffset.toString(16).padStart(8, "0").toUpperCase()}`,
+            hexBytes,
+            ascii,
+            startOffset,
+            endOffset: endOffset - 1,
+          });
+        }
+
+        return rows;
+      }
+
+      // Full data mode: use existing logic
+      if (effectiveData) {
+        return formatDataIntoRows(effectiveData, layout.bytesPerRow);
+      }
+
+      return [];
+    }, [isVirtual, fileSize, layout, loadedRanges, effectiveData]);
 
     // Calculate total canvas height (including vertical padding)
     const totalHeight = useMemo(() => {
@@ -290,9 +501,10 @@ export const HexCanvas = forwardRef<HexCanvasRef, HexCanvasProps>(
     }, [selectedRange, selectedOffset]);
 
     // Use keyboard navigation hook
+    const effectiveDataLength = fileSize ?? effectiveData?.length ?? 0;
     const { handleKeyDown } = useKeyboardNavigation({
       selectedOffset: keyboardSelectedOffset,
-      dataLength: data.length,
+      dataLength: effectiveDataLength,
       bytesPerRow: layout?.bytesPerRow ?? 16,
       viewportHeight: dimensions.height,
       rowHeight: layout?.rowHeight ?? 20,

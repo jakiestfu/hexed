@@ -70,8 +70,9 @@ import { Strings } from "./strings";
 import { FindInput } from "./find-input";
 import { FileStatusPopover } from "./file-status-popover";
 import { FileSourceIcon } from "./file-source-icon";
-import type { HexEditorProps, HexEditorViewProps } from "./types";
+import type { HexEditorProps, HexEditorViewProps, FileSource } from "./types";
 import { formatFilenameForDisplay } from "./utils";
+import { useVirtualData } from "~/hooks/use-virtual-data";
 
 const HexEditorView: FunctionComponent<HexEditorViewProps> = ({
   scrollToOffset,
@@ -80,6 +81,7 @@ const HexEditorView: FunctionComponent<HexEditorViewProps> = ({
   diff,
   selectedOffsetRange,
   onSelectedOffsetRangeChange,
+  dataProvider,
 }) => {
   const hexCanvasRef = useRef<HexCanvasRef | null>(null);
 
@@ -93,7 +95,8 @@ const HexEditorView: FunctionComponent<HexEditorViewProps> = ({
     <div className="h-full flex-1 min-w-0">
       <HexCanvas
         ref={hexCanvasRef}
-        data={snapshot.data}
+        data={dataProvider ? undefined : snapshot.data}
+        dataProvider={dataProvider}
         showAscii={showAscii}
         diff={diff}
         selectedOffsetRange={selectedOffsetRange}
@@ -116,6 +119,9 @@ export const HexEditor: FunctionComponent<HexEditorProps> = ({
   originalSource,
   error,
   onRestartWatching,
+  fileHandle,
+  fileId,
+  onFileHandleSelect,
 }) => {
   const [activeTab, setActiveTab] = useState<string>("0");
   const { showAscii, setShowAscii } = useAsciiVisibility();
@@ -132,6 +138,15 @@ export const HexEditor: FunctionComponent<HexEditorProps> = ({
   const hasFile = filePath != null && filePath !== "";
   const hasSnapshots = snapshots.length > 0;
   const hasMultipleSnapshots = snapshots.length > 1;
+
+  // Create virtual data provider if fileHandle is available
+  const virtualDataInput =
+    fileHandle && fileId
+      ? { type: "fileHandle" as const, fileHandle, fileId }
+      : currentSnapshot
+      ? { type: "snapshot" as const, snapshot: currentSnapshot }
+      : null;
+  const dataProvider = useVirtualData(virtualDataInput);
 
   // Get previous snapshot for the active tab
   const activeTabIndex = parseInt(activeTab, 10);
@@ -341,7 +356,7 @@ export const HexEditor: FunctionComponent<HexEditorProps> = ({
             </div>
           ) : (
             <FileStatusPopover
-              fileSource={fileSource}
+              fileSource={fileSource as FileSource}
               originalSource={originalSource || filePath || ""}
               isConnected={isConnected}
               error={error}
@@ -349,7 +364,7 @@ export const HexEditor: FunctionComponent<HexEditorProps> = ({
             >
               <div className="flex items-center gap-2 min-w-0 cursor-pointer hover:opacity-80 transition-opacity group">
                 <FileSourceIcon
-                  fileSource={fileSource}
+                  fileSource={fileSource as FileSource}
                   className="text-muted-foreground shrink-0"
                 />
                 <span
@@ -445,7 +460,11 @@ export const HexEditor: FunctionComponent<HexEditorProps> = ({
   const renderCardContent = (insideTabs: boolean) => {
     if (!hasFile) {
       return onFileSelect ? (
-        <EmptyState onFileSelect={onFileSelect} recentFiles={recentFiles} />
+        <EmptyState
+          onFileSelect={onFileSelect}
+          recentFiles={recentFiles}
+          onFileHandleSelect={onFileHandleSelect}
+        />
       ) : (
         <div className="flex items-center justify-center h-full text-muted-foreground">
           Please select a file to begin
@@ -476,6 +495,10 @@ export const HexEditor: FunctionComponent<HexEditorProps> = ({
     }
 
     return snapshots.map((snapshot, index) => {
+      // Use current snapshot for this tab
+      const snapshotForTab =
+        index === activeTabIndex ? currentSnapshot : snapshot;
+
       // Calculate default sizes based on visible panels
       const hasInterpreter = showInterpreter && !isInterpreterPIPActive;
       const hasTemplates = showTemplates && !isTemplatesPIPActive;
@@ -582,11 +605,12 @@ export const HexEditor: FunctionComponent<HexEditorProps> = ({
         >
           <HexEditorView
             scrollToOffset={scrollToOffset}
-            snapshot={snapshot}
+            snapshot={snapshotForTab}
             showAscii={showAscii}
             diff={diff}
             selectedOffsetRange={selectedOffsetRange}
             onSelectedOffsetRangeChange={setSelectedOffsetRange}
+            dataProvider={index === activeTabIndex ? dataProvider : undefined}
           />
         </ResizablePanel>
       );

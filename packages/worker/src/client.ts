@@ -66,7 +66,11 @@ export function createWorkerClient(workerUrl: string | URL): WorkerClient {
     }
 
     try {
-      sharedWorker = new SharedWorker(workerUrl, { type: "module" });
+      sharedWorker = new SharedWorker(workerUrl, {
+        credemtials: "include",
+        name: "wat",
+        sameSiteCookies: "all",
+      });
       port = sharedWorker.port;
       port.start();
 
@@ -106,7 +110,9 @@ export function createWorkerClient(workerUrl: string | URL): WorkerClient {
       return port;
     } catch (error) {
       throw new Error(
-        `Failed to create SharedWorker: ${error instanceof Error ? error.message : "Unknown error"}`
+        `Failed to create SharedWorker: ${
+          error instanceof Error ? error.message : "Unknown error"
+        }`
       );
     }
   }
@@ -147,7 +153,9 @@ export function createWorkerClient(workerUrl: string | URL): WorkerClient {
         pendingRequests.delete(request.id);
         reject(
           new Error(
-            `Failed to send request: ${error instanceof Error ? error.message : "Unknown error"}`
+            `Failed to send request: ${
+              error instanceof Error ? error.message : "Unknown error"
+            }`
           )
         );
       }
@@ -155,7 +163,10 @@ export function createWorkerClient(workerUrl: string | URL): WorkerClient {
   }
 
   return {
-    async openFile(fileId: string, handle: FileSystemFileHandle): Promise<void> {
+    async openFile(
+      fileId: string,
+      handle: FileSystemFileHandle
+    ): Promise<void> {
       const request: OpenFileRequest = {
         id: generateMessageId(),
         type: "OPEN_FILE",

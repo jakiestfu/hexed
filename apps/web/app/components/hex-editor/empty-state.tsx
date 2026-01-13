@@ -8,13 +8,19 @@ import { GlitchText } from "@hexed/ui/components/glitch-text";
 type EmptyStateProps = {
   onFileSelect: (filePath: string | BinarySnapshot) => void;
   recentFiles: RecentFile[];
+  onFileHandleSelect?: (handle: FileSystemFileHandle, fileId: string) => void;
 };
 
 export const EmptyState: FunctionComponent<EmptyStateProps> = ({
   onFileSelect,
   recentFiles,
+  onFileHandleSelect,
 }) => (
   <div className="flex flex-col items-center justify-center h-full gap-8">
-    <DataPicker onFileSelect={onFileSelect} recentFiles={recentFiles} />
+    <DataPicker
+      onFileSelect={onFileSelect}
+      recentFiles={recentFiles}
+      onFileHandleSelect={onFileHandleSelect}
+    />
   </div>
 );
