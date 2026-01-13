@@ -5,9 +5,9 @@ import { ChevronDown, Ghost } from "lucide-react";
 import { FunctionComponent, ReactNode, useState } from "react";
 import { cn } from "@hexed/ui";
 import type { BinarySnapshot } from "@hexed/types";
-import { Menu, type MenuItem } from "~/components/menu";
+import { Menu, type MenuItem } from "./menu";
 
-export type { MenuItem } from "~/components/menu";
+export type { MenuItem } from "./menu";
 
 export type LogoProps = {
   menuItems?: MenuItem[];

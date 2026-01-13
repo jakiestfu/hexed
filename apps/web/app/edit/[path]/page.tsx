@@ -4,7 +4,7 @@ import * as React from "react";
 import { useParams, useRouter } from "next/navigation";
 import { HexEditor } from "~/components/hex-editor/hex-editor";
 import { Button, Card, CardContent } from "@hexed/ui";
-import { useFileWatcher } from "~/utils/use-file-watcher";
+import { useFileWatcher } from "~/hooks/use-file-watcher";
 import { useRecentFiles } from "~/hooks/use-recent-files";
 import { decodeFilePath, isUrlPath } from "~/utils/path-encoding";
 import { AlertCircle } from "lucide-react";

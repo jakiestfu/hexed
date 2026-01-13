@@ -22,7 +22,7 @@ import { createSnapshotFromFile, formatTimestamp, getBasename } from "./utils";
 import { useQueryParamState } from "~/hooks/use-query-param-state";
 import { encodeFilePath, isUrlPath } from "~/utils/path-encoding";
 import { FileSourceIcon } from "./file-source-icon";
-import { FileSource } from "~/components/hex-editor/types";
+import { FileSource } from "./types";
 
 type DataPickerProps = {
   onFileSelect: (filePath: string | BinarySnapshot) => void;

@@ -8,7 +8,7 @@ import {
   FileQuestion,
 } from "lucide-react";
 import { cn } from "@hexed/ui";
-import { FileSource } from "~/components/hex-editor/types";
+import { FileSource } from "./types";
 
 export type FileSourceIconProps = {
   fileSource: FileSource;

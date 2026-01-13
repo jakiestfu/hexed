@@ -35,7 +35,7 @@ import {
   PanelLeft,
   Trash2,
 } from "lucide-react";
-import { FileSourceIcon } from "~/components/hex-editor/file-source-icon";
+import { FileSourceIcon } from "./hex-editor/file-source-icon";
 import { useTheme } from "next-themes";
 import Link from "next/link";
 import { FunctionComponent, ReactNode, useState } from "react";
@@ -48,9 +48,9 @@ import { useStringsVisibility } from "~/hooks/use-strings-visibility";
 import { useSidebarPosition } from "~/hooks/use-sidebar-position";
 import { encodeFilePath } from "~/utils/path-encoding";
 import type { BinarySnapshot } from "@hexed/types";
-import { Histogram } from "~/components/hex-editor/histogram";
+import { Histogram } from "./hex-editor/histogram";
 import { Hotkeys } from "~/utils/hotkey-format";
-import { formatFilenameForDisplay } from "~/components/hex-editor/utils";
+import { formatFilenameForDisplay } from "./hex-editor/utils";
 
 export type MenuItem = {
   label: string;

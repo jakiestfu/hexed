@@ -2,8 +2,6 @@ import type { FunctionComponent } from "react";
 import type { RecentFile } from "~/hooks/use-recent-files";
 import type { BinarySnapshot } from "@hexed/types";
 import { DataPicker } from "./data-picker";
-import { Brand } from "~/components/logo";
-import { GlitchText } from "@hexed/ui/components/glitch-text";
 
 type EmptyStateProps = {
   onFileSelect: (filePath: string | BinarySnapshot) => void;

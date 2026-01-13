@@ -3,7 +3,7 @@
 import { FunctionComponent, ReactNode } from "react";
 import { Popover, PopoverContent, PopoverTrigger, Button } from "@hexed/ui";
 import { AlertCircle, RefreshCw } from "lucide-react";
-import { FileSource } from "~/components/hex-editor/types";
+import { FileSource } from "./types";
 
 export type FileStatusPopoverProps = {
   fileSource: FileSource;

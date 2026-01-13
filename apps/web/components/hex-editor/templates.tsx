@@ -30,11 +30,11 @@ import {
 import { usePIP } from "~/hooks/use-pip";
 import { useSidebarPosition } from "~/hooks/use-sidebar-position";
 import { useQueryParamState } from "~/hooks/use-query-param-state";
-import type { TemplatesProps } from "./types";
-import { TemplatesCombobox } from "./templates-combobox";
+import type { TemplatesProps } from "~/components/hex-editor/types";
+import { TemplatesCombobox } from "~/components/hex-editor/templates-combobox";
 import { KsySchema, parse, manifest } from "@hexed/binary-templates";
 import { MarkdownRenderer } from "~/components/markdown-renderer";
-import { ObjectTree } from "./object-tree";
+import { ObjectTree } from "~/components/hex-editor/object-tree";
 
 type TemplateEntry = {
   name: string;

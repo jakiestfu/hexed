@@ -51,9 +51,9 @@ import {
   BarChart3,
   Type,
 } from "lucide-react";
-import { DiffViewer } from "./diff-viewer";
-import { EmptyState } from "./empty-state";
-import { HexToolbar } from "./hex-toolbar";
+import { DiffViewer } from "~/components/hex-editor/diff-viewer";
+import { EmptyState } from "~/components/hex-editor/empty-state";
+import { HexToolbar } from "~/components/hex-editor/hex-toolbar";
 import { Logo } from "~/components/logo";
 import { HexFooter } from "~/components/hex-editor/hex-footer";
 import { useChecksumVisibility } from "~/hooks/use-checksum-visibility";
@@ -63,15 +63,18 @@ import { useTemplatesVisibility } from "~/hooks/use-templates-visibility";
 import { useStringsVisibility } from "~/hooks/use-strings-visibility";
 import { useSidebarPosition } from "~/hooks/use-sidebar-position";
 import { useGlobalKeyboard } from "~/hooks/use-global-keyboard";
-import { Interpreter } from "./interpreter";
-import { MemoryProfiler } from "./memory-profiler";
-import { Templates } from "./templates";
-import { Strings } from "./strings";
-import { FindInput } from "./find-input";
-import { FileStatusPopover } from "./file-status-popover";
-import { FileSourceIcon } from "./file-source-icon";
-import type { HexEditorProps, HexEditorViewProps } from "./types";
-import { formatFilenameForDisplay } from "./utils";
+import { Interpreter } from "~/components/hex-editor/interpreter";
+import { MemoryProfiler } from "~/components/hex-editor/memory-profiler";
+import { Templates } from "~/components/hex-editor/templates";
+import { Strings } from "~/components/hex-editor/strings";
+import { FindInput } from "~/components/hex-editor/find-input";
+import { FileStatusPopover } from "~/components/hex-editor/file-status-popover";
+import { FileSourceIcon } from "~/components/hex-editor/file-source-icon";
+import type {
+  HexEditorProps,
+  HexEditorViewProps,
+} from "~/components/hex-editor/types";
+import { formatFilenameForDisplay } from "~/components/hex-editor/utils";
 
 const HexEditorView: FunctionComponent<HexEditorViewProps> = ({
   scrollToOffset,

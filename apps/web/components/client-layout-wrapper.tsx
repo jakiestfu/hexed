@@ -1,6 +1,6 @@
 "use client";
 
-import { DragDropProvider } from "~/components/hex-editor/drag-drop-provider";
+import { DragDropProvider } from "./hex-editor/drag-drop-provider";
 
 export function ClientLayoutWrapper({
   children,
