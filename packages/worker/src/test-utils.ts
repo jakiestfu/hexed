@@ -124,7 +124,7 @@ export function createMockMessagePort(): {
 }
 
 /**
- * Create a mock SharedWorker
+ * Create a mock SharedWorker (kept for backward compatibility)
  */
 export function createMockSharedWorker(
   url: string | URL
@@ -148,6 +148,154 @@ export function createMockSharedWorker(
       ports.push(mockPort);
       worker.port = mockPort.port;
       return mockPort;
+    },
+  };
+}
+
+/**
+ * Mock Service Worker client for testing
+ */
+export interface MockServiceWorkerClient {
+  id: string;
+  postMessage: (message: any, transfer?: Transferable[]) => void;
+  messages: Array<{ data: any; transfer?: Transferable[] }>;
+  simulateMessage: (data: any) => void;
+}
+
+/**
+ * Create a mock Service Worker client
+ */
+export function createMockServiceWorkerClient(): MockServiceWorkerClient {
+  const messages: Array<{ data: any; transfer?: Transferable[] }> = [];
+  let onMessageHandler: ((event: MessageEvent) => void) | null = null;
+
+  const client: MockServiceWorkerClient = {
+    id: `client-${Math.random().toString(36).substr(2, 9)}`,
+    messages,
+    postMessage(data: any, transfer?: Transferable[]): void {
+      messages.push({ data, transfer });
+    },
+    simulateMessage(data: any): void {
+      if (onMessageHandler) {
+        const event = new MessageEvent("message", { data });
+        onMessageHandler(event);
+      }
+    },
+  };
+
+  return client;
+}
+
+/**
+ * Create a mock Service Worker registration
+ */
+export function createMockServiceWorkerRegistration(): {
+  registration: ServiceWorkerRegistration;
+  clients: Map<string, MockServiceWorkerClient>;
+  controller: ServiceWorker | null;
+  simulateMessage: (clientId: string, data: any) => void;
+  simulateClientMessage: (data: any) => void;
+} {
+  const clients = new Map<string, MockServiceWorkerClient>();
+  let controller: ServiceWorker | null = null;
+  let onMessageHandler: ((event: MessageEvent) => void) | null = null;
+
+  const registration = {
+    scope: "/",
+    updateViaCache: "imports" as ServiceWorkerUpdateViaCache,
+    installing: null as ServiceWorker | null,
+    waiting: null as ServiceWorker | null,
+    activating: null as ServiceWorker | null,
+    active: null as ServiceWorker | null,
+    navigationPreload: {
+      enable: async () => {},
+      disable: async () => {},
+      setHeaderValue: async () => {},
+      getState: async () => ({
+        enabled: false,
+        headerValue: "",
+      }),
+    },
+    pushManager: {} as PushManager,
+    sync: {} as SyncManager,
+    update: async () => {},
+    unregister: async () => true,
+    getNotifications: async () => [],
+    showNotification: async () => {},
+  } as ServiceWorkerRegistration;
+
+  return {
+    registration,
+    clients,
+    controller,
+    simulateMessage: (clientId: string, data: any) => {
+      const client = clients.get(clientId);
+      if (client) {
+        client.simulateMessage(data);
+      }
+    },
+    simulateClientMessage: (data: any) => {
+      if (onMessageHandler) {
+        const event = new MessageEvent("message", {
+          data,
+          source: Array.from(clients.values())[0] as any,
+        });
+        onMessageHandler(event);
+      }
+    },
+  };
+}
+
+/**
+ * Mock navigator.serviceWorker for testing
+ */
+export function createMockServiceWorkerNavigator(): {
+  navigator: {
+    serviceWorker: ServiceWorkerContainer;
+  };
+  clients: Map<string, MockServiceWorkerClient>;
+  simulateMessage: (clientId: string, data: any) => void;
+} {
+  const clients = new Map<string, MockServiceWorkerClient>();
+  let controller: ServiceWorker | null = null;
+  let onMessageHandler: ((event: MessageEvent) => void) | null = null;
+  let registrationPromise: Promise<ServiceWorkerRegistration> | null = null;
+
+  const mockRegistration = createMockServiceWorkerRegistration();
+  clients.set("default", mockRegistration.clients.get("default") || createMockServiceWorkerClient());
+
+  const serviceWorkerContainer = {
+    controller,
+    ready: Promise.resolve(mockRegistration.registration),
+    register: async (scriptURL: string | URL, options?: RegistrationOptions) => {
+      registrationPromise = Promise.resolve(mockRegistration.registration);
+      return registrationPromise;
+    },
+    getRegistration: async (scope?: string) => mockRegistration.registration,
+    getRegistrations: async () => [mockRegistration.registration],
+    startMessages: () => {},
+    get oncontrollerchange() {
+      return null;
+    },
+    set oncontrollerchange(_: ((event: Event) => void) | null) {},
+    get onmessage() {
+      return onMessageHandler;
+    },
+    set onmessage(handler: ((event: MessageEvent) => void) | null) {
+      onMessageHandler = handler;
+    },
+    addEventListener: (type: string, listener: EventListener) => {},
+    removeEventListener: (type: string, listener: EventListener) => {},
+    dispatchEvent: (event: Event) => true,
+  } as ServiceWorkerContainer;
+
+  return {
+    navigator: {
+      serviceWorker: serviceWorkerContainer,
+    } as any,
+    clients,
+    simulateMessage: (clientId: string, data: any) => {
+      mockRegistration.simulateMessage(clientId, data);
     },
   };
 }

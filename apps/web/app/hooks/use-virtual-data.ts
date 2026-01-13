@@ -9,24 +9,25 @@ import { createWorkerClient, type WorkerClient } from "@hexed/worker";
 import type { VirtualDataProvider } from "~/components/hex-editor/virtual-data-provider";
 import { FullDataProvider } from "~/components/hex-editor/virtual-data-provider";
 import { WorkerDataProvider } from "~/components/hex-editor/worker-data-provider";
+import { useWorkerClientContext } from "~/providers/worker-provider";
 
 export type VirtualDataInput =
   | { type: "snapshot"; snapshot: BinarySnapshot }
   | { type: "fileHandle"; fileHandle: FileSystemFileHandle; fileId: string };
 
 /**
- * Get the worker URL for the SharedWorker
+ * Get the worker URL for the Service Worker
  * Uses the worker file from public/workers/worker.js
  */
 async function getWorkerUrl(): Promise<string | URL> {
   if (typeof window === "undefined") {
     // SSR fallback - shouldn't happen but TypeScript needs it
-    return "/workers/worker.js";
+    return "/worker.js";
   }
 
   // The worker is built by packages/worker and copied to public/workers/worker.js
   const basePath = process.env.NEXT_PUBLIC_BASE_PATH || "";
-  return `${basePath}/workers/worker.js`;
+  return `${basePath}/worker.js`;
 }
 
 /**
@@ -38,6 +39,9 @@ export function useVirtualData(
   const [provider, setProvider] = useState<VirtualDataProvider | null>(null);
   const workerClientRef = useRef<WorkerClient | null>(null);
   const workerDataProviderRef = useRef<WorkerDataProvider | null>(null);
+
+  // Get worker client from context if available
+  const contextWorkerClient = useWorkerClientContext();
 
   // Initialize provider based on input type
   useEffect(() => {
@@ -57,8 +61,10 @@ export function useVirtualData(
     if (input.type === "fileHandle") {
       const initializeWorkerProvider = async () => {
         try {
-          // Create or reuse worker client
-          if (!workerClientRef.current) {
+          // Use worker client from context if available, otherwise create a new one
+          if (contextWorkerClient) {
+            workerClientRef.current = contextWorkerClient;
+          } else if (!workerClientRef.current) {
             const workerUrl = await getWorkerUrl();
             workerClientRef.current = createWorkerClient(workerUrl);
           }
@@ -99,7 +105,7 @@ export function useVirtualData(
 
       initializeWorkerProvider();
     }
-  }, [input]);
+  }, [input, contextWorkerClient]);
 
   // Cleanup on unmount or input change
   useEffect(() => {

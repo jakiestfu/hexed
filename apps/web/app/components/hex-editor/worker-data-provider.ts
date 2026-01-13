@@ -1,6 +1,6 @@
 /**
  * Worker-based virtual data provider
- * Uses SharedWorker to read byte ranges on-demand
+ * Uses Service Worker to read byte ranges on-demand
  */
 
 import type { WorkerClient } from "@hexed/worker";

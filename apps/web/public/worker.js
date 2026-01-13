@@ -1,4 +1,4 @@
-// SharedWorker bundle - built with esbuild
+// Service Worker bundle - built with esbuild
 
 // src/file-handle-manager.ts
 var FileHandleManager = class {
@@ -204,60 +204,114 @@ var WindowManager = class {
 // src/worker.ts
 var context = {
   handleManager: new FileHandleManager(),
-  windowManager: new WindowManager(),
-  ports: /* @__PURE__ */ new Set()
+  windowManager: new WindowManager()
 };
+console.log(
+  "[Service Worker] Initialized with FileHandleManager and WindowManager"
+);
 function generateMessageId() {
   return `${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
 }
-function sendResponse(port, message) {
+function sendResponse(client, message) {
   try {
+    console.log(`[Service Worker] Sending response: ${message.type}`, {
+      id: message.id,
+      ...message.type === "BYTE_RANGE_RESPONSE" ? {
+        fileId: message.fileId,
+        start: message.start,
+        end: message.end,
+        dataLength: message.data.length
+      } : message.type === "FILE_SIZE_RESPONSE" ? {
+        fileId: message.fileId,
+        size: message.size
+      } : {}
+    });
     if (message.type === "BYTE_RANGE_RESPONSE") {
-      port.postMessage(message, [message.data.buffer]);
+      client.postMessage(message, [message.data.buffer]);
     } else {
-      port.postMessage(message);
+      client.postMessage(message);
     }
   } catch (error) {
-    console.error("Error sending response:", error);
+    console.error("[Service Worker] Error sending response:", error, {
+      messageType: message.type,
+      messageId: message.id
+    });
   }
 }
-function sendError(port, error, originalMessageId) {
+function sendError(client, error, originalMessageId) {
+  console.error("[Service Worker] Sending error response:", {
+    error,
+    originalMessageId
+  });
   const response = {
     id: generateMessageId(),
     type: "ERROR",
     error,
     originalMessageId
   };
-  sendResponse(port, response);
+  sendResponse(client, response);
 }
-async function handleOpenFile(port, request) {
+async function handleOpenFile(client, request) {
+  console.log("[Service Worker] Handling OPEN_FILE request:", {
+    fileId: request.fileId,
+    requestId: request.id
+  });
   try {
     await context.handleManager.openFile(request.fileId, request.handle);
+    console.log("[Service Worker] File opened successfully:", {
+      fileId: request.fileId
+    });
     const response = {
       id: generateMessageId(),
       type: "CONNECTED"
     };
-    sendResponse(port, response);
+    sendResponse(client, response);
   } catch (error) {
+    console.error("[Service Worker] Failed to open file:", error, {
+      fileId: request.fileId,
+      requestId: request.id
+    });
     sendError(
-      port,
+      client,
       error instanceof Error ? error.message : "Failed to open file",
       request.id
     );
   }
 }
-async function handleReadByteRange(port, request) {
+async function handleReadByteRange(client, request) {
+  console.log("[Service Worker] Handling READ_BYTE_RANGE request:", {
+    fileId: request.fileId,
+    start: request.start,
+    end: request.end,
+    range: request.end - request.start,
+    requestId: request.id
+  });
   try {
     if (!context.handleManager.hasFile(request.fileId)) {
-      sendError(port, `File ${request.fileId} is not open`, request.id);
+      console.warn("[Service Worker] File not open:", {
+        fileId: request.fileId,
+        requestId: request.id
+      });
+      sendError(client, `File ${request.fileId} is not open`, request.id);
       return;
     }
+    console.log("[Service Worker] Reading byte range from file:", {
+      fileId: request.fileId,
+      start: request.start,
+      end: request.end
+    });
     const data = await context.windowManager.getWindow(
       request.fileId,
       request.start,
       request.end,
       (start, end) => context.handleManager.readByteRange(request.fileId, start, end)
     );
+    console.log("[Service Worker] Byte range read successfully:", {
+      fileId: request.fileId,
+      start: request.start,
+      end: request.end,
+      dataLength: data.length
+    });
     const response = {
       id: generateMessageId(),
       type: "BYTE_RANGE_RESPONSE",
@@ -266,124 +320,216 @@ async function handleReadByteRange(port, request) {
       end: request.end,
       data
     };
-    sendResponse(port, response);
+    sendResponse(client, response);
   } catch (error) {
+    console.error("[Service Worker] Failed to read byte range:", error, {
+      fileId: request.fileId,
+      start: request.start,
+      end: request.end,
+      requestId: request.id
+    });
     sendError(
-      port,
+      client,
       error instanceof Error ? error.message : "Failed to read byte range",
       request.id
     );
   }
 }
-async function handleGetFileSize(port, request) {
+async function handleGetFileSize(client, request) {
+  console.log("[Service Worker] Handling GET_FILE_SIZE request:", {
+    fileId: request.fileId,
+    requestId: request.id
+  });
   try {
     const size = await context.handleManager.getFileSize(request.fileId);
+    console.log("[Service Worker] File size retrieved:", {
+      fileId: request.fileId,
+      size
+    });
     const response = {
       id: generateMessageId(),
       type: "FILE_SIZE_RESPONSE",
       fileId: request.fileId,
       size
     };
-    sendResponse(port, response);
+    sendResponse(client, response);
   } catch (error) {
+    console.error("[Service Worker] Failed to get file size:", error, {
+      fileId: request.fileId,
+      requestId: request.id
+    });
     sendError(
-      port,
+      client,
       error instanceof Error ? error.message : "Failed to get file size",
       request.id
     );
   }
 }
-function handleCloseFile(port, request) {
+function handleCloseFile(client, request) {
+  console.log("[Service Worker] Handling CLOSE_FILE request:", {
+    fileId: request.fileId,
+    requestId: request.id
+  });
   try {
     context.handleManager.closeFile(request.fileId);
     context.windowManager.clearCache(request.fileId);
+    console.log("[Service Worker] File closed successfully:", {
+      fileId: request.fileId
+    });
     const response = {
       id: generateMessageId(),
       type: "CONNECTED"
     };
-    sendResponse(port, response);
+    sendResponse(client, response);
   } catch (error) {
+    console.error("[Service Worker] Failed to close file:", error, {
+      fileId: request.fileId,
+      requestId: request.id
+    });
     sendError(
-      port,
+      client,
       error instanceof Error ? error.message : "Failed to close file",
       request.id
     );
   }
 }
-function handleSetWindowSize(port, request) {
+function handleSetWindowSize(client, request) {
+  console.log("[Service Worker] Handling SET_WINDOW_SIZE request:", {
+    fileId: request.fileId,
+    windowSize: request.windowSize,
+    requestId: request.id
+  });
   try {
     context.windowManager.setWindowSize(request.fileId, request.windowSize);
+    console.log("[Service Worker] Window size set successfully:", {
+      fileId: request.fileId,
+      windowSize: request.windowSize
+    });
     const response = {
       id: generateMessageId(),
       type: "CONNECTED"
     };
-    sendResponse(port, response);
+    sendResponse(client, response);
   } catch (error) {
+    console.error("[Service Worker] Failed to set window size:", error, {
+      fileId: request.fileId,
+      windowSize: request.windowSize,
+      requestId: request.id
+    });
     sendError(
-      port,
+      client,
       error instanceof Error ? error.message : "Failed to set window size",
       request.id
     );
   }
 }
-async function handleRequest(port, message) {
+async function handleRequest(client, message) {
+  console.log("[Service Worker] Routing request:", {
+    type: message.type,
+    id: message.id
+  });
   switch (message.type) {
     case "OPEN_FILE":
-      await handleOpenFile(port, message);
+      await handleOpenFile(client, message);
       break;
     case "READ_BYTE_RANGE":
-      await handleReadByteRange(port, message);
+      await handleReadByteRange(client, message);
       break;
     case "GET_FILE_SIZE":
-      await handleGetFileSize(port, message);
+      await handleGetFileSize(client, message);
       break;
     case "CLOSE_FILE":
-      handleCloseFile(port, message);
+      handleCloseFile(client, message);
       break;
     case "SET_WINDOW_SIZE":
-      handleSetWindowSize(port, message);
+      handleSetWindowSize(client, message);
       break;
     case "SEARCH_REQUEST":
     case "CHECKSUM_REQUEST":
+      console.warn("[Service Worker] Unimplemented operation:", {
+        type: message.type,
+        id: message.id
+      });
       sendError(
-        port,
+        client,
         `Operation ${message.type} not yet implemented`,
         message.id
       );
       break;
     default:
       const unknownMessage = message;
+      console.error("[Service Worker] Unknown message type:", {
+        type: unknownMessage.type,
+        id: unknownMessage.id
+      });
       sendError(
-        port,
+        client,
         `Unknown message type: ${unknownMessage.type}`,
         unknownMessage.id
       );
   }
 }
-function handleConnect(port) {
-  context.ports.add(port);
-  const response = {
-    id: generateMessageId(),
-    type: "CONNECTED"
-  };
-  sendResponse(port, response);
-  port.onmessage = (event) => {
-    const message = event.data;
-    if (message.type === "CONNECTED" || message.type.startsWith("RESPONSE")) {
-      return;
-    }
-    handleRequest(port, message).catch((error) => {
-      console.error("Unhandled error in request handler:", error);
-      sendError(port, "Internal error processing request", message.id);
-    });
-  };
-  port.addEventListener("error", (error) => {
-    console.error("Port error:", error);
-    context.ports.delete(port);
+self.onmessage = (event) => {
+  const message = event.data;
+  const source = event.source;
+  console.log("[Service Worker] Received message:", {
+    type: message.type,
+    id: message.id,
+    hasSource: !!source
   });
-}
-self.onconnect = (event) => {
-  const port = event.ports[0];
-  port.start();
-  handleConnect(port);
+  if (!source || typeof source !== "object") {
+    console.error("[Service Worker] Received message without client source:", {
+      messageType: message.type,
+      messageId: message.id
+    });
+    return;
+  }
+  const client = source;
+  if (message.type === "CONNECTED" || message.type.startsWith("RESPONSE")) {
+    console.log("[Service Worker] Ignoring response message:", {
+      type: message.type
+    });
+    return;
+  }
+  handleRequest(client, message).catch((error) => {
+    console.error(
+      "[Service Worker] Unhandled error in request handler:",
+      error,
+      {
+        messageType: message.type,
+        messageId: message.id
+      }
+    );
+    sendError(client, "Internal error processing request", message.id);
+  });
 };
+self.addEventListener("install", (event) => {
+  console.log("[Service Worker] Installing service worker...");
+  const extendableEvent = event;
+  if ("waitUntil" in extendableEvent && "skipWaiting" in self) {
+    const swScope = self;
+    console.log("[Service Worker] Skipping waiting, activating immediately");
+    extendableEvent.waitUntil(swScope.skipWaiting());
+  } else {
+    console.warn(
+      "[Service Worker] Cannot skip waiting - feature not available"
+    );
+  }
+});
+self.addEventListener("activate", (event) => {
+  console.log("[Service Worker] Activating service worker...");
+  const extendableEvent = event;
+  if ("waitUntil" in extendableEvent && "clients" in self) {
+    const swScope = self;
+    console.log("[Service Worker] Claiming all clients...");
+    extendableEvent.waitUntil(
+      swScope.clients.claim().then(() => {
+        console.log("[Service Worker] Successfully claimed all clients");
+      })
+    );
+  } else {
+    console.warn(
+      "[Service Worker] Cannot claim clients - feature not available"
+    );
+  }
+});

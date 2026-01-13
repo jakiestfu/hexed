@@ -44,7 +44,7 @@ async function buildWorker() {
       mainFields: ["module", "main"],
       conditions: ["import", "module"],
       banner: {
-        js: "// SharedWorker bundle - built with esbuild",
+        js: "// Service Worker bundle - built with esbuild",
       },
       // Resolve node_modules
       nodePaths: [resolve(packageRoot, "../../node_modules")],

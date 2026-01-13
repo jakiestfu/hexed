@@ -14,50 +14,23 @@ import type {
 } from "./types";
 import {
   createMockFileHandle,
-  createMockMessagePort,
+  createMockServiceWorkerClient,
   createTestData,
 } from "./test-utils";
 
-// We need to test the worker functions directly, but they're not exported
-// So we'll import the worker file and test the message handling logic
-// by simulating the worker context
+// We test the underlying managers directly since they contain the core logic
+// The Service Worker message handling wraps these managers
 
 describe("Worker message handling", () => {
   let handleManager: FileHandleManager;
   let windowManager: WindowManager;
-  let mockPort: ReturnType<typeof createMockMessagePort>;
+  let mockClient: ReturnType<typeof createMockServiceWorkerClient>;
 
   beforeEach(() => {
     handleManager = new FileHandleManager();
     windowManager = new WindowManager();
-    mockPort = createMockMessagePort();
+    mockClient = createMockServiceWorkerClient();
   });
-
-  // Helper to simulate sending a message and getting response
-  async function sendMessageAndGetResponse(
-    request: OpenFileRequest | ReadByteRangeRequest | GetFileSizeRequest | CloseFileRequest | SetWindowSizeRequest
-  ): Promise<any> {
-    // This is a simplified test - in reality, the worker handles this
-    // We'll test the underlying managers directly and simulate message flow
-    return new Promise((resolve, reject) => {
-      const timeout = setTimeout(() => {
-        reject(new Error("Timeout"));
-      }, 1000);
-
-      mockPort.port.onmessage = (event: MessageEvent) => {
-        clearTimeout(timeout);
-        const response = event.data;
-        if (response.type === "ERROR") {
-          reject(new Error((response as ErrorResponse).error));
-        } else {
-          resolve(response);
-        }
-      };
-
-      // Simulate message being sent to worker
-      mockPort.sendMessage(request);
-    });
-  }
 
   describe("OPEN_FILE", () => {
     it("should register file handle", async () => {
@@ -228,18 +201,18 @@ describe("Worker message handling", () => {
     });
   });
 
-  describe("multiple ports (multi-tab simulation)", () => {
-    it("should handle requests from multiple ports independently", async () => {
-      const port1 = createMockMessagePort();
-      const port2 = createMockMessagePort();
+  describe("multiple clients (multi-tab simulation)", () => {
+    it("should handle requests from multiple clients independently", async () => {
+      const client1 = createMockServiceWorkerClient();
+      const client2 = createMockServiceWorkerClient();
 
       const handle1 = createMockFileHandle("file1.bin", 100);
       const handle2 = createMockFileHandle("file2.bin", 200);
 
-      // Port 1 opens file1
+      // Client 1 opens file1
       await handleManager.openFile("file1", handle1);
 
-      // Port 2 opens file2
+      // Client 2 opens file2
       await handleManager.openFile("file2", handle2);
 
       expect(handleManager.hasFile("file1")).toBe(true);

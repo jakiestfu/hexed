@@ -8,8 +8,11 @@ const __dirname = dirname(__filename);
 
 // Paths relative to this script
 const webAppRoot = resolve(__dirname, "..");
-const workerDistPath = resolve(webAppRoot, "../../packages/worker/dist/worker.js");
-const publicWorkersDir = join(webAppRoot, "public", "workers");
+const workerDistPath = resolve(
+  webAppRoot,
+  "../../packages/worker/dist/worker.js"
+);
+const publicWorkersDir = join(webAppRoot, "public");
 const targetWorkerPath = join(publicWorkersDir, "worker.js");
 
 async function copyWorker() {

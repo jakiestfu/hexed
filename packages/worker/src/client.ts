@@ -1,5 +1,5 @@
 /**
- * Client-side API for interacting with the SharedWorker
+ * Client-side API for interacting with the Service Worker
  */
 
 import type {
@@ -49,33 +49,152 @@ interface PendingRequest {
 }
 
 /**
- * Create a worker client connected to the SharedWorker
+ * Create a worker client connected to the Service Worker
  */
 export function createWorkerClient(workerUrl: string | URL): WorkerClient {
-  let sharedWorker: SharedWorker | null = null;
-  let port: MessagePort | null = null;
+  let registration: ServiceWorkerRegistration | null = null;
+  let isInitialized = false;
   const pendingRequests = new Map<string, PendingRequest>();
   const REQUEST_TIMEOUT = 30000; // 30 seconds
+  const CONTROLLER_WAIT_TIMEOUT = 5000; // 5 seconds
 
   /**
-   * Initialize the SharedWorker connection
+   * Wait for the service worker controller to become available
    */
-  function initialize(): MessagePort {
-    if (port) {
-      return port;
+  async function waitForController(): Promise<ServiceWorker> {
+    // Check if controller is already available
+    if (navigator.serviceWorker.controller) {
+      return navigator.serviceWorker.controller;
+    }
+
+    // If we have a registration, wait for installing worker to become activated
+    if (registration?.installing) {
+      const installingWorker = registration.installing;
+      await new Promise<void>((resolve, reject) => {
+        const timeout = setTimeout(() => {
+          installingWorker.removeEventListener(
+            "statechange",
+            stateChangeHandler
+          );
+          reject(new Error("Service Worker installation timeout"));
+        }, CONTROLLER_WAIT_TIMEOUT);
+
+        const stateChangeHandler = () => {
+          if (!installingWorker) {
+            clearTimeout(timeout);
+            resolve();
+            return;
+          }
+
+          if (
+            installingWorker.state === "activated" ||
+            installingWorker.state === "redundant"
+          ) {
+            clearTimeout(timeout);
+            installingWorker.removeEventListener(
+              "statechange",
+              stateChangeHandler
+            );
+            if (installingWorker.state === "activated") {
+              resolve();
+            } else {
+              reject(new Error("Service Worker installation failed"));
+            }
+          }
+        };
+
+        installingWorker.addEventListener("statechange", stateChangeHandler);
+      });
+    }
+
+    // Check again after waiting for installation
+    if (navigator.serviceWorker.controller) {
+      return navigator.serviceWorker.controller;
+    }
+
+    // Wait for controllerchange event as fallback
+    return new Promise<ServiceWorker>((resolve, reject) => {
+      const timeout = setTimeout(() => {
+        navigator.serviceWorker.removeEventListener(
+          "controllerchange",
+          controllerChangeHandler
+        );
+        reject(
+          new Error(
+            "Service Worker controller not available after waiting. The service worker may need a page reload to take control."
+          )
+        );
+      }, CONTROLLER_WAIT_TIMEOUT);
+
+      const controllerChangeHandler = () => {
+        if (navigator.serviceWorker.controller) {
+          clearTimeout(timeout);
+          navigator.serviceWorker.removeEventListener(
+            "controllerchange",
+            controllerChangeHandler
+          );
+          resolve(navigator.serviceWorker.controller);
+        }
+      };
+
+      navigator.serviceWorker.addEventListener(
+        "controllerchange",
+        controllerChangeHandler
+      );
+
+      // Check again immediately in case controller became available
+      if (navigator.serviceWorker.controller) {
+        clearTimeout(timeout);
+        navigator.serviceWorker.removeEventListener(
+          "controllerchange",
+          controllerChangeHandler
+        );
+        resolve(navigator.serviceWorker.controller);
+      }
+    });
+  }
+
+  /**
+   * Initialize the Service Worker connection
+   */
+  async function initialize(): Promise<void> {
+    if (isInitialized) {
+      return;
+    }
+
+    if (!navigator.serviceWorker) {
+      throw new Error("Service Workers are not supported in this browser");
     }
 
     try {
-      sharedWorker = new SharedWorker(workerUrl, {
-        credemtials: "include",
-        name: "wat",
-        sameSiteCookies: "all",
+      // Register service worker with explicit scope "/" to control entire origin
+      registration = await navigator.serviceWorker.register(workerUrl, {
+        scope: "/",
       });
-      port = sharedWorker.port;
-      port.start();
+
+      // Wait for service worker to be ready
+      await navigator.serviceWorker.ready;
+
+      // Wait for controller to become available
+      // This handles the case where the service worker is installing/activating
+      try {
+        await waitForController();
+      } catch (error) {
+        // If controller is still not available, check if it exists now
+        // (it might have become available between the wait and the check)
+        if (!navigator.serviceWorker.controller) {
+          throw new Error(
+            `Service Worker controller not available: ${
+              error instanceof Error ? error.message : "Unknown error"
+            }`
+          );
+        }
+      }
 
       // Handle messages from worker
-      port.onmessage = (event: MessageEvent<ResponseMessage>) => {
+      navigator.serviceWorker.onmessage = (
+        event: MessageEvent<ResponseMessage>
+      ) => {
         const message = event.data;
         const pending = pendingRequests.get(message.id);
 
@@ -91,26 +210,27 @@ export function createWorkerClient(workerUrl: string | URL): WorkerClient {
           }
         } else if (message.type === "CONNECTED") {
           // Initial connection acknowledgment - no pending request
-          console.log("Worker connected");
+          console.log("Service Worker connected");
         } else {
           console.warn("Received response for unknown request:", message.id);
         }
       };
 
-      port.onerror = (error) => {
-        console.error("Worker port error:", error);
+      // Handle service worker errors
+      navigator.serviceWorker.addEventListener("error", (error) => {
+        console.error("Service Worker error:", error);
         // Reject all pending requests
         for (const pending of pendingRequests.values()) {
           clearTimeout(pending.timeout);
-          pending.reject(new Error("Worker connection error"));
+          pending.reject(new Error("Service Worker error"));
         }
         pendingRequests.clear();
-      };
+      });
 
-      return port;
+      isInitialized = true;
     } catch (error) {
       throw new Error(
-        `Failed to create SharedWorker: ${
+        `Failed to register Service Worker: ${
           error instanceof Error ? error.message : "Unknown error"
         }`
       );
@@ -120,10 +240,13 @@ export function createWorkerClient(workerUrl: string | URL): WorkerClient {
   /**
    * Send a request and wait for response
    */
-  function sendRequest<T extends ResponseMessage>(
+  async function sendRequest<T extends ResponseMessage>(
     request: RequestMessage
   ): Promise<T> {
-    const port = initialize();
+    await initialize();
+
+    // Ensure controller is available before sending request
+    const controller = await waitForController();
 
     return new Promise<T>((resolve, reject) => {
       const timeout = setTimeout(() => {
@@ -140,14 +263,9 @@ export function createWorkerClient(workerUrl: string | URL): WorkerClient {
       });
 
       try {
-        // Transfer FileSystemFileHandle if present
-        if (request.type === "OPEN_FILE") {
-          // FileSystemFileHandle is not transferable, so we send it directly
-          // The worker will receive it and store it
-          port.postMessage(request);
-        } else {
-          port.postMessage(request);
-        }
+        // Send message to service worker controller
+        // FileSystemFileHandle can be cloned and sent to service worker
+        controller.postMessage(request);
       } catch (error) {
         clearTimeout(timeout);
         pendingRequests.delete(request.id);
@@ -225,19 +343,18 @@ export function createWorkerClient(workerUrl: string | URL): WorkerClient {
       // Reject all pending requests
       for (const pending of pendingRequests.values()) {
         clearTimeout(pending.timeout);
-        pending.reject(new Error("Worker disconnected"));
+        pending.reject(new Error("Service Worker disconnected"));
       }
       pendingRequests.clear();
 
-      if (port) {
-        port.close();
-        port = null;
+      // Remove message handler
+      if (navigator.serviceWorker) {
+        navigator.serviceWorker.onmessage = null;
       }
 
-      if (sharedWorker) {
-        // SharedWorker doesn't have a close method, but we can disconnect the port
-        sharedWorker = null;
-      }
+      // Note: We don't unregister the service worker here as it might be used by other components
+      // Service worker unregistration should be handled at a higher level if needed
+      isInitialized = false;
     },
   };
 }

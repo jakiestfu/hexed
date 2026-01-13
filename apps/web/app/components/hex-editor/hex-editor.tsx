@@ -136,10 +136,10 @@ export const HexEditor: FunctionComponent<HexEditorProps> = ({
   const { sidebarPosition, setSidebarPosition } = useSidebarPosition();
   const currentSnapshot = snapshots[parseInt(activeTab, 10)] || snapshots[0];
   const hasFile = filePath != null && filePath !== "";
-  const hasSnapshots = snapshots.length > 0;
   const hasMultipleSnapshots = snapshots.length > 1;
 
   // Create virtual data provider if fileHandle is available
+  // useVirtualData will get the worker client from context internally
   const virtualDataInput =
     fileHandle && fileId
       ? { type: "fileHandle" as const, fileHandle, fileId }
@@ -147,6 +147,10 @@ export const HexEditor: FunctionComponent<HexEditorProps> = ({
       ? { type: "snapshot" as const, snapshot: currentSnapshot }
       : null;
   const dataProvider = useVirtualData(virtualDataInput);
+
+  // Check if we have data available - either snapshots or a data provider
+  const hasSnapshots = snapshots.length > 0;
+  const hasData = hasSnapshots || dataProvider !== null;
 
   // Get previous snapshot for the active tab
   const activeTabIndex = parseInt(activeTab, 10);
@@ -409,9 +413,7 @@ export const HexEditor: FunctionComponent<HexEditorProps> = ({
       <div
         className={cn(
           "border-b",
-          hasFile && showSearch && hasSnapshots && currentSnapshot?.data
-            ? ""
-            : "hidden"
+          hasFile && showSearch && hasData ? "" : "hidden"
         )}
       >
         <div className="p-4">
@@ -486,7 +488,7 @@ export const HexEditor: FunctionComponent<HexEditorProps> = ({
       );
     }
 
-    if (!hasSnapshots) {
+    if (!hasData) {
       return (
         <div className="flex items-center justify-center h-full text-muted-foreground">
           No data available
@@ -665,7 +667,7 @@ export const HexEditor: FunctionComponent<HexEditorProps> = ({
     <Card
       className={`p-0 m-0 w-full h-full rounded-none border-none shadow-none ${className}`}
     >
-      {hasFile && hasSnapshots ? (
+      {hasFile && hasData ? (
         <Tabs
           value={activeTab}
           onValueChange={setActiveTab}
@@ -761,7 +763,7 @@ export const HexEditor: FunctionComponent<HexEditorProps> = ({
                         variant="outline"
                         size="sm"
                         onClick={() => setShowHistogram(true)}
-                        disabled={!hasSnapshots || !currentSnapshot?.data}
+                        disabled={!hasData || (!hasSnapshots && !dataProvider)}
                         aria-label="Show histogram"
                       >
                         <BarChart3 className="h-4 w-4" />
