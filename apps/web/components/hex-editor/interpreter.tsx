@@ -61,7 +61,7 @@ import {
 } from "@hexed/ui"
 
 import { usePIP } from "~/hooks/use-pip"
-import { useSidebarPosition } from "~/hooks/use-sidebar-position"
+import { useSettings } from "~/hooks/use-settings"
 import type { InterpreterProps } from "./types"
 
 interface InterpretedValue {
@@ -293,7 +293,7 @@ export const Interpreter: FunctionComponent<InterpreterProps> = ({
   const { isPIPActive, stylesLoaded, togglePIP, isSupported } = usePIP(
     interpreterRef as RefObject<HTMLElement>
   )
-  const { toggleSidebarPosition } = useSidebarPosition()
+  const { toggleSidebarPosition } = useSettings()
 
   // Notify parent component when PIP state changes
   useEffect(() => {

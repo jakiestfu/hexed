@@ -1,7 +1,7 @@
-"use client"
+'use client';
 
-import { FunctionComponent, ReactNode, useState } from "react"
-import Link from "next/link"
+import { FunctionComponent, ReactNode, useState } from 'react';
+import Link from 'next/link';
 import {
   BarChart3,
   Binary,
@@ -18,10 +18,10 @@ import {
   Sun,
   Trash2,
   Type
-} from "lucide-react"
-import { useTheme } from "next-themes"
+} from 'lucide-react';
+import { useTheme } from 'next-themes';
 
-import type { BinarySnapshot } from "@hexed/types"
+import type { BinarySnapshot } from '@hexed/types';
 import {
   Button,
   Dialog,
@@ -39,112 +39,115 @@ import {
   DropdownMenuSub,
   DropdownMenuSubContent,
   DropdownMenuSubTrigger
-} from "@hexed/ui"
+} from '@hexed/ui';
 
-import { useAsciiVisibility } from "~/hooks/use-ascii-visibility"
-import { useChecksumVisibility } from "~/hooks/use-checksum-visibility"
-import { useInterpreterVisibility } from "~/hooks/use-interpreter-visibility"
-import { useRecentFiles } from "~/hooks/use-recent-files"
-import { useSidebarPosition } from "~/hooks/use-sidebar-position"
-import { useStringsVisibility } from "~/hooks/use-strings-visibility"
-import { useTemplatesVisibility } from "~/hooks/use-templates-visibility"
-import { Hotkeys } from "~/utils/hotkey-format"
-import { encodeFilePath } from "~/utils/path-encoding"
-import { FileSourceIcon } from "./hex-editor/file-source-icon"
-import { Histogram } from "./hex-editor/histogram"
-import { formatFilenameForDisplay } from "./hex-editor/utils"
+import { useRecentFiles } from '~/hooks/use-recent-files';
+import { useSettings } from '~/hooks/use-settings';
+import { Hotkeys } from '~/utils/hotkey-format';
+import { encodeFilePath } from '~/utils/path-encoding';
+import { FileSourceIcon } from './hex-editor/file-source-icon';
+import { Histogram } from './hex-editor/histogram';
+import { formatFilenameForDisplay } from './hex-editor/utils';
 
 export type MenuItem = {
-  label: string
-  icon?: ReactNode
-  onClick?: () => void
-  href?: string
-}
+  label: string;
+  icon?: ReactNode;
+  onClick?: () => void;
+  href?: string;
+};
 
 export type MenuProps = {
-  menuItems?: MenuItem[]
-  githubUrl?: string
-  currentSnapshot?: BinarySnapshot | null
-  showHistogram: boolean
-  onShowHistogramChange: (show: boolean) => void
-}
+  menuItems?: MenuItem[];
+  githubUrl?: string;
+  currentSnapshot?: BinarySnapshot | null;
+  showHistogram: boolean;
+  onShowHistogramChange: (show: boolean) => void;
+};
 
 const isInternalLink = (href: string): boolean => {
-  return href.startsWith("/")
-}
+  return href.startsWith('/');
+};
 
 const defaultMenuItems: MenuItem[] = [
   {
-    label: "Home",
-    href: "/",
+    label: 'Home',
+    href: '/',
     icon: <Home className="mr-2 h-4 w-4" />
   }
-]
+];
 
 export const Menu: FunctionComponent<MenuProps> = ({
   menuItems,
-  githubUrl = "https://github.com/jakiestfu/hexed",
+  githubUrl = 'https://github.com/jakiestfu/hexed',
   currentSnapshot,
   showHistogram,
   onShowHistogramChange
 }) => {
-  const { theme, setTheme } = useTheme()
-  const { recentFiles, clearRecentFiles, removeRecentFile } = useRecentFiles()
-  const { showChecksums, setShowChecksums } = useChecksumVisibility()
-  const { showAscii, setShowAscii } = useAsciiVisibility()
-  const { showInterpreter, setShowInterpreter } = useInterpreterVisibility()
-  const { showTemplates, setShowTemplates } = useTemplatesVisibility()
-  const { showStrings, setShowStrings } = useStringsVisibility()
-  const { sidebarPosition, setSidebarPosition } = useSidebarPosition()
-  const [showClientFileDialog, setShowClientFileDialog] = useState(false)
+  const { theme, setTheme } = useTheme();
+  const { recentFiles, clearRecentFiles, removeRecentFile } = useRecentFiles();
+  const {
+    showAscii,
+    setShowAscii,
+    showChecksums,
+    setShowChecksums,
+    showInterpreter,
+    setShowInterpreter,
+    showTemplates,
+    setShowTemplates,
+    showStrings,
+    setShowStrings,
+    sidebarPosition,
+    setSidebarPosition
+  } = useSettings();
+  const [showClientFileDialog, setShowClientFileDialog] = useState(false);
   const [clickedClientFilePath, setClickedClientFilePath] = useState<
     string | null
-  >(null)
+  >(null);
 
   const effectiveMenuItems =
-    menuItems && menuItems.length > 0 ? menuItems : defaultMenuItems
+    menuItems && menuItems.length > 0 ? menuItems : defaultMenuItems;
 
   // Determine active sidebar panel
   const activeSidebarPanel = showInterpreter
-    ? "interpreter"
+    ? 'interpreter'
     : showTemplates
-      ? "templates"
+      ? 'templates'
       : showStrings
-        ? "strings"
-        : null
+        ? 'strings'
+        : null;
 
   const handleSidebarPanelChange = (value: string) => {
-    setShowInterpreter(false)
-    setShowTemplates(false)
-    setShowStrings(false)
+    setShowInterpreter(false);
+    setShowTemplates(false);
+    setShowStrings(false);
 
     switch (value) {
-      case "interpreter":
-        setShowInterpreter(true)
-        break
-      case "templates":
-        setShowTemplates(true)
-        break
-      case "strings":
-        setShowStrings(true)
-        break
+      case 'interpreter':
+        setShowInterpreter(true);
+        break;
+      case 'templates':
+        setShowTemplates(true);
+        break;
+      case 'strings':
+        setShowStrings(true);
+        break;
       default:
-        break
+        break;
     }
-  }
+  };
 
   return (
     <>
       <DropdownMenuContent align="start">
         {effectiveMenuItems?.map((item, index) => {
           if (item.href) {
-            const isInternal = isInternalLink(item.href)
+            const isInternal = isInternalLink(item.href);
             const content = (
               <>
                 {item.icon}
                 {item.label}
               </>
-            )
+            );
 
             if (isInternal) {
               return (
@@ -160,7 +163,7 @@ export const Menu: FunctionComponent<MenuProps> = ({
                     {content}
                   </Link>
                 </DropdownMenuItem>
-              )
+              );
             } else {
               return (
                 <DropdownMenuItem
@@ -177,7 +180,7 @@ export const Menu: FunctionComponent<MenuProps> = ({
                     {content}
                   </a>
                 </DropdownMenuItem>
-              )
+              );
             }
           }
 
@@ -190,7 +193,7 @@ export const Menu: FunctionComponent<MenuProps> = ({
               {item.icon}
               {item.label}
             </DropdownMenuItem>
-          )
+          );
         })}
         {effectiveMenuItems && effectiveMenuItems.length > 0 && (
           <DropdownMenuSeparator />
@@ -204,18 +207,18 @@ export const Menu: FunctionComponent<MenuProps> = ({
             {recentFiles.length > 0 ? (
               <>
                 {recentFiles.map((file) => {
-                  const encodedPath = encodeFilePath(file.path)
+                  const encodedPath = encodeFilePath(file.path);
                   // Use stored source, fallback to "path" for backward compatibility
-                  const fileSource = file.source || "upload"
-                  const isClientFile = fileSource === "upload"
+                  const fileSource = file.source || 'upload';
+                  const isClientFile = fileSource === 'upload';
 
                   if (isClientFile) {
                     return (
                       <DropdownMenuItem
                         key={file.path}
                         onClick={() => {
-                          setClickedClientFilePath(file.path)
-                          setShowClientFileDialog(true)
+                          setClickedClientFilePath(file.path);
+                          setShowClientFileDialog(true);
                         }}
                         className="cursor-pointer"
                       >
@@ -227,7 +230,7 @@ export const Menu: FunctionComponent<MenuProps> = ({
                           {formatFilenameForDisplay(file.path)}
                         </span>
                       </DropdownMenuItem>
-                    )
+                    );
                   }
 
                   return (
@@ -246,7 +249,7 @@ export const Menu: FunctionComponent<MenuProps> = ({
                         {formatFilenameForDisplay(file.path)}
                       </Link>
                     </DropdownMenuItem>
-                  )
+                  );
                 })}
                 <DropdownMenuSeparator />
                 <DropdownMenuItem
@@ -313,7 +316,7 @@ export const Menu: FunctionComponent<MenuProps> = ({
           </DropdownMenuSubTrigger>
           <DropdownMenuSubContent>
             <DropdownMenuRadioGroup
-              value={activeSidebarPanel || ""}
+              value={activeSidebarPanel || ''}
               onValueChange={handleSidebarPanelChange}
             >
               <DropdownMenuRadioItem
@@ -357,7 +360,7 @@ export const Menu: FunctionComponent<MenuProps> = ({
             <DropdownMenuRadioGroup
               value={sidebarPosition}
               onValueChange={(value) =>
-                setSidebarPosition(value as "left" | "right")
+                setSidebarPosition(value as 'left' | 'right')
               }
             >
               <DropdownMenuRadioItem
@@ -388,7 +391,7 @@ export const Menu: FunctionComponent<MenuProps> = ({
           </DropdownMenuSubTrigger>
           <DropdownMenuSubContent>
             <DropdownMenuRadioGroup
-              value={theme || "system"}
+              value={theme || 'system'}
               onValueChange={(value) => setTheme(value)}
             >
               <DropdownMenuRadioItem
@@ -461,10 +464,10 @@ export const Menu: FunctionComponent<MenuProps> = ({
               variant="outline"
               onClick={() => {
                 if (clickedClientFilePath) {
-                  removeRecentFile(clickedClientFilePath)
+                  removeRecentFile(clickedClientFilePath);
                 }
-                setShowClientFileDialog(false)
-                setClickedClientFilePath(null)
+                setShowClientFileDialog(false);
+                setClickedClientFilePath(null);
               }}
             >
               Remove from recent files
@@ -476,5 +479,5 @@ export const Menu: FunctionComponent<MenuProps> = ({
         </DialogContent>
       </Dialog>
     </>
-  )
-}
+  );
+};

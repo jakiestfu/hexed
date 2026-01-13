@@ -38,7 +38,7 @@ import {
 } from "@hexed/ui"
 
 import { usePIP } from "~/hooks/use-pip"
-import { useSidebarPosition } from "~/hooks/use-sidebar-position"
+import { useSettings } from "~/hooks/use-settings"
 import type { StringsProps } from "./types"
 
 export const Strings: FunctionComponent<StringsProps> = ({
@@ -53,7 +53,7 @@ export const Strings: FunctionComponent<StringsProps> = ({
   const { isPIPActive, stylesLoaded, togglePIP, isSupported } = usePIP(
     stringsRef as RefObject<HTMLElement>
   )
-  const { toggleSidebarPosition } = useSidebarPosition()
+  const { toggleSidebarPosition } = useSettings()
   const [minLength, setMinLength] = useState<number>(4)
   const [encoding, setEncoding] = useState<StringEncoding>("ascii")
 

@@ -36,7 +36,7 @@ import type { TemplatesProps } from "~/components/hex-editor/types"
 import { MarkdownRenderer } from "~/components/markdown-renderer"
 import { usePIP } from "~/hooks/use-pip"
 import { useQueryParamState } from "~/hooks/use-query-param-state"
-import { useSidebarPosition } from "~/hooks/use-sidebar-position"
+import { useSettings } from "~/hooks/use-settings"
 
 type TemplateEntry = {
   name: string
@@ -113,7 +113,7 @@ export const Templates: FunctionComponent<TemplatesProps> = ({
   const { isPIPActive, stylesLoaded, togglePIP, isSupported } = usePIP(
     templatesRef as RefObject<HTMLElement>
   )
-  const { toggleSidebarPosition } = useSidebarPosition()
+  const { toggleSidebarPosition } = useSettings()
   const [commandOpen, setCommandOpen] = useState(false)
   const [templateValue, setTemplateValue] = useQueryParamState<string>(
     "template",
