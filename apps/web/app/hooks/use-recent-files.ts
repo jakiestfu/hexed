@@ -33,7 +33,7 @@ export function useRecentFiles() {
             // Infer source from path for backward compatibility
             const inferredSource: FileSource = isUrlPath(file.path)
               ? "url"
-              : "path";
+              : "disk";
             return { ...file, source: inferredSource };
           }
           return file;
@@ -48,7 +48,7 @@ export function useRecentFiles() {
   }, []);
 
   const addRecentFile = React.useCallback(
-    (filePath: string, source: FileSource = "path") => {
+    (filePath: string, source: FileSource = "disk") => {
       if (typeof window === "undefined") return;
 
       try {

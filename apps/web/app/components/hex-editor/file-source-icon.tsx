@@ -1,7 +1,12 @@
 "use client";
 
 import { FunctionComponent } from "react";
-import { HardDrive, Upload, Link as LinkIcon } from "lucide-react";
+import {
+  HardDrive,
+  Upload,
+  Link as LinkIcon,
+  FileQuestion,
+} from "lucide-react";
 import { cn } from "@hexed/ui";
 import { FileSource } from "~/components/hex-editor/types";
 
@@ -24,6 +29,6 @@ export const FileSourceIcon: FunctionComponent<FileSourceIconProps> = ({
     case "url":
       return <LinkIcon className={iconClassName} />;
     default:
-      return <HardDrive className={iconClassName} />;
+      return <FileQuestion className={iconClassName} />;
   }
 };

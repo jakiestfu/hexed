@@ -20,7 +20,7 @@ import type { BinarySnapshot } from "@hexed/types";
 import { isElectron, openFileDialog } from "~/utils/electron";
 import { createSnapshotFromFile, formatTimestamp, getBasename } from "./utils";
 import { useQueryParamState } from "~/hooks/use-query-param-state";
-import { encodeFilePath } from "~/utils/path-encoding";
+import { encodeFilePath, isUrlPath } from "~/utils/path-encoding";
 import { FileSourceIcon } from "./file-source-icon";
 import { FileSource } from "~/components/hex-editor/types";
 
@@ -107,7 +107,18 @@ export const DataPicker: FunctionComponent<DataPickerProps> = ({
   }, []);
 
   const handleRecentFileSelect = (path: string) => {
-    onFileSelect(path);
+    // Find the recent file to get its source
+    const recentFile = recentFiles.find((file) => file.path === path);
+    const source = recentFile?.source || (isUrlPath(path) ? "url" : "disk");
+
+    // If it's a URL, navigate directly to the edit page
+    if (source === "url") {
+      const encodedUrl = encodeFilePath(path);
+      router.push(`/edit/${encodedUrl}`);
+    } else {
+      // For disk files, use the onFileSelect callback
+      onFileSelect(path);
+    }
   };
 
   // File Tab Handlers

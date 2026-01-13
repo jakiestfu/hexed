@@ -23,14 +23,14 @@ export const FileStatusPopover: FunctionComponent<FileStatusPopoverProps> = ({
   children,
 }) => {
   const getDotColor = () => {
-    if (fileSource === "path") {
+    if (fileSource === "disk") {
       return isConnected ? "bg-green-500" : "bg-red-500";
     }
     return "bg-gray-500";
   };
-
+  console.log({ fileSource, originalSource, isConnected, error });
   const getStatusText = () => {
-    if (fileSource === "path") {
+    if (fileSource === "disk") {
       if (error) {
         return "Error watching file";
       }
@@ -59,7 +59,7 @@ export const FileStatusPopover: FunctionComponent<FileStatusPopoverProps> = ({
             </div>
           </div>
 
-          {fileSource === "path" && (
+          {fileSource === "disk" && (
             <>
               <div className="text-xs text-muted-foreground font-mono break-all">
                 <span className="font-semibold">Disk:</span> {originalSource}
@@ -87,7 +87,7 @@ export const FileStatusPopover: FunctionComponent<FileStatusPopoverProps> = ({
             </>
           )}
 
-          {fileSource === "client" && (
+          {fileSource === "upload" && (
             <>
               <div className="text-xs text-muted-foreground font-mono break-all">
                 <span className="font-semibold">Upload:</span> {originalSource}

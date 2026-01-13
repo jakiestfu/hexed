@@ -25,7 +25,7 @@ export default function EditPage() {
     const decoded = decodeFilePath(encodedPath);
     if (decoded) {
       // Determine source type: URL or path
-      const source = isUrlPath(decoded) ? "url" : "path";
+      const source = isUrlPath(decoded) ? "url" : "disk";
       addRecentFile(decoded, source);
     }
     return decoded;
@@ -77,13 +77,14 @@ export default function EditPage() {
   const handleFileSelect = React.useCallback(
     (input: string | BinarySnapshot) => {
       if (typeof input === "string") {
-        // String path - navigate to new file
-        addRecentFile(input, "path");
+        // String path - determine source type and navigate
+        const source = isUrlPath(input) ? "url" : "disk";
+        addRecentFile(input, source);
         const encodedPath = encodeFilePath(input);
         router.push(`/edit/${encodedPath}`);
       } else {
         // BinarySnapshot - navigate to home with snapshot (client upload)
-        addRecentFile(input.filePath, "client");
+        addRecentFile(input.filePath, "upload");
         router.push("/");
         // The home page will handle the snapshot via its own state
       }
@@ -168,7 +169,7 @@ export default function EditPage() {
       isConnected={isUrl ? false : isConnected}
       loading={snapshots.length === 0 && !error && (isUrl ? urlLoading : true)}
       onClose={handleClose}
-      fileSource={isUrl ? "url" : "path"}
+      fileSource={isUrl ? "url" : "disk"}
       originalSource={filePath || ""}
       error={error}
       onRestartWatching={isUrl ? undefined : restart}

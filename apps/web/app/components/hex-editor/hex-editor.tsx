@@ -112,7 +112,7 @@ export const HexEditor: FunctionComponent<HexEditorProps> = ({
   onFileSelect,
   recentFiles = [],
   className = "",
-  fileSource = "path",
+  fileSource = "upload",
   originalSource,
   error,
   onRestartWatching,
@@ -334,7 +334,10 @@ export const HexEditor: FunctionComponent<HexEditorProps> = ({
         center={
           !hasFile ? (
             <div className="flex items-center gap-2 min-w-0">
-              <File className="h-4 w-4 text-muted-foreground shrink-0" />
+              <FileSourceIcon
+                fileSource={fileSource}
+                className="h-4 w-4 text-muted-foreground shrink-0"
+              />
               <span className="font-mono text-sm text-muted-foreground">
                 No file selected
               </span>
@@ -360,13 +363,14 @@ export const HexEditor: FunctionComponent<HexEditorProps> = ({
                 </span>
                 <div
                   className={`inline-flex h-2 w-2 rounded-full shrink-0 ${
-                    fileSource === "path"
+                    fileSource === "disk"
                       ? isConnected
                         ? "bg-green-500"
                         : "bg-red-500"
                       : "bg-gray-500"
                   }`}
                 />
+                {fileSource}
               </div>
             </FileStatusPopover>
           )

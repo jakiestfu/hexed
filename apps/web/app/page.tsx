@@ -7,6 +7,7 @@ import { useRecentFiles } from "~/hooks/use-recent-files";
 import { encodeFilePath, isUrlPath } from "~/utils/path-encoding";
 import type { BinarySnapshot } from "@hexed/types";
 import { useDragDrop } from "~/components/hex-editor/drag-drop-provider";
+import { FileSource } from "~/components/hex-editor/types";
 
 export default function Home() {
   const router = useRouter();
@@ -18,27 +19,29 @@ export default function Home() {
   const [directFilePath, setDirectFilePath] = React.useState<string | null>(
     null
   );
-  const [fileSource, setFileSource] = React.useState<"client" | "url">("client");
+  const [fileSource, setFileSource] = React.useState<FileSource>("upload");
   const [originalSource, setOriginalSource] = React.useState<string>("");
 
-  const handleAddSnapshot = React.useCallback(
-    (snapshot: BinarySnapshot) => {
-      setDirectSnapshots((prev) => [...prev, snapshot]);
-    },
-    []
-  );
+  const handleAddSnapshot = React.useCallback((snapshot: BinarySnapshot) => {
+    setDirectSnapshots((prev) => [...prev, snapshot]);
+  }, []);
 
   const handleFileSelect = React.useCallback(
     (input: string | BinarySnapshot) => {
       if (typeof input === "string") {
-        // String path - use existing flow with file watcher
-        addRecentFile(input, "path");
+        // String path - determine source type
+        // Check if it's from a recent file first
+        const recentFile = recentFiles.find((file) => file.path === input);
+        const source =
+          recentFile?.source || (isUrlPath(input) ? "url" : "disk");
+
+        addRecentFile(input, source);
         const encodedPath = encodeFilePath(input);
         router.push(`/edit/${encodedPath}`);
       } else {
         // BinarySnapshot - check if it's a URL or client upload
         const isUrl = isUrlPath(input.filePath);
-        
+
         // If it's a URL, encode and navigate to edit route
         if (isUrl) {
           addRecentFile(input.filePath, "url");
@@ -46,14 +49,14 @@ export default function Home() {
           router.push(`/edit/${encodedUrl}`);
         } else {
           // Client upload - check if we should add as snapshot or replace
-          const currentFileSource = "client";
-          
+          const currentFileSource: FileSource = "upload";
+
           // If we already have snapshots and the current file is client based, add as snapshot
-          if (directSnapshots.length > 0 && fileSource === "client") {
+          if (directSnapshots.length > 0 && fileSource === "upload") {
             handleAddSnapshot(input);
           } else {
             // Otherwise, replace
-            addRecentFile(input.filePath, "client");
+            addRecentFile(input.filePath, "upload");
             setDirectSnapshots([input]);
             setDirectFilePath(input.filePath);
             setFileSource(currentFileSource);
@@ -62,7 +65,13 @@ export default function Home() {
         }
       }
     },
-    [addRecentFile, router, directSnapshots.length, fileSource, handleAddSnapshot]
+    [
+      addRecentFile,
+      router,
+      directSnapshots.length,
+      fileSource,
+      handleAddSnapshot,
+    ]
   );
 
   // Register the file select handler with drag-drop provider
@@ -76,7 +85,7 @@ export default function Home() {
   const handleClose = () => {
     setDirectSnapshots([]);
     setDirectFilePath(null);
-    setFileSource("client");
+    setFileSource("upload");
     setOriginalSource("");
   };
 

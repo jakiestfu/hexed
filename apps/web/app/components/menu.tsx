@@ -198,8 +198,8 @@ export const Menu: FunctionComponent<MenuProps> = ({
                 {recentFiles.map((file) => {
                   const encodedPath = encodeFilePath(file.path);
                   // Use stored source, fallback to "path" for backward compatibility
-                  const fileSource = file.source || "path";
-                  const isClientFile = fileSource === "client";
+                  const fileSource = file.source || "upload";
+                  const isClientFile = fileSource === "upload";
 
                   if (isClientFile) {
                     return (
