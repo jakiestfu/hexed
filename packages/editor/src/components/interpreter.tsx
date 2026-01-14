@@ -1,9 +1,7 @@
-import { useEffect, useMemo, useRef } from "react"
-import type { FunctionComponent, RefObject } from "react"
+import { useEffect, useMemo } from "react"
+import type { FunctionComponent } from "react"
 import {
   ArrowLeftRight,
-  Maximize2,
-  Minimize2,
   MousePointerClick,
   X
 } from "lucide-react"
@@ -60,7 +58,6 @@ import {
   TooltipTrigger
 } from "@hexed/ui"
 
-import { usePIP } from "../hooks/use-pip"
 import { useSettings } from "../hooks/use-settings"
 import type { InterpreterProps } from "../types"
 
@@ -87,8 +84,7 @@ export const Interpreter: FunctionComponent<InterpreterProps> = ({
   endianness = "le",
   numberFormat = "dec",
   onClose,
-  onScrollToOffset,
-  onPIPStateChange
+  onScrollToOffset
 }) => {
   const interpretedData = useMemo<InterpretedValue[]>(() => {
     if (
@@ -289,16 +285,7 @@ export const Interpreter: FunctionComponent<InterpreterProps> = ({
     return results
   }, [data, selectedOffset, endianness, numberFormat])
 
-  const interpreterRef = useRef<HTMLDivElement>(null)
-  const { isPIPActive, stylesLoaded, togglePIP, isSupported } = usePIP(
-    interpreterRef as RefObject<HTMLElement>
-  )
   const { toggleSidebarPosition } = useSettings()
-
-  // Notify parent component when PIP state changes
-  useEffect(() => {
-    onPIPStateChange?.(isPIPActive)
-  }, [isPIPActive, onPIPStateChange])
 
   const hexAddress =
     selectedOffset !== null ? formatAddress(selectedOffset) : ""
@@ -306,13 +293,7 @@ export const Interpreter: FunctionComponent<InterpreterProps> = ({
     selectedOffset !== null ? selectedOffset.toLocaleString() : ""
 
   return (
-    <div
-      ref={interpreterRef}
-      className="h-full"
-      style={{
-        visibility: isPIPActive && !stylesLoaded ? "hidden" : "visible"
-      }}
-    >
+    <div className="h-full">
       <Card className="h-full flex flex-col p-0 rounded-none border-none bg-sidebar overflow-hidden gap-0">
         <CardHeader className="py-3! px-4 border-b shrink-0 gap-0 bg-secondary">
           <div className="flex items-center justify-between gap-4">
@@ -322,7 +303,7 @@ export const Interpreter: FunctionComponent<InterpreterProps> = ({
               </CardTitle>
               {selectedOffset !== null && (
                 <div className="flex items-center justify-center grow gap-2 text-xs text-muted-foreground min-w-0">
-                  {onScrollToOffset && !isPIPActive ? (
+                  {onScrollToOffset ? (
                     <button
                       onClick={() => onScrollToOffset(selectedOffset)}
                       className="font-mono hover:text-foreground hover:underline transition-colors cursor-pointer"
@@ -342,46 +323,33 @@ export const Interpreter: FunctionComponent<InterpreterProps> = ({
                 </div>
               )}
             </div>
-            {!isPIPActive && (
-              <div className="flex items-center gap-2 shrink-0">
-                <Tooltip>
-                  <TooltipTrigger asChild>
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                      onClick={toggleSidebarPosition}
-                      className="h-7 w-7 p-0"
-                      aria-label="Toggle sidebar position"
-                    >
-                      <ArrowLeftRight className="h-4 w-4" />
-                    </Button>
-                  </TooltipTrigger>
-                  <TooltipContent>Toggle sidebar position</TooltipContent>
-                </Tooltip>
-                {isSupported && (
+            <div className="flex items-center gap-2 shrink-0">
+              <Tooltip>
+                <TooltipTrigger asChild>
                   <Button
                     variant="ghost"
                     size="icon"
-                    onClick={togglePIP}
+                    onClick={toggleSidebarPosition}
                     className="h-7 w-7 p-0"
-                    aria-label="Open Picture-in-Picture window"
+                    aria-label="Toggle sidebar position"
                   >
-                    <Maximize2 className="h-4 w-4" />
+                    <ArrowLeftRight className="h-4 w-4" />
                   </Button>
-                )}
-                {onClose && (
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    onClick={onClose}
-                    className="h-7 w-7 p-0"
-                    aria-label="Close interpreter"
-                  >
-                    <X className="h-4 w-4" />
-                  </Button>
-                )}
-              </div>
-            )}
+                </TooltipTrigger>
+                <TooltipContent>Toggle sidebar position</TooltipContent>
+              </Tooltip>
+              {onClose && (
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  onClick={onClose}
+                  className="h-7 w-7 p-0"
+                  aria-label="Close interpreter"
+                >
+                  <X className="h-4 w-4" />
+                </Button>
+              )}
+            </div>
           </div>
         </CardHeader>
         <CardContent className="p-0 flex-1 overflow-y-auto">

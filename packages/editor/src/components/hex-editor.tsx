@@ -128,9 +128,6 @@ export const HexEditor: FunctionComponent<
     start: number
     end: number
   } | null>(null)
-  const [isInterpreterPIPActive, setIsInterpreterPIPActive] = useState(false)
-  const [isTemplatesPIPActive, setIsTemplatesPIPActive] = useState(false)
-  const [isStringsPIPActive, setIsStringsPIPActive] = useState(false)
   const [showHistogram, setShowHistogram] = useState(false)
   const [showSearch, setShowSearch] = useState(false)
   const searchInputRef = useRef<HTMLInputElement | null>(null)
@@ -371,9 +368,9 @@ export const HexEditor: FunctionComponent<
 
     return snapshots.map((snapshot, index) => {
       // Calculate default sizes based on visible panels
-      const hasInterpreter = showInterpreter && !isInterpreterPIPActive
-      const hasTemplates = showTemplates && !isTemplatesPIPActive
-      const hasStrings = showStrings && !isStringsPIPActive
+      const hasInterpreter = showInterpreter
+      const hasTemplates = showTemplates
+      const hasStrings = showStrings
       const hasSidebars = hasInterpreter || hasTemplates || hasStrings
 
       // Calculate sizes for the sidebar group relative to hex canvas
@@ -410,7 +407,7 @@ export const HexEditor: FunctionComponent<
       const interpreterPanel = showInterpreter ? (
         <ResizablePanel
           id="interpreter"
-          defaultSize={isInterpreterPIPActive ? 0 : interpreterDefaultSize}
+          defaultSize={interpreterDefaultSize}
           minSize={15}
           collapsible
         >
@@ -422,7 +419,6 @@ export const HexEditor: FunctionComponent<
               numberFormat={numberFormat as "dec" | "hex"}
               onClose={() => setShowInterpreter(false)}
               onScrollToOffset={handleScrollToOffset}
-              onPIPStateChange={setIsInterpreterPIPActive}
             />
           </div>
         </ResizablePanel>
@@ -431,7 +427,7 @@ export const HexEditor: FunctionComponent<
       const templatesPanel = showTemplates ? (
         <ResizablePanel
           id="templates"
-          defaultSize={isTemplatesPIPActive ? 0 : templatesDefaultSize}
+          defaultSize={templatesDefaultSize}
           minSize={10}
           collapsible
         >
@@ -442,7 +438,6 @@ export const HexEditor: FunctionComponent<
               onClose={() => setShowTemplates(false)}
               onScrollToOffset={handleScrollToOffset}
               onSelectedOffsetRangeChange={setSelectedOffsetRange}
-              onPIPStateChange={setIsTemplatesPIPActive}
             />
           </div>
         </ResizablePanel>
@@ -451,7 +446,7 @@ export const HexEditor: FunctionComponent<
       const stringsPanel = showStrings ? (
         <ResizablePanel
           id="strings"
-          defaultSize={isStringsPIPActive ? 0 : stringsDefaultSize}
+          defaultSize={stringsDefaultSize}
           minSize={10}
           collapsible
         >
@@ -462,7 +457,6 @@ export const HexEditor: FunctionComponent<
               onScrollToOffset={handleScrollToOffset}
               onSelectedOffsetRangeChange={setSelectedOffsetRange}
               onRangeSelectedForSearch={handleRangeSelectedForSearch}
-              onPIPStateChange={setIsStringsPIPActive}
             />
           </div>
         </ResizablePanel>

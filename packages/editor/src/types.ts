@@ -52,7 +52,6 @@ export type InterpreterProps = {
   numberFormat: NumberFormat
   onClose?: () => void
   onScrollToOffset?: (offset: number) => void
-  onPIPStateChange?: (isPIPActive: boolean) => void
 }
 
 export type TemplatesProps = {
@@ -61,7 +60,6 @@ export type TemplatesProps = {
   onClose?: () => void
   onScrollToOffset?: (offset: number) => void
   onSelectedOffsetRangeChange?: (range: SelectionRange) => void
-  onPIPStateChange?: (isPIPActive: boolean) => void
   // Props for URL state management (optional - uses internal state if not provided)
   selectedTemplateName?: string
   onTemplateNameChange?: (name: string) => void
@@ -73,5 +71,4 @@ export type StringsProps = {
   onScrollToOffset?: (offset: number) => void
   onSelectedOffsetRangeChange?: (range: SelectionRange) => void
   onRangeSelectedForSearch?: (range: SelectionRange) => void
-  onPIPStateChange?: (isPIPActive: boolean) => void
 }

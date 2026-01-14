@@ -1,6 +1,6 @@
-import { useEffect, useMemo, useRef, useState } from "react"
-import type { FunctionComponent, RefObject } from "react"
-import { ArrowLeftRight, Maximize2, Type, X } from "lucide-react"
+import { useEffect, useMemo, useState } from "react"
+import type { FunctionComponent } from "react"
+import { ArrowLeftRight, Type, X } from "lucide-react"
 
 import { formatAddress } from "@hexed/binary-utils/formatter"
 import {
@@ -37,7 +37,6 @@ import {
   TooltipTrigger
 } from "@hexed/ui"
 
-import { usePIP } from "../hooks/use-pip"
 import { useSettings } from "../hooks/use-settings"
 import type { StringsProps } from "../types"
 
@@ -46,21 +45,11 @@ export const Strings: FunctionComponent<StringsProps> = ({
   onClose,
   onScrollToOffset,
   onSelectedOffsetRangeChange,
-  onRangeSelectedForSearch,
-  onPIPStateChange
+  onRangeSelectedForSearch
 }) => {
-  const stringsRef = useRef<HTMLDivElement>(null)
-  const { isPIPActive, stylesLoaded, togglePIP, isSupported } = usePIP(
-    stringsRef as RefObject<HTMLElement>
-  )
   const { toggleSidebarPosition } = useSettings()
   const [minLength, setMinLength] = useState<number>(4)
   const [encoding, setEncoding] = useState<StringEncoding>("ascii")
-
-  // Notify parent component when PIP state changes
-  useEffect(() => {
-    onPIPStateChange?.(isPIPActive)
-  }, [isPIPActive, onPIPStateChange])
 
   const extractedStrings = useMemo<StringMatch[]>(() => {
     if (!data || data.length === 0) {
@@ -86,13 +75,7 @@ export const Strings: FunctionComponent<StringsProps> = ({
   }
 
   return (
-    <div
-      ref={stringsRef}
-      className="h-full"
-      style={{
-        visibility: isPIPActive && !stylesLoaded ? "hidden" : "visible"
-      }}
-    >
+    <div className="h-full">
       <Card className="h-full flex flex-col p-0 rounded-none border-none bg-sidebar overflow-hidden gap-0">
         <CardHeader className="py-3! px-4 border-b shrink-0 gap-0 bg-secondary">
           <div className="flex items-center justify-between gap-4">
@@ -101,46 +84,33 @@ export const Strings: FunctionComponent<StringsProps> = ({
                 Strings
               </CardTitle>
             </div>
-            {!isPIPActive && (
-              <div className="flex items-center gap-2 shrink-0">
-                <Tooltip>
-                  <TooltipTrigger asChild>
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                      onClick={toggleSidebarPosition}
-                      className="h-7 w-7 p-0"
-                      aria-label="Toggle sidebar position"
-                    >
-                      <ArrowLeftRight className="h-4 w-4" />
-                    </Button>
-                  </TooltipTrigger>
-                  <TooltipContent>Toggle sidebar position</TooltipContent>
-                </Tooltip>
-                {isSupported && (
+            <div className="flex items-center gap-2 shrink-0">
+              <Tooltip>
+                <TooltipTrigger asChild>
                   <Button
                     variant="ghost"
                     size="icon"
-                    onClick={togglePIP}
+                    onClick={toggleSidebarPosition}
                     className="h-7 w-7 p-0"
-                    aria-label="Open Picture-in-Picture window"
+                    aria-label="Toggle sidebar position"
                   >
-                    <Maximize2 className="h-4 w-4" />
+                    <ArrowLeftRight className="h-4 w-4" />
                   </Button>
-                )}
-                {onClose && (
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    onClick={onClose}
-                    className="h-7 w-7 p-0"
-                    aria-label="Close strings"
-                  >
-                    <X className="h-4 w-4" />
-                  </Button>
-                )}
-              </div>
-            )}
+                </TooltipTrigger>
+                <TooltipContent>Toggle sidebar position</TooltipContent>
+              </Tooltip>
+              {onClose && (
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  onClick={onClose}
+                  className="h-7 w-7 p-0"
+                  aria-label="Close strings"
+                >
+                  <X className="h-4 w-4" />
+                </Button>
+              )}
+            </div>
           </div>
         </CardHeader>
         <CardContent className="p-4 flex-1 overflow-y-auto">
@@ -248,8 +218,7 @@ export const Strings: FunctionComponent<StringsProps> = ({
                           <TableRow key={`${match.offset}-${index}`}>
                             <TableCell className="font-mono text-xs pl-4">
                               {(onScrollToOffset ||
-                                onSelectedOffsetRangeChange) &&
-                              !isPIPActive ? (
+                                onSelectedOffsetRangeChange) ? (
                                 <button
                                   onClick={() => {
                                     const range = {

@@ -1,10 +1,9 @@
-import { useEffect, useRef, useState } from "react"
-import type { FunctionComponent, RefObject } from "react"
+import { useEffect, useState } from "react"
+import type { FunctionComponent } from "react"
 import {
   AlertCircle,
   ArrowLeftRight,
   FileCode,
-  Maximize2,
   X
 } from "lucide-react"
 
@@ -20,7 +19,6 @@ import {
   EmptyHeader,
   EmptyMedia,
   EmptyTitle,
-  Separator,
   Tabs,
   TabsContent,
   TabsList,
@@ -30,6 +28,7 @@ import {
   TooltipTrigger
 } from "@hexed/ui"
 
+import { useSettings } from "../hooks/use-settings"
 import { ObjectTree } from "./object-tree"
 import { TemplatesCombobox } from "./templates-combobox"
 import type { TemplatesProps } from "../types"
@@ -103,14 +102,9 @@ export const Templates: FunctionComponent<TemplatesProps> = ({
   onClose,
   onScrollToOffset,
   onSelectedOffsetRangeChange,
-  onPIPStateChange,
   selectedTemplateName: controlledTemplateName,
   onTemplateNameChange: controlledOnTemplateNameChange
 }) => {
-  const templatesRef = useRef<HTMLDivElement>(null)
-  const { isPIPActive, stylesLoaded, togglePIP, isSupported } = usePIP(
-    templatesRef as RefObject<HTMLElement>
-  )
   const { toggleSidebarPosition } = useSettings()
   const [commandOpen, setCommandOpen] = useState(false)
   // Use controlled state if provided, otherwise use internal state
@@ -128,11 +122,6 @@ export const Templates: FunctionComponent<TemplatesProps> = ({
   )
   const [selectedSpec, setSelectedSpec] = useState<KsySchema | null>(null)
   const [parseError, setParseError] = useState<string | null>(null)
-
-  // Notify parent component when PIP state changes
-  useEffect(() => {
-    onPIPStateChange?.(isPIPActive)
-  }, [isPIPActive, onPIPStateChange])
 
   // Restore template from URL param on mount or when value changes
   useEffect(() => {
@@ -220,13 +209,7 @@ export const Templates: FunctionComponent<TemplatesProps> = ({
   }
 
   return (
-    <div
-      ref={templatesRef}
-      className="h-full"
-      style={{
-        visibility: isPIPActive && !stylesLoaded ? "hidden" : "visible"
-      }}
-    >
+    <div className="h-full">
       <Card className="h-full flex flex-col p-0 rounded-none border-none bg-sidebar overflow-hidden gap-0">
         <CardHeader className="py-3! px-4 border-b shrink-0 gap-0 bg-secondary">
           <div className="flex items-center justify-between gap-4">
@@ -235,46 +218,33 @@ export const Templates: FunctionComponent<TemplatesProps> = ({
                 Templates
               </CardTitle>
             </div>
-            {!isPIPActive && (
-              <div className="flex items-center gap-2 shrink-0">
-                <Tooltip>
-                  <TooltipTrigger asChild>
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                      onClick={toggleSidebarPosition}
-                      className="h-7 w-7 p-0"
-                      aria-label="Toggle sidebar position"
-                    >
-                      <ArrowLeftRight className="h-4 w-4" />
-                    </Button>
-                  </TooltipTrigger>
-                  <TooltipContent>Toggle sidebar position</TooltipContent>
-                </Tooltip>
-                {isSupported && (
+            <div className="flex items-center gap-2 shrink-0">
+              <Tooltip>
+                <TooltipTrigger asChild>
                   <Button
                     variant="ghost"
                     size="icon"
-                    onClick={togglePIP}
+                    onClick={toggleSidebarPosition}
                     className="h-7 w-7 p-0"
-                    aria-label="Open Picture-in-Picture window"
+                    aria-label="Toggle sidebar position"
                   >
-                    <Maximize2 className="h-4 w-4" />
+                    <ArrowLeftRight className="h-4 w-4" />
                   </Button>
-                )}
-                {onClose && (
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    onClick={onClose}
-                    className="h-7 w-7 p-0"
-                    aria-label="Close templates"
-                  >
-                    <X className="h-4 w-4" />
-                  </Button>
-                )}
-              </div>
-            )}
+                </TooltipTrigger>
+                <TooltipContent>Toggle sidebar position</TooltipContent>
+              </Tooltip>
+              {onClose && (
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  onClick={onClose}
+                  className="h-7 w-7 p-0"
+                  aria-label="Close templates"
+                >
+                  <X className="h-4 w-4" />
+                </Button>
+              )}
+            </div>
           </div>
         </CardHeader>
         <CardContent className="p-4 flex-1 overflow-y-auto">
