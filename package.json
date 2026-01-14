@@ -32,8 +32,7 @@
     "pnpm": ">=8.0.0"
   },
   "devDependencies": {
-    "typescript": "^5.7.2",
-    "turbo": "^2.7.4"
+    "typescript": "^5.7.2"
   },
   "pnpm": {
     "onlyBuiltDependencies": [
