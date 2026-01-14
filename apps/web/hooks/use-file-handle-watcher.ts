@@ -16,22 +16,19 @@ export function useFileHandleWatcher(
   const [isConnected, setIsConnected] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const handleRef = useRef<FileSystemFileHandle | null>(handle);
-  const filePathRef = useRef<string | null>(filePath);
   const observerRef = useRef<FileSystemObserver | null>(null);
   const snapshotIndexRef = useRef<number>(0);
 
-  // Update refs when handle or filePath changes
+  // Update refs when handle changes
   useEffect(() => {
     handleRef.current = handle;
-    filePathRef.current = filePath;
-  }, [handle, filePath]);
+  }, [handle]);
 
   const readAndAddSnapshot = useCallback(async () => {
     // Use refs to get latest values for async operations
     const currentHandle = handleRef.current;
-    const currentFilePath = filePathRef.current;
 
-    if (!currentHandle || !currentFilePath) {
+    if (!currentHandle) {
       return;
     }
 
@@ -43,7 +40,7 @@ export function useFileHandleWatcher(
       snapshot.index = index;
       snapshot.label = index === 0 ? 'Baseline' : `Change ${index}`;
       snapshot.id = `${Date.now()}-${index}`;
-      snapshot.filePath = currentFilePath;
+      snapshot.filePath = currentHandle.name;
 
       setSnapshots((prev) => [...prev, snapshot]);
       snapshotIndexRef.current++;
@@ -62,7 +59,7 @@ export function useFileHandleWatcher(
   const connect = useCallback(() => {
     // Use the current prop values directly, not refs
     // This ensures we react to prop changes immediately
-    if (!handle || !filePath) {
+    if (!handle) {
       setSnapshots([]);
       setIsConnected(false);
       setError(null);
@@ -116,7 +113,7 @@ export function useFileHandleWatcher(
         setIsConnected(false);
       }
     });
-  }, [handle, filePath, readAndAddSnapshot]);
+  }, [handle, readAndAddSnapshot]);
 
   useEffect(() => {
     connect();

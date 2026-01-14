@@ -67,11 +67,11 @@ export default function EditPage() {
           throw new Error('File handle not found or permission denied');
         }
 
-        setHandleFilePath(handleData.path);
+        setHandleFilePath(handleData.handle.name);
         setHandleFileHandle(handleData.handle);
 
         // Update recent files (will check for duplicates internally)
-        addRecentFile(handleData.path, 'file-system', handleData.handle);
+        addRecentFile(handleData.handle.name, 'file-system', handleData.handle);
       } catch (error) {
         console.error('Failed to load handle metadata:', error);
         setHandleFilePath(null);

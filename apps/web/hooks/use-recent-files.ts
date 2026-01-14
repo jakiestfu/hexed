@@ -8,7 +8,7 @@ import {
   deleteFileHandle,
   getAllFileHandles,
   getFileHandle,
-  getFileHandleByPath,
+  getFileHandleByName,
   saveFileHandle,
   updateFileHandleTimestamp,
   verifyHandlePermission,
@@ -40,7 +40,7 @@ export function useRecentFiles() {
         const files: RecentFile[] = handles
           .slice(0, MAX_RECENT_FILES)
           .map((handle) => ({
-            path: handle.path,
+            path: handle.handle.name,
             timestamp: handle.timestamp,
             source: handle.source,
             handleId: handle.id
@@ -57,57 +57,52 @@ export function useRecentFiles() {
 
   const addRecentFile = React.useCallback(
     async (
-      filePath: string,
+      fileName: string,
       source: FileSource = 'file-system',
       handle?: FileSystemFileHandle
     ): Promise<string | undefined> => {
       if (typeof window === 'undefined') return undefined;
 
+      if (!handle) {
+        console.error('addRecentFile requires a FileSystemFileHandle');
+        return undefined;
+      }
+
       try {
         const now = Date.now();
         let handleId: string | undefined;
 
-        // Check if file already exists in IndexedDB
-        const existingHandle = await getFileHandleByPath(filePath);
+        // Check if file already exists in IndexedDB by name
+        const existingHandle = await getFileHandleByName(fileName);
 
         if (existingHandle) {
           // File exists - update timestamp instead of creating duplicate
           handleId = existingHandle.id;
 
-          // If we have a new handle, check if we need to update it
-          if (handle) {
-            // Check if we need to update the handle (e.g., if permission was lost)
-            const hasPermission = await verifyHandlePermission(
-              existingHandle.handle
-            );
-            if (!hasPermission) {
-              // Old handle lost permission, save new one
-              await deleteFileHandle(existingHandle.id);
-              handleId = await saveFileHandle(handle, {
-                path: filePath,
-                source
-              });
-            } else {
-              // Just update timestamp
-              await updateFileHandleTimestamp(existingHandle.id, now);
-            }
+          // Check if we need to update the handle (e.g., if permission was lost)
+          const hasPermission = await verifyHandlePermission(
+            existingHandle.handle
+          );
+          if (!hasPermission) {
+            // Old handle lost permission, save new one
+            await deleteFileHandle(existingHandle.id);
+            handleId = await saveFileHandle(handle, {
+              source
+            });
           } else {
             // Just update timestamp
             await updateFileHandleTimestamp(existingHandle.id, now);
           }
         } else {
           // File doesn't exist - create new entry
-          if (handle) {
-            handleId = await saveFileHandle(handle, {
-              path: filePath,
-              source
-            });
-          }
+          handleId = await saveFileHandle(handle, {
+            source
+          });
         }
 
         // Update state with file (move to top)
         const updatedFile: RecentFile = {
-          path: filePath,
+          path: fileName,
           timestamp: now,
           source,
           handleId
@@ -115,7 +110,7 @@ export function useRecentFiles() {
 
         setRecentFiles((prev) => {
           // Remove if already exists (to avoid duplicates)
-          const filtered = prev.filter((file) => file.path !== filePath);
+          const filtered = prev.filter((file) => file.path !== fileName);
 
           // Add updated file at the beginning
           const updated = [updatedFile, ...filtered].slice(0, MAX_RECENT_FILES);
@@ -132,18 +127,18 @@ export function useRecentFiles() {
   );
 
   const removeRecentFile = React.useCallback(
-    async (filePath: string) => {
+    async (fileName: string) => {
       if (typeof window === 'undefined') return;
 
       try {
         // Find the file to get its handleId
-        const file = recentFiles.find((f) => f.path === filePath);
+        const file = recentFiles.find((f) => f.path === fileName);
         if (file?.handleId) {
           await deleteFileHandle(file.handleId);
         }
 
         // Update state
-        setRecentFiles((prev) => prev.filter((file) => file.path !== filePath));
+        setRecentFiles((prev) => prev.filter((file) => file.path !== fileName));
       } catch (error) {
         console.error('Failed to remove recent file:', error);
       }

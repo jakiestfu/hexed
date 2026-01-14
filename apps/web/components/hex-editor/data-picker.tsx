@@ -149,9 +149,8 @@ export const DataPicker: FunctionComponent<DataPickerProps> = ({
         multiple: false
       });
 
-      const file = await handle.getFile();
       // Save handle and get handleId
-      const handleId = await addRecentFile(file.name, 'file-system', handle);
+      const handleId = await addRecentFile(handle.name, 'file-system', handle);
 
       if (handleId) {
         // Navigate to edit page with handleId
