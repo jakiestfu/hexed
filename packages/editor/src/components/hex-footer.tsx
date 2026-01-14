@@ -1,29 +1,228 @@
-import type { FunctionComponent, ReactNode } from "react"
+import type { FunctionComponent } from "react"
+import {
+  BarChart3,
+  Binary,
+  CaseSensitive,
+  ChevronDownIcon,
+  FileText,
+  Type
+} from "lucide-react"
+import type { BinarySnapshot } from "@hexed/types"
+import {
+  Button,
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuGroup,
+  DropdownMenuLabel,
+  DropdownMenuRadioGroup,
+  DropdownMenuRadioItem,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+  Toggle,
+  ToggleGroup,
+  ToggleGroupItem,
+  Tooltip,
+  TooltipContent,
+  TooltipTrigger
+} from "@hexed/ui"
 
-type HexFooterProps = {
-  left?: ReactNode
-  center?: ReactNode
-  right?: ReactNode
+import { formatFileSize } from "@hexed/binary-utils/formatter"
+import { MemoryProfiler } from "./memory-profiler"
+import { WorkerStatus } from "./worker-status"
+import { useSettings } from "../hooks/use-settings"
+
+export type HexFooterProps = {
+  dataType: string
+  setDataType: (value: string) => void
+  endianness: string
+  setEndianness: (value: string) => void
+  numberFormat: string
+  setNumberFormat: (value: string) => void
+  currentSnapshot?: BinarySnapshot
+  hasSnapshots: boolean
+  selectedOffset: number | null
+  paneToggleValue: string
+  onPaneToggleChange: (value: string) => void
+  onShowHistogram: () => void
 }
 
 export const HexFooter: FunctionComponent<HexFooterProps> = ({
-  left,
-  center,
-  right
+  dataType,
+  setDataType,
+  endianness,
+  setEndianness,
+  numberFormat,
+  setNumberFormat,
+  currentSnapshot,
+  hasSnapshots,
+  selectedOffset,
+  paneToggleValue,
+  onPaneToggleChange,
+  onShowHistogram
 }) => {
+  const { showAscii, setShowAscii, showMemoryProfiler, showWorkerStatus } =
+    useSettings()
+
+  const bytesLabel = currentSnapshot ? (
+    <div className="flex items-center gap-2 font-mono">
+      <span className="text-xs text-muted-foreground">
+        {formatFileSize(currentSnapshot.data.length || 0)}
+      </span>
+      {showMemoryProfiler && <MemoryProfiler />}
+      {showWorkerStatus && <WorkerStatus />}
+    </div>
+  ) : undefined
+
   return (
     <div className="flex items-center justify-between w-full border-t bg-muted/30 p-4">
-      <div className="flex items-start min-w-0 flex-1">{left}</div>
-      {center ? (
-        <div className="flex items-center grow justify-center">{center}</div>
+      <div className="flex items-start min-w-0 flex-1">
+        <div className="flex items-center gap-2">
+          <Select value={dataType} onValueChange={setDataType}>
+            <SelectTrigger size="sm">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="Signed Int">Signed Int</SelectItem>
+              <SelectItem value="Unsigned Int">Unsigned Int</SelectItem>
+              <SelectItem value="Floats">Floats</SelectItem>
+              <SelectItem value="UTF-8">UTF-8</SelectItem>
+              <SelectItem value="SLEB128">SLEB128</SelectItem>
+              <SelectItem value="ULEB128">ULEB128</SelectItem>
+              <SelectItem value="Binary">Binary</SelectItem>
+            </SelectContent>
+          </Select>
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button
+                variant="outline"
+                size="sm"
+                className="justify-between font-mono"
+              >
+                {endianness}, {numberFormat}
+                <ChevronDownIcon className="ml-2 h-4 w-4 opacity-50" />
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="start" className="w-48">
+              <DropdownMenuGroup>
+                <DropdownMenuLabel>Endianness</DropdownMenuLabel>
+                <DropdownMenuRadioGroup
+                  value={endianness}
+                  onValueChange={setEndianness}
+                >
+                  <DropdownMenuRadioItem value="le">little</DropdownMenuRadioItem>
+                  <DropdownMenuRadioItem value="be">big</DropdownMenuRadioItem>
+                </DropdownMenuRadioGroup>
+              </DropdownMenuGroup>
+              <DropdownMenuSeparator />
+              <DropdownMenuGroup>
+                <DropdownMenuLabel>Format</DropdownMenuLabel>
+                <DropdownMenuRadioGroup
+                  value={numberFormat}
+                  onValueChange={setNumberFormat}
+                >
+                  <DropdownMenuRadioItem value="dec">decimal</DropdownMenuRadioItem>
+                  <DropdownMenuRadioItem value="hex">
+                    hexadecimal
+                  </DropdownMenuRadioItem>
+                </DropdownMenuRadioGroup>
+              </DropdownMenuGroup>
+            </DropdownMenuContent>
+          </DropdownMenu>
+        </div>
+      </div>
+      {bytesLabel ? (
+        <div className="flex items-center grow justify-center">{bytesLabel}</div>
       ) : (
         <span />
       )}
-      {right ? (
-        <div className="flex items-end justify-end flex-1 min-w-0">{right}</div>
-      ) : (
-        <span />
-      )}
+      <div className="flex items-end justify-end flex-1 min-w-0">
+        <div className="flex items-center gap-2">
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <Toggle
+                variant="outline"
+                pressed={showAscii}
+                onPressedChange={setShowAscii}
+                aria-label="Toggle ASCII view"
+                size="sm"
+                className={showAscii ? "bg-accent" : ""}
+              >
+                <CaseSensitive />
+              </Toggle>
+            </TooltipTrigger>
+            <TooltipContent>Toggle ASCII view</TooltipContent>
+          </Tooltip>
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={onShowHistogram}
+                disabled={!hasSnapshots || !currentSnapshot?.data}
+                aria-label="Show histogram"
+              >
+                <BarChart3 className="h-4 w-4" />
+              </Button>
+            </TooltipTrigger>
+            <TooltipContent>Show Histogram</TooltipContent>
+          </Tooltip>
+          <ToggleGroup
+            type="single"
+            value={paneToggleValue}
+            onValueChange={onPaneToggleChange}
+            variant="outline"
+            size="sm"
+          >
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <ToggleGroupItem
+                  value="interpreter"
+                  aria-label="Toggle interpreter"
+                  className={
+                    paneToggleValue === "interpreter" ? "bg-accent" : ""
+                  }
+                >
+                  <Binary />
+                </ToggleGroupItem>
+              </TooltipTrigger>
+              <TooltipContent>
+                {selectedOffset === null
+                  ? "Select bytes to enable interpreter"
+                  : "Toggle interpreter panel"}
+              </TooltipContent>
+            </Tooltip>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <ToggleGroupItem
+                  value="templates"
+                  aria-label="Toggle templates panel"
+                  className={paneToggleValue === "templates" ? "bg-accent" : ""}
+                >
+                  <FileText />
+                </ToggleGroupItem>
+              </TooltipTrigger>
+              <TooltipContent>Toggle templates panel</TooltipContent>
+            </Tooltip>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <ToggleGroupItem
+                  value="strings"
+                  aria-label="Toggle strings panel"
+                  className={paneToggleValue === "strings" ? "bg-accent" : ""}
+                >
+                  <Type />
+                </ToggleGroupItem>
+              </TooltipTrigger>
+              <TooltipContent>Toggle strings panel</TooltipContent>
+            </Tooltip>
+          </ToggleGroup>
+        </div>
+      </div>
     </div>
   )
 }

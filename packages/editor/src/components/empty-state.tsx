@@ -1,19 +1,17 @@
 import type { FunctionComponent } from "react";
 
 import { useRecentFiles } from "../hooks/use-recent-files";
-import type { FileHandleMetadata } from "../utils/file-handle-storage";
-import type { FileManager } from "../utils";
+import { useFileManager } from "../providers/file-manager-provider";
 import { DataPicker } from "./data-picker";
 
 type EmptyStateProps = {
-  onHandleReady?: (handleData: FileHandleMetadata, handleId: string) => Promise<void>;
-  fileManager?: FileManager | null;
+  onHandleReady?: (handleId: string) => void;
 };
 
 export const EmptyState: FunctionComponent<EmptyStateProps> = ({
   onHandleReady,
-  fileManager,
 }) => {
+  const fileManager = useFileManager();
   const { recentFiles } = useRecentFiles();
 
   return (
@@ -21,7 +19,6 @@ export const EmptyState: FunctionComponent<EmptyStateProps> = ({
       <DataPicker
         recentFiles={recentFiles}
         onHandleReady={onHandleReady}
-        fileManager={fileManager}
       />
     </div>
   );

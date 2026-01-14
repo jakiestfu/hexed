@@ -34,3 +34,6 @@ export * from "./hooks/use-performance-metrics"
 export * from "./hooks/use-recent-files"
 export * from "./hooks/use-hex-editor-file"
 export * from "./hooks/use-file-handle-watcher"
+
+// Providers
+export * from "./providers/file-manager-provider"

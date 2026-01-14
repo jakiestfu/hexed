@@ -13,14 +13,12 @@ import {
 
 import { useRecentFiles } from "../hooks/use-recent-files";
 import type { RecentFile } from "../types";
-import type { FileHandleMetadata } from "../utils/file-handle-storage";
-import type { FileManager } from "../utils";
-import { formatTimestamp, getBasename } from "../utils";
+import { useFileManager } from "../providers/file-manager-provider";
+import { createSnapshotFromFile, formatTimestamp, getBasename } from "../utils";
 
 type DataPickerProps = {
   recentFiles: RecentFile[];
-  onHandleReady?: (handleData: FileHandleMetadata, handleId: string) => Promise<void>;
-  fileManager?: FileManager | null;
+  onHandleReady?: (handleId: string) => void;
 };
 
 // Recent Files Component
@@ -78,9 +76,9 @@ const RecentFilesDropdown: FunctionComponent<{
 export const DataPicker: FunctionComponent<DataPickerProps> = ({
   recentFiles,
   onHandleReady,
-  fileManager,
 }) => {
   const { addRecentFile, getFileHandleById } = useRecentFiles();
+  const fileManager = useFileManager();
   const [isLoading, setIsLoading] = useState(false);
   const [isMounted, setIsMounted] = useState(false);
   const supportsFileSystemAccess =
@@ -107,7 +105,39 @@ export const DataPicker: FunctionComponent<DataPickerProps> = ({
         throw new Error("File handle not found or permission denied");
       }
 
-      await onHandleReady(handleData, handleId);
+      // Open file in worker if file manager is available
+      if (fileManager) {
+        try {
+          await fileManager.openFile(handleId, handleData.handle);
+        } catch (workerError) {
+          console.warn("Failed to open file in worker:", workerError);
+          // Continue anyway, will fall back to direct reading
+        }
+      }
+
+      // Create snapshot using worker if available
+      const snapshot = await createSnapshotFromFile(
+        handleData.handle,
+        fileManager || null,
+        handleId
+      );
+      const snapshotKey = `hexed:pending-handle-${handleId}`;
+      try {
+        // Store snapshot data (convert Uint8Array to array for JSON)
+        const snapshotData = {
+          ...snapshot,
+          data: Array.from(snapshot.data)
+        };
+        sessionStorage.setItem(snapshotKey, JSON.stringify(snapshotData));
+      } catch (storageError) {
+        console.warn(
+          "Failed to store snapshot in sessionStorage:",
+          storageError
+        );
+      }
+
+      // Call callback with handleId
+      onHandleReady(handleId);
     } catch (error) {
       console.error("Error reopening file handle:", error);
       alert("Could not reopen file. Please select it again.");
@@ -143,13 +173,39 @@ export const DataPicker: FunctionComponent<DataPickerProps> = ({
         return;
       }
 
-      // Get handleData to pass to callback
-      const handleData = await getFileHandleById(handleId);
-      if (!handleData) {
-        throw new Error("Failed to retrieve saved file handle");
+      // Open file in worker if file manager is available
+      if (fileManager) {
+        try {
+          await fileManager.openFile(handleId, handle);
+        } catch (workerError) {
+          console.warn("Failed to open file in worker:", workerError);
+          // Continue anyway, will fall back to direct reading
+        }
       }
 
-      await onHandleReady(handleData, handleId);
+      // Create snapshot using worker if available
+      const snapshot = await createSnapshotFromFile(
+        handle,
+        fileManager || null,
+        handleId
+      );
+      const snapshotKey = `hexed:pending-handle-${handleId}`;
+      try {
+        // Store snapshot data (convert Uint8Array to array for JSON)
+        const snapshotData = {
+          ...snapshot,
+          data: Array.from(snapshot.data)
+        };
+        sessionStorage.setItem(snapshotKey, JSON.stringify(snapshotData));
+      } catch (storageError) {
+        console.warn(
+          "Failed to store snapshot in sessionStorage:",
+          storageError
+        );
+      }
+
+      // Call callback with handleId
+      onHandleReady(handleId);
     } catch (error) {
       // User cancelled or error occurred
       if (error instanceof DOMException && error.name !== "AbortError") {

@@ -27,14 +27,11 @@ export function getFileSourceDisplayName(source: FileSource): string {
 export type HexEditorProps = {
   handleId?: string | null
   onClose?: () => void
-  onFileSelect?: (filePath: string | BinarySnapshot) => void
   className?: string
   fileSource?: FileSource
-  originalSource?: string
   onAddSnapshot?: (snapshot: BinarySnapshot) => void
   // Data picker callbacks (for empty state)
-  onHandleReady?: (handleData: FileHandleMetadata, handleId: string) => Promise<void>
-  fileManager?: FileManager | null
+  onHandleReady?: (handleId: string) => void
 }
 
 export type SelectionRange = { start: number; end: number } | null
