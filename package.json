@@ -12,12 +12,12 @@
     "_typecheck": "pnpm -r typecheck",
     "clean": "rm -rf node_modules",
     "clean:workspace": "pnpm -r clean && pnpm clean",
-    "format": "turbo format --cache-dir=.turbo --continue -- --cache --cache-location=\"node_modules/.cache/.prettiercache\" --ignore-path=\"../../.prettierignore\"",
-    "format:fix": "turbo format --cache-dir=.turbo --continue -- --write --cache --cache-location=\"node_modules/.cache/.prettiercache\" --ignore-path=\"../../.prettierignore\"",
-    "lint": "turbo lint --cache-dir=.turbo --continue -- --cache --cache-location \"node_modules/.cache/.eslintcache\" && manypkg check",
-    "lint:fix": "turbo lint --cache-dir=.turbo --continue -- --fix --cache --cache-location \"node_modules/.cache/.eslintcache\" && manypkg fix",
-    "typecheck": "turbo typecheck --cache-dir=.turbo",
-    "analyze": "turbo analyze --cache-dir=.turbo"
+    "format": "pnpm -r format",
+    "format:fix": "pnpm -r format:fix",
+    "lint": "pnpm -r lint && manypkg check",
+    "lint:fix": "pnpm -r lint:fix && manypkg fix",
+    "typecheck": "pnpm -r typecheck",
+    "analyze": "pnpm -r analyze"
   },
   "keywords": [
     "hex-editor",
@@ -28,7 +28,7 @@
   "license": "ISC",
   "packageManager": "pnpm@9.12.0",
   "engines": {
-    "node": ">=20",
+    "node": ">=25",
     "pnpm": ">=8.0.0"
   },
   "devDependencies": {
@@ -40,10 +40,9 @@
       "electron"
     ],
     "overrides": {
-      "next": "15.3.8",
-      "react": "19.0.1",
-      "react-dom": "19.0.1",
-      "require-in-the-middle": "7.5.2"
+      "next": "15.5.9",
+      "react": "19.2.3",
+      "react-dom": "19.2.3"
     }
   }
 }
