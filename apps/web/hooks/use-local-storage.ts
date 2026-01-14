@@ -79,23 +79,23 @@ export function useLocalStorage<T>(
   React.useEffect(() => {
     if (typeof window === 'undefined') return;
 
-    // try {
-    //   const item = localStorage.getItem(key)
-    //   if (item !== null) {
-    //     const parsed = JSON.parse(item) as T
-    //     setStoredValue(parsed)
-    //   } else {
-    //     // Store default value if key doesn't exist
-    //     localStorage.setItem(key, JSON.stringify(defaultValue))
-    //     setStoredValue(defaultValue)
-    //   }
-    // } catch (error) {
-    //   console.error(
-    //     `Failed to load value from localStorage for key "${key}":`,
-    //     error
-    //   )
-    //   setStoredValue(defaultValue)
-    // }
+    try {
+      const item = localStorage.getItem(key);
+      if (item !== null) {
+        const parsed = JSON.parse(item) as T;
+        setStoredValue(parsed);
+      } else {
+        // Store default value if key doesn't exist
+        localStorage.setItem(key, JSON.stringify(defaultValue));
+        setStoredValue(defaultValue);
+      }
+    } catch (error) {
+      console.error(
+        `Failed to load value from localStorage for key "${key}":`,
+        error
+      );
+      setStoredValue(defaultValue);
+    }
   }, [key, defaultValue]);
 
   // Listen for changes from other components
@@ -127,28 +127,28 @@ export function useLocalStorage<T>(
   // Setter function that updates both localStorage and emits events
   const setValue = React.useCallback(
     (value: T | ((prev: T) => T)) => {
-      // if (typeof window === "undefined") return
-      // try {
-      //   // Support functional updates
-      //   const valueToStore =
-      //     value instanceof Function ? value(storedValue) : value
-      //   // Get old value before updating
-      //   const oldItem = localStorage.getItem(key)
-      //   const oldValue = oldItem !== null ? (JSON.parse(oldItem) as T) : null
-      //   // Update localStorage
-      //   localStorage.setItem(key, JSON.stringify(valueToStore))
-      //   // Update local state
-      //   setStoredValue(valueToStore)
-      //   // Emit event to notify other components
-      //   if (emitterRef.current) {
-      //     emitterRef.current.emitChange(key, valueToStore, oldValue)
-      //   }
-      // } catch (error) {
-      //   console.error(
-      //     `Failed to save value to localStorage for key "${key}":`,
-      //     error
-      //   )
-      // }
+      if (typeof window === 'undefined') return;
+      try {
+        // Support functional updates
+        const valueToStore =
+          value instanceof Function ? value(storedValue) : value;
+        // Get old value before updating
+        const oldItem = localStorage.getItem(key);
+        const oldValue = oldItem !== null ? (JSON.parse(oldItem) as T) : null;
+        // Update localStorage
+        localStorage.setItem(key, JSON.stringify(valueToStore));
+        // Update local state
+        setStoredValue(valueToStore);
+        // Emit event to notify other components
+        if (emitterRef.current) {
+          emitterRef.current.emitChange(key, valueToStore, oldValue);
+        }
+      } catch (error) {
+        console.error(
+          `Failed to save value to localStorage for key "${key}":`,
+          error
+        );
+      }
     },
     [key, storedValue]
   );

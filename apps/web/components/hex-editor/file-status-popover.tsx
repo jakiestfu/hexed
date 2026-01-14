@@ -17,7 +17,7 @@ export type FileStatusPopoverProps = {
 };
 
 export const FileStatusPopover: FunctionComponent<FileStatusPopoverProps> = ({
-  fileSource,
+  fileSource: _fileSource,
   originalSource,
   isConnected = false,
   error = null,
@@ -25,34 +25,16 @@ export const FileStatusPopover: FunctionComponent<FileStatusPopoverProps> = ({
   children
 }) => {
   const getDotColor = () => {
-    if (fileSource === 'disk') {
-      return isConnected ? 'bg-green-500' : 'bg-red-500';
-    }
-    if (fileSource === 'upload') {
-      return isConnected ? 'bg-green-500' : 'bg-gray-500';
-    }
-    return 'bg-gray-500';
+    return isConnected ? 'bg-green-500' : 'bg-gray-500';
   };
 
   const getStatusText = () => {
-    if (fileSource === 'disk') {
-      if (error) {
-        return 'Error watching file';
-      }
-      return isConnected ? 'Watching for changes' : 'Not watching for changes';
+    if (error) {
+      return 'Error watching file';
     }
-    if (fileSource === 'url') {
-      return 'Fetched from URL';
-    }
-    if (fileSource === 'upload') {
-      if (error) {
-        return 'Error watching file';
-      }
-      return isConnected
-        ? 'Watching for changes'
-        : 'File System Access API (not watching)';
-    }
-    return 'Upload';
+    return isConnected
+      ? 'Watching for changes'
+      : 'File System Access API (not watching)';
   };
 
   return (
@@ -76,74 +58,41 @@ export const FileStatusPopover: FunctionComponent<FileStatusPopoverProps> = ({
             </div>
           </div>
 
-          {fileSource === 'disk' && (
-            <>
-              <div className="text-xs text-muted-foreground font-mono break-all">
-                <span className="font-semibold">Disk:</span> {originalSource}
-              </div>
-              <div className="text-sm text-muted-foreground">
-                <p>
-                  Changes to the file will automatically appear in the editor.
-                </p>
-              </div>
-              {error && (
-                <div className="space-y-2">
-                  {onRestartWatching && (
-                    <Button
-                      onClick={onRestartWatching}
-                      variant="outline"
-                      size="sm"
-                      className="w-full"
-                    >
-                      <RefreshCw className="h-4 w-4 mr-2" />
-                      Restart Watching
-                    </Button>
-                  )}
-                </div>
+          <div className="text-xs text-muted-foreground font-mono break-all">
+            <span className="font-semibold">File:</span> {originalSource}
+          </div>
+          <div className="text-sm text-muted-foreground">
+            <p>
+              This file was opened using the File System Access API.
+              {isConnected ? (
+                <>
+                  {' '}
+                  Changes to the file will automatically appear in the editor
+                  when saved. Each save will create a new snapshot for
+                  comparison.
+                </>
+              ) : (
+                <>
+                  {' '}
+                  File watching is not available in this browser. You can reopen
+                  it from recent files. Drag and drop a file to add it as a new
+                  snapshot for comparison.
+                </>
               )}
-            </>
-          )}
-
-          {fileSource === 'upload' && (
-            <>
-              <div className="text-xs text-muted-foreground font-mono break-all">
-                <span className="font-semibold">File:</span> {originalSource}
-              </div>
-              <div className="text-sm text-muted-foreground">
-                <p>
-                  This file was opened using the File System Access API.
-                  {isConnected ? (
-                    <>
-                      {' '}
-                      Changes to the file will automatically appear in the
-                      editor when saved. Each save will create a new snapshot
-                      for comparison.
-                    </>
-                  ) : (
-                    <>
-                      {' '}
-                      File watching is not available in this browser. You can
-                      reopen it from recent files. Drag and drop a file to add
-                      it as a new snapshot for comparison.
-                    </>
-                  )}
-                </p>
-              </div>
-            </>
-          )}
-
-          {fileSource === 'url' && (
-            <>
-              <div className="text-xs text-muted-foreground font-mono break-all">
-                <span className="font-semibold">URL:</span> {originalSource}
-              </div>
-              <div className="text-sm text-muted-foreground">
-                <p>
-                  This file was fetched from a URL. Drag and drop a file to add
-                  it as a new snapshot for comparison.
-                </p>
-              </div>
-            </>
+            </p>
+          </div>
+          {error && onRestartWatching && (
+            <div className="space-y-2">
+              <Button
+                onClick={onRestartWatching}
+                variant="outline"
+                size="sm"
+                className="w-full"
+              >
+                <RefreshCw className="h-4 w-4 mr-2" />
+                Restart Watching
+              </Button>
+            </div>
           )}
         </div>
       </PopoverContent>

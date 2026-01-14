@@ -9,70 +9,22 @@ import { Button, Card, CardContent } from '@hexed/ui';
 
 import { useDragDrop } from '~/components/hex-editor/drag-drop-provider';
 import { HexEditor } from '~/components/hex-editor/hex-editor';
-import { createSnapshotFromURL } from '~/components/hex-editor/utils';
 import { useFileHandleWatcher } from '~/hooks/use-file-handle-watcher';
-import { useFileWatcher } from '~/hooks/use-file-watcher';
 import { useRecentFiles } from '~/hooks/use-recent-files';
-import {
-  decodeFilePath,
-  decodeHandleId,
-  encodeFilePath,
-  isHandleId,
-  isUrlPath
-} from '~/utils/path-encoding';
+import { decodeHandleId } from '~/utils/path-encoding';
 
 export default function EditPage() {
   const params = useParams();
   const router = useRouter();
-  const { addRecentFile, recentFiles, getFileHandleById } = useRecentFiles();
+  const { addRecentFile, getFileHandleById } = useRecentFiles();
   const { setOnFileSelect } = useDragDrop();
 
-  // Decode the file path from the URL parameter
-  const encodedPath = params.path as string;
-  const decodedPath = React.useMemo(() => {
-    return decodeFilePath(encodedPath);
-  }, [encodedPath]);
-
-  // Check if it's a handleId
+  // Get handle ID from URL parameter
   const handleId = React.useMemo(() => {
-    if (!decodedPath) return null;
-    return decodeHandleId(encodedPath);
-  }, [decodedPath, encodedPath]);
-
-  // Determine file path and source
-  const filePath = React.useMemo(() => {
-    if (!decodedPath) return null;
-
-    // If it's a handleId, we'll get the path from the handle metadata
-    if (handleId) {
-      return null; // Will be set when handle is loaded
-    }
-
-    // Check if file already exists in recent files to avoid duplicates
-    const existsInRecent = recentFiles.some(
-      (file) => file.path === decodedPath
-    );
-    if (!existsInRecent) {
-      // Determine source type: URL or path
-      const source = isUrlPath(decodedPath) ? 'url' : 'disk';
-      addRecentFile(decodedPath, source);
-    }
-
-    return decodedPath;
-  }, [decodedPath, handleId, recentFiles, addRecentFile]);
-
-  const isUrl = React.useMemo(() => {
-    return filePath ? isUrlPath(filePath) : false;
-  }, [filePath]);
-
-  const isHandle = React.useMemo(() => {
-    return handleId !== null;
-  }, [handleId]);
-
-  // State for URL-based snapshots
-  const [urlSnapshots, setUrlSnapshots] = React.useState<BinarySnapshot[]>([]);
-  const [urlLoading, setUrlLoading] = React.useState(false);
-  const [urlError, setUrlError] = React.useState<string | null>(null);
+    const pathParam = params.path as string;
+    if (!pathParam) return null;
+    return decodeHandleId(pathParam);
+  }, [params.path]);
 
   // State for handle file path and loading
   const [handleFilePath, setHandleFilePath] = React.useState<string | null>(
@@ -82,9 +34,9 @@ export default function EditPage() {
     React.useState<FileSystemFileHandle | null>(null);
   const [handleInitialLoading, setHandleInitialLoading] = React.useState(false);
 
-  // Load handle metadata and set up watcher if it's a handleId
+  // Load handle metadata and set up watcher
   React.useEffect(() => {
-    if (!isHandle || !handleId) {
+    if (!handleId) {
       setHandleFilePath(null);
       setHandleFileHandle(null);
       setHandleInitialLoading(false);
@@ -119,7 +71,7 @@ export default function EditPage() {
         setHandleFileHandle(handleData.handle);
 
         // Update recent files (will check for duplicates internally)
-        addRecentFile(handleData.path, 'upload', handleData.handle);
+        addRecentFile(handleData.path, 'file-system', handleData.handle);
       } catch (error) {
         console.error('Failed to load handle metadata:', error);
         setHandleFilePath(null);
@@ -130,87 +82,26 @@ export default function EditPage() {
     };
 
     loadHandleMetadata();
-  }, [isHandle, handleId, getFileHandleById, addRecentFile]);
+  }, [handleId, getFileHandleById, addRecentFile]);
 
   // Use file handle watcher for handle-based files
   const {
-    snapshots: handleSnapshots,
-    isConnected: handleIsConnected,
-    error: handleError,
+    snapshots,
+    isConnected,
+    error,
     restart: handleRestart
   } = useFileHandleWatcher(handleFileHandle, handleFilePath);
 
-  console.log({
-    handleSnapshots,
-    handleIsConnected,
-    handleError,
-    handleRestart
-  });
-
-  // Fetch URL if it's a URL source
-  React.useEffect(() => {
-    if (isUrl && filePath) {
-      setUrlLoading(true);
-      setUrlError(null);
-      createSnapshotFromURL(filePath)
-        .then((snapshot) => {
-          setUrlSnapshots([snapshot]);
-          setUrlLoading(false);
-        })
-        .catch((error) => {
-          setUrlError(
-            error instanceof Error ? error.message : 'Failed to fetch URL'
-          );
-          setUrlLoading(false);
-        });
-    } else {
-      setUrlSnapshots([]);
-      setUrlError(null);
-    }
-  }, [isUrl, filePath]);
-
-  // Use file watcher for file paths (not for URLs or handles)
-  const {
-    snapshots: fileSnapshots,
-    isConnected: fileIsConnected,
-    error: fileError,
-    restart
-  } = useFileWatcher(isUrl || isHandle ? null : filePath);
-
-  // Determine which snapshots and error to use
-  const snapshots = isHandle
-    ? handleSnapshots
-    : isUrl
-      ? urlSnapshots
-      : fileSnapshots;
-  const error = isHandle ? handleError : isUrl ? urlError : fileError;
-  const displayFilePath = isHandle ? handleFilePath : filePath;
-  const isConnected = isHandle
-    ? handleIsConnected
-    : isUrl
-      ? false
-      : fileIsConnected;
-  const loading =
-    snapshots.length === 0 &&
-    !error &&
-    (isHandle ? handleInitialLoading : isUrl ? urlLoading : true);
+  const loading = snapshots.length === 0 && !error && handleInitialLoading;
 
   const handleFileSelect = React.useCallback(
-    (input: string | BinarySnapshot) => {
-      if (typeof input === 'string') {
-        // String path - determine source type and navigate
-        const source = isUrlPath(input) ? 'url' : 'disk';
-        addRecentFile(input, source);
-        const encodedPath = encodeFilePath(input);
-        router.push(`/edit/${encodedPath}`);
-      } else {
-        // BinarySnapshot - navigate to home with snapshot (FileSystemFileHandle upload)
-        // Note: addRecentFile with handle should be called from the picker component
-        router.push('/');
-        // The home page will handle the snapshot via its own state
-      }
+    (_input: string | BinarySnapshot) => {
+      // BinarySnapshot - navigate to home with snapshot (FileSystemFileHandle)
+      // Note: addRecentFile with handle should be called from the picker component
+      router.push('/');
+      // The home page will handle the snapshot via its own state
     },
-    [addRecentFile, router]
+    [router]
   );
 
   // Register the file select handler with drag-drop provider
@@ -225,8 +116,8 @@ export default function EditPage() {
     router.push('/');
   };
 
-  // Invalid path error
-  if (!decodedPath && !handleId) {
+  // Invalid handle ID error
+  if (!handleId) {
     return (
       <div className="flex items-center justify-center min-h-screen py-8 px-4">
         <Card className="w-full max-w-md border-destructive">
@@ -237,10 +128,10 @@ export default function EditPage() {
               </div>
               <div>
                 <h3 className="font-semibold text-destructive">
-                  Invalid file path
+                  Invalid file handle
                 </h3>
                 <p className="text-sm text-muted-foreground mt-1">
-                  The file path in the URL could not be decoded.
+                  The file handle ID in the URL is invalid.
                 </p>
               </div>
               <Button
@@ -273,7 +164,7 @@ export default function EditPage() {
                 </h3>
                 <p className="text-sm text-muted-foreground mt-1">{error}</p>
                 <p className="text-xs text-muted-foreground mt-2 font-mono">
-                  {filePath}
+                  {handleFilePath}
                 </p>
               </div>
               <Button
@@ -292,14 +183,14 @@ export default function EditPage() {
   return (
     <HexEditor
       snapshots={snapshots}
-      filePath={displayFilePath}
-      isConnected={isUrl ? false : isConnected}
+      filePath={handleFilePath}
+      isConnected={isConnected}
       loading={loading}
       onClose={handleClose}
-      fileSource={isHandle ? 'upload' : isUrl ? 'url' : 'disk'}
-      originalSource={displayFilePath || ''}
+      fileSource="file-system"
+      originalSource={handleFilePath || ''}
       error={error}
-      onRestartWatching={isUrl ? undefined : isHandle ? handleRestart : restart}
+      onRestartWatching={handleRestart}
     />
   );
 }

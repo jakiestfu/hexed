@@ -1,7 +1,7 @@
 "use client"
 
 import { FunctionComponent } from "react"
-import { FileQuestion, HardDrive, Link as LinkIcon, Upload } from "lucide-react"
+import { FolderOpen } from "lucide-react"
 
 import { cn } from "@hexed/ui"
 
@@ -13,19 +13,8 @@ export type FileSourceIconProps = {
 }
 
 export const FileSourceIcon: FunctionComponent<FileSourceIconProps> = ({
-  fileSource,
   className
 }) => {
   const iconClassName = cn("h-4 w-4", className)
-
-  switch (fileSource) {
-    case "disk":
-      return <HardDrive className={iconClassName} />
-    case "upload":
-      return <Upload className={iconClassName} />
-    case "url":
-      return <LinkIcon className={iconClassName} />
-    default:
-      return <FileQuestion className={iconClassName} />
-  }
+  return <FolderOpen className={iconClassName} />
 }

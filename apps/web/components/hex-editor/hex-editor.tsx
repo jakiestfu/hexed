@@ -114,7 +114,7 @@ export const HexEditor: FunctionComponent<HexEditorProps> = ({
   onFileSelect,
   recentFiles = [],
   className = '',
-  fileSource = 'upload',
+  fileSource = 'file-system',
   originalSource,
   error,
   onRestartWatching
@@ -132,9 +132,18 @@ export const HexEditor: FunctionComponent<HexEditorProps> = ({
     showStrings,
     setShowStrings,
     sidebarPosition,
-    setSidebarPosition,
     toggleSidebarPosition
   } = useSettings();
+
+  console.log({
+    showAscii,
+    showChecksums,
+    showInterpreter,
+    showTemplates,
+    showStrings,
+    sidebarPosition
+  });
+
   const [diffMode, setDiffMode] = useState<DiffViewMode>('inline');
   const [dataType, setDataType] = useState<string>('Signed Int');
   const [endianness, setEndianness] = useState<string>('le');
@@ -372,18 +381,9 @@ export const HexEditor: FunctionComponent<HexEditorProps> = ({
                 </span>
                 <div
                   className={`inline-flex h-2 w-2 rounded-full shrink-0 ${
-                    fileSource === 'disk'
-                      ? isConnected
-                        ? 'bg-green-500'
-                        : 'bg-red-500'
-                      : fileSource === 'upload'
-                        ? isConnected
-                          ? 'bg-green-500'
-                          : 'bg-gray-500'
-                        : 'bg-gray-500'
+                    isConnected ? 'bg-green-500' : 'bg-gray-500'
                   }`}
                 />
-                {fileSource}
               </div>
             </FileStatusPopover>
           )
@@ -467,16 +467,7 @@ export const HexEditor: FunctionComponent<HexEditorProps> = ({
 
   const renderCardContent = (insideTabs: boolean) => {
     if (!hasFile) {
-      return onFileSelect ? (
-        <EmptyState
-          onFileSelect={onFileSelect}
-          recentFiles={recentFiles}
-        />
-      ) : (
-        <div className="flex items-center justify-center h-full text-muted-foreground">
-          Please select a file to begin
-        </div>
-      );
+      return <EmptyState recentFiles={recentFiles} />;
     }
 
     if (loading) {

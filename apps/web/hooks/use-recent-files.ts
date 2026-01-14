@@ -58,7 +58,7 @@ export function useRecentFiles() {
   const addRecentFile = React.useCallback(
     async (
       filePath: string,
-      source: FileSource = 'disk',
+      source: FileSource = 'file-system',
       handle?: FileSystemFileHandle
     ): Promise<string | undefined> => {
       if (typeof window === 'undefined') return undefined;
@@ -74,8 +74,8 @@ export function useRecentFiles() {
           // File exists - update timestamp instead of creating duplicate
           handleId = existingHandle.id;
 
-          // If we have a new handle and the existing one doesn't match, update it
-          if (handle && source === 'upload') {
+          // If we have a new handle, check if we need to update it
+          if (handle) {
             // Check if we need to update the handle (e.g., if permission was lost)
             const hasPermission = await verifyHandlePermission(
               existingHandle.handle
@@ -97,7 +97,7 @@ export function useRecentFiles() {
           }
         } else {
           // File doesn't exist - create new entry
-          if (handle && source === 'upload') {
+          if (handle) {
             handleId = await saveFileHandle(handle, {
               path: filePath,
               source

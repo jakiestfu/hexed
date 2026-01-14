@@ -12,7 +12,7 @@ export interface FileHandleMetadata {
   path: string
   name: string
   timestamp: number
-  source: 'upload' | 'url' | 'disk'
+  source: 'file-system'
   handle: FileSystemFileHandle
 }
 
@@ -68,7 +68,7 @@ export async function saveFileHandle(
   handle: FileSystemFileHandle,
   metadata: {
     path: string
-    source: 'upload' | 'url' | 'disk'
+    source: 'file-system'
   }
 ): Promise<string> {
   const db = await openDatabase()

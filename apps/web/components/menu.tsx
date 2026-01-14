@@ -43,7 +43,7 @@ import {
 import { useRecentFiles } from '~/hooks/use-recent-files';
 import { useSettings } from '~/hooks/use-settings';
 import { Hotkeys } from '~/utils/hotkey-format';
-import { encodeFilePath, encodeHandleId } from '~/utils/path-encoding';
+import { encodeHandleId } from '~/utils/path-encoding';
 import { FileSourceIcon } from './hex-editor/file-source-icon';
 import { Histogram } from './hex-editor/histogram';
 import { formatFilenameForDisplay } from './hex-editor/utils';
@@ -206,12 +206,11 @@ export const Menu: FunctionComponent<MenuProps> = ({
             {recentFiles.length > 0 ? (
               <>
                 {recentFiles.map((file) => {
-                  // Use stored source, fallback to "upload" for backward compatibility
-                  const fileSource = file.source || 'upload';
-                  const isClientFile = fileSource === 'upload';
+                  // Use stored source, fallback to "file-system" for backward compatibility
+                  const fileSource = file.source || 'file-system';
 
-                  if (isClientFile && file.handleId) {
-                    // For upload files with handleId, navigate to /edit/<handleId>
+                  if (file.handleId) {
+                    // For file-system files with handleId, navigate to /edit/<handleId>
                     const encodedHandleId = encodeHandleId(file.handleId);
                     return (
                       <DropdownMenuItem
@@ -232,45 +231,23 @@ export const Menu: FunctionComponent<MenuProps> = ({
                     );
                   }
 
-                  if (isClientFile && !file.handleId) {
-                    // For upload files without handleId, show dialog on click
-                    return (
-                      <DropdownMenuItem
-                        key={file.path}
-                        onClick={() => {
-                          setClickedClientFilePath(file.path);
-                          setShowClientFileDialog(true);
-                        }}
-                        className="cursor-pointer"
-                      >
-                        <FileSourceIcon
-                          fileSource={fileSource}
-                          className="mr-2"
-                        />
-                        <span className="text-muted-foreground">
-                          {formatFilenameForDisplay(file.path)}
-                        </span>
-                      </DropdownMenuItem>
-                    );
-                  }
-
-                  // For disk and URL files, use regular path encoding
-                  const encodedPath = encodeFilePath(file.path);
+                  // For files without handleId, show dialog on click
                   return (
                     <DropdownMenuItem
                       key={file.path}
-                      asChild
+                      onClick={() => {
+                        setClickedClientFilePath(file.path);
+                        setShowClientFileDialog(true);
+                      }}
+                      className="cursor-pointer"
                     >
-                      <Link
-                        href={`/edit/${encodedPath}`}
-                        className="flex items-center gap-2 cursor-pointer"
-                      >
-                        <FileSourceIcon
-                          fileSource={fileSource}
-                          className="mr-2"
-                        />
+                      <FileSourceIcon
+                        fileSource={fileSource}
+                        className="mr-2"
+                      />
+                      <span className="text-muted-foreground">
                         {formatFilenameForDisplay(file.path)}
-                      </Link>
+                      </span>
                     </DropdownMenuItem>
                   );
                 })}
