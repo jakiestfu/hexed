@@ -24,6 +24,31 @@ export default function Home() {
   const [fileSource, setFileSource] = React.useState<FileSource>("upload")
   const [originalSource, setOriginalSource] = React.useState<string>("")
 
+  // Check for pending snapshot from menu navigation
+  React.useEffect(() => {
+    if (typeof window === 'undefined') return;
+
+    const pendingSnapshot = sessionStorage.getItem('hexed:pending-snapshot');
+    if (pendingSnapshot) {
+      try {
+        const snapshotData = JSON.parse(pendingSnapshot);
+        // Convert array back to Uint8Array
+        const snapshot: BinarySnapshot = {
+          ...snapshotData,
+          data: new Uint8Array(snapshotData.data)
+        };
+        setDirectSnapshots([snapshot]);
+        setDirectFilePath(snapshot.filePath);
+        setFileSource("upload");
+        setOriginalSource(snapshot.filePath);
+        sessionStorage.removeItem('hexed:pending-snapshot');
+      } catch (error) {
+        console.error('Failed to load pending snapshot:', error);
+        sessionStorage.removeItem('hexed:pending-snapshot');
+      }
+    }
+  }, [])
+
   const handleAddSnapshot = React.useCallback((snapshot: BinarySnapshot) => {
     setDirectSnapshots((prev) => [...prev, snapshot])
   }, [])
@@ -49,7 +74,7 @@ export default function Home() {
           const encodedUrl = encodeFilePath(input.filePath)
           router.push(`/edit/${encodedUrl}`)
         } else {
-          // Client upload - check if we should add as snapshot or replace
+          // Client upload (FileSystemFileHandle) - check if we should add as snapshot or replace
           const currentFileSource: FileSource = "upload"
 
           // If we already have snapshots and the current file is client based, add as snapshot
@@ -57,7 +82,7 @@ export default function Home() {
             handleAddSnapshot(input)
           } else {
             // Otherwise, replace
-            addRecentFile(input.filePath, "upload")
+            // Note: addRecentFile will be called with handle if available from the picker
             setDirectSnapshots([input])
             setDirectFilePath(input.filePath)
             setFileSource(currentFileSource)

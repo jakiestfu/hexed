@@ -65,11 +65,36 @@ export function createSnapshotFromArrayBuffer(
 }
 
 /**
- * Create snapshot from File object
+ * Type guard to check if input is a FileSystemFileHandle
+ */
+function isFileSystemFileHandle(
+  input: File | FileSystemFileHandle
+): input is FileSystemFileHandle {
+  return 'kind' in input && input.kind === 'file'
+}
+
+/**
+ * Create snapshot from FileSystemFileHandle
+ */
+export async function createSnapshotFromHandle(
+  handle: FileSystemFileHandle
+): Promise<BinarySnapshot> {
+  const file = await handle.getFile()
+  return createSnapshotFromFile(file)
+}
+
+/**
+ * Create snapshot from File object or FileSystemFileHandle
  */
 export async function createSnapshotFromFile(
-  file: File
+  file: File | FileSystemFileHandle
 ): Promise<BinarySnapshot> {
+  // Handle FileSystemFileHandle
+  if (isFileSystemFileHandle(file)) {
+    return createSnapshotFromHandle(file)
+  }
+
+  // Handle File object
   const arrayBuffer = await file.arrayBuffer()
   const snapshot = createSnapshotFromArrayBuffer(
     arrayBuffer,

@@ -1,9 +1,9 @@
-import { useEffect, useRef, useState } from "react"
-import type { FormEvent, FunctionComponent } from "react"
-import { useRouter } from "next/navigation"
-import { Clock, FolderOpen, Link as LinkIcon, Loader2 } from "lucide-react"
+import { useEffect, useState } from 'react';
+import type { FormEvent, FunctionComponent } from 'react';
+import { useRouter } from 'next/navigation';
+import { Clock, FolderOpen, Link as LinkIcon, Loader2 } from 'lucide-react';
 
-import type { BinarySnapshot } from "@hexed/types"
+import type { BinarySnapshot } from '@hexed/types';
 import {
   Button,
   Card,
@@ -16,27 +16,28 @@ import {
   TabsContent,
   TabsList,
   TabsTrigger
-} from "@hexed/ui"
+} from '@hexed/ui';
 
-import { useQueryParamState } from "~/hooks/use-query-param-state"
-import type { RecentFile } from "~/hooks/use-recent-files"
-import { isElectron, openFileDialog } from "~/utils/electron"
-import { encodeFilePath, isUrlPath } from "~/utils/path-encoding"
-import { FileSourceIcon } from "./file-source-icon"
-import { FileSource } from "./types"
-import { createSnapshotFromFile, formatTimestamp, getBasename } from "./utils"
+import { useQueryParamState } from '~/hooks/use-query-param-state';
+import type { RecentFile } from '~/hooks/use-recent-files';
+import { useRecentFiles } from '~/hooks/use-recent-files';
+import { isElectron, openFileDialog } from '~/utils/electron';
+import { encodeFilePath, isUrlPath } from '~/utils/path-encoding';
+import { FileSourceIcon } from './file-source-icon';
+import { FileSource } from './types';
+import { createSnapshotFromFile, formatTimestamp, getBasename } from './utils';
 
 type DataPickerProps = {
-  onFileSelect: (filePath: string | BinarySnapshot) => void
-  recentFiles: RecentFile[]
-}
+  onFileSelect: (filePath: string | BinarySnapshot) => void;
+  recentFiles: RecentFile[];
+};
 
 // Recent Files Component
 const RecentFilesDropdown: FunctionComponent<{
-  recentFiles: RecentFile[]
-  onSelect: (path: string) => void
+  recentFiles: RecentFile[];
+  onSelect: (path: string) => void;
 }> = ({ recentFiles, onSelect }) => {
-  if (recentFiles.length === 0) return null
+  if (recentFiles.length === 0) return null;
 
   return (
     <Popover>
@@ -79,120 +80,153 @@ const RecentFilesDropdown: FunctionComponent<{
         </div>
       </PopoverContent>
     </Popover>
-  )
-}
+  );
+};
 
 export const DataPicker: FunctionComponent<DataPickerProps> = ({
   onFileSelect,
   recentFiles
 }) => {
-  const router = useRouter()
-  const [isInElectron, setIsInElectron] = useState(false)
-  const [isLoading, setIsLoading] = useState(false)
+  const router = useRouter();
+  const { addRecentFile, getFileHandleById } = useRecentFiles();
+  const [isInElectron, setIsInElectron] = useState(false);
+  const [isLoading, setIsLoading] = useState(false);
   const [activeTab, setActiveTabState] = useQueryParamState<FileSource>(
-    "tab",
-    "upload"
-  )
+    'tab',
+    'upload'
+  );
   const setActiveTab = (value: string) => {
-    setActiveTabState(value as FileSource)
-  }
-  const [url, setUrl] = useState("")
-  const [pathInput, setPathInput] = useState("")
-  const [isMounted, setIsMounted] = useState(false)
-  const fileInputRef = useRef<HTMLInputElement>(null)
-  const isDevelopment = process.env.NODE_ENV === "development"
+    setActiveTabState(value as FileSource);
+  };
+  const [url, setUrl] = useState('');
+  const [pathInput, setPathInput] = useState('');
+  const [isMounted, setIsMounted] = useState(false);
+  const isDevelopment = process.env.NODE_ENV === 'development';
+  const supportsFileSystemAccess =
+    typeof window !== 'undefined' && 'showOpenFilePicker' in window;
 
   useEffect(() => {
-    setIsInElectron(isElectron())
+    setIsInElectron(isElectron());
     // Wait for component mount and local storage restoration
     const timer = setTimeout(() => {
-      setIsMounted(true)
-    }, 100)
-    return () => clearTimeout(timer)
-  }, [])
+      setIsMounted(true);
+    }, 100);
+    return () => clearTimeout(timer);
+  }, []);
 
-  const handleRecentFileSelect = (path: string) => {
+  const handleRecentFileSelect = async (path: string) => {
     // Find the recent file to get its source
-    const recentFile = recentFiles.find((file) => file.path === path)
-    const source = recentFile?.source || (isUrlPath(path) ? "url" : "disk")
+    const recentFile = recentFiles.find((file) => file.path === path);
+    const source = recentFile?.source || (isUrlPath(path) ? 'url' : 'disk');
 
     // If it's a URL, navigate directly to the edit page
-    if (source === "url") {
-      const encodedUrl = encodeFilePath(path)
-      router.push(`/edit/${encodedUrl}`)
-    } else {
-      // For disk files, use the onFileSelect callback
-      onFileSelect(path)
+    if (source === 'url') {
+      const encodedUrl = encodeFilePath(path);
+      router.push(`/edit/${encodedUrl}`);
+      return;
     }
-  }
+
+    // If it's an upload with a handleId, try to reopen it
+    if (source === 'upload' && recentFile?.handleId) {
+      setIsLoading(true);
+      try {
+        const handleData = await getFileHandleById(recentFile.handleId);
+        if (handleData) {
+          const snapshot = await createSnapshotFromFile(handleData.handle);
+          await addRecentFile(handleData.path, 'upload', handleData.handle);
+          onFileSelect(snapshot);
+        } else {
+          console.error('Failed to reopen file handle');
+          alert('Could not reopen file. Please select it again.');
+        }
+      } catch (error) {
+        console.error('Error reopening file handle:', error);
+        alert('Could not reopen file. Please select it again.');
+      } finally {
+        setIsLoading(false);
+      }
+      return;
+    }
+
+    // For disk files, use the onFileSelect callback
+    onFileSelect(path);
+  };
 
   // File Tab Handlers
   const handleNativeFilePicker = async () => {
-    if (!isInElectron) return
+    if (!isInElectron) return;
 
-    setIsLoading(true)
+    setIsLoading(true);
     try {
-      const selectedPath = await openFileDialog()
+      const selectedPath = await openFileDialog();
       if (selectedPath) {
-        onFileSelect(selectedPath)
+        onFileSelect(selectedPath);
       }
     } catch (error) {
-      console.error("Error opening file dialog:", error)
+      console.error('Error opening file dialog:', error);
     } finally {
-      setIsLoading(false)
+      setIsLoading(false);
     }
-  }
+  };
 
-  const handleFileInputChange = async (
-    event: React.ChangeEvent<HTMLInputElement>
-  ) => {
-    const file = event.target.files?.[0]
-    if (!file) return
+  const handleFileSystemAccessPicker = async () => {
+    if (!supportsFileSystemAccess || !window.showOpenFilePicker) {
+      alert('File System Access API is not supported in this browser');
+      return;
+    }
 
-    setIsLoading(true)
+    setIsLoading(true);
     try {
-      const snapshot = await createSnapshotFromFile(file)
-      onFileSelect(snapshot)
+      const [handle] = await window.showOpenFilePicker({
+        excludeAcceptAllOption: false,
+        multiple: false
+      });
+
+      const file = await handle.getFile();
+      const snapshot = await createSnapshotFromFile(handle);
+      await addRecentFile(file.name, 'upload', handle);
+      onFileSelect(snapshot);
     } catch (error) {
-      console.error("Error reading file:", error)
-    } finally {
-      setIsLoading(false)
-      if (fileInputRef.current) {
-        fileInputRef.current.value = ""
+      // User cancelled or error occurred
+      if (error instanceof DOMException && error.name !== 'AbortError') {
+        console.error('Error opening file picker:', error);
+        alert('Failed to open file. Please try again.');
       }
+    } finally {
+      setIsLoading(false);
     }
-  }
+  };
 
   // URL Tab Handlers
   const handleUrlSubmit = async (event: FormEvent) => {
-    event.preventDefault()
-    if (!url.trim()) return
+    event.preventDefault();
+    if (!url.trim()) return;
 
-    setIsLoading(true)
+    setIsLoading(true);
     try {
-      const urlToEncode = url.trim()
-      const encodedUrl = encodeFilePath(urlToEncode)
-      router.push(`/edit/${encodedUrl}`)
+      const urlToEncode = url.trim();
+      const encodedUrl = encodeFilePath(urlToEncode);
+      router.push(`/edit/${encodedUrl}`);
     } catch (error) {
-      console.error("Error encoding URL:", error)
-      alert("Failed to encode URL")
+      console.error('Error encoding URL:', error);
+      alert('Failed to encode URL');
     } finally {
-      setIsLoading(false)
+      setIsLoading(false);
     }
-  }
+  };
 
   // Path Tab Handlers
   const handlePathSubmit = (event: FormEvent) => {
-    event.preventDefault()
+    event.preventDefault();
     if (pathInput.trim()) {
-      onFileSelect(pathInput.trim())
+      onFileSelect(pathInput.trim());
     }
-  }
+  };
 
   return (
     <Card
       className={`w-full max-w-lg border-none h-[250px] transition-opacity duration-300 ${
-        isMounted ? "opacity-100" : "opacity-0"
+        isMounted ? 'opacity-100' : 'opacity-0'
       }`}
     >
       <CardContent className="space-y-4">
@@ -204,8 +238,8 @@ export const DataPicker: FunctionComponent<DataPickerProps> = ({
             className="grid w-full"
             style={{
               gridTemplateColumns: isDevelopment
-                ? "repeat(3, 1fr)"
-                : "repeat(2, 1fr)"
+                ? 'repeat(3, 1fr)'
+                : 'repeat(2, 1fr)'
             }}
           >
             <TabsTrigger value="upload">
@@ -252,7 +286,7 @@ export const DataPicker: FunctionComponent<DataPickerProps> = ({
                     ) : (
                       <FolderOpen className="h-4 w-4 mr-2" />
                     )}
-                    {isLoading ? "Opening..." : "Choose File"}
+                    {isLoading ? 'Opening...' : 'Choose File'}
                   </Button>
                   <RecentFilesDropdown
                     recentFiles={recentFiles}
@@ -261,36 +295,35 @@ export const DataPicker: FunctionComponent<DataPickerProps> = ({
                 </div>
                 <p className="text-xs text-muted-foreground">
                   Use the native file picker to select a binary file
-                  {recentFiles.length > 0 && " or select from recent files"}
+                  {recentFiles.length > 0 && ' or select from recent files'}
                 </p>
               </>
             ) : (
               <>
-                <label
-                  htmlFor="file-input"
-                  className="text-sm font-medium"
-                >
-                  Select a file
-                </label>
+                <label className="text-sm font-medium">Select a file</label>
                 <div className="flex gap-2">
-                  <div className="flex-1 flex gap-2">
-                    <input
-                      id="file-input"
-                      type="file"
-                      ref={fileInputRef}
-                      onChange={handleFileInputChange}
-                      disabled={isLoading}
-                      className="flex-1 h-9 w-full min-w-0 rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-xs transition-[color,box-shadow] outline-none file:inline-flex file:h-7 file:border-0 file:bg-transparent file:text-sm file:font-medium disabled:pointer-events-none disabled:cursor-not-allowed disabled:opacity-50 focus-visible:border-ring focus-visible:ring-ring/50 focus-visible:ring-[3px]"
-                    />
-                    <RecentFilesDropdown
-                      recentFiles={recentFiles}
-                      onSelect={handleRecentFileSelect}
-                    />
-                  </div>
+                  <Button
+                    onClick={handleFileSystemAccessPicker}
+                    disabled={isLoading || !supportsFileSystemAccess}
+                    className="flex-1"
+                  >
+                    {isLoading ? (
+                      <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                    ) : (
+                      <FolderOpen className="h-4 w-4 mr-2" />
+                    )}
+                    {isLoading ? 'Opening...' : 'Choose File'}
+                  </Button>
+                  <RecentFilesDropdown
+                    recentFiles={recentFiles}
+                    onSelect={handleRecentFileSelect}
+                  />
                 </div>
                 <p className="text-xs text-muted-foreground">
-                  Choose a file or drag and drop it anywhere on the screen
-                  {recentFiles.length > 0 && " or select from recent files"}
+                  {supportsFileSystemAccess
+                    ? 'Choose a file using the File System Access API'
+                    : 'File System Access API is not supported in this browser'}
+                  {recentFiles.length > 0 && ' or select from recent files'}
                 </p>
               </>
             )}
@@ -341,7 +374,7 @@ export const DataPicker: FunctionComponent<DataPickerProps> = ({
               </div>
               <p className="text-xs text-muted-foreground">
                 Enter a URL to fetch binary data from a remote resource
-                {recentFiles.length > 0 && " or select from recent files"}
+                {recentFiles.length > 0 && ' or select from recent files'}
               </p>
             </form>
           </TabsContent>
@@ -381,7 +414,7 @@ export const DataPicker: FunctionComponent<DataPickerProps> = ({
                 </div>
                 <p className="text-xs text-muted-foreground">
                   Enter the full path to a file on your server filesystem
-                  {recentFiles.length > 0 && " or select from recent files"}
+                  {recentFiles.length > 0 && ' or select from recent files'}
                 </p>
               </form>
             </TabsContent>
@@ -389,5 +422,5 @@ export const DataPicker: FunctionComponent<DataPickerProps> = ({
         </Tabs>
       </CardContent>
     </Card>
-  )
-}
+  );
+};

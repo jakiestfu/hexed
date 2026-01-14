@@ -88,8 +88,8 @@ export default function EditPage() {
         const encodedPath = encodeFilePath(input)
         router.push(`/edit/${encodedPath}`)
       } else {
-        // BinarySnapshot - navigate to home with snapshot (client upload)
-        addRecentFile(input.filePath, "upload")
+        // BinarySnapshot - navigate to home with snapshot (FileSystemFileHandle upload)
+        // Note: addRecentFile with handle should be called from the picker component
         router.push("/")
         // The home page will handle the snapshot via its own state
       }

@@ -4,107 +4,156 @@ import * as React from 'react';
 
 import { FileSource } from '~/components/hex-editor/types';
 import { isUrlPath } from '~/utils/path-encoding';
+import {
+  saveFileHandle,
+  getFileHandle,
+  deleteFileHandle,
+  getAllFileHandles,
+  clearAllFileHandles,
+  verifyHandlePermission,
+  type FileHandleMetadata
+} from '~/utils/file-handle-storage';
 
-const STORAGE_KEY = 'hexed:recent-files';
 const MAX_RECENT_FILES = 10;
 
 export interface RecentFile {
   path: string;
   timestamp: number;
   source?: FileSource;
+  handleId?: string; // IndexedDB ID for FileSystemFileHandle
 }
 
 /**
- * Hook for managing recently opened files in localStorage
+ * Hook for managing recently opened files in IndexedDB
  */
 export function useRecentFiles() {
   const [recentFiles, setRecentFiles] = React.useState<RecentFile[]>([]);
 
-  // Load recent files from localStorage on mount
+  // Load recent files from IndexedDB on mount
   React.useEffect(() => {
-    // if (typeof window === "undefined") return
-    // try {
-    //   const stored = localStorage.getItem(STORAGE_KEY)
-    //   if (stored) {
-    //     const parsed = JSON.parse(stored) as RecentFile[]
-    //     // Migrate old data: infer source for files without source field
-    //     const migrated = parsed.map((file): RecentFile => {
-    //       if (!file.source) {
-    //         // Infer source from path for backward compatibility
-    //         const inferredSource: FileSource = isUrlPath(file.path)
-    //           ? "url"
-    //           : "disk"
-    //         return { ...file, source: inferredSource }
-    //       }
-    //       return file
-    //     })
-    //     // Sort by most recent first
-    //     const sorted = migrated.sort((a, b) => b.timestamp - a.timestamp)
-    //     setRecentFiles(sorted)
-    //   }
-    // } catch (error) {
-    //   console.error("Failed to load recent files from localStorage:", error)
-    // }
+    if (typeof window === 'undefined') return;
+
+    const loadRecentFiles = async () => {
+      try {
+        const handles = await getAllFileHandles();
+        const files: RecentFile[] = handles
+          .slice(0, MAX_RECENT_FILES)
+          .map((handle) => ({
+            path: handle.path,
+            timestamp: handle.timestamp,
+            source: handle.source,
+            handleId: handle.id
+          }));
+
+        setRecentFiles(files);
+      } catch (error) {
+        console.error('Failed to load recent files from IndexedDB:', error);
+      }
+    };
+
+    loadRecentFiles();
   }, []);
 
   const addRecentFile = React.useCallback(
-    (filePath: string, source: FileSource = 'disk') => {
+    async (
+      filePath: string,
+      source: FileSource = 'disk',
+      handle?: FileSystemFileHandle
+    ) => {
       if (typeof window === 'undefined') return;
 
-      // try {
-      //   const stored = localStorage.getItem(STORAGE_KEY);
-      //   const existing: RecentFile[] = stored ? JSON.parse(stored) : [];
+      try {
+        // If handle is provided, save it to IndexedDB
+        let handleId: string | undefined;
+        if (handle && source === 'upload') {
+          handleId = await saveFileHandle(handle, { path: filePath, source });
+        }
 
-      //   // Remove if already exists (to avoid duplicates)
-      //   const filtered = existing.filter((file) => file.path !== filePath);
+        // Update state with new file
+        const newFile: RecentFile = {
+          path: filePath,
+          timestamp: Date.now(),
+          source,
+          handleId
+        };
 
-      //   // Add new file at the beginning
-      //   const updated: RecentFile[] = [
-      //     { path: filePath, timestamp: Date.now(), source },
-      //     ...filtered
-      //   ].slice(0, MAX_RECENT_FILES); // Limit to max files
+        setRecentFiles((prev) => {
+          // Remove if already exists (to avoid duplicates)
+          const filtered = prev.filter((file) => file.path !== filePath);
 
-      //   localStorage.setItem(STORAGE_KEY, JSON.stringify(updated));
-      //   setRecentFiles(updated);
-      // } catch (error) {
-      //   console.error('Failed to save recent file to localStorage:', error);
-      // }
+          // Add new file at the beginning
+          const updated = [newFile, ...filtered].slice(0, MAX_RECENT_FILES);
+          return updated;
+        });
+      } catch (error) {
+        console.error('Failed to save recent file:', error);
+      }
     },
     []
   );
 
-  const removeRecentFile = React.useCallback((filePath: string) => {
-    if (typeof window === 'undefined') return;
+  const removeRecentFile = React.useCallback(
+    async (filePath: string) => {
+      if (typeof window === 'undefined') return;
 
-    // try {
-    //   const stored = localStorage.getItem(STORAGE_KEY);
-    //   if (!stored) return;
+      try {
+        // Find the file to get its handleId
+        const file = recentFiles.find((f) => f.path === filePath);
+        if (file?.handleId) {
+          await deleteFileHandle(file.handleId);
+        }
 
-    //   const existing: RecentFile[] = JSON.parse(stored);
-    //   const filtered = existing.filter((file) => file.path !== filePath);
+        // Update state
+        setRecentFiles((prev) => prev.filter((file) => file.path !== filePath));
+      } catch (error) {
+        console.error('Failed to remove recent file:', error);
+      }
+    },
+    [recentFiles]
+  );
 
-    //   localStorage.setItem(STORAGE_KEY, JSON.stringify(filtered));
-    //   setRecentFiles(filtered);
-    // } catch (error) {
-    //   console.error('Failed to remove recent file from localStorage:', error);
-    // }
-  }, []);
-
-  const clearRecentFiles = React.useCallback(() => {
+  const clearRecentFiles = React.useCallback(async () => {
     if (typeof window === 'undefined') return;
 
     try {
-      localStorage.removeItem(STORAGE_KEY);
+      await clearAllFileHandles();
       setRecentFiles([]);
     } catch (error) {
-      console.error('Failed to clear recent files from localStorage:', error);
+      console.error('Failed to clear recent files:', error);
     }
   }, []);
+
+  /**
+   * Get a file handle from a recent file by handleId
+   */
+  const getFileHandleById = React.useCallback(
+    async (handleId: string): Promise<FileHandleMetadata | null> => {
+      if (typeof window === 'undefined') return null;
+
+      try {
+        const handleData = await getFileHandle(handleId);
+        if (!handleData) return null;
+
+        // Verify permission
+        const hasPermission = await verifyHandlePermission(handleData.handle);
+        if (!hasPermission) {
+          return null;
+        }
+
+        return handleData;
+      } catch (error) {
+        console.error('Failed to get file handle:', error);
+        return null;
+      }
+    },
+    []
+  );
 
   return {
     recentFiles,
     addRecentFile,
     removeRecentFile,
-    clearRecentFiles
+    clearRecentFiles,
+    getFileHandleById
   };
 }

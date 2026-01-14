@@ -41,6 +41,9 @@ export const FileStatusPopover: FunctionComponent<FileStatusPopoverProps> = ({
     if (fileSource === "url") {
       return "Fetched from URL"
     }
+    if (fileSource === "upload") {
+      return "Opened via File System Access API"
+    }
     return "Upload"
   }
 
@@ -96,12 +99,13 @@ export const FileStatusPopover: FunctionComponent<FileStatusPopoverProps> = ({
           {fileSource === "upload" && (
             <>
               <div className="text-xs text-muted-foreground font-mono break-all">
-                <span className="font-semibold">Upload:</span> {originalSource}
+                <span className="font-semibold">File:</span> {originalSource}
               </div>
               <div className="text-sm text-muted-foreground">
                 <p>
-                  This file was uploaded from your device. Drag and drop the
-                  file again to add it as a new snapshot for comparison.
+                  This file was opened using the File System Access API. You can
+                  reopen it from recent files. Drag and drop a file to add it as
+                  a new snapshot for comparison.
                 </p>
               </div>
             </>

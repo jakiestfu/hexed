@@ -47,6 +47,7 @@ import { Hotkeys } from '~/utils/hotkey-format';
 import { encodeFilePath } from '~/utils/path-encoding';
 import { FileSourceIcon } from './hex-editor/file-source-icon';
 import { Histogram } from './hex-editor/histogram';
+import { createSnapshotFromFile } from './hex-editor/utils';
 import { formatFilenameForDisplay } from './hex-editor/utils';
 
 export type MenuItem = {
@@ -84,7 +85,7 @@ export const Menu: FunctionComponent<MenuProps> = ({
   onShowHistogramChange
 }) => {
   const { theme, setTheme } = useTheme();
-  const { recentFiles, clearRecentFiles, removeRecentFile } = useRecentFiles();
+  const { recentFiles, clearRecentFiles, removeRecentFile, getFileHandleById, addRecentFile } = useRecentFiles();
   const {
     showAscii,
     setShowAscii,
@@ -216,7 +217,28 @@ export const Menu: FunctionComponent<MenuProps> = ({
                     return (
                       <DropdownMenuItem
                         key={file.path}
-                        onClick={() => {
+                        onClick={async () => {
+                          // Try to reopen file handle if it exists
+                          if (file.handleId) {
+                            try {
+                              const handleData = await getFileHandleById(file.handleId);
+                              if (handleData) {
+                                const snapshot = await createSnapshotFromFile(handleData.handle);
+                                await addRecentFile(handleData.path, "upload", handleData.handle);
+                                // Navigate to home page - it will handle the snapshot
+                                window.location.href = '/';
+                                // Store snapshot in sessionStorage for home page to pick up
+                                sessionStorage.setItem('hexed:pending-snapshot', JSON.stringify({
+                                  ...snapshot,
+                                  data: Array.from(snapshot.data)
+                                }));
+                                return;
+                              }
+                            } catch (error) {
+                              console.error('Error reopening file handle:', error);
+                            }
+                          }
+                          // If handle doesn't exist or failed, show dialog
                           setClickedClientFilePath(file.path);
                           setShowClientFileDialog(true);
                         }}
@@ -451,12 +473,12 @@ export const Menu: FunctionComponent<MenuProps> = ({
       >
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>Could not restore client file</DialogTitle>
+            <DialogTitle>Could not restore file</DialogTitle>
             <DialogDescription>
-              Client uploads are temporary files that were uploaded directly
-              from your browser. Since the file data isn't stored on the server,
-              it can't be restored later. Please upload the file again if you
-              need to view it.
+              This file was opened using the File System Access API, but the file
+              handle could not be restored. This may happen if the file was moved
+              or deleted, or if permissions were revoked. Please select the file
+              again to open it.
             </DialogDescription>
           </DialogHeader>
           <div className="flex justify-end gap-2 mt-4">
