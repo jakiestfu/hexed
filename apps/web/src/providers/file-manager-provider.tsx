@@ -1,10 +1,8 @@
 import * as React from "react"
 
+import { FileManagerProvider as EditorFileManagerProvider } from "@hexed/editor"
 import { createLogger } from "@hexed/logger"
 import type { WorkerClient } from "@hexed/worker"
-import {
-  FileManagerProvider as EditorFileManagerProvider,
-} from "@hexed/editor"
 
 import { useWorkerClient } from "./worker-provider"
 

@@ -33,6 +33,7 @@
     "pnpm": ">=8.0.0"
   },
   "devDependencies": {
+    "@manypkg/cli": "^0.25.1",
     "typescript": "^5.7.2"
   },
   "pnpm": {

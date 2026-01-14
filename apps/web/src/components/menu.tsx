@@ -26,6 +26,7 @@ import {
   FileSourceIcon,
   formatFilenameForDisplay,
   Histogram,
+  Sidebar,
   useRecentFiles,
   useSettings
 } from "@hexed/editor"
@@ -60,20 +61,12 @@ export type MenuItem = {
 }
 
 export type MenuProps = {
-  menuItems?: MenuItem[]
-  githubUrl?: string
   currentSnapshot?: BinarySnapshot | null
   showHistogram: boolean
   onShowHistogramChange: (show: boolean) => void
 }
 
-const isInternalLink = (href: string): boolean => {
-  return href.startsWith("/")
-}
-
 export const Menu: FunctionComponent<MenuProps> = ({
-  menuItems,
-  githubUrl = "https://github.com/jakiestfu/hexed",
   currentSnapshot,
   showHistogram,
   onShowHistogramChange
@@ -81,16 +74,12 @@ export const Menu: FunctionComponent<MenuProps> = ({
   const { theme, setTheme } = useTheme()
   const { recentFiles, clearRecentFiles, removeRecentFile } = useRecentFiles()
   const {
+    sidebar,
+    setSidebar,
     showAscii,
     setShowAscii,
     showChecksums,
     setShowChecksums,
-    showInterpreter,
-    setShowInterpreter,
-    showTemplates,
-    setShowTemplates,
-    showStrings,
-    setShowStrings,
     sidebarPosition,
     setSidebarPosition,
     showMemoryProfiler,
@@ -102,35 +91,6 @@ export const Menu: FunctionComponent<MenuProps> = ({
   const [clickedClientFilePath, setClickedClientFilePath] = useState<
     string | null
   >(null)
-
-  // Determine active sidebar panel
-  const activeSidebarPanel = showInterpreter
-    ? "interpreter"
-    : showTemplates
-      ? "templates"
-      : showStrings
-        ? "strings"
-        : null
-
-  const handleSidebarPanelChange = (value: string) => {
-    setShowInterpreter(false)
-    setShowTemplates(false)
-    setShowStrings(false)
-
-    switch (value) {
-      case "interpreter":
-        setShowInterpreter(true)
-        break
-      case "templates":
-        setShowTemplates(true)
-        break
-      case "strings":
-        setShowStrings(true)
-        break
-      default:
-        break
-    }
-  }
 
   return (
     <>
@@ -320,8 +280,8 @@ export const Menu: FunctionComponent<MenuProps> = ({
           </DropdownMenuSubTrigger>
           <DropdownMenuSubContent>
             <DropdownMenuRadioGroup
-              value={activeSidebarPanel || ""}
-              onValueChange={handleSidebarPanelChange}
+              value={String(sidebar)}
+              onValueChange={(v) => setSidebar(v as Sidebar)}
             >
               <DropdownMenuRadioItem
                 value="interpreter"
@@ -422,22 +382,18 @@ export const Menu: FunctionComponent<MenuProps> = ({
             </DropdownMenuRadioGroup>
           </DropdownMenuSubContent>
         </DropdownMenuSub>
-        {githubUrl && (
-          <>
-            <DropdownMenuSeparator />
-            <DropdownMenuItem asChild>
-              <a
-                href={githubUrl}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="flex items-center gap-2 cursor-pointer"
-              >
-                <Github className="mr-2 h-4 w-4" />
-                View on GitHub
-              </a>
-            </DropdownMenuItem>
-          </>
-        )}
+        <DropdownMenuSeparator />
+        <DropdownMenuItem asChild>
+          <a
+            href={"https://github.com/jakiestfu/hexed"}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="flex items-center gap-2 cursor-pointer"
+          >
+            <Github className="mr-2 h-4 w-4" />
+            View on GitHub
+          </a>
+        </DropdownMenuItem>
       </DropdownMenuContent>
       {currentSnapshot?.data && (
         <Dialog

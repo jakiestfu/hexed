@@ -1,4 +1,4 @@
-import { FunctionComponent, ReactNode, useState } from "react"
+import { FunctionComponent, useState } from "react"
 import { ChevronDown, Ghost } from "lucide-react"
 
 import type { BinarySnapshot } from "@hexed/types"
