@@ -3,104 +3,104 @@ import {
   useCallback,
   useContext,
   useEffect,
-  useState,
-} from "react";
-import type { DragEvent, FunctionComponent, ReactNode } from "react";
+  useState
+} from "react"
+import type { DragEvent, FunctionComponent, ReactNode } from "react"
 
-import type { BinarySnapshot } from "@hexed/types";
+import type { BinarySnapshot } from "@hexed/types"
 
-import { createSnapshotFromFile } from "../utils";
+import { createSnapshotFromFile } from "../utils"
 
 type DragDropContextType = {
   setOnFileSelect: (
     callback: ((filePath: string | BinarySnapshot) => void) | null
-  ) => void;
-};
+  ) => void
+}
 
 const DragDropContext = createContext<DragDropContextType>({
-  setOnFileSelect: () => {},
-});
+  setOnFileSelect: () => {}
+})
 
-export const useDragDrop = () => useContext(DragDropContext);
+export const useDragDrop = () => useContext(DragDropContext)
 
 type DragDropProviderProps = {
-  children: ReactNode;
-};
+  children: ReactNode
+}
 
 export const DragDropProvider: FunctionComponent<DragDropProviderProps> = ({
-  children,
+  children
 }) => {
-  const [isDragging, setIsDragging] = useState(false);
+  const [isDragging, setIsDragging] = useState(false)
   const [onFileSelectCallback, setOnFileSelectCallback] = useState<
     ((filePath: string | BinarySnapshot) => void) | null
-  >(null);
+  >(null)
 
   const setOnFileSelect = useCallback(
     (callback: ((filePath: string | BinarySnapshot) => void) | null) => {
-      setOnFileSelectCallback(() => callback);
+      setOnFileSelectCallback(() => callback)
     },
     []
-  );
+  )
 
   const handleDragEnter = useCallback((e: DragEvent) => {
-    e.preventDefault();
-    e.stopPropagation();
+    e.preventDefault()
+    e.stopPropagation()
     if (e.dataTransfer.types.includes("Files")) {
-      setIsDragging(true);
+      setIsDragging(true)
     }
-  }, []);
+  }, [])
 
   const handleDragLeave = useCallback((e: DragEvent) => {
-    e.preventDefault();
-    e.stopPropagation();
+    e.preventDefault()
+    e.stopPropagation()
     // Only hide if we're leaving the window/document
     if (
       e.currentTarget === e.target ||
       (e.target as HTMLElement).closest("body") === null
     ) {
-      setIsDragging(false);
+      setIsDragging(false)
     }
-  }, []);
+  }, [])
 
   const handleDragOver = useCallback((e: DragEvent) => {
-    e.preventDefault();
-    e.stopPropagation();
-  }, []);
+    e.preventDefault()
+    e.stopPropagation()
+  }, [])
 
   const handleDrop = useCallback(
     async (e: DragEvent) => {
-      e.preventDefault();
-      e.stopPropagation();
-      setIsDragging(false);
+      e.preventDefault()
+      e.stopPropagation()
+      setIsDragging(false)
 
-      const file = e.dataTransfer.files[0];
-      if (!file || !onFileSelectCallback) return;
+      const file = e.dataTransfer.files[0]
+      if (!file || !onFileSelectCallback) return
 
       try {
-        const snapshot = await createSnapshotFromFile(file);
-        onFileSelectCallback(snapshot);
+        const snapshot = await createSnapshotFromFile(file)
+        onFileSelectCallback(snapshot)
       } catch (error) {
-        console.error("Error reading dropped file:", error);
+        console.error("Error reading dropped file:", error)
       }
     },
     [onFileSelectCallback]
-  );
+  )
 
   useEffect(() => {
     // Add global drag event listeners to document body
-    const body = document.body;
-    body.addEventListener("dragenter", handleDragEnter);
-    body.addEventListener("dragleave", handleDragLeave);
-    body.addEventListener("dragover", handleDragOver);
-    body.addEventListener("drop", handleDrop);
+    const body = document.body
+    body.addEventListener("dragenter", handleDragEnter)
+    body.addEventListener("dragleave", handleDragLeave)
+    body.addEventListener("dragover", handleDragOver)
+    body.addEventListener("drop", handleDrop)
 
     return () => {
-      body.removeEventListener("dragenter", handleDragEnter);
-      body.removeEventListener("dragleave", handleDragLeave);
-      body.removeEventListener("dragover", handleDragOver);
-      body.removeEventListener("drop", handleDrop);
-    };
-  }, [handleDragEnter, handleDragLeave, handleDragOver, handleDrop]);
+      body.removeEventListener("dragenter", handleDragEnter)
+      body.removeEventListener("dragleave", handleDragLeave)
+      body.removeEventListener("dragover", handleDragOver)
+      body.removeEventListener("drop", handleDrop)
+    }
+  }, [handleDragEnter, handleDragLeave, handleDragOver, handleDrop])
 
   return (
     <DragDropContext.Provider value={{ setOnFileSelect }}>
@@ -112,5 +112,5 @@ export const DragDropProvider: FunctionComponent<DragDropProviderProps> = ({
         </div>
       )}
     </DragDropContext.Provider>
-  );
-};
+  )
+}

@@ -3,59 +3,59 @@
  * FileSystemFileHandle objects can be stored directly in IndexedDB as they are structured cloneable
  */
 
-const DB_NAME = 'hexed-file-handles';
-const DB_VERSION = 1;
-const STORE_NAME = 'file-handles';
+const DB_NAME = "hexed-file-handles"
+const DB_VERSION = 1
+const STORE_NAME = "file-handles"
 
 export interface FileHandleMetadata {
-  id: string;
-  timestamp: number;
-  source: 'file-system';
-  handle: FileSystemFileHandle;
+  id: string
+  timestamp: number
+  source: "file-system"
+  handle: FileSystemFileHandle
 }
 
-let dbInstance: IDBDatabase | null = null;
+let dbInstance: IDBDatabase | null = null
 
 /**
  * Open or create the IndexedDB database
  */
 async function openDatabase(): Promise<IDBDatabase> {
   if (dbInstance) {
-    return dbInstance;
+    return dbInstance
   }
 
   return new Promise((resolve, reject) => {
-    if (typeof window === 'undefined' || !window.indexedDB) {
-      reject(new Error('IndexedDB is not available'));
-      return;
+    if (typeof window === "undefined" || !window.indexedDB) {
+      reject(new Error("IndexedDB is not available"))
+      return
     }
 
-    const request = indexedDB.open(DB_NAME, DB_VERSION);
+    const request = indexedDB.open(DB_NAME, DB_VERSION)
 
     request.onerror = () => {
-      reject(new Error(`Failed to open database: ${request.error}`));
-    };
+      reject(new Error(`Failed to open database: ${request.error}`))
+    }
 
     request.onsuccess = () => {
-      dbInstance = request.result;
-      resolve(dbInstance);
-    };
+      dbInstance = request.result
+      resolve(dbInstance)
+    }
 
     request.onupgradeneeded = (event) => {
-      const db = (event.target as IDBOpenDBRequest).result;
+      const db = (event.target as IDBOpenDBRequest).result
       if (!db.objectStoreNames.contains(STORE_NAME)) {
-        const store = db.createObjectStore(STORE_NAME, { keyPath: 'id' });
-        store.createIndex('timestamp', 'timestamp', { unique: false });
+        const store = db.createObjectStore(STORE_NAME, { keyPath: "id" })
+        store.createIndex("timestamp", "timestamp", { unique: false })
       }
-    };
-  });
+    }
+  })
 }
 
 /**
  * Generate a unique ID for a file handle entry
  */
 function generateId(): string {
-  return `${Date.now()}-${Math.random().toString(36).substring(2, 9)}`;
+  return `${Date.now()}-${Math.random().toString(36).substring(2, 9)}`
 }
 
 /**
@@ -64,33 +64,33 @@ function generateId(): string {
 export async function saveFileHandle(
   handle: FileSystemFileHandle,
   metadata: {
-    source: 'file-system';
+    source: "file-system"
   }
 ): Promise<string> {
-  const db = await openDatabase();
-  const id = generateId();
+  const db = await openDatabase()
+  const id = generateId()
 
   const entry: FileHandleMetadata = {
     id,
     timestamp: Date.now(),
     source: metadata.source,
     handle
-  };
+  }
 
   return new Promise((resolve, reject) => {
-    const transaction = db.transaction([STORE_NAME], 'readwrite');
-    const store = transaction.objectStore(STORE_NAME);
+    const transaction = db.transaction([STORE_NAME], "readwrite")
+    const store = transaction.objectStore(STORE_NAME)
 
-    const request = store.put(entry);
+    const request = store.put(entry)
 
     request.onsuccess = () => {
-      resolve(id);
-    };
+      resolve(id)
+    }
 
     request.onerror = () => {
-      reject(new Error(`Failed to save file handle: ${request.error}`));
-    };
-  });
+      reject(new Error(`Failed to save file handle: ${request.error}`))
+    }
+  })
 }
 
 /**
@@ -99,96 +99,96 @@ export async function saveFileHandle(
 export async function getFileHandle(
   id: string
 ): Promise<FileHandleMetadata | null> {
-  const db = await openDatabase();
+  const db = await openDatabase()
 
   return new Promise((resolve, reject) => {
-    const transaction = db.transaction([STORE_NAME], 'readonly');
-    const store = transaction.objectStore(STORE_NAME);
+    const transaction = db.transaction([STORE_NAME], "readonly")
+    const store = transaction.objectStore(STORE_NAME)
 
-    const request = store.get(id);
+    const request = store.get(id)
 
     request.onsuccess = () => {
-      resolve(request.result || null);
-    };
+      resolve(request.result || null)
+    }
 
     request.onerror = () => {
-      reject(new Error(`Failed to get file handle: ${request.error}`));
-    };
-  });
+      reject(new Error(`Failed to get file handle: ${request.error}`))
+    }
+  })
 }
 
 /**
  * Delete a file handle by ID
  */
 export async function deleteFileHandle(id: string): Promise<void> {
-  const db = await openDatabase();
+  const db = await openDatabase()
 
   return new Promise((resolve, reject) => {
-    const transaction = db.transaction([STORE_NAME], 'readwrite');
-    const store = transaction.objectStore(STORE_NAME);
+    const transaction = db.transaction([STORE_NAME], "readwrite")
+    const store = transaction.objectStore(STORE_NAME)
 
-    const request = store.delete(id);
+    const request = store.delete(id)
 
     request.onsuccess = () => {
-      resolve();
-    };
+      resolve()
+    }
 
     request.onerror = () => {
-      reject(new Error(`Failed to delete file handle: ${request.error}`));
-    };
-  });
+      reject(new Error(`Failed to delete file handle: ${request.error}`))
+    }
+  })
 }
 
 /**
  * Get all file handles, sorted by timestamp (most recent first)
  */
 export async function getAllFileHandles(): Promise<FileHandleMetadata[]> {
-  const db = await openDatabase();
+  const db = await openDatabase()
 
   return new Promise((resolve, reject) => {
-    const transaction = db.transaction([STORE_NAME], 'readonly');
-    const store = transaction.objectStore(STORE_NAME);
-    const index = store.index('timestamp');
+    const transaction = db.transaction([STORE_NAME], "readonly")
+    const store = transaction.objectStore(STORE_NAME)
+    const index = store.index("timestamp")
 
-    const request = index.openCursor(null, 'prev'); // 'prev' for descending order
-    const results: FileHandleMetadata[] = [];
+    const request = index.openCursor(null, "prev") // 'prev' for descending order
+    const results: FileHandleMetadata[] = []
 
     request.onsuccess = () => {
-      const cursor = request.result;
+      const cursor = request.result
       if (cursor) {
-        results.push(cursor.value);
-        cursor.continue();
+        results.push(cursor.value)
+        cursor.continue()
       } else {
-        resolve(results);
+        resolve(results)
       }
-    };
+    }
 
     request.onerror = () => {
-      reject(new Error(`Failed to get all file handles: ${request.error}`));
-    };
-  });
+      reject(new Error(`Failed to get all file handles: ${request.error}`))
+    }
+  })
 }
 
 /**
  * Clear all file handles
  */
 export async function clearAllFileHandles(): Promise<void> {
-  const db = await openDatabase();
+  const db = await openDatabase()
 
   return new Promise((resolve, reject) => {
-    const transaction = db.transaction([STORE_NAME], 'readwrite');
-    const store = transaction.objectStore(STORE_NAME);
+    const transaction = db.transaction([STORE_NAME], "readwrite")
+    const store = transaction.objectStore(STORE_NAME)
 
-    const request = store.clear();
+    const request = store.clear()
 
     request.onsuccess = () => {
-      resolve();
-    };
+      resolve()
+    }
 
     request.onerror = () => {
-      reject(new Error(`Failed to clear file handles: ${request.error}`));
-    };
-  });
+      reject(new Error(`Failed to clear file handles: ${request.error}`))
+    }
+  })
 }
 
 /**
@@ -197,33 +197,33 @@ export async function clearAllFileHandles(): Promise<void> {
 export async function getFileHandleByName(
   name: string
 ): Promise<FileHandleMetadata | null> {
-  const db = await openDatabase();
+  const db = await openDatabase()
 
   return new Promise((resolve, reject) => {
-    const transaction = db.transaction([STORE_NAME], 'readonly');
-    const store = transaction.objectStore(STORE_NAME);
-    const index = store.index('timestamp');
+    const transaction = db.transaction([STORE_NAME], "readonly")
+    const store = transaction.objectStore(STORE_NAME)
+    const index = store.index("timestamp")
 
-    const request = index.openCursor(null, 'prev'); // 'prev' for descending order
+    const request = index.openCursor(null, "prev") // 'prev' for descending order
 
     request.onsuccess = () => {
-      const cursor = request.result;
+      const cursor = request.result
       if (cursor) {
-        const handle = cursor.value as FileHandleMetadata;
+        const handle = cursor.value as FileHandleMetadata
         if (handle.handle.name === name) {
-          resolve(handle);
-          return;
+          resolve(handle)
+          return
         }
-        cursor.continue();
+        cursor.continue()
       } else {
-        resolve(null);
+        resolve(null)
       }
-    };
+    }
 
     request.onerror = () => {
-      reject(new Error(`Failed to get file handle by name: ${request.error}`));
-    };
-  });
+      reject(new Error(`Failed to get file handle by name: ${request.error}`))
+    }
+  })
 }
 
 /**
@@ -233,47 +233,47 @@ export async function updateFileHandleTimestamp(
   id: string,
   timestamp: number = Date.now()
 ): Promise<void> {
-  const db = await openDatabase();
+  const db = await openDatabase()
 
   return new Promise((resolve, reject) => {
-    const transaction = db.transaction([STORE_NAME], 'readwrite');
-    const store = transaction.objectStore(STORE_NAME);
+    const transaction = db.transaction([STORE_NAME], "readwrite")
+    const store = transaction.objectStore(STORE_NAME)
 
-    const getRequest = store.get(id);
+    const getRequest = store.get(id)
 
     getRequest.onsuccess = () => {
-      const existing = getRequest.result;
+      const existing = getRequest.result
       if (!existing) {
-        reject(new Error(`File handle with id ${id} not found`));
-        return;
+        reject(new Error(`File handle with id ${id} not found`))
+        return
       }
 
       const updated: FileHandleMetadata = {
         ...existing,
         timestamp
-      };
+      }
 
-      const putRequest = store.put(updated);
+      const putRequest = store.put(updated)
 
       putRequest.onsuccess = () => {
-        resolve();
-      };
+        resolve()
+      }
 
       putRequest.onerror = () => {
         reject(
           new Error(
             `Failed to update file handle timestamp: ${putRequest.error}`
           )
-        );
-      };
-    };
+        )
+      }
+    }
 
     getRequest.onerror = () => {
       reject(
         new Error(`Failed to get file handle for update: ${getRequest.error}`)
-      );
-    };
-  });
+      )
+    }
+  })
 }
 
 /**
@@ -283,17 +283,17 @@ export async function verifyHandlePermission(
   handle: FileSystemFileHandle
 ): Promise<boolean> {
   // @ts-expect-error - queryPermission may not be in TypeScript types yet
-  const permission = await handle.queryPermission({ mode: 'read' });
+  const permission = await handle.queryPermission({ mode: "read" })
 
-  if (permission === 'granted') {
-    return true;
+  if (permission === "granted") {
+    return true
   }
 
-  if (permission === 'prompt') {
+  if (permission === "prompt") {
     // @ts-expect-error - requestPermission may not be in TypeScript types yet
-    const newPermission = await handle.requestPermission({ mode: 'read' });
-    return newPermission === 'granted';
+    const newPermission = await handle.requestPermission({ mode: "read" })
+    return newPermission === "granted"
   }
 
-  return false;
+  return false
 }

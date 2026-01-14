@@ -1,13 +1,11 @@
 import * as React from "react"
-import { AlertCircle } from "lucide-react"
 import { useNavigate, useParams } from "react-router-dom"
 
 import { createSnapshotFromFile, HexEditor, useDragDrop } from "@hexed/editor"
 import type { BinarySnapshot } from "@hexed/types"
-import { Button, Card, CardContent } from "@hexed/ui"
 
 import { Logo } from "~/components/logo"
-import { useFileHandleWatcher } from "~/hooks/use-file-handle-watcher"
+import { useHexEditorFile } from "~/hooks/use-hex-editor-file"
 import { useRecentFiles } from "~/hooks/use-recent-files"
 import { useFileManager } from "~/providers/file-manager-provider"
 import { decodeHandleId, encodeHandleId } from "~/utils/path-encoding"
@@ -20,95 +18,26 @@ export function HexEditorPage() {
   const fileManager = useFileManager()
 
   // Get handle ID from URL parameter
-  const hasIdParam = !!params.id
   const handleId = React.useMemo(() => {
     const idParam = params.id
     if (!idParam) return null
     return decodeHandleId(idParam)
   }, [params.id])
 
-  // State for handle file path and loading
-  const [handleFilePath, setHandleFilePath] = React.useState<string | null>(
-    null
-  )
-  const [handleFileHandle, setHandleFileHandle] =
-    React.useState<FileSystemFileHandle | null>(null)
-  const [handleInitialLoading, setHandleInitialLoading] = React.useState(false)
+  // Use hook to manage file loading and watching
+  const { snapshots, filePath, isConnected, loading, error, restart } =
+    useHexEditorFile(handleId)
 
-  // Load handle metadata and set up watcher
-  React.useEffect(() => {
-    if (!handleId) {
-      setHandleFilePath(null)
-      setHandleFileHandle(null)
-      setHandleInitialLoading(false)
-      return
-    }
-
-    const loadHandleMetadata = async () => {
-      setHandleInitialLoading(true)
-
-      try {
-        // First check sessionStorage for cached snapshot (for initial fast load)
-        const snapshotKey = `hexed:pending-handle-${handleId}`
-        const cachedSnapshot = sessionStorage.getItem(snapshotKey)
-        if (cachedSnapshot) {
-          try {
-            const snapshotData = JSON.parse(cachedSnapshot)
-            setHandleFilePath(snapshotData.filePath)
-            // Clean up sessionStorage
-            sessionStorage.removeItem(snapshotKey)
-          } catch (parseError) {
-            console.warn("Failed to parse cached snapshot:", parseError)
-          }
-        }
-
-        // Load from IndexedDB handle
-        const handleData = await getFileHandleById(handleId)
-        if (!handleData) {
-          throw new Error("File handle not found or permission denied")
-        }
-
-        setHandleFilePath(handleData.handle.name)
-        setHandleFileHandle(handleData.handle)
-
-        // Open file in worker if file manager is available
-        if (fileManager) {
-          try {
-            await fileManager.openFile(handleId, handleData.handle)
-          } catch (workerError) {
-            console.warn("Failed to open file in worker:", workerError)
-            // Continue anyway, worker will be opened when watcher reads
-          }
-        }
-
-        // Update recent files (will check for duplicates internally)
-        addRecentFile(handleData.handle.name, "file-system", handleData.handle)
-      } catch (error) {
-        console.error("Failed to load handle metadata:", error)
-        setHandleFilePath(null)
-        setHandleFileHandle(null)
-      } finally {
-        setHandleInitialLoading(false)
-      }
-    }
-
-    loadHandleMetadata()
-  }, [handleId, getFileHandleById, addRecentFile, fileManager])
-
-  // Use file handle watcher for handle-based files
-  const {
-    snapshots,
-    isConnected,
-    error,
-    restart: handleRestart
-  } = useFileHandleWatcher(handleFileHandle, handleFilePath, handleId)
-
-  const loading = snapshots.length === 0 && !error && handleInitialLoading
   const currentSnapshot = snapshots[0] || null
   const [showHistogram, setShowHistogram] = React.useState(false)
 
+  // Memoized callbacks
+  const handleClose = React.useCallback(() => {
+    navigate("/")
+  }, [navigate])
+
   const handleFileSelect = React.useCallback(
-    (input: string | BinarySnapshot) => {
+    (_input: string | BinarySnapshot) => {
       // BinarySnapshot - this should only happen from drag-drop
       // For drag-drop, we don't have a FileSystemFileHandle, so we can't watch it
       // Just show it in the editor without navigation
@@ -133,11 +62,6 @@ export function HexEditorPage() {
     }
   }, [handleFileSelect, setOnFileSelect])
 
-  const handleClose = () => {
-    navigate("/")
-  }
-
-  // Callback for when a recent file is selected
   const handleRecentFileSelect = React.useCallback(
     async (handleId: string) => {
       try {
@@ -189,7 +113,6 @@ export function HexEditorPage() {
     [getFileHandleById, fileManager, navigate]
   )
 
-  // Callback for when file picker is opened
   const handleFilePickerOpen = React.useCallback(async () => {
     const supportsFileSystemAccess =
       typeof window !== "undefined" && "showOpenFilePicker" in window
@@ -237,104 +160,19 @@ export function HexEditorPage() {
       return null
     }
   }, [addRecentFile, fileManager, navigate])
-
-  // Home page (no id param) - show empty state
-  if (!hasIdParam) {
-    return (
-      <HexEditor
-        snapshots={[]}
-        filePath={null}
-        isConnected={false}
-        onFileSelect={handleFileSelect}
-        recentFiles={recentFiles}
-        onRecentFileSelect={handleRecentFileSelect}
-        onFilePickerOpen={handleFilePickerOpen}
-        logo={
-          <Logo
-            currentSnapshot={null}
-            showHistogram={showHistogram}
-            onShowHistogramChange={setShowHistogram}
-          />
-        }
-      />
-    )
-  }
-
-  // Invalid handle ID error (id param exists but decode failed)
-  if (hasIdParam && !handleId) {
-    return (
-      <div className="flex items-center justify-center min-h-screen py-8 px-4">
-        <Card className="w-full max-w-md border-destructive">
-          <CardContent className="pt-6">
-            <div className="flex flex-col items-center gap-4 text-center">
-              <div className="rounded-full bg-destructive/10 p-3">
-                <AlertCircle className="h-6 w-6 text-destructive" />
-              </div>
-              <div>
-                <h3 className="font-semibold text-destructive">
-                  Invalid file handle
-                </h3>
-                <p className="text-sm text-muted-foreground mt-1">
-                  The file handle ID in the URL is invalid.
-                </p>
-              </div>
-              <Button
-                onClick={handleClose}
-                variant="outline"
-              >
-                Go Back
-              </Button>
-            </div>
-          </CardContent>
-        </Card>
-      </div>
-    )
-  }
-
-  // Only show full-page error if we have no snapshots (initial load error)
-  // Watching errors will be shown in the popover
-  if (error && snapshots.length === 0) {
-    return (
-      <div className="flex items-center justify-center min-h-screen py-8 px-4">
-        <Card className="w-full max-w-md border-destructive">
-          <CardContent className="pt-6">
-            <div className="flex flex-col items-center gap-4 text-center">
-              <div className="rounded-full bg-destructive/10 p-3">
-                <AlertCircle className="h-6 w-6 text-destructive" />
-              </div>
-              <div>
-                <h3 className="font-semibold text-destructive">
-                  Error loading file
-                </h3>
-                <p className="text-sm text-muted-foreground mt-1">{error}</p>
-                <p className="text-xs text-muted-foreground mt-2 font-mono">
-                  {handleFilePath}
-                </p>
-              </div>
-              <Button
-                onClick={handleClose}
-                variant="outline"
-              >
-                Go Back
-              </Button>
-            </div>
-          </CardContent>
-        </Card>
-      </div>
-    )
-  }
-
+  console.log("RERENDERING HEX EDITOR PAGE")
   return (
     <HexEditor
       snapshots={snapshots}
-      filePath={handleFilePath}
+      filePath={filePath}
       isConnected={isConnected}
       loading={loading}
-      onClose={handleClose}
+      onClose={handleId ? handleClose : undefined}
+      onFileSelect={handleFileSelect}
       fileSource="file-system"
-      originalSource={handleFilePath || ""}
+      originalSource={filePath || ""}
       error={error}
-      onRestartWatching={handleRestart}
+      onRestartWatching={restart}
       recentFiles={recentFiles}
       onRecentFileSelect={handleRecentFileSelect}
       onFilePickerOpen={handleFilePickerOpen}

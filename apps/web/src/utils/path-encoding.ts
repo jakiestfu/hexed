@@ -10,7 +10,7 @@
  * @returns The handle ID as-is
  */
 export function encodeHandleId(handleId: string): string {
-  return handleId;
+  return handleId
 }
 
 /**
@@ -21,7 +21,7 @@ export function encodeHandleId(handleId: string): string {
  */
 export function decodeHandleId(handleId: string): string | null {
   if (!handleId) {
-    return null;
+    return null
   }
-  return handleId;
+  return handleId
 }

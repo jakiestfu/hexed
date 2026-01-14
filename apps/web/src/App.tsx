@@ -3,6 +3,7 @@ import { ThemeProvider } from "next-themes"
 import { createBrowserRouter, RouterProvider } from "react-router-dom"
 
 import { DragDropProvider } from "@hexed/editor"
+
 import { FileManagerProvider } from "~/providers/file-manager-provider"
 import { WorkerProvider } from "~/providers/worker-provider"
 import { HexEditorPage } from "~/routes/hex-editor-page"
