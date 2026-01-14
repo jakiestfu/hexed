@@ -22,7 +22,11 @@ import { useQueryParamState } from '~/hooks/use-query-param-state';
 import type { RecentFile } from '~/hooks/use-recent-files';
 import { useRecentFiles } from '~/hooks/use-recent-files';
 import { isElectron, openFileDialog } from '~/utils/electron';
-import { encodeFilePath, isUrlPath } from '~/utils/path-encoding';
+import {
+  encodeFilePath,
+  encodeHandleId,
+  isUrlPath
+} from '~/utils/path-encoding';
 import { FileSourceIcon } from './file-source-icon';
 import { FileSource } from './types';
 import { createSnapshotFromFile, formatTimestamp, getBasename } from './utils';
@@ -132,9 +136,23 @@ export const DataPicker: FunctionComponent<DataPickerProps> = ({
       try {
         const handleData = await getFileHandleById(recentFile.handleId);
         if (handleData) {
+          // Create snapshot and store in sessionStorage as fallback
           const snapshot = await createSnapshotFromFile(handleData.handle);
-          await addRecentFile(handleData.path, 'upload', handleData.handle);
-          onFileSelect(snapshot);
+          const snapshotKey = `hexed:pending-handle-${recentFile.handleId}`;
+          try {
+            // Store snapshot data (convert Uint8Array to array for JSON)
+            const snapshotData = {
+              ...snapshot,
+              data: Array.from(snapshot.data)
+            };
+            sessionStorage.setItem(snapshotKey, JSON.stringify(snapshotData));
+          } catch (storageError) {
+            console.warn('Failed to store snapshot in sessionStorage:', storageError);
+          }
+
+          // Navigate to edit page with handleId
+          const encodedHandleId = encodeHandleId(recentFile.handleId);
+          router.push(`/edit/${encodedHandleId}`);
         } else {
           console.error('Failed to reopen file handle');
           alert('Could not reopen file. Please select it again.');
@@ -148,8 +166,10 @@ export const DataPicker: FunctionComponent<DataPickerProps> = ({
       return;
     }
 
-    // For disk files, use the onFileSelect callback
-    onFileSelect(path);
+    // For disk files, navigate directly to avoid duplicates
+    // The edit page will handle adding to recent files if needed
+    const encodedPath = encodeFilePath(path);
+    router.push(`/edit/${encodedPath}`);
   };
 
   // File Tab Handlers

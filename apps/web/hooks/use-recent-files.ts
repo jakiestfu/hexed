@@ -3,13 +3,14 @@
 import * as React from 'react';
 
 import { FileSource } from '~/components/hex-editor/types';
-import { isUrlPath } from '~/utils/path-encoding';
 import {
-  saveFileHandle,
-  getFileHandle,
+  clearAllFileHandles,
   deleteFileHandle,
   getAllFileHandles,
-  clearAllFileHandles,
+  getFileHandle,
+  getFileHandleByPath,
+  saveFileHandle,
+  updateFileHandleTimestamp,
   verifyHandlePermission,
   type FileHandleMetadata
 } from '~/utils/file-handle-storage';
@@ -63,16 +64,51 @@ export function useRecentFiles() {
       if (typeof window === 'undefined') return;
 
       try {
-        // If handle is provided, save it to IndexedDB
+        const now = Date.now();
         let handleId: string | undefined;
-        if (handle && source === 'upload') {
-          handleId = await saveFileHandle(handle, { path: filePath, source });
+
+        // Check if file already exists in IndexedDB
+        const existingHandle = await getFileHandleByPath(filePath);
+
+        if (existingHandle) {
+          // File exists - update timestamp instead of creating duplicate
+          handleId = existingHandle.id;
+
+          // If we have a new handle and the existing one doesn't match, update it
+          if (handle && source === 'upload') {
+            // Check if we need to update the handle (e.g., if permission was lost)
+            const hasPermission = await verifyHandlePermission(
+              existingHandle.handle
+            );
+            if (!hasPermission) {
+              // Old handle lost permission, save new one
+              await deleteFileHandle(existingHandle.id);
+              handleId = await saveFileHandle(handle, {
+                path: filePath,
+                source
+              });
+            } else {
+              // Just update timestamp
+              await updateFileHandleTimestamp(existingHandle.id, now);
+            }
+          } else {
+            // Just update timestamp
+            await updateFileHandleTimestamp(existingHandle.id, now);
+          }
+        } else {
+          // File doesn't exist - create new entry
+          if (handle && source === 'upload') {
+            handleId = await saveFileHandle(handle, {
+              path: filePath,
+              source
+            });
+          }
         }
 
-        // Update state with new file
-        const newFile: RecentFile = {
+        // Update state with file (move to top)
+        const updatedFile: RecentFile = {
           path: filePath,
-          timestamp: Date.now(),
+          timestamp: now,
           source,
           handleId
         };
@@ -81,8 +117,8 @@ export function useRecentFiles() {
           // Remove if already exists (to avoid duplicates)
           const filtered = prev.filter((file) => file.path !== filePath);
 
-          // Add new file at the beginning
-          const updated = [newFile, ...filtered].slice(0, MAX_RECENT_FILES);
+          // Add updated file at the beginning
+          const updated = [updatedFile, ...filtered].slice(0, MAX_RECENT_FILES);
           return updated;
         });
       } catch (error) {

@@ -198,6 +198,84 @@ export async function clearAllFileHandles(): Promise<void> {
 }
 
 /**
+ * Get a file handle by path (returns the most recent one if multiple exist)
+ */
+export async function getFileHandleByPath(
+  path: string
+): Promise<FileHandleMetadata | null> {
+  const db = await openDatabase()
+
+  return new Promise((resolve, reject) => {
+    const transaction = db.transaction([STORE_NAME], 'readonly')
+    const store = transaction.objectStore(STORE_NAME)
+    const index = store.index('path')
+
+    const request = index.openCursor(IDBKeyRange.only(path), 'prev')
+
+    request.onsuccess = () => {
+      const cursor = request.result
+      if (cursor) {
+        resolve(cursor.value)
+      } else {
+        resolve(null)
+      }
+    }
+
+    request.onerror = () => {
+      reject(new Error(`Failed to get file handle by path: ${request.error}`))
+    }
+  })
+}
+
+/**
+ * Update the timestamp of an existing file handle
+ */
+export async function updateFileHandleTimestamp(
+  id: string,
+  timestamp: number = Date.now()
+): Promise<void> {
+  const db = await openDatabase()
+
+  return new Promise((resolve, reject) => {
+    const transaction = db.transaction([STORE_NAME], 'readwrite')
+    const store = transaction.objectStore(STORE_NAME)
+
+    const getRequest = store.get(id)
+
+    getRequest.onsuccess = () => {
+      const existing = getRequest.result
+      if (!existing) {
+        reject(new Error(`File handle with id ${id} not found`))
+        return
+      }
+
+      const updated: FileHandleMetadata = {
+        ...existing,
+        timestamp
+      }
+
+      const putRequest = store.put(updated)
+
+      putRequest.onsuccess = () => {
+        resolve()
+      }
+
+      putRequest.onerror = () => {
+        reject(
+          new Error(`Failed to update file handle timestamp: ${putRequest.error}`)
+        )
+      }
+    }
+
+    getRequest.onerror = () => {
+      reject(
+        new Error(`Failed to get file handle for update: ${getRequest.error}`)
+      )
+    }
+  })
+}
+
+/**
  * Verify and request permission for a file handle
  */
 export async function verifyHandlePermission(

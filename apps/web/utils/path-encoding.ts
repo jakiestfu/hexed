@@ -55,3 +55,41 @@ export function decodeFilePath(encoded: string): string | null {
     return null
   }
 }
+
+/**
+ * Checks if a path is a handle ID (starts with "handle:")
+ * @param path - The path to check
+ * @returns true if the path is a handle ID, false otherwise
+ */
+export function isHandleId(path: string): boolean {
+  return path.startsWith("handle:")
+}
+
+/**
+ * Encodes a handle ID for use in URLs
+ * @param handleId - The handle ID to encode
+ * @returns URL-safe base64 encoded string with "handle:" prefix
+ */
+export function encodeHandleId(handleId: string): string {
+  const handlePath = `handle:${handleId}`
+  return encodeFilePath(handlePath)
+}
+
+/**
+ * Decodes a handle ID from a URL-encoded string
+ * @param encoded - The URL-safe base64 encoded string
+ * @returns The handle ID (without "handle:" prefix), or null if decoding fails or not a handle ID
+ */
+export function decodeHandleId(encoded: string): string | null {
+  const decoded = decodeFilePath(encoded)
+  if (!decoded) {
+    return null
+  }
+
+  if (!isHandleId(decoded)) {
+    return null
+  }
+
+  // Remove "handle:" prefix
+  return decoded.substring(7)
+}
