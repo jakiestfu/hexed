@@ -1,7 +1,5 @@
-"use client"
-
 import { useCallback } from "react"
-import { usePathname, useRouter, useSearchParams } from "next/navigation"
+import { useLocation, useNavigate, useSearchParams } from "react-router-dom"
 
 /**
  * Hook that syncs state with URL query parameters
@@ -14,9 +12,9 @@ export function useQueryParamState<T extends string>(
   key: string,
   defaultValue: T
 ): [T, (value: T | ((prev: T) => T)) => void] {
-  const searchParams = useSearchParams()
-  const router = useRouter()
-  const pathname = usePathname()
+  const [searchParams] = useSearchParams()
+  const navigate = useNavigate()
+  const location = useLocation()
 
   // Read value directly from URL
   const value = (searchParams.get(key) as T) || defaultValue
@@ -43,10 +41,10 @@ export function useQueryParamState<T extends string>(
 
       // Update URL - React Router will cause re-render with new value
       const newSearch = params.toString()
-      const newUrl = `${pathname}${newSearch ? `?${newSearch}` : ""}`
-      router.replace(newUrl, { scroll: false })
+      const newUrl = `${location.pathname}${newSearch ? `?${newSearch}` : ""}`
+      navigate(newUrl, { replace: true })
     },
-    [key, defaultValue, searchParams, pathname, router, value]
+    [key, defaultValue, searchParams, location.pathname, navigate, value]
   )
 
   return [value, setValue]

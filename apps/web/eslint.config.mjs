@@ -1,1 +1,1 @@
-export { default } from "@hexed/eslint-config/next"
+export { default } from "@hexed/eslint-config/base"

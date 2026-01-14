@@ -1,5 +1,3 @@
-"use client"
-
 import { FunctionComponent, ReactNode, useState } from "react"
 import { ChevronDown, Ghost } from "lucide-react"
 

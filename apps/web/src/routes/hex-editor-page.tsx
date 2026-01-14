@@ -1,7 +1,5 @@
-'use client';
-
 import * as React from 'react';
-import { useParams, useRouter } from 'next/navigation';
+import { useParams, useNavigate } from 'react-router-dom';
 import { AlertCircle } from 'lucide-react';
 
 import type { BinarySnapshot } from '@hexed/types';
@@ -13,18 +11,19 @@ import { useFileHandleWatcher } from '~/hooks/use-file-handle-watcher';
 import { useRecentFiles } from '~/hooks/use-recent-files';
 import { decodeHandleId } from '~/utils/path-encoding';
 
-export default function EditPage() {
+export function HexEditorPage() {
   const params = useParams();
-  const router = useRouter();
-  const { addRecentFile, getFileHandleById } = useRecentFiles();
+  const navigate = useNavigate();
+  const { recentFiles, addRecentFile, getFileHandleById } = useRecentFiles();
   const { setOnFileSelect } = useDragDrop();
 
-  // Get handle ID from URL parameter (catch-all routes return arrays)
+  // Get handle ID from URL parameter
+  const hasIdParam = !!params.id;
   const handleId = React.useMemo(() => {
-    const pathParam = Array.isArray(params.path) ? params.path[0] : params.path;
-    if (!pathParam) return null;
-    return decodeHandleId(pathParam);
-  }, [params.path]);
+    const idParam = params.id;
+    if (!idParam) return null;
+    return decodeHandleId(idParam);
+  }, [params.id]);
 
   // State for handle file path and loading
   const [handleFilePath, setHandleFilePath] = React.useState<string | null>(
@@ -95,13 +94,19 @@ export default function EditPage() {
   const loading = snapshots.length === 0 && !error && handleInitialLoading;
 
   const handleFileSelect = React.useCallback(
-    (_input: string | BinarySnapshot) => {
-      // BinarySnapshot - navigate to home with snapshot (FileSystemFileHandle)
-      // Note: addRecentFile with handle should be called from the picker component
-      router.push('/');
-      // The home page will handle the snapshot via its own state
+    (input: string | BinarySnapshot) => {
+      // BinarySnapshot - this should only happen from drag-drop
+      // For drag-drop, we don't have a FileSystemFileHandle, so we can't watch it
+      // Just show it in the editor without navigation
+      // TODO: Consider if drag-drop should also save handles somehow
+      if (handleId) {
+        // If we're on edit page, navigate to home
+        navigate('/');
+      } else {
+        console.warn('Drag-drop files cannot be watched. Consider using File System Access API picker.');
+      }
     },
-    [router]
+    [handleId, navigate]
   );
 
   // Register the file select handler with drag-drop provider
@@ -113,11 +118,24 @@ export default function EditPage() {
   }, [handleFileSelect, setOnFileSelect]);
 
   const handleClose = () => {
-    router.push('/');
+    navigate('/');
   };
 
-  // Invalid handle ID error
-  if (!handleId) {
+  // Home page (no id param) - show empty state
+  if (!hasIdParam) {
+    return (
+      <HexEditor
+        snapshots={[]}
+        filePath={null}
+        isConnected={false}
+        onFileSelect={handleFileSelect}
+        recentFiles={recentFiles}
+      />
+    );
+  }
+
+  // Invalid handle ID error (id param exists but decode failed)
+  if (hasIdParam && !handleId) {
     return (
       <div className="flex items-center justify-center min-h-screen py-8 px-4">
         <Card className="w-full max-w-md border-destructive">

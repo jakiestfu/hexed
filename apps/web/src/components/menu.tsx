@@ -1,7 +1,6 @@
 'use client';
 
 import { FunctionComponent, ReactNode, useState } from 'react';
-import Link from 'next/link';
 import {
   BarChart3,
   Binary,
@@ -19,6 +18,7 @@ import {
   Type
 } from 'lucide-react';
 import { useTheme } from 'next-themes';
+import { Link } from 'react-router-dom';
 
 import type { BinarySnapshot } from '@hexed/types';
 import {
@@ -155,7 +155,7 @@ export const Menu: FunctionComponent<MenuProps> = ({
                   asChild
                 >
                   <Link
-                    href={item.href}
+                    to={item.href}
                     onClick={item.onClick}
                     className="flex items-center gap-2 cursor-pointer"
                   >
@@ -218,7 +218,7 @@ export const Menu: FunctionComponent<MenuProps> = ({
                         asChild
                       >
                         <Link
-                          href={`/edit/${encodedHandleId}`}
+                          to={`/edit/${encodedHandleId}`}
                           className="flex items-center gap-2 cursor-pointer"
                         >
                           <FileSourceIcon

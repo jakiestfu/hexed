@@ -1,6 +1,6 @@
 # Hexed Web App
 
-A static Next.js application for Hexed - a modern hex editor for inspecting and tracking binary file changes.
+A React application for Hexed - a modern hex editor for inspecting and tracking binary file changes.
 
 ## Development
 
@@ -8,11 +8,14 @@ A static Next.js application for Hexed - a modern hex editor for inspecting and 
 # Start dev server
 pnpm dev
 
-# Build static site
+# Build for production
 pnpm build
+
+# Preview production build
+pnpm preview
 ```
 
-The build will generate a fully static site in the `out/` directory that can be served by any static file server.
+The build will generate a static site in the `dist/` directory that can be served by any static file server.
 
 ## Components
 

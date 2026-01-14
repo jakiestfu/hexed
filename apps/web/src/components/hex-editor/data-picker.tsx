@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import type { FunctionComponent } from 'react';
-import { useRouter } from 'next/navigation';
+import { useNavigate } from 'react-router-dom';
 import { Clock, FolderOpen, Loader2 } from 'lucide-react';
 
 import {
@@ -75,7 +75,7 @@ const RecentFilesDropdown: FunctionComponent<{
 export const DataPicker: FunctionComponent<DataPickerProps> = ({
   recentFiles
 }) => {
-  const router = useRouter();
+  const navigate = useNavigate();
   const { addRecentFile, getFileHandleById } = useRecentFiles();
   const [isLoading, setIsLoading] = useState(false);
   const [isMounted, setIsMounted] = useState(false);
@@ -123,7 +123,7 @@ export const DataPicker: FunctionComponent<DataPickerProps> = ({
 
         // Navigate to edit page with handleId
         const encodedHandleId = encodeHandleId(recentFile.handleId);
-        router.push(`/edit/${encodedHandleId}`);
+        navigate(`/edit/${encodedHandleId}`);
       } else {
         console.error('Failed to reopen file handle');
         alert('Could not reopen file. Please select it again.');
@@ -155,7 +155,7 @@ export const DataPicker: FunctionComponent<DataPickerProps> = ({
       if (handleId) {
         // Navigate to edit page with handleId
         const encodedHandleId = encodeHandleId(handleId);
-        router.push(`/edit/${encodedHandleId}`);
+        navigate(`/edit/${encodedHandleId}`);
       } else {
         console.error('Failed to save file handle');
         alert('Failed to save file handle. Please try again.');

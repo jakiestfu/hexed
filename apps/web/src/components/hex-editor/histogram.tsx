@@ -1,5 +1,3 @@
-"use client"
-
 import { useMemo, useState, type FunctionComponent } from "react"
 import { Check, ChevronsUpDown, X } from "lucide-react"
 import { Bar, BarChart, CartesianGrid, XAxis, YAxis } from "recharts"

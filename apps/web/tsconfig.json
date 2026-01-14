@@ -1,19 +1,19 @@
 {
-  "extends": "@hexed/typescript-config/nextjs.json",
+  "extends": "@hexed/typescript-config/base.json",
   "compilerOptions": {
     "baseUrl": ".",
     "paths": {
-      "~/*": ["./*"]
-    }
+      "~/*": ["./src/*"]
+    },
+    "jsx": "react-jsx"
   },
   "include": [
-    "next-env.d.ts",
-    "next-page.d.ts",
-    "next-params.d.ts",
-    "**/*.ts",
-    "**/*.tsx",
+    "src/**/*.ts",
+    "src/**/*.tsx",
+    "*.ts",
+    "*.tsx",
     "*.mjs",
-    ".next/types/**/*.ts"
+    "vite.config.ts"
   ],
-  "exclude": [".cache", ".next", ".turbo", "build", "dist", "node_modules"]
+  "exclude": [".cache", ".turbo", "build", "dist", "node_modules"]
 }
