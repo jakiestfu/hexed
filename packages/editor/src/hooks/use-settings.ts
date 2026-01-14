@@ -4,14 +4,13 @@ import { useLocalStorage } from "./use-local-storage"
 
 const ASCII = "hexed:show-ascii"
 const CHECKSUMS = "hexed:show-checksums"
-const STRINGS = "hexed:show-strings"
-const TEMPLATES = "hexed:show-templates"
-const INTERPRETER = "hexed:show-interpreter"
+const SIDEBAR = "hexed:sidebar"
 const SIDEBAR_POSITION = "hexed:sidebar-position"
 const MEMORY_PROFILER = "hexed:show-memory-profiler"
 const WORKER_STATUS = "hexed:show-worker-status"
 
 export type SidebarPosition = "left" | "right"
+export type Sidebar = "templates" | "strings" | "interpreter" | null
 
 /**
  * Consolidated hook for managing all application settings in localStorage
@@ -21,12 +20,7 @@ export type SidebarPosition = "left" | "right"
 export function useSettings() {
   const [showAscii, setShowAscii] = useLocalStorage(ASCII, true)
   const [showChecksums, setShowChecksums] = useLocalStorage(CHECKSUMS, true)
-  const [showStrings, setShowStrings] = useLocalStorage(STRINGS, false)
-  const [showTemplates, setShowTemplates] = useLocalStorage(TEMPLATES, false)
-  const [showInterpreter, setShowInterpreter] = useLocalStorage(
-    INTERPRETER,
-    false
-  )
+  const [sidebar, setSidebar] = useLocalStorage<Sidebar>(SIDEBAR, null)
   const [sidebarPosition, setSidebarPosition] =
     useLocalStorage<SidebarPosition>(SIDEBAR_POSITION, "right")
   const [showMemoryProfiler, setShowMemoryProfiler] = useLocalStorage(
@@ -49,15 +43,9 @@ export function useSettings() {
     // Checksum visibility
     showChecksums,
     setShowChecksums,
-    // Strings visibility
-    showStrings,
-    setShowStrings,
-    // Templates visibility
-    showTemplates,
-    setShowTemplates,
-    // Interpreter visibility
-    showInterpreter,
-    setShowInterpreter,
+    // Sidebar visibility
+    sidebar,
+    setSidebar,
     // Sidebar position
     sidebarPosition,
     setSidebarPosition,

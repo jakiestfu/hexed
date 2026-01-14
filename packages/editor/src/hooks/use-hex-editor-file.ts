@@ -1,8 +1,8 @@
 import * as React from "react"
 
 import type { FileManager } from "../utils"
-import { useRecentFiles } from "./use-recent-files"
 import { useFileHandleWatcher } from "./use-file-handle-watcher"
+import { useRecentFiles } from "./use-recent-files"
 
 /**
  * Hook for managing file loading and watching for HexEditor
@@ -16,7 +16,6 @@ export function useHexEditorFile(
 
   const [fileHandle, setFileHandle] =
     React.useState<FileSystemFileHandle | null>(null)
-  const [filePath, setFilePath] = React.useState<string | null>(null)
   const [initialLoading, setInitialLoading] = React.useState(false)
   const [loadError, setLoadError] = React.useState<string | null>(null)
 
@@ -24,7 +23,6 @@ export function useHexEditorFile(
   React.useEffect(() => {
     if (!handleId) {
       setFileHandle(null)
-      setFilePath(null)
       setInitialLoading(false)
       setLoadError(null)
       return
@@ -40,8 +38,6 @@ export function useHexEditorFile(
         const cachedSnapshot = sessionStorage.getItem(snapshotKey)
         if (cachedSnapshot) {
           try {
-            const snapshotData = JSON.parse(cachedSnapshot)
-            setFilePath(snapshotData.filePath)
             // Clean up sessionStorage
             sessionStorage.removeItem(snapshotKey)
           } catch (parseError) {
@@ -55,7 +51,6 @@ export function useHexEditorFile(
           throw new Error("File handle not found or permission denied")
         }
 
-        setFilePath(handleData.handle.name)
         setFileHandle(handleData.handle)
 
         // Open file in worker if file manager is available
@@ -75,7 +70,6 @@ export function useHexEditorFile(
         const errorMessage =
           error instanceof Error ? error.message : "Failed to load file"
         setLoadError(errorMessage)
-        setFilePath(null)
         setFileHandle(null)
       } finally {
         setInitialLoading(false)
@@ -91,7 +85,7 @@ export function useHexEditorFile(
     isConnected,
     error: watchError,
     restart
-  } = useFileHandleWatcher(fileHandle, filePath, handleId, fileManager)
+  } = useFileHandleWatcher(fileHandle, handleId, fileManager)
 
   // Combine loading states
   const loading =
@@ -103,7 +97,7 @@ export function useHexEditorFile(
 
   return {
     snapshots,
-    filePath,
+    fileHandle,
     isConnected,
     loading,
     error,

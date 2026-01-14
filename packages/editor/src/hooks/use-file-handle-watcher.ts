@@ -11,7 +11,6 @@ import type { FileManager } from "../utils"
  */
 export function useFileHandleWatcher(
   handle: FileSystemFileHandle | null,
-  filePath: string | null,
   fileId: string | null | undefined,
   fileManager: FileManager | null
 ) {

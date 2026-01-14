@@ -2,6 +2,7 @@ import { useCallback, useEffect, useMemo, useState } from "react"
 import { useHotkeys } from "react-hotkeys-hook"
 
 import { toHexString } from "@hexed/binary-utils/formatter"
+import type { Sidebar } from "./use-settings"
 
 export interface UseGlobalKeyboardOptions {
   /** Current selection range */
@@ -10,12 +11,14 @@ export interface UseGlobalKeyboardOptions {
   data: Uint8Array
   /** Whether search input is visible */
   showSearch: boolean
-  /** Whether interpreter sidebar is visible */
-  showInterpreter: boolean
-  /** Whether templates sidebar is visible */
-  showTemplates: boolean
-  /** Whether strings sidebar is visible */
-  showStrings: boolean
+  /** Current sidebar state */
+  sidebar: Sidebar
+  /** Setter for sidebar state */
+  setSidebar: (
+    value:
+      | Sidebar
+      | ((prev: Sidebar) => Sidebar)
+  ) => void
   /** Callback to toggle search input */
   onToggleSearch: () => void
   /** Callback to close search input */
@@ -32,12 +35,6 @@ export interface UseGlobalKeyboardOptions {
   onToggleChecksums?: () => void
   /** Callback to toggle histogram dialog */
   onToggleHistogram?: () => void
-  /** Callback to toggle interpreter sidebar */
-  onToggleInterpreter?: () => void
-  /** Callback to toggle templates sidebar */
-  onToggleTemplates?: () => void
-  /** Callback to toggle strings sidebar */
-  onToggleStrings?: () => void
   /** Callback to toggle sidebar position */
   onToggleSidebarPosition?: () => void
 }
@@ -59,9 +56,8 @@ export function useGlobalKeyboard({
   selectedOffsetRange,
   data,
   showSearch,
-  showInterpreter,
-  showTemplates,
-  showStrings,
+  sidebar,
+  setSidebar,
   onToggleSearch,
   onCloseSearch,
   onCloseSidebars,
@@ -70,9 +66,6 @@ export function useGlobalKeyboard({
   onToggleAscii,
   onToggleChecksums,
   onToggleHistogram,
-  onToggleInterpreter,
-  onToggleTemplates,
-  onToggleStrings,
   onToggleSidebarPosition
 }: UseGlobalKeyboardOptions): void {
   // Ensure we're on the client side
@@ -146,7 +139,7 @@ export function useGlobalKeyboard({
     if (showSearch) {
       // First priority: close find input
       onCloseSearch()
-    } else if (showInterpreter || showTemplates || showStrings) {
+    } else if (sidebar !== null) {
       // Second priority: close sidebars
       onCloseSidebars()
     } else if (selectedOffsetRange !== null) {
@@ -155,9 +148,7 @@ export function useGlobalKeyboard({
     }
   }, [
     showSearch,
-    showInterpreter,
-    showTemplates,
-    showStrings,
+    sidebar,
     selectedOffsetRange,
     onCloseSearch,
     onCloseSidebars,
@@ -197,14 +188,10 @@ export function useGlobalKeyboard({
     {
       enabled:
         isClient &&
-        (showSearch ||
-          showInterpreter ||
-          showTemplates ||
-          showStrings ||
-          selectedOffsetRange !== null),
+        (showSearch || sidebar !== null || selectedOffsetRange !== null),
       enableOnFormTags: false
     },
-    [isClient, handleEscape, isTypingInInput]
+    [isClient, showSearch, sidebar, selectedOffsetRange, handleEscape, isTypingInInput]
   )
 
   // Toggle search: Ctrl+F or meta+F
@@ -280,16 +267,15 @@ export function useGlobalKeyboard({
     "ctrl+1, meta+1",
     (event) => {
       if (isTypingInInput()) return
-      if (!onToggleInterpreter) return
 
       event.preventDefault()
-      onToggleInterpreter()
+      setSidebar((prev) => (prev === "interpreter" ? null : "interpreter"))
     },
     {
-      enabled: isClient && !!onToggleInterpreter,
+      enabled: isClient,
       enableOnFormTags: false
     },
-    [isClient, onToggleInterpreter, isTypingInInput]
+    [isClient, setSidebar, isTypingInInput]
   )
 
   // Toggle templates: Ctrl+2 or meta+2
@@ -297,16 +283,15 @@ export function useGlobalKeyboard({
     "ctrl+2, meta+2",
     (event) => {
       if (isTypingInInput()) return
-      if (!onToggleTemplates) return
 
       event.preventDefault()
-      onToggleTemplates()
+      setSidebar((prev) => (prev === "templates" ? null : "templates"))
     },
     {
-      enabled: isClient && !!onToggleTemplates,
+      enabled: isClient,
       enableOnFormTags: false
     },
-    [isClient, onToggleTemplates, isTypingInInput]
+    [isClient, setSidebar, isTypingInInput]
   )
 
   // Toggle strings: Ctrl+3 or meta+3
@@ -314,16 +299,15 @@ export function useGlobalKeyboard({
     "ctrl+3, meta+3",
     (event) => {
       if (isTypingInInput()) return
-      if (!onToggleStrings) return
 
       event.preventDefault()
-      onToggleStrings()
+      setSidebar((prev) => (prev === "strings" ? null : "strings"))
     },
     {
-      enabled: isClient && !!onToggleStrings,
+      enabled: isClient,
       enableOnFormTags: false
     },
-    [isClient, onToggleStrings, isTypingInInput]
+    [isClient, setSidebar, isTypingInInput]
   )
 
   // Toggle sidebar position: Ctrl+Shift+P or meta+Shift+P

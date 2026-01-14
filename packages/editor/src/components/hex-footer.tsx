@@ -34,7 +34,7 @@ import {
 import { formatFileSize } from "@hexed/binary-utils/formatter"
 import { MemoryProfiler } from "./memory-profiler"
 import { WorkerStatus } from "./worker-status"
-import { useSettings } from "../hooks/use-settings"
+import { useSettings, type Sidebar } from "../hooks/use-settings"
 
 export type HexFooterProps = {
   dataType: string
@@ -47,7 +47,7 @@ export type HexFooterProps = {
   hasSnapshots: boolean
   selectedOffset: number | null
   paneToggleValue: string
-  onPaneToggleChange: (value: string) => void
+  setSidebar: (value: Sidebar) => void
   onShowHistogram: () => void
 }
 
@@ -62,7 +62,7 @@ export const HexFooter: FunctionComponent<HexFooterProps> = ({
   hasSnapshots,
   selectedOffset,
   paneToggleValue,
-  onPaneToggleChange,
+  setSidebar,
   onShowHistogram
 }) => {
   const { showAscii, setShowAscii, showMemoryProfiler, showWorkerStatus } =
@@ -174,7 +174,7 @@ export const HexFooter: FunctionComponent<HexFooterProps> = ({
           <ToggleGroup
             type="single"
             value={paneToggleValue}
-            onValueChange={onPaneToggleChange}
+            onValueChange={(value) => setSidebar((value || null) as Sidebar)}
             variant="outline"
             size="sm"
           >
