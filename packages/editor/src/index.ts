@@ -22,6 +22,7 @@ export * from "./types"
 
 // Utils
 export * from "./utils"
+export type { FileHandleMetadata } from "./utils/file-handle-storage"
 
 // Hooks
 export * from "./hooks/use-global-keyboard"

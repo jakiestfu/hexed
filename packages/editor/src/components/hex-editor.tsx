@@ -116,8 +116,8 @@ export const HexEditor: FunctionComponent<
   originalSource,
   error,
   onRestartWatching,
-  onRecentFileSelect,
-  onFilePickerOpen,
+  onHandleReady,
+  fileManager,
   logo,
 }) => {
   const [activeTab, setActiveTab] = useState<string>("0");
@@ -448,8 +448,8 @@ export const HexEditor: FunctionComponent<
     if (!hasFile) {
       return (
         <EmptyState
-          onRecentFileSelect={onRecentFileSelect}
-          onFilePickerOpen={onFilePickerOpen}
+          onHandleReady={onHandleReady}
+          fileManager={fileManager}
         />
       );
     }
