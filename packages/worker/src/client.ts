@@ -51,7 +51,9 @@ interface PendingRequest {
 /**
  * Create a worker client connected to the Worker
  */
-export function createWorkerClient(workerUrl: string | URL): WorkerClient {
+export function createWorkerClient(
+  WorkerConstructor: new () => Worker
+): WorkerClient {
   let worker: Worker | null = null;
   const pendingRequests = new Map<string, PendingRequest>();
   const REQUEST_TIMEOUT = 30000; // 30 seconds
@@ -65,7 +67,7 @@ export function createWorkerClient(workerUrl: string | URL): WorkerClient {
     }
 
     try {
-      worker = new Worker(workerUrl, { type: "module" });
+      worker = new WorkerConstructor();
 
       // Handle messages from worker
       worker.onmessage = (event: MessageEvent<ResponseMessage>) => {

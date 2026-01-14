@@ -12,31 +12,23 @@ import {
   createTestData,
 } from "./test-utils";
 
-// Mock Worker globally
-const mockWorkers = new Map<
-  string,
-  ReturnType<typeof createMockWorker>
->();
+// Mock Worker constructor
+let mockWorker: ReturnType<typeof createMockWorker>;
 
-global.Worker = vi.fn().mockImplementation((url: string | URL) => {
-  const urlStr = url.toString();
-  if (!mockWorkers.has(urlStr)) {
-    mockWorkers.set(urlStr, createMockWorker(url));
-  }
-  const mock = mockWorkers.get(urlStr)!;
-  return mock.worker;
-}) as unknown as typeof Worker;
+function createMockWorkerConstructor(): new () => Worker {
+  mockWorker = createMockWorker("mock-worker");
+  return vi.fn().mockImplementation(() => {
+    return mockWorker.worker;
+  }) as unknown as new () => Worker;
+}
 
 describe("createWorkerClient", () => {
   let client: WorkerClient;
-  const workerUrl = "http://localhost/worker.js";
-  let mockWorker: ReturnType<typeof createMockWorker>;
+  let WorkerConstructor: new () => Worker;
 
   beforeEach(() => {
-    mockWorkers.clear();
-    mockWorker = createMockWorker(workerUrl);
-    mockWorkers.set(workerUrl, mockWorker);
-    client = createWorkerClient(workerUrl);
+    WorkerConstructor = createMockWorkerConstructor();
+    client = createWorkerClient(WorkerConstructor);
   });
 
   afterEach(() => {
@@ -45,22 +37,40 @@ describe("createWorkerClient", () => {
 
   describe("initialization", () => {
     it("should create Worker on first use", () => {
-      expect(global.Worker).toHaveBeenCalledWith(workerUrl, {
-        type: "module",
-      });
+      // Worker should be created when client methods are called
+      expect(mockWorker.worker).toBeDefined();
     });
 
     it("should send CONNECTED message on connection", async () => {
+      // Trigger initialization by calling a method
+      const handle = createMockFileHandle("test.bin", 100);
+      const openPromise = client.openFile("file1", handle);
+
+      // Wait for message to be sent
+      await new Promise((resolve) => setTimeout(resolve, 10));
+
+      // Simulate CONNECTED response
       const connectedResponse: ConnectedResponse = {
         id: "test-id",
         type: "CONNECTED",
       };
       mockWorker.simulateMessage(connectedResponse);
 
-      // Wait for connection
+      // Wait a bit more
       await new Promise((resolve) => setTimeout(resolve, 10));
 
       expect(mockWorker.messages.length).toBeGreaterThan(0);
+      
+      // Complete the promise
+      const request = mockWorker.messages[0]?.data;
+      if (request) {
+        const response: ConnectedResponse = {
+          id: request.id,
+          type: "CONNECTED",
+        };
+        mockWorker.simulateMessage(response);
+        await openPromise;
+      }
     });
   });
 

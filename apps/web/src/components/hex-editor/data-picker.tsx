@@ -1,7 +1,7 @@
-import { useEffect, useState } from 'react';
-import type { FunctionComponent } from 'react';
-import { useNavigate } from 'react-router-dom';
-import { Clock, FolderOpen, Loader2 } from 'lucide-react';
+import { useEffect, useState } from "react"
+import type { FunctionComponent } from "react"
+import { Clock, FolderOpen, Loader2 } from "lucide-react"
+import { useNavigate } from "react-router-dom"
 
 import {
   Button,
@@ -10,24 +10,24 @@ import {
   Popover,
   PopoverContent,
   PopoverTrigger
-} from '@hexed/ui';
+} from "@hexed/ui"
 
-import type { RecentFile } from '~/hooks/use-recent-files';
-import { useRecentFiles } from '~/hooks/use-recent-files';
-import { useWorkerClient } from '~/hooks/use-worker-client';
-import { encodeHandleId } from '~/utils/path-encoding';
-import { createSnapshotFromFile, formatTimestamp, getBasename } from './utils';
+import type { RecentFile } from "~/hooks/use-recent-files"
+import { useRecentFiles } from "~/hooks/use-recent-files"
+import { useWorkerClient } from "~/hooks/use-worker-client"
+import { encodeHandleId } from "~/utils/path-encoding"
+import { createSnapshotFromFile, formatTimestamp, getBasename } from "./utils"
 
 type DataPickerProps = {
-  recentFiles: RecentFile[];
-};
+  recentFiles: RecentFile[]
+}
 
 // Recent Files Component
 const RecentFilesDropdown: FunctionComponent<{
-  recentFiles: RecentFile[];
-  onSelect: (path: string) => void;
+  recentFiles: RecentFile[]
+  onSelect: (path: string) => void
 }> = ({ recentFiles, onSelect }) => {
-  if (recentFiles.length === 0) return null;
+  if (recentFiles.length === 0) return null
 
   return (
     <Popover>
@@ -70,48 +70,48 @@ const RecentFilesDropdown: FunctionComponent<{
         </div>
       </PopoverContent>
     </Popover>
-  );
-};
+  )
+}
 
 export const DataPicker: FunctionComponent<DataPickerProps> = ({
   recentFiles
 }) => {
-  const navigate = useNavigate();
-  const { addRecentFile, getFileHandleById } = useRecentFiles();
-  const workerClient = useWorkerClient();
-  const [isLoading, setIsLoading] = useState(false);
-  const [isMounted, setIsMounted] = useState(false);
+  const navigate = useNavigate()
+  const { addRecentFile, getFileHandleById } = useRecentFiles()
+  const workerClient = useWorkerClient()
+  const [isLoading, setIsLoading] = useState(false)
+  const [isMounted, setIsMounted] = useState(false)
   const supportsFileSystemAccess =
-    typeof window !== 'undefined' && 'showOpenFilePicker' in window;
+    typeof window !== "undefined" && "showOpenFilePicker" in window
 
   useEffect(() => {
     // Wait for component mount and local storage restoration
     const timer = setTimeout(() => {
-      setIsMounted(true);
-    }, 100);
-    return () => clearTimeout(timer);
-  }, []);
+      setIsMounted(true)
+    }, 100)
+    return () => clearTimeout(timer)
+  }, [])
 
   const handleRecentFileSelect = async (path: string) => {
     // Find the recent file - it should have a handleId for file-system files
-    const recentFile = recentFiles.find((file) => file.path === path);
+    const recentFile = recentFiles.find((file) => file.path === path)
 
     if (!recentFile?.handleId) {
-      console.error('Recent file does not have a handle ID');
-      alert('Could not reopen file. Please select it again.');
-      return;
+      console.error("Recent file does not have a handle ID")
+      alert("Could not reopen file. Please select it again.")
+      return
     }
 
-    setIsLoading(true);
+    setIsLoading(true)
     try {
-      const handleData = await getFileHandleById(recentFile.handleId);
+      const handleData = await getFileHandleById(recentFile.handleId)
       if (handleData) {
         // Open file in worker if worker client is available
         if (workerClient) {
           try {
-            await workerClient.openFile(recentFile.handleId, handleData.handle);
+            await workerClient.openFile(recentFile.handleId, handleData.handle)
           } catch (workerError) {
-            console.warn('Failed to open file in worker:', workerError);
+            console.warn("Failed to open file in worker:", workerError)
             // Continue anyway, will fall back to direct reading
           }
         }
@@ -121,86 +121,86 @@ export const DataPicker: FunctionComponent<DataPickerProps> = ({
           handleData.handle,
           workerClient,
           recentFile.handleId
-        );
-        const snapshotKey = `hexed:pending-handle-${recentFile.handleId}`;
+        )
+        const snapshotKey = `hexed:pending-handle-${recentFile.handleId}`
         try {
           // Store snapshot data (convert Uint8Array to array for JSON)
           const snapshotData = {
             ...snapshot,
             data: Array.from(snapshot.data)
-          };
-          sessionStorage.setItem(snapshotKey, JSON.stringify(snapshotData));
+          }
+          sessionStorage.setItem(snapshotKey, JSON.stringify(snapshotData))
         } catch (storageError) {
           console.warn(
-            'Failed to store snapshot in sessionStorage:',
+            "Failed to store snapshot in sessionStorage:",
             storageError
-          );
+          )
         }
 
         // Navigate to edit page with handleId
-        const encodedHandleId = encodeHandleId(recentFile.handleId);
-        navigate(`/edit/${encodedHandleId}`);
+        const encodedHandleId = encodeHandleId(recentFile.handleId)
+        navigate(`/edit/${encodedHandleId}`)
       } else {
-        console.error('Failed to reopen file handle');
-        alert('Could not reopen file. Please select it again.');
+        console.error("Failed to reopen file handle")
+        alert("Could not reopen file. Please select it again.")
       }
     } catch (error) {
-      console.error('Error reopening file handle:', error);
-      alert('Could not reopen file. Please select it again.');
+      console.error("Error reopening file handle:", error)
+      alert("Could not reopen file. Please select it again.")
     } finally {
-      setIsLoading(false);
+      setIsLoading(false)
     }
-  };
+  }
 
   const handleFileSystemAccessPicker = async () => {
     if (!supportsFileSystemAccess || !window.showOpenFilePicker) {
-      alert('File System Access API is not supported in this browser');
-      return;
+      alert("File System Access API is not supported in this browser")
+      return
     }
 
-    setIsLoading(true);
+    setIsLoading(true)
     try {
       const [handle] = await window.showOpenFilePicker({
         excludeAcceptAllOption: false,
         multiple: false
-      });
+      })
 
       // Save handle and get handleId
-      const handleId = await addRecentFile(handle.name, 'file-system', handle);
+      const handleId = await addRecentFile(handle.name, "file-system", handle)
 
       if (handleId) {
         // Open file in worker if worker client is available
         if (workerClient) {
           try {
-            await workerClient.openFile(handleId, handle);
+            await workerClient.openFile(handleId, handle)
           } catch (workerError) {
-            console.warn('Failed to open file in worker:', workerError);
+            console.warn("Failed to open file in worker:", workerError)
             // Continue anyway, worker will be opened when page loads
           }
         }
 
         // Navigate to edit page with handleId
-        const encodedHandleId = encodeHandleId(handleId);
-        navigate(`/edit/${encodedHandleId}`);
+        const encodedHandleId = encodeHandleId(handleId)
+        navigate(`/edit/${encodedHandleId}`)
       } else {
-        console.error('Failed to save file handle');
-        alert('Failed to save file handle. Please try again.');
+        console.error("Failed to save file handle")
+        alert("Failed to save file handle. Please try again.")
       }
     } catch (error) {
       // User cancelled or error occurred
-      if (error instanceof DOMException && error.name !== 'AbortError') {
-        console.error('Error opening file picker:', error);
-        alert('Failed to open file. Please try again.');
+      if (error instanceof DOMException && error.name !== "AbortError") {
+        console.error("Error opening file picker:", error)
+        alert("Failed to open file. Please try again.")
       }
     } finally {
-      setIsLoading(false);
+      setIsLoading(false)
     }
-  };
+  }
 
   return (
     <Card
       className={`w-full max-w-lg border-none h-[250px] transition-opacity duration-300 ${
-        isMounted ? 'opacity-100' : 'opacity-0'
+        isMounted ? "opacity-100" : "opacity-0"
       }`}
     >
       <CardContent className="space-y-4">
@@ -217,7 +217,7 @@ export const DataPicker: FunctionComponent<DataPickerProps> = ({
               ) : (
                 <FolderOpen className="h-4 w-4 mr-2" />
               )}
-              {isLoading ? 'Opening...' : 'Choose File'}
+              {isLoading ? "Opening..." : "Choose File"}
             </Button>
             <RecentFilesDropdown
               recentFiles={recentFiles}
@@ -226,12 +226,12 @@ export const DataPicker: FunctionComponent<DataPickerProps> = ({
           </div>
           <p className="text-xs text-muted-foreground">
             {supportsFileSystemAccess
-              ? 'Choose a file using the File System Access API'
-              : 'File System Access API is not supported in this browser'}
-            {recentFiles.length > 0 && ' or select from recent files'}
+              ? "Choose a file using the File System Access API"
+              : "File System Access API is not supported in this browser"}
+            {recentFiles.length > 0 && " or select from recent files"}
           </p>
         </div>
       </CardContent>
     </Card>
-  );
-};
+  )
+}
