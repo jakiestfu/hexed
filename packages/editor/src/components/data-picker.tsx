@@ -1,6 +1,6 @@
-import { useEffect, useState } from "react";
-import type { FunctionComponent } from "react";
-import { Clock, FolderOpen, Loader2 } from "lucide-react";
+import { useEffect, useState } from "react"
+import type { FunctionComponent } from "react"
+import { Clock, FolderOpen, Loader2 } from "lucide-react"
 
 import {
   Button,
@@ -8,25 +8,25 @@ import {
   CardContent,
   Popover,
   PopoverContent,
-  PopoverTrigger,
-} from "@hexed/ui";
+  PopoverTrigger
+} from "@hexed/ui"
 
-import { useRecentFiles } from "../hooks/use-recent-files";
-import type { RecentFile } from "../types";
-import { useFileManager } from "../providers/file-manager-provider";
-import { createSnapshotFromFile, formatTimestamp, getBasename } from "../utils";
+import { useRecentFiles } from "../hooks/use-recent-files"
+import { useFileManager } from "../providers/file-manager-provider"
+import type { RecentFile } from "../types"
+import { createSnapshotFromFile, formatTimestamp, getBasename } from "../utils"
 
 type DataPickerProps = {
-  recentFiles: RecentFile[];
-  onHandleReady?: (handleId: string) => void;
-};
+  recentFiles: RecentFile[]
+  onHandleReady?: (handleId: string) => void
+}
 
 // Recent Files Component
 const RecentFilesDropdown: FunctionComponent<{
-  recentFiles: RecentFile[];
-  onSelect: (handleId: string) => void;
+  recentFiles: RecentFile[]
+  onSelect: (handleId: string) => void
 }> = ({ recentFiles, onSelect }) => {
-  if (recentFiles.length === 0) return null;
+  if (recentFiles.length === 0) return null
 
   return (
     <Popover>
@@ -40,7 +40,10 @@ const RecentFilesDropdown: FunctionComponent<{
           <Clock className="h-4 w-4" />
         </Button>
       </PopoverTrigger>
-      <PopoverContent className="w-[400px] p-2" align="end">
+      <PopoverContent
+        className="w-[400px] p-2"
+        align="end"
+      >
         <div className="space-y-1">
           <div className="px-2 py-1.5 text-xs font-semibold text-muted-foreground">
             Recent Files
@@ -53,7 +56,7 @@ const RecentFilesDropdown: FunctionComponent<{
               className="w-full justify-start text-left h-auto py-2 px-2"
               onClick={() => {
                 if (file.handleId) {
-                  onSelect(file.handleId);
+                  onSelect(file.handleId)
                 }
               }}
             >
@@ -70,47 +73,47 @@ const RecentFilesDropdown: FunctionComponent<{
         </div>
       </PopoverContent>
     </Popover>
-  );
-};
+  )
+}
 
 export const DataPicker: FunctionComponent<DataPickerProps> = ({
   recentFiles,
-  onHandleReady,
+  onHandleReady
 }) => {
-  const { addRecentFile, getFileHandleById } = useRecentFiles();
-  const fileManager = useFileManager();
-  const [isLoading, setIsLoading] = useState(false);
-  const [isMounted, setIsMounted] = useState(false);
+  const { addRecentFile, getFileHandleById } = useRecentFiles()
+  const fileManager = useFileManager()
+  const [isLoading, setIsLoading] = useState(false)
+  const [isMounted, setIsMounted] = useState(false)
   const supportsFileSystemAccess =
-    typeof window !== "undefined" && "showOpenFilePicker" in window;
+    typeof window !== "undefined" && "showOpenFilePicker" in window
 
   useEffect(() => {
     // Wait for component mount and local storage restoration
     const timer = setTimeout(() => {
-      setIsMounted(true);
-    }, 100);
-    return () => clearTimeout(timer);
-  }, []);
+      setIsMounted(true)
+    }, 100)
+    return () => clearTimeout(timer)
+  }, [])
 
   const handleRecentFileSelect = async (handleId: string) => {
     if (!onHandleReady) {
-      console.warn("onHandleReady callback not provided");
-      return;
+      console.warn("onHandleReady callback not provided")
+      return
     }
 
-    setIsLoading(true);
+    setIsLoading(true)
     try {
-      const handleData = await getFileHandleById(handleId);
+      const handleData = await getFileHandleById(handleId)
       if (!handleData) {
-        throw new Error("File handle not found or permission denied");
+        throw new Error("File handle not found or permission denied")
       }
 
       // Open file in worker if file manager is available
       if (fileManager) {
         try {
-          await fileManager.openFile(handleId, handleData.handle);
+          await fileManager.openFile(handleId, handleData.handle)
         } catch (workerError) {
-          console.warn("Failed to open file in worker:", workerError);
+          console.warn("Failed to open file in worker:", workerError)
           // Continue anyway, will fall back to direct reading
         }
       }
@@ -120,65 +123,65 @@ export const DataPicker: FunctionComponent<DataPickerProps> = ({
         handleData.handle,
         fileManager || null,
         handleId
-      );
-      const snapshotKey = `hexed:pending-handle-${handleId}`;
+      )
+      const snapshotKey = `hexed:pending-handle-${handleId}`
       try {
         // Store snapshot data (convert Uint8Array to array for JSON)
         const snapshotData = {
           ...snapshot,
           data: Array.from(snapshot.data)
-        };
-        sessionStorage.setItem(snapshotKey, JSON.stringify(snapshotData));
+        }
+        sessionStorage.setItem(snapshotKey, JSON.stringify(snapshotData))
       } catch (storageError) {
         console.warn(
           "Failed to store snapshot in sessionStorage:",
           storageError
-        );
+        )
       }
 
       // Call callback with handleId
-      onHandleReady(handleId);
+      onHandleReady(handleId)
     } catch (error) {
-      console.error("Error reopening file handle:", error);
-      alert("Could not reopen file. Please select it again.");
+      console.error("Error reopening file handle:", error)
+      alert("Could not reopen file. Please select it again.")
     } finally {
-      setIsLoading(false);
+      setIsLoading(false)
     }
-  };
+  }
 
   const handleFileSystemAccessPicker = async () => {
     if (!supportsFileSystemAccess || !window.showOpenFilePicker) {
-      alert("File System Access API is not supported in this browser");
-      return;
+      alert("File System Access API is not supported in this browser")
+      return
     }
 
     if (!onHandleReady) {
-      console.warn("onHandleReady callback not provided");
-      return;
+      console.warn("onHandleReady callback not provided")
+      return
     }
 
-    setIsLoading(true);
+    setIsLoading(true)
     try {
       const [handle] = await window.showOpenFilePicker({
         excludeAcceptAllOption: false,
-        multiple: false,
-      });
+        multiple: false
+      })
 
       // Save handle and get handleId
-      const handleId = await addRecentFile(handle.name, "file-system", handle);
+      const handleId = await addRecentFile(handle.name, "file-system", handle)
 
       if (!handleId) {
-        console.error("Failed to save file handle");
-        alert("Failed to save file handle. Please try again.");
-        return;
+        console.error("Failed to save file handle")
+        alert("Failed to save file handle. Please try again.")
+        return
       }
 
       // Open file in worker if file manager is available
       if (fileManager) {
         try {
-          await fileManager.openFile(handleId, handle);
+          await fileManager.openFile(handleId, handle)
         } catch (workerError) {
-          console.warn("Failed to open file in worker:", workerError);
+          console.warn("Failed to open file in worker:", workerError)
           // Continue anyway, will fall back to direct reading
         }
       }
@@ -188,34 +191,34 @@ export const DataPicker: FunctionComponent<DataPickerProps> = ({
         handle,
         fileManager || null,
         handleId
-      );
-      const snapshotKey = `hexed:pending-handle-${handleId}`;
+      )
+      const snapshotKey = `hexed:pending-handle-${handleId}`
       try {
         // Store snapshot data (convert Uint8Array to array for JSON)
         const snapshotData = {
           ...snapshot,
           data: Array.from(snapshot.data)
-        };
-        sessionStorage.setItem(snapshotKey, JSON.stringify(snapshotData));
+        }
+        sessionStorage.setItem(snapshotKey, JSON.stringify(snapshotData))
       } catch (storageError) {
         console.warn(
           "Failed to store snapshot in sessionStorage:",
           storageError
-        );
+        )
       }
 
       // Call callback with handleId
-      onHandleReady(handleId);
+      onHandleReady(handleId)
     } catch (error) {
       // User cancelled or error occurred
       if (error instanceof DOMException && error.name !== "AbortError") {
-        console.error("Error opening file picker:", error);
-        alert("Failed to open file. Please try again.");
+        console.error("Error opening file picker:", error)
+        alert("Failed to open file. Please try again.")
       }
     } finally {
-      setIsLoading(false);
+      setIsLoading(false)
     }
-  };
+  }
 
   return (
     <Card
@@ -229,7 +232,9 @@ export const DataPicker: FunctionComponent<DataPickerProps> = ({
           <div className="flex gap-2">
             <Button
               onClick={handleFileSystemAccessPicker}
-              disabled={isLoading || !supportsFileSystemAccess || !onHandleReady}
+              disabled={
+                isLoading || !supportsFileSystemAccess || !onHandleReady
+              }
               className="flex-1"
             >
               {isLoading ? (
@@ -257,5 +262,5 @@ export const DataPicker: FunctionComponent<DataPickerProps> = ({
         </div>
       </CardContent>
     </Card>
-  );
-};
+  )
+}

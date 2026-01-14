@@ -121,7 +121,7 @@ export const useHexInput = (options: UseHexInputOptions): UseHexInputReturn => {
           maxBytes
         )
         return n
-          ? parseHexString(formatHexDisplayFromNibbles(n))
+          ? parseHexString(formatHexDisplayFromNibbles(n))!
           : new Uint8Array()
       }
       const t = truncateTextToMaxBytes(options.initialValue ?? "", maxBytes)
@@ -191,7 +191,7 @@ export const useHexInput = (options: UseHexInputOptions): UseHexInputReturn => {
         )
         setHexNibbles(n)
         const formatted = formatHexDisplayFromNibbles(n)
-        const b = n ? parseHexString(formatted) : new Uint8Array()
+        const b = n ? parseHexString(formatted)! : new Uint8Array()
         notify("hex", formatted, b)
       } else {
         const t = truncateTextToMaxBytes(next, maxBytes)
@@ -233,7 +233,7 @@ export const useHexInput = (options: UseHexInputOptions): UseHexInputReturn => {
       setHexNibbles(n)
 
       const formatted = formatHexDisplayFromNibbles(n)
-      const b = n ? parseHexString(formatted) : new Uint8Array()
+      const b = n ? parseHexString(formatted)! : new Uint8Array()
       notify("hex", formatted, b)
 
       const nextNibbleCaret = clamp(nibblesBeforeCaret, 0, n.length)
@@ -266,7 +266,7 @@ export const useHexInput = (options: UseHexInputOptions): UseHexInputReturn => {
         setHexNibbles(n)
 
         const formatted = formatHexDisplayFromNibbles(n)
-        const b = n ? parseHexString(formatted) : new Uint8Array()
+        const b = n ? parseHexString(formatted)! : new Uint8Array()
         notify("hex", formatted, b)
 
         const caretNib = clamp(nextNibbleCaret, 0, n.length)
@@ -357,7 +357,7 @@ export const useHexInput = (options: UseHexInputOptions): UseHexInputReturn => {
       setHexNibbles(n)
 
       const formatted = formatHexDisplayFromNibbles(n)
-      const b = n ? parseHexString(formatted) : new Uint8Array()
+      const b = n ? parseHexString(formatted)! : new Uint8Array()
       notify("hex", formatted, b)
 
       const caretNib = clamp(startNib + pasted.length, 0, n.length)

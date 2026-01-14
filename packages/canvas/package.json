@@ -23,10 +23,14 @@
     "@types/react-dom": "^19.2.3",
     "react": "^19.2.3",
     "react-dom": "^19.2.3",
-    "typescript": "^5.7.2"
+    "typescript": "^5.7.2",
+    "@hexed/typescript-config": "workspace:*",
+    "@hexed/eslint-config": "workspace:*",
+    "@hexed/prettier-config": "workspace:*"
   },
   "peerDependencies": {
     "react": "^19.2.3",
     "react-dom": "^19.2.3"
-  }
+  },
+  "prettier": "@hexed/prettier-config"
 }

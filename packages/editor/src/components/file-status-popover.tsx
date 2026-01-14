@@ -1,20 +1,20 @@
-'use client';
+"use client"
 
-import { FunctionComponent, ReactNode } from 'react';
-import { RefreshCw } from 'lucide-react';
+import { FunctionComponent, ReactNode } from "react"
+import { RefreshCw } from "lucide-react"
 
-import { Button, Popover, PopoverContent, PopoverTrigger } from '@hexed/ui';
+import { Button, Popover, PopoverContent, PopoverTrigger } from "@hexed/ui"
 
-import { FileSource } from './types';
+import { FileSource } from "../types"
 
 export type FileStatusPopoverProps = {
-  fileSource: FileSource;
-  filePath: string;
-  isConnected?: boolean;
-  error?: string | null;
-  onRestartWatching?: () => void;
-  children: ReactNode;
-};
+  fileSource: FileSource
+  filePath: string
+  isConnected?: boolean
+  error?: string | null
+  onRestartWatching?: () => void
+  children: ReactNode
+}
 
 export const FileStatusPopover: FunctionComponent<FileStatusPopoverProps> = ({
   fileSource: _fileSource,
@@ -25,17 +25,17 @@ export const FileStatusPopover: FunctionComponent<FileStatusPopoverProps> = ({
   children
 }) => {
   const getDotColor = () => {
-    return isConnected ? 'bg-green-500' : 'bg-gray-500';
-  };
+    return isConnected ? "bg-green-500" : "bg-gray-500"
+  }
 
   const getStatusText = () => {
     if (error) {
-      return 'Error watching file';
+      return "Error watching file"
     }
     return isConnected
-      ? 'Watching for changes'
-      : 'File System Access API (not watching)';
-  };
+      ? "Watching for changes"
+      : "File System Access API (not watching)"
+  }
 
   return (
     <Popover>
@@ -53,7 +53,7 @@ export const FileStatusPopover: FunctionComponent<FileStatusPopoverProps> = ({
               />
               <span className="text-sm font-medium">
                 {getStatusText()}
-                {error ? `: ${error}` : ''}
+                {error ? `: ${error}` : ""}
               </span>
             </div>
           </div>
@@ -66,14 +66,14 @@ export const FileStatusPopover: FunctionComponent<FileStatusPopoverProps> = ({
               This file was opened using the File System Access API.
               {isConnected ? (
                 <>
-                  {' '}
+                  {" "}
                   Changes to the file will automatically appear in the editor
                   when saved. Each save will create a new snapshot for
                   comparison.
                 </>
               ) : (
                 <>
-                  {' '}
+                  {" "}
                   File watching is not available in this browser. You can reopen
                   it from recent files. Drag and drop a file to add it as a new
                   snapshot for comparison.
@@ -97,5 +97,5 @@ export const FileStatusPopover: FunctionComponent<FileStatusPopoverProps> = ({
         </div>
       </PopoverContent>
     </Popover>
-  );
-};
+  )
+}

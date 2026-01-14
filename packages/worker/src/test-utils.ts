@@ -12,7 +12,11 @@ export function createMockFile(
 ): File {
   const fileData = data || new Uint8Array(size).fill(0);
   
-  const file = new File([fileData], name, { type: "application/octet-stream" });
+  // Convert Uint8Array to ArrayBuffer for File constructor compatibility
+  // Create a new ArrayBuffer to avoid SharedArrayBuffer issues
+  const buffer = new ArrayBuffer(fileData.byteLength) as ArrayBuffer;
+  new Uint8Array(buffer).set(fileData);
+  const file = new File([buffer], name, { type: "application/octet-stream" });
   
   // Ensure file has correct size
   Object.defineProperty(file, "size", {
@@ -42,16 +46,19 @@ export function createMockFileHandle(
     async createWritable(): Promise<FileSystemWritableFileStream> {
       throw new Error("Not implemented in mock");
     },
+    async createSyncAccessHandle(): Promise<FileSystemSyncAccessHandle> {
+      throw new Error("Not implemented in mock");
+    },
     async isSameEntry(other: FileSystemHandle): Promise<boolean> {
       return other === handle;
     },
     async queryPermission(
-      descriptor?: FileSystemHandlePermissionDescriptor
+      descriptor?: { mode?: "read" | "readwrite" }
     ): Promise<PermissionState> {
       return "granted";
     },
     async requestPermission(
-      descriptor?: FileSystemHandlePermissionDescriptor
+      descriptor?: { mode?: "read" | "readwrite" }
     ): Promise<PermissionState> {
       return "granted";
     },
@@ -78,8 +85,13 @@ export function createMockMessagePort(): {
   let started = false;
 
   const port = {
-    postMessage(data: any, transfer?: Transferable[]): void {
-      messages.push({ data, transfer });
+    postMessage(data: any, transferOrOptions?: Transferable[] | StructuredSerializeOptions): void {
+      // Handle both overloads: transfer array or options object
+      if (Array.isArray(transferOrOptions)) {
+        messages.push({ data, transfer: transferOrOptions });
+      } else {
+        messages.push({ data, transfer: transferOrOptions?.transfer });
+      }
     },
     start(): void {
       started = true;
@@ -112,7 +124,11 @@ export function createMockMessagePort(): {
     port,
     messages,
     sendMessage: (data: any, transfer?: Transferable[]) => {
-      port.postMessage(data, transfer);
+      if (transfer) {
+        port.postMessage(data, transfer);
+      } else {
+        port.postMessage(data);
+      }
     },
     simulateMessage: (data: any) => {
       if (onMessageHandler) {

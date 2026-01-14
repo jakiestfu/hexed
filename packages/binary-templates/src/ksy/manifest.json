@@ -109,14 +109,23 @@
         "format": "rpm",
         "title": "RPM package file",
         "path": "archive/rpm.ksy",
-        "extension": ["rpm", "srpm", "src.rpm", "drpm"],
+        "extension": [
+          "rpm",
+          "srpm",
+          "src.rpm",
+          "drpm"
+        ],
         "name": "rpm"
       },
       {
         "format": "xar",
         "title": "XAR (eXtensible ARchive)",
         "path": "archive/xar.ksy",
-        "extension": ["xar", "pkg", "xip"],
+        "extension": [
+          "xar",
+          "pkg",
+          "xip"
+        ],
         "name": "xar"
       },
       {
@@ -215,7 +224,12 @@
         "format": "sqlite3",
         "title": "SQLite3 database file",
         "path": "database/sqlite3.ksy",
-        "extension": ["sqlite", "db", "db3", "sqlite3"],
+        "extension": [
+          "sqlite",
+          "db",
+          "db3",
+          "sqlite3"
+        ],
         "name": "sqlite3"
       },
       {
@@ -248,7 +262,10 @@
         "format": "dos_mz",
         "title": "DOS MZ executable",
         "path": "executable/dos_mz.ksy",
-        "extension": ["exe", "ovl"],
+        "extension": [
+          "exe",
+          "ovl"
+        ],
         "name": "dos_mz"
       },
       {
@@ -280,7 +297,11 @@
         "format": "microsoft_pe",
         "title": "Microsoft PE (Portable Executable) file format",
         "path": "executable/microsoft_pe.ksy",
-        "extension": ["exe", "dll", "sys"],
+        "extension": [
+          "exe",
+          "dll",
+          "sys"
+        ],
         "name": "microsoft_pe"
       },
       {
@@ -301,7 +322,10 @@
         "format": "uefi_te",
         "title": "TE (Terse Executable) file",
         "path": "executable/uefi_te.ksy",
-        "extension": ["efi", "te"],
+        "extension": [
+          "efi",
+          "te"
+        ],
         "name": "uefi_te"
       }
     ]
@@ -553,7 +577,12 @@
         "format": "minecraft_nbt",
         "title": "Minecraft NBT (Named Binary Tag)",
         "path": "game/minecraft_nbt.ksy",
-        "extension": ["nbt", "dat", "schematic", "schem"],
+        "extension": [
+          "nbt",
+          "dat",
+          "schematic",
+          "schem"
+        ],
         "name": "minecraft_nbt"
       },
       {
@@ -581,7 +610,10 @@
         "format": "renderware_binary_stream",
         "title": "RenderWare binary stream",
         "path": "game/renderware_binary_stream.ksy",
-        "extension": ["dff", "txd"],
+        "extension": [
+          "dff",
+          "txd"
+        ],
         "name": "renderware_binary_stream"
       },
       {
@@ -690,7 +722,10 @@
         "format": "icc_4",
         "title": "ICC profile, version 4",
         "path": "image/icc_4.ksy",
-        "extension": ["icc", "icm"],
+        "extension": [
+          "icc",
+          "icm"
+        ],
         "name": "icc_4"
       },
       {
@@ -704,7 +739,14 @@
         "format": "jpeg",
         "title": "JPEG (Joint Photographic Experts Group) File Interchange Format",
         "path": "image/jpeg.ksy",
-        "extension": ["jpg", "jpeg", "jpe", "jif", "jfif", "jfi"],
+        "extension": [
+          "jpg",
+          "jpeg",
+          "jpe",
+          "jif",
+          "jfif",
+          "jfi"
+        ],
         "name": "jpeg"
       },
       {
@@ -748,7 +790,10 @@
         "format": "png",
         "title": "PNG (Portable Network Graphics) file",
         "path": "image/png.ksy",
-        "extension": ["png", "apng"],
+        "extension": [
+          "png",
+          "apng"
+        ],
         "name": "png"
       },
       {
@@ -762,7 +807,12 @@
         "format": "tga",
         "title": "TGA (AKA Truevision TGA, AKA TARGA) raster image file format",
         "path": "image/tga.ksy",
-        "extension": ["tga", "icb", "vda", "vst"],
+        "extension": [
+          "tga",
+          "icb",
+          "vda",
+          "vst"
+        ],
         "name": "tga"
       },
       {
@@ -869,7 +919,10 @@
         "format": "resource_fork",
         "title": "Macintosh resource fork data",
         "path": "macos/resource_fork.ksy",
-        "extension": ["rsrc", "dfont"],
+        "extension": [
+          "rsrc",
+          "dfont"
+        ],
         "name": "resource_fork"
       },
       {
@@ -916,7 +969,10 @@
         "format": "au",
         "title": "AU audio format",
         "path": "media/au.ksy",
-        "extension": ["au", "snd"],
+        "extension": [
+          "au",
+          "snd"
+        ],
         "name": "au"
       },
       {
@@ -979,7 +1035,13 @@
         "format": "ogg",
         "title": "Ogg media container file",
         "path": "media/ogg.ksy",
-        "extension": ["ogg", "ogv", "oga", "spx", "ogx"],
+        "extension": [
+          "ogg",
+          "ogv",
+          "oga",
+          "spx",
+          "ogx"
+        ],
         "name": "ogg"
       },
       {
@@ -993,7 +1055,11 @@
         "format": "standard_midi_file",
         "title": "Standard MIDI file",
         "path": "media/standard_midi_file.ksy",
-        "extension": ["mid", "midi", "smf"],
+        "extension": [
+          "mid",
+          "midi",
+          "smf"
+        ],
         "name": "standard_midi_file"
       },
       {
@@ -1014,7 +1080,10 @@
         "format": "wav",
         "title": "Microsoft WAVE audio file",
         "path": "media/wav.ksy",
-        "extension": ["wav", "bwf"],
+        "extension": [
+          "wav",
+          "bwf"
+        ],
         "name": "wav"
       },
       {
@@ -1051,7 +1120,10 @@
         "format": "dime_message",
         "title": "DIME (Direct Internet Message Encapsulation) Message",
         "path": "network/dime_message.ksy",
-        "extension": ["dim", "dime"],
+        "extension": [
+          "dim",
+          "dime"
+        ],
         "name": "dime_message"
       },
       {
@@ -1115,7 +1187,10 @@
         "format": "pcap",
         "title": "pcap",
         "path": "network/pcap.ksy",
-        "extension": ["pcap", "pcapdump"],
+        "extension": [
+          "pcap",
+          "pcapdump"
+        ],
         "name": "pcap"
       },
       {
@@ -1140,7 +1215,10 @@
         "format": "rtpdump",
         "title": "Rtpdump (rtptools)",
         "path": "network/rtpdump.ksy",
-        "extension": ["rtp", "rtpdump"],
+        "extension": [
+          "rtp",
+          "rtpdump"
+        ],
         "name": "rtpdump"
       },
       {
@@ -1260,7 +1338,11 @@
         "format": "openpgp_message",
         "title": "OpenPGP message",
         "path": "security/openpgp_message.ksy",
-        "extension": ["gpg", "pub", "pgp"],
+        "extension": [
+          "gpg",
+          "pub",
+          "pgp"
+        ],
         "name": "openpgp_message"
       },
       {
@@ -1316,7 +1398,10 @@
         "format": "python_pickle",
         "title": "Python pickle serialization format",
         "path": "serialization/python_pickle.ksy",
-        "extension": ["pickle", "pkl"],
+        "extension": [
+          "pickle",
+          "pkl"
+        ],
         "name": "python_pickle"
       },
       {
@@ -1359,7 +1444,10 @@
         "format": "windows_minidump",
         "title": "Windows MiniDump",
         "path": "windows/windows_minidump.ksy",
-        "extension": ["dmp", "mdmp"],
+        "extension": [
+          "dmp",
+          "mdmp"
+        ],
         "name": "windows_minidump"
       },
       {

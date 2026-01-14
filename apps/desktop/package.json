@@ -14,6 +14,10 @@
   },
   "devDependencies": {
     "@types/node": "^25.0.3",
-    "typescript": "^5.7.2"
-  }
+    "typescript": "^5.7.2",
+    "@hexed/eslint-config": "workspace:*",
+    "@hexed/prettier-config": "workspace:*",
+    "@hexed/typescript-config": "workspace:*"
+  },
+  "prettier": "@hexed/prettier-config"
 }

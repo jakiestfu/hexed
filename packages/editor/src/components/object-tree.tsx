@@ -130,6 +130,7 @@ const TreeNodeView: FunctionComponent<TreeNodeViewProps> = ({
       typeof debugInfo.end === "number"
     ) {
       const ioOffset =
+        // @ts-expect-error - ioOffset is not defined in the debugInfo type
         typeof debugInfo.ioOffset === "number" ? debugInfo.ioOffset : 0
       const start = debugInfo.start + ioOffset
       const end = debugInfo.end + ioOffset - 1 // Subtract 1 because end is exclusive

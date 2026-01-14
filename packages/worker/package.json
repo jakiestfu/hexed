@@ -26,6 +26,10 @@
     "@vitest/ui": "^2.1.8",
     "happy-dom": "^15.11.6",
     "typescript": "^5.7.2",
-    "vitest": "^2.1.8"
-  }
+    "vitest": "^2.1.8",
+    "@hexed/typescript-config": "workspace:*",
+    "@hexed/eslint-config": "workspace:*",
+    "@hexed/prettier-config": "workspace:*"
+  },
+  "prettier": "@hexed/prettier-config"
 }

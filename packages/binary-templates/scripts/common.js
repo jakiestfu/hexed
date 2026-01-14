@@ -1,16 +1,16 @@
-import { readFile, readdir, mkdir, cp, rm, writeFile } from "fs/promises";
-import { join, dirname, relative, basename } from "path";
-import { fileURLToPath } from "url";
-import { transform } from "esbuild";
-import yaml from "js-yaml";
+import { cp, mkdir, readdir, readFile, rm, writeFile } from "fs/promises"
+import { basename, dirname, join, relative } from "path"
+import { fileURLToPath } from "url"
+import { transform } from "esbuild"
+import yaml from "js-yaml"
 
 // Shared constants
-export const __filename = fileURLToPath(import.meta.url);
-export const __dirname = dirname(__filename);
-export const packageRoot = join(__dirname, "..");
-export const ksyDir = join(packageRoot, "src", "ksy");
-export const generatedDir = join(packageRoot, "src", "generated");
-export const manifestPath = join(ksyDir, "manifest.json");
+export const __filename = fileURLToPath(import.meta.url)
+export const __dirname = dirname(__filename)
+export const packageRoot = join(__dirname, "..")
+export const ksyDir = join(packageRoot, "src", "ksy")
+export const generatedDir = join(packageRoot, "src", "generated")
+export const manifestPath = join(ksyDir, "manifest.json")
 
 /**
  * Converts snake_case filename to PascalCase (to find compiler output)
@@ -19,71 +19,88 @@ export function snakeCaseToPascalCase(filename) {
   return filename
     .split("_")
     .map((word) => word.charAt(0).toUpperCase() + word.slice(1).toLowerCase())
-    .join("");
+    .join("")
+}
+
+/**
+ * Converts a ksy file path to PascalCase JS path for imports
+ * Example: "image/exif.ksy" -> "image/Exif.js"
+ * @param ksyPath - The path from the manifest (e.g., "image/exif.ksy")
+ * @returns The JS path with PascalCase filename (e.g., "image/Exif.js")
+ */
+export function convertKsyPathToPascalCaseJsPath(ksyPath) {
+  const pathParts = ksyPath.split("/")
+  const filename = basename(ksyPath, ".ksy")
+  const pascalCaseFilename = snakeCaseToPascalCase(filename)
+  const dirPath = pathParts.slice(0, -1).join("/")
+  
+  if (dirPath) {
+    return `${dirPath}/${pascalCaseFilename}.js`
+  }
+  return `${pascalCaseFilename}.js`
 }
 
 function patchKsyImports(convertedCode) {
   // Post-process: Always check for and replace require() calls
   // esbuild may not convert all require() calls, especially in UMD wrappers
-  const kaitaiRequirePattern =
-    /require\(["']kaitai-struct\/KaitaiStream["']\)/g;
-  const hasKaitaiRequire = kaitaiRequirePattern.test(convertedCode);
-  const hasRequire = /require\(["'][^"']+["']\)/.test(convertedCode);
+  const kaitaiRequirePattern = /require\(["']kaitai-struct\/KaitaiStream["']\)/g
+  const hasKaitaiRequire = kaitaiRequirePattern.test(convertedCode)
+  const hasRequire = /require\(["'][^"']+["']\)/.test(convertedCode)
 
   if (hasRequire || hasKaitaiRequire) {
     // Add import statement at the top if it doesn't exist
-    const importStatement = `import { KaitaiStream } from "kaitai-struct";\n`;
+    const importStatement = `import { KaitaiStream } from "kaitai-struct";\n`
     const hasImport = /import\s+.*?\s+from\s+["']kaitai-struct["']/.test(
       convertedCode
-    );
+    )
 
     if (!hasImport) {
       // Find where to insert - after header comments
-      const headerCommentMatch = convertedCode.match(/^(\/\/[^\n]*\n)*/);
+      const headerCommentMatch = convertedCode.match(/^(\/\/[^\n]*\n)*/)
       if (headerCommentMatch) {
-        const header = headerCommentMatch[0];
-        const rest = convertedCode.slice(header.length);
-        convertedCode = header + importStatement + rest;
+        const header = headerCommentMatch[0]
+        const rest = convertedCode.slice(header.length)
+        convertedCode = header + importStatement + rest
       } else {
-        convertedCode = importStatement + convertedCode;
+        convertedCode = importStatement + convertedCode
       }
     }
 
     // CRITICAL: Replace ALL require() calls for kaitai-struct/KaitaiStream
     // Do this multiple times to catch all instances
-    let previousCode = "";
+    let previousCode = ""
     while (previousCode !== convertedCode) {
-      previousCode = convertedCode;
+      previousCode = convertedCode
       convertedCode = convertedCode.replace(
         kaitaiRequirePattern,
         "KaitaiStream"
-      );
+      )
     }
   }
 
   // Final safety check: ensure no require() calls for kaitai-struct remain
   const finalKaitaiRequires = convertedCode.match(
     /require\(["']kaitai-struct\/KaitaiStream["']\)/g
-  );
+  )
   if (finalKaitaiRequires && finalKaitaiRequires.length > 0) {
     // Force replace one more time
-    convertedCode = convertedCode.replace(kaitaiRequirePattern, "KaitaiStream");
+    convertedCode = convertedCode.replace(kaitaiRequirePattern, "KaitaiStream")
     console.warn(
       `  ⚠ Warning: Had to force-replace ${finalKaitaiRequires.length} require() call(s)`
-    );
+    )
   }
 
   // Check for any other require() calls (non-kaitai)
   const otherRequires = convertedCode.match(
     /require\(["'](?!kaitai-struct\/KaitaiStream)([^"']+)["']\)/g
-  );
+  )
   if (otherRequires && otherRequires.length > 0) {
     console.warn(
       `  ⚠ Warning: Found other require() calls: ${otherRequires.join(", ")}`
-    );
+    )
   }
 
-  return convertedCode;
+  return convertedCode
 }
 
 /**
@@ -91,25 +108,25 @@ function patchKsyImports(convertedCode) {
  */
 export async function convertToESM(filePath, additionalCode = "") {
   try {
-    const content = await readFile(filePath, "utf-8");
+    const content = await readFile(filePath, "utf-8")
     const result = await transform(content, {
       format: "esm",
       target: "es2020",
       loader: "js",
-      platform: "neutral",
-    });
+      platform: "neutral"
+    })
 
-    const patchedCode = patchKsyImports(result.code);
+    const patchedCode = patchKsyImports(result.code)
 
     await writeFile(
       filePath,
       [patchedCode, additionalCode].filter(Boolean).join("\n"),
       "utf-8"
-    );
-    console.log(`  ↻ Converted to ESM`);
+    )
+    console.log(`  ↻ Converted to ESM`)
   } catch (error) {
-    console.error(`  ✗ Failed to convert ${filePath} to ESM:`, error.message);
-    throw error;
+    console.error(`  ✗ Failed to convert ${filePath} to ESM:`, error.message)
+    throw error
   }
 }
 
@@ -117,7 +134,7 @@ export async function convertToESM(filePath, additionalCode = "") {
  * Flatten nested manifest structure to extract all format entries with paths
  */
 export function flattenManifest(manifest) {
-  const entries = [];
+  const entries = []
 
   function traverse(items) {
     for (const item of items) {
@@ -125,17 +142,17 @@ export function flattenManifest(manifest) {
         // Leaf node - format entry
         entries.push({
           format: item.name,
-          path: item.path,
-        });
+          path: item.path
+        })
       } else if ("children" in item) {
         // Branch node - folder
-        traverse(item.children);
+        traverse(item.children)
       }
     }
   }
 
-  traverse(manifest);
-  return entries;
+  traverse(manifest)
+  return entries
 }
 
 /**
@@ -143,13 +160,13 @@ export function flattenManifest(manifest) {
  */
 export async function loadManifest() {
   try {
-    const manifestContent = await readFile(manifestPath, "utf-8");
-    return JSON.parse(manifestContent);
+    const manifestContent = await readFile(manifestPath, "utf-8")
+    return JSON.parse(manifestContent)
   } catch (error) {
     throw new Error(
       `Error reading manifest.json: ${error.message}\n` +
         "Please run 'pnpm sync:ksy' first to generate the manifest."
-    );
+    )
   }
 }
 
@@ -157,40 +174,40 @@ export async function loadManifest() {
  * Find all .ksy files in a directory recursively
  */
 export async function findKsyFiles(dir, baseDir = dir) {
-  const entries = await readdir(dir, { withFileTypes: true });
-  const ksyFiles = [];
-  const foldersWithKsy = new Set();
+  const entries = await readdir(dir, { withFileTypes: true })
+  const ksyFiles = []
+  const foldersWithKsy = new Set()
 
   for (const entry of entries) {
-    const fullPath = join(dir, entry.name);
+    const fullPath = join(dir, entry.name)
 
     // Skip .git directory
     if (entry.name === ".git") {
-      continue;
+      continue
     }
 
     if (entry.isDirectory()) {
       // Recursively search subdirectories
       const { ksyFiles: subKsyFiles, foldersWithKsy: subFolders } =
-        await findKsyFiles(fullPath, baseDir);
-      ksyFiles.push(...subKsyFiles);
+        await findKsyFiles(fullPath, baseDir)
+      ksyFiles.push(...subKsyFiles)
       // Merge folders sets
       for (const folder of subFolders) {
-        foldersWithKsy.add(folder);
+        foldersWithKsy.add(folder)
       }
     } else if (entry.isFile() && entry.name.endsWith(".ksy")) {
-      const relativePath = relative(baseDir, fullPath);
+      const relativePath = relative(baseDir, fullPath)
       ksyFiles.push({
         fullPath,
         relativePath,
-        category: relative(baseDir, dirname(fullPath)) || "root",
-      });
+        category: relative(baseDir, dirname(fullPath)) || "root"
+      })
       // Track the folder containing this .ksy file
-      foldersWithKsy.add(dirname(fullPath));
+      foldersWithKsy.add(dirname(fullPath))
     }
   }
 
-  return { ksyFiles, foldersWithKsy };
+  return { ksyFiles, foldersWithKsy }
 }
 
 /**
@@ -198,26 +215,26 @@ export async function findKsyFiles(dir, baseDir = dir) {
  */
 export async function copyFoldersWithKsy(sourceDir, targetDir, ksyFiles) {
   // Group ksy files by their directory structure
-  const dirsToCopy = new Map();
+  const dirsToCopy = new Map()
 
   for (const ksyFile of ksyFiles) {
-    const dir = dirname(ksyFile.fullPath);
-    const relativeDir = relative(sourceDir, dir);
+    const dir = dirname(ksyFile.fullPath)
+    const relativeDir = relative(sourceDir, dir)
 
     if (!dirsToCopy.has(relativeDir)) {
-      dirsToCopy.set(relativeDir, []);
+      dirsToCopy.set(relativeDir, [])
     }
-    dirsToCopy.get(relativeDir).push(ksyFile);
+    dirsToCopy.get(relativeDir).push(ksyFile)
   }
 
   // Copy each directory's .ksy files
   for (const [relativeDir, files] of dirsToCopy) {
-    const targetFolder = join(targetDir, relativeDir);
-    await mkdir(targetFolder, { recursive: true });
+    const targetFolder = join(targetDir, relativeDir)
+    await mkdir(targetFolder, { recursive: true })
 
     for (const ksyFile of files) {
-      const targetFile = join(targetFolder, basename(ksyFile.fullPath));
-      await cp(ksyFile.fullPath, targetFile);
+      const targetFile = join(targetFolder, basename(ksyFile.fullPath))
+      await cp(ksyFile.fullPath, targetFile)
     }
   }
 }
@@ -227,30 +244,30 @@ export async function copyFoldersWithKsy(sourceDir, targetDir, ksyFiles) {
  */
 export async function parseKsyFile(filePath) {
   try {
-    const content = await readFile(filePath, "utf-8");
-    const doc = yaml.load(content);
+    const content = await readFile(filePath, "utf-8")
+    const doc = yaml.load(content)
 
     if (doc && doc.meta) {
       return {
         id: doc.meta.id || basename(filePath, ".ksy"),
         title: doc.meta.title || basename(filePath, ".ksy"),
-        ksy: doc,
-      };
+        ksy: doc
+      }
     }
 
     // Fallback to filename if no meta section
     return {
       id: basename(filePath, ".ksy"),
       title: basename(filePath, ".ksy"),
-      ksy: doc || {},
-    };
+      ksy: doc || {}
+    }
   } catch (error) {
-    console.warn(`Warning: Failed to parse ${filePath}:`, error.message);
+    console.warn(`Warning: Failed to parse ${filePath}:`, error.message)
     return {
       id: basename(filePath, ".ksy"),
       title: basename(filePath, ".ksy"),
-      ksy: {},
-    };
+      ksy: {}
+    }
   }
 }
 
@@ -259,86 +276,88 @@ export async function parseKsyFile(filePath) {
  */
 export function buildNestedManifest(formatEntries) {
   // Build a tree structure from paths
-  const tree = {};
+  const tree = {}
 
   for (const entry of formatEntries) {
-    const pathParts = entry.path.split("/");
-    const fileName = pathParts.pop().replace(".ksy", "");
-    const folderPath = pathParts;
+    const pathParts = entry.path.split("/")
+    const fileName = pathParts.pop().replace(".ksy", "")
+    const folderPath = pathParts
 
     // Navigate/create tree structure
-    let current = tree;
+    let current = tree
     for (const part of folderPath) {
       if (!current[part]) {
-        current[part] = {};
+        current[part] = {}
       }
-      current = current[part];
+      current = current[part]
     }
 
     // Add the format entry
     if (!current[fileName]) {
-      current[fileName] = [];
+      current[fileName] = []
     }
     current[fileName].push({
       ...entry,
-      name: entry.format,
-    });
+      name: entry.format
+    })
   }
 
   // Convert tree to nested array structure
   function treeToArray(node, name = null) {
-    const result = [];
+    const result = []
 
     // Collect all entries (leaf nodes)
-    const entries = [];
+    const entries = []
     // Collect all folders (branch nodes)
-    const folders = [];
+    const folders = []
 
     for (const [key, value] of Object.entries(node)) {
       if (Array.isArray(value)) {
         // This is a leaf node with format entries
-        entries.push(...value);
+        entries.push(...value)
       } else {
         // This is a folder
-        folders.push({ name: key, node: value });
+        folders.push({ name: key, node: value })
       }
     }
 
     // Sort entries by name
-    entries.sort((a, b) => a.name.localeCompare(b.name));
+    entries.sort((a, b) => a.name.localeCompare(b.name))
 
     // Sort folders by name
-    folders.sort((a, b) => a.name.localeCompare(b.name));
+    folders.sort((a, b) => a.name.localeCompare(b.name))
 
     // Add entries first, then folders
-    result.push(...entries);
+    result.push(...entries)
     for (const folder of folders) {
-      const children = treeToArray(folder.node);
+      const children = treeToArray(folder.node)
       if (children.length > 0) {
         result.push({
           name: folder.name,
-          children,
-        });
+          children
+        })
       }
     }
 
-    return result;
+    return result
   }
 
-  return treeToArray(tree);
+  return treeToArray(tree)
 }
 
 /**
  * Converts a ksy file path to export path entries
- * Preserves the original path structure without renaming or case conversion
+ * Converts filename to PascalCase to match generated JS files
  * @param ksyPath - The path from the manifest (e.g., "3d/gltf_binary.ksy")
  * @returns Object with export key and value
  */
 export function ksyPathToExportPath(ksyPath) {
-  // Remove .ksy extension and keep original path structure
-  const key = ksyPath.replace(/\.ksy$/, "");
+  // Convert to PascalCase JS path
+  const jsPath = convertKsyPathToPascalCaseJsPath(ksyPath)
+  // Key uses original ksy path without extension
+  const key = ksyPath.replace(/\.ksy$/, "")
 
-  return { key: `./${key}`, value: `./src/generated/${key}.js` };
+  return { key: `./${key}`, value: `./src/generated/${jsPath}` }
 }
 
 /**
@@ -347,7 +366,7 @@ export function ksyPathToExportPath(ksyPath) {
  * @returns Array of export entries with key and value
  */
 export function generateExportPathsFromManifest(formatEntries) {
-  return formatEntries.map((entry) => ksyPathToExportPath(entry.path));
+  return formatEntries.map((entry) => ksyPathToExportPath(entry.path))
 }
 
 /**
@@ -356,54 +375,54 @@ export function generateExportPathsFromManifest(formatEntries) {
  * @param exports - Array of export entries with key and value
  */
 export async function updatePackageJsonExports(exports) {
-  const packageJsonPath = join(packageRoot, "package.json");
-  const packageJsonContent = await readFile(packageJsonPath, "utf-8");
-  const packageJson = JSON.parse(packageJsonContent);
+  const packageJsonPath = join(packageRoot, "package.json")
+  const packageJsonContent = await readFile(packageJsonPath, "utf-8")
+  const packageJson = JSON.parse(packageJsonContent)
 
   // Preserve only "." and "./manifest" exports
-  const preservedExports = {};
+  const preservedExports = {}
   if (packageJson.exports?.["."]) {
-    preservedExports["."] = packageJson.exports["."];
+    preservedExports["."] = packageJson.exports["."]
   }
   if (packageJson.exports?.["./manifest"]) {
-    preservedExports["./manifest"] = packageJson.exports["./manifest"];
+    preservedExports["./manifest"] = packageJson.exports["./manifest"]
   }
 
   // Add all new exports
-  const newExports = {};
+  const newExports = {}
   for (const exportEntry of exports) {
-    newExports[exportEntry.key] = exportEntry.value;
+    newExports[exportEntry.key] = exportEntry.value
   }
 
   // Merge and sort exports alphabetically
-  const allExports = { ...preservedExports, ...newExports };
+  const allExports = { ...preservedExports, ...newExports }
   const sortedKeys = Object.keys(allExports).sort((a, b) => {
     // Keep "." first, then "./manifest", then sort the rest
-    if (a === ".") return -1;
-    if (b === ".") return 1;
-    if (a === "./manifest") return -1;
-    if (b === "./manifest") return 1;
-    return a.localeCompare(b);
-  });
+    if (a === ".") return -1
+    if (b === ".") return 1
+    if (a === "./manifest") return -1
+    if (b === "./manifest") return 1
+    return a.localeCompare(b)
+  })
 
-  const sortedExports = {};
+  const sortedExports = {}
   for (const key of sortedKeys) {
-    sortedExports[key] = allExports[key];
+    sortedExports[key] = allExports[key]
   }
 
-  packageJson.exports = sortedExports;
+  packageJson.exports = sortedExports
 
   // Write updated package.json
   await writeFile(
     packageJsonPath,
     JSON.stringify(packageJson, null, 2) + "\n",
     "utf-8"
-  );
+  )
 }
 
 /**
  * Generate JSON manifest content
  */
 export function generateJsonManifest(manifest) {
-  return JSON.stringify(manifest, null, 2) + "\n";
+  return JSON.stringify(manifest, null, 2) + "\n"
 }

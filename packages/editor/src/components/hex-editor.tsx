@@ -22,7 +22,6 @@ import {
 import { useGlobalKeyboard } from "../hooks/use-global-keyboard"
 import { useHexEditorFile } from "../hooks/use-hex-editor-file"
 import { useSettings } from "../hooks/use-settings"
-import { useFileManager } from "../providers/file-manager-provider"
 import type { HexEditorProps, HexEditorViewProps } from "../types"
 import { EmptyState } from "./empty-state"
 import { HexFooter } from "./hex-footer"
@@ -72,12 +71,9 @@ export const HexEditor: FunctionComponent<
   onHandleReady,
   logo
 }) => {
-  // Get file manager from context
-  const fileManager = useFileManager()
-
   // Use hook to manage file loading and watching
   const { snapshots, fileHandle, isConnected, loading, error, restart } =
-    useHexEditorFile(handleId || null, fileManager || null)
+    useHexEditorFile(handleId || null)
 
   const [activeTab, setActiveTab] = useState<string>("0")
   const { showAscii, sidebar, setSidebar, sidebarPosition } = useSettings()

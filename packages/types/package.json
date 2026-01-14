@@ -13,6 +13,10 @@
     "clean": "rm -rf dist node_modules"
   },
   "devDependencies": {
+    "@hexed/eslint-config": "workspace:*",
+    "@hexed/prettier-config": "workspace:*",
+    "@hexed/typescript-config": "workspace:*",
     "typescript": "^5.7.2"
-  }
+  },
+  "prettier": "@hexed/prettier-config"
 }

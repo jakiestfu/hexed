@@ -1,12 +1,13 @@
-import manifestData from "./ksy/manifest.json";
-import { KsySchema } from "./ksy/types";
-export { type KsySchema } from "./ksy/types";
-
-export const manifest = manifestData;
-
-import templates from "./templates";
 // @ts-expect-error - kaitai-struct doesn't have TypeScript definitions
-import { KaitaiStream } from "kaitai-struct";
+import { KaitaiStream } from "kaitai-struct"
+
+import manifestData from "./ksy/manifest.json"
+import { KsySchema } from "./ksy/types"
+import templates from "./templates"
+
+export { type KsySchema } from "./ksy/types"
+
+export const manifest = manifestData
 
 /**
  * Loads a parser class by its ksy file path
@@ -15,50 +16,52 @@ import { KaitaiStream } from "kaitai-struct";
  * @throws Error if the path is not found in the templates registry
  */
 export async function load(path: string): Promise<{
-  ParserClass: new (io: unknown, parent: unknown, root: unknown) => unknown;
-  spec: KsySchema;
+  ParserClass: new (io: unknown, parent: unknown, root: unknown) => unknown
+  spec: KsySchema
 }> {
-  const importFn = templates[path as keyof typeof templates];
+  const importFn = templates[path as keyof typeof templates]
 
   if (!importFn) {
-    const availablePaths = Object.keys(templates).join(", ");
+    const availablePaths = Object.keys(templates).join(", ")
     throw new Error(
       `No parser found for path "${path}". Available paths: ${availablePaths}`
-    );
+    )
   }
 
   // Call the lazy import function
-  const parserModule = await importFn();
+  const parserModule = await importFn()
 
-  let ParserClass: new (io: unknown, parent: unknown, root: unknown) =>
-    | unknown
-    | undefined;
+  let ParserClass: new (
+    io: unknown,
+    parent: unknown,
+    root: unknown
+  ) => unknown | undefined
 
-  const defaultExport = parserModule.default;
+  const defaultExport = parserModule.default
   const spec = (
     parserModule as {
       spec: {
-        ksy: KsySchema;
-      };
+        ksy: KsySchema
+      }
     }
-  ).spec.ksy;
+  ).spec.ksy
 
   try {
     ParserClass = Object.values(defaultExport)[0] as new (
       io: unknown,
       parent: unknown,
       root: unknown
-    ) => unknown;
+    ) => unknown
   } catch (error) {
     throw new Error(
       `Parser module for "${path}" does not export a parser class`
-    );
+    )
   }
 
   return {
     ParserClass,
-    spec,
-  };
+    spec
+  }
 }
 
 /**
@@ -71,27 +74,28 @@ export async function parse(
   templateId: string,
   byteData: Uint8Array | ArrayBuffer
 ): Promise<{
-  parsedData: Record<string, unknown>;
-  spec: KsySchema;
-  error?: Error | null;
+  parsedData: Record<string, unknown>
+  spec: KsySchema
+  error?: Error | null
 }> {
-  const kaitaiStream = new KaitaiStream(byteData, 0);
-  const { ParserClass, spec } = await load(templateId);
+  const kaitaiStream = new KaitaiStream(byteData, 0)
+  const { ParserClass, spec } = await load(templateId)
 
-  let parsedData: unknown;
+  let parsedData: unknown
   try {
-    parsedData = new ParserClass(kaitaiStream, 0, 0);
+    parsedData = new ParserClass(kaitaiStream, 0, 0)
   } catch (error) {
     return {
       error: error as Error,
       spec,
-      parsedData: null,
-    };
+      // @ts-expect-error - parsedData is unknown
+      parsedData: null
+    }
   }
-  console.log("RESULT", parsedData);
   return {
+    // @ts-expect-error - parsedData is unknown
     parsedData,
     spec,
-    error: null,
-  };
+    error: null
+  }
 }

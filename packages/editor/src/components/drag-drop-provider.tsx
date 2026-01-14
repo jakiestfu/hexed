@@ -5,7 +5,7 @@ import {
   useEffect,
   useState
 } from "react"
-import type { DragEvent, FunctionComponent, ReactNode } from "react"
+import type { FunctionComponent, ReactNode } from "react"
 
 import type { BinarySnapshot } from "@hexed/types"
 
@@ -45,7 +45,7 @@ export const DragDropProvider: FunctionComponent<DragDropProviderProps> = ({
   const handleDragEnter = useCallback((e: DragEvent) => {
     e.preventDefault()
     e.stopPropagation()
-    if (e.dataTransfer.types.includes("Files")) {
+    if (e.dataTransfer?.types.includes("Files")) {
       setIsDragging(true)
     }
   }, [])
@@ -73,7 +73,7 @@ export const DragDropProvider: FunctionComponent<DragDropProviderProps> = ({
       e.stopPropagation()
       setIsDragging(false)
 
-      const file = e.dataTransfer.files[0]
+      const file = e.dataTransfer?.files[0]
       if (!file || !onFileSelectCallback) return
 
       try {

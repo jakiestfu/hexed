@@ -9,8 +9,6 @@ import { Menu, type MenuItem } from "./menu"
 export type { MenuItem } from "./menu"
 
 export type LogoProps = {
-  menuItems?: MenuItem[]
-  githubUrl?: string
   inline?: boolean
   currentSnapshot?: BinarySnapshot | null
   showHistogram?: boolean
@@ -39,8 +37,6 @@ export const Brand: FunctionComponent<{
 )
 
 export const Logo: FunctionComponent<LogoProps> = ({
-  menuItems,
-  githubUrl = "https://github.com/jakiestfu/hexed",
   inline = false,
   currentSnapshot,
   showHistogram: controlledShowHistogram,
@@ -66,8 +62,6 @@ export const Logo: FunctionComponent<LogoProps> = ({
           </Button>
         </DropdownMenuTrigger>
         <Menu
-          menuItems={menuItems}
-          githubUrl={githubUrl}
           currentSnapshot={currentSnapshot}
           showHistogram={showHistogram}
           onShowHistogramChange={onShowHistogramChange}

@@ -282,7 +282,6 @@ export async function updateFileHandleTimestamp(
 export async function verifyHandlePermission(
   handle: FileSystemFileHandle
 ): Promise<boolean> {
-  // @ts-expect-error - queryPermission may not be in TypeScript types yet
   const permission = await handle.queryPermission({ mode: "read" })
 
   if (permission === "granted") {
@@ -290,7 +289,6 @@ export async function verifyHandlePermission(
   }
 
   if (permission === "prompt") {
-    // @ts-expect-error - requestPermission may not be in TypeScript types yet
     const newPermission = await handle.requestPermission({ mode: "read" })
     return newPermission === "granted"
   }

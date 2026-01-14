@@ -1,3 +1,5 @@
+/// <reference types="vite/types/importMeta.d.ts" />
+
 /**
  * Check if we're in development mode
  * Supports both Vite (import.meta.env.DEV) and Node.js (process.env.NODE_ENV)
@@ -5,23 +7,23 @@
 function isDevMode(): boolean {
   // Vite environment (browser)
   if (typeof import.meta !== "undefined" && import.meta.env?.DEV) {
-    return true;
+    return true
   }
   // Node.js environment
   if (
     typeof process !== "undefined" &&
     process.env?.NODE_ENV !== "production"
   ) {
-    return true;
+    return true
   }
-  return false;
+  return false
 }
 
 /**
  * Logger interface
  */
 export interface Logger {
-  log: (...args: unknown[]) => void;
+  log: (...args: unknown[]) => void
 }
 
 /**
@@ -34,14 +36,14 @@ export interface Logger {
  * logger.log("Hello"); // [worker] Hello (only in dev mode)
  */
 export function createLogger(context: string): Logger {
-  const isDev = isDevMode();
-  const prefix = `[${context}]`;
+  const isDev = isDevMode()
+  const prefix = `[${context}]`
 
   return {
     log: (...args: unknown[]) => {
       if (isDev) {
-        console.log(prefix, ...args);
+        console.log(prefix, ...args)
       }
-    },
-  };
+    }
+  }
 }
