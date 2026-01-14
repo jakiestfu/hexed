@@ -1,4 +1,5 @@
 import type { BinarySnapshot } from "@hexed/types"
+import type { WorkerClient } from "@hexed/worker"
 
 /**
  * Remove query parameters from a path or URL
@@ -74,27 +75,60 @@ function isFileSystemFileHandle(
 }
 
 /**
- * Create snapshot from FileSystemFileHandle
+ * Create snapshot from FileSystemFileHandle using worker
+ * If workerClient and fileId are provided, uses worker for reading
+ * Otherwise falls back to direct file reading
  */
 export async function createSnapshotFromHandle(
-  handle: FileSystemFileHandle
+  handle: FileSystemFileHandle,
+  workerClient?: WorkerClient | null,
+  fileId?: string
 ): Promise<BinarySnapshot> {
+  // Use worker if available
+  if (workerClient && fileId) {
+    try {
+      // Ensure file is open in worker
+      await workerClient.openFile(fileId, handle)
+      
+      // Get file size
+      const fileSize = await workerClient.getFileSize(fileId)
+      
+      // Read entire file
+      const data = await workerClient.readByteRange(fileId, 0, fileSize)
+      
+      // Create snapshot
+      const snapshot = createSnapshotFromArrayBuffer(
+        data.buffer,
+        handle.name || "file"
+      )
+      snapshot.md5 = await calculateChecksum(snapshot.data)
+      return snapshot
+    } catch (error) {
+      console.warn('Failed to read file via worker, falling back to direct read:', error)
+      // Fall through to direct file reading
+    }
+  }
+
+  // Fallback to direct file reading
   const file = await handle.getFile()
   return createSnapshotFromFile(file)
 }
 
 /**
  * Create snapshot from File object or FileSystemFileHandle
+ * If handle and workerClient/fileId are provided, uses worker
  */
 export async function createSnapshotFromFile(
-  file: File | FileSystemFileHandle
+  file: File | FileSystemFileHandle,
+  workerClient?: WorkerClient | null,
+  fileId?: string
 ): Promise<BinarySnapshot> {
   // Handle FileSystemFileHandle
   if (isFileSystemFileHandle(file)) {
-    return createSnapshotFromHandle(file)
+    return createSnapshotFromHandle(file, workerClient, fileId)
   }
 
-  // Handle File object
+  // Handle File object (always use direct reading)
   const arrayBuffer = await file.arrayBuffer()
   const snapshot = createSnapshotFromArrayBuffer(
     arrayBuffer,

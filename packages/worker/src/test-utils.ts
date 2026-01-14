@@ -124,30 +124,54 @@ export function createMockMessagePort(): {
 }
 
 /**
- * Create a mock SharedWorker
+ * Create a mock Worker
  */
-export function createMockSharedWorker(
+export function createMockWorker(
   url: string | URL
 ): {
-  worker: SharedWorker;
-  ports: Array<ReturnType<typeof createMockMessagePort>>;
-  simulateConnect: () => ReturnType<typeof createMockMessagePort>;
+  worker: Worker;
+  messages: Array<{ data: any; transfer?: Transferable[] }>;
+  simulateMessage: (data: any) => void;
 } {
-  const ports: Array<ReturnType<typeof createMockMessagePort>> = [];
+  const messages: Array<{ data: any; transfer?: Transferable[] }> = [];
+  let onMessageHandler: ((event: MessageEvent) => void) | null = null;
+  let onErrorHandler: ((event: ErrorEvent) => void) | null = null;
 
   const worker = {
-    port: null as MessagePort | null,
-    onerror: null as ((event: ErrorEvent) => void) | null,
-  } as unknown as SharedWorker;
+    postMessage(data: any, transfer?: Transferable[]): void {
+      messages.push({ data, transfer });
+    },
+    terminate(): void {
+      onMessageHandler = null;
+      onErrorHandler = null;
+    },
+    get onmessage() {
+      return onMessageHandler;
+    },
+    set onmessage(handler: ((event: MessageEvent) => void) | null) {
+      onMessageHandler = handler;
+    },
+    get onerror() {
+      return onErrorHandler;
+    },
+    set onerror(handler: ((event: ErrorEvent) => void) | null) {
+      onErrorHandler = handler;
+    },
+    addEventListener(): void {},
+    removeEventListener(): void {},
+    dispatchEvent(): boolean {
+      return true;
+    },
+  } as unknown as Worker;
 
   return {
     worker,
-    ports,
-    simulateConnect: () => {
-      const mockPort = createMockMessagePort();
-      ports.push(mockPort);
-      worker.port = mockPort.port;
-      return mockPort;
+    messages,
+    simulateMessage: (data: any) => {
+      if (onMessageHandler) {
+        const event = new MessageEvent("message", { data });
+        onMessageHandler(event);
+      }
     },
   };
 }

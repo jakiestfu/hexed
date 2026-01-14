@@ -8,34 +8,34 @@ import type {
 } from "./types";
 import {
   createMockFileHandle,
-  createMockSharedWorker,
+  createMockWorker,
   createTestData,
 } from "./test-utils";
 
-// Mock SharedWorker globally
-const mockSharedWorkers = new Map<
+// Mock Worker globally
+const mockWorkers = new Map<
   string,
-  ReturnType<typeof createMockSharedWorker>
+  ReturnType<typeof createMockWorker>
 >();
 
-global.SharedWorker = vi.fn().mockImplementation((url: string | URL) => {
+global.Worker = vi.fn().mockImplementation((url: string | URL) => {
   const urlStr = url.toString();
-  if (!mockSharedWorkers.has(urlStr)) {
-    mockSharedWorkers.set(urlStr, createMockSharedWorker(url));
+  if (!mockWorkers.has(urlStr)) {
+    mockWorkers.set(urlStr, createMockWorker(url));
   }
-  const mock = mockSharedWorkers.get(urlStr)!;
+  const mock = mockWorkers.get(urlStr)!;
   return mock.worker;
-}) as unknown as typeof SharedWorker;
+}) as unknown as typeof Worker;
 
 describe("createWorkerClient", () => {
   let client: WorkerClient;
   const workerUrl = "http://localhost/worker.js";
-  let mockWorker: ReturnType<typeof createMockSharedWorker>;
+  let mockWorker: ReturnType<typeof createMockWorker>;
 
   beforeEach(() => {
-    mockSharedWorkers.clear();
-    mockWorker = createMockSharedWorker(workerUrl);
-    mockSharedWorkers.set(workerUrl, mockWorker);
+    mockWorkers.clear();
+    mockWorker = createMockWorker(workerUrl);
+    mockWorkers.set(workerUrl, mockWorker);
     client = createWorkerClient(workerUrl);
   });
 
@@ -44,30 +44,28 @@ describe("createWorkerClient", () => {
   });
 
   describe("initialization", () => {
-    it("should create SharedWorker on first use", () => {
-      expect(global.SharedWorker).toHaveBeenCalledWith(workerUrl, {
+    it("should create Worker on first use", () => {
+      expect(global.Worker).toHaveBeenCalledWith(workerUrl, {
         type: "module",
       });
     });
 
     it("should send CONNECTED message on connection", async () => {
-      const mockPort = mockWorker.simulateConnect();
       const connectedResponse: ConnectedResponse = {
         id: "test-id",
         type: "CONNECTED",
       };
-      mockPort.simulateMessage(connectedResponse);
+      mockWorker.simulateMessage(connectedResponse);
 
       // Wait for connection
       await new Promise((resolve) => setTimeout(resolve, 10));
 
-      expect(mockPort.messages.length).toBeGreaterThan(0);
+      expect(mockWorker.messages.length).toBeGreaterThan(0);
     });
   });
 
   describe("openFile", () => {
     it("should send OPEN_FILE request", async () => {
-      const mockPort = mockWorker.simulateConnect();
       const handle = createMockFileHandle("test.bin", 100);
 
       const openPromise = client.openFile("file1", handle);
@@ -75,8 +73,8 @@ describe("createWorkerClient", () => {
       // Wait for message to be sent
       await new Promise((resolve) => setTimeout(resolve, 10));
 
-      expect(mockPort.messages.length).toBeGreaterThan(0);
-      const request = mockPort.messages[0]?.data;
+      expect(mockWorker.messages.length).toBeGreaterThan(0);
+      const request = mockWorker.messages[0]?.data;
       expect(request?.type).toBe("OPEN_FILE");
       expect(request?.fileId).toBe("file1");
       expect(request?.handle).toBe(handle);
@@ -86,13 +84,12 @@ describe("createWorkerClient", () => {
         id: request.id,
         type: "CONNECTED",
       };
-      mockPort.simulateMessage(response);
+      mockWorker.simulateMessage(response);
 
       await openPromise;
     });
 
     it("should handle error response", async () => {
-      const mockPort = mockWorker.simulateConnect();
       const handle = createMockFileHandle("test.bin", 100);
 
       const openPromise = client.openFile("file1", handle);
@@ -100,14 +97,14 @@ describe("createWorkerClient", () => {
       // Wait for message to be sent
       await new Promise((resolve) => setTimeout(resolve, 10));
 
-      const request = mockPort.messages[0]?.data;
+      const request = mockWorker.messages[0]?.data;
       const errorResponse: ErrorResponse = {
         id: request.id,
         type: "ERROR",
         error: "Failed to open file",
         originalMessageId: request.id,
       };
-      mockPort.simulateMessage(errorResponse);
+      mockWorker.simulateMessage(errorResponse);
 
       await expect(openPromise).rejects.toThrow("Failed to open file");
     });
@@ -115,7 +112,6 @@ describe("createWorkerClient", () => {
 
   describe("readByteRange", () => {
     it("should send READ_BYTE_RANGE request and return data", async () => {
-      const mockPort = mockWorker.simulateConnect();
       const testData = createTestData(100);
 
       const readPromise = client.readByteRange("file1", 0, 100);
@@ -123,7 +119,7 @@ describe("createWorkerClient", () => {
       // Wait for message to be sent
       await new Promise((resolve) => setTimeout(resolve, 10));
 
-      const request = mockPort.messages[0]?.data;
+      const request = mockWorker.messages[0]?.data;
       expect(request?.type).toBe("READ_BYTE_RANGE");
       expect(request?.fileId).toBe("file1");
       expect(request?.start).toBe(0);
@@ -137,7 +133,7 @@ describe("createWorkerClient", () => {
         end: 100,
         data: testData,
       };
-      mockPort.simulateMessage(response);
+      mockWorker.simulateMessage(response);
 
       const data = await readPromise;
 
@@ -147,20 +143,18 @@ describe("createWorkerClient", () => {
     });
 
     it("should handle error response", async () => {
-      const mockPort = mockWorker.simulateConnect();
-
       const readPromise = client.readByteRange("file1", 0, 100);
 
       // Wait for message to be sent
       await new Promise((resolve) => setTimeout(resolve, 10));
 
-      const request = mockPort.messages[0]?.data;
+      const request = mockWorker.messages[0]?.data;
       const errorResponse: ErrorResponse = {
         id: request.id,
         type: "ERROR",
         error: "File not found",
       };
-      mockPort.simulateMessage(errorResponse);
+      mockWorker.simulateMessage(errorResponse);
 
       await expect(readPromise).rejects.toThrow("File not found");
     });
@@ -168,7 +162,6 @@ describe("createWorkerClient", () => {
 
   describe("getFileSize", () => {
     it("should send GET_FILE_SIZE request and return size", async () => {
-      const mockPort = mockWorker.simulateConnect();
       const fileSize = 2048;
 
       const sizePromise = client.getFileSize("file1");
@@ -176,7 +169,7 @@ describe("createWorkerClient", () => {
       // Wait for message to be sent
       await new Promise((resolve) => setTimeout(resolve, 10));
 
-      const request = mockPort.messages[0]?.data;
+      const request = mockWorker.messages[0]?.data;
       expect(request?.type).toBe("GET_FILE_SIZE");
       expect(request?.fileId).toBe("file1");
 
@@ -186,7 +179,7 @@ describe("createWorkerClient", () => {
         fileId: "file1",
         size: fileSize,
       };
-      mockPort.simulateMessage(response);
+      mockWorker.simulateMessage(response);
 
       const size = await sizePromise;
       expect(size).toBe(fileSize);
@@ -195,7 +188,6 @@ describe("createWorkerClient", () => {
 
   describe("setWindowSize", () => {
     it("should send SET_WINDOW_SIZE request", async () => {
-      const mockPort = mockWorker.simulateConnect();
       const windowSize = 512 * 1024;
 
       const setPromise = client.setWindowSize("file1", windowSize);
@@ -203,7 +195,7 @@ describe("createWorkerClient", () => {
       // Wait for message to be sent
       await new Promise((resolve) => setTimeout(resolve, 10));
 
-      const request = mockPort.messages[0]?.data;
+      const request = mockWorker.messages[0]?.data;
       expect(request?.type).toBe("SET_WINDOW_SIZE");
       expect(request?.fileId).toBe("file1");
       expect(request?.windowSize).toBe(windowSize);
@@ -212,7 +204,7 @@ describe("createWorkerClient", () => {
         id: request.id,
         type: "CONNECTED",
       };
-      mockPort.simulateMessage(response);
+      mockWorker.simulateMessage(response);
 
       await setPromise;
     });
@@ -220,14 +212,12 @@ describe("createWorkerClient", () => {
 
   describe("closeFile", () => {
     it("should send CLOSE_FILE request", async () => {
-      const mockPort = mockWorker.simulateConnect();
-
       const closePromise = client.closeFile("file1");
 
       // Wait for message to be sent
       await new Promise((resolve) => setTimeout(resolve, 10));
 
-      const request = mockPort.messages[0]?.data;
+      const request = mockWorker.messages[0]?.data;
       expect(request?.type).toBe("CLOSE_FILE");
       expect(request?.fileId).toBe("file1");
 
@@ -235,16 +225,14 @@ describe("createWorkerClient", () => {
         id: request.id,
         type: "CONNECTED",
       };
-      mockPort.simulateMessage(response);
+      mockWorker.simulateMessage(response);
 
       await closePromise;
     });
   });
 
   describe("disconnect", () => {
-    it("should close port and reject pending requests", async () => {
-      const mockPort = mockWorker.simulateConnect();
-
+    it("should terminate worker and reject pending requests", async () => {
       // Start a request that won't complete
       const readPromise = client.readByteRange("file1", 0, 100);
 
@@ -254,20 +242,18 @@ describe("createWorkerClient", () => {
       await expect(readPromise).rejects.toThrow("Worker disconnected");
     });
 
-    it("should close port", () => {
-      const mockPort = mockWorker.simulateConnect();
-      const closeSpy = vi.spyOn(mockPort.port, "close");
+    it("should terminate worker", () => {
+      const terminateSpy = vi.spyOn(mockWorker.worker, "terminate");
 
       client.disconnect();
 
-      expect(closeSpy).toHaveBeenCalled();
+      expect(terminateSpy).toHaveBeenCalled();
     });
   });
 
   describe("request timeout", () => {
     it("should timeout if response not received", async () => {
       vi.useFakeTimers();
-      const mockPort = mockWorker.simulateConnect();
 
       const readPromise = client.readByteRange("file1", 0, 100);
 
@@ -282,8 +268,6 @@ describe("createWorkerClient", () => {
 
   describe("multiple concurrent requests", () => {
     it("should handle multiple concurrent requests", async () => {
-      const mockPort = mockWorker.simulateConnect();
-
       const promise1 = client.readByteRange("file1", 0, 100);
       const promise2 = client.readByteRange("file1", 100, 200);
       const promise3 = client.getFileSize("file1");
@@ -291,19 +275,19 @@ describe("createWorkerClient", () => {
       // Wait for all messages to be sent
       await new Promise((resolve) => setTimeout(resolve, 10));
 
-      expect(mockPort.messages.length).toBe(3);
+      expect(mockWorker.messages.length).toBe(3);
 
       // Send responses in different order, matching request IDs
-      const request3 = mockPort.messages[2]?.data;
+      const request3 = mockWorker.messages[2]?.data;
       const response3: FileSizeResponse = {
         id: request3.id,
         type: "FILE_SIZE_RESPONSE",
         fileId: "file1",
         size: 1000,
       };
-      mockPort.simulateMessage(response3);
+      mockWorker.simulateMessage(response3);
 
-      const request1 = mockPort.messages[0]?.data;
+      const request1 = mockWorker.messages[0]?.data;
       const response1: ByteRangeResponse = {
         id: request1.id,
         type: "BYTE_RANGE_RESPONSE",
@@ -312,9 +296,9 @@ describe("createWorkerClient", () => {
         end: 100,
         data: createTestData(100),
       };
-      mockPort.simulateMessage(response1);
+      mockWorker.simulateMessage(response1);
 
-      const request2 = mockPort.messages[1]?.data;
+      const request2 = mockWorker.messages[1]?.data;
       const response2: ByteRangeResponse = {
         id: request2.id,
         type: "BYTE_RANGE_RESPONSE",
@@ -323,7 +307,7 @@ describe("createWorkerClient", () => {
         end: 200,
         data: createTestData(100),
       };
-      mockPort.simulateMessage(response2);
+      mockWorker.simulateMessage(response2);
 
       const [data1, data2, size] = await Promise.all([
         promise1,
@@ -338,15 +322,14 @@ describe("createWorkerClient", () => {
   });
 
   describe("error handling", () => {
-    it("should handle port errors", async () => {
-      const mockPort = mockWorker.simulateConnect();
+    it("should handle worker errors", async () => {
       const handle = createMockFileHandle("test.bin", 100);
 
       const openPromise = client.openFile("file1", handle);
 
-      // Simulate port error
-      if (mockPort.port.onerror) {
-        mockPort.port.onerror(
+      // Simulate worker error
+      if (mockWorker.worker.onerror) {
+        mockWorker.worker.onerror(
           new ErrorEvent("error", { message: "Connection failed" })
         );
       }

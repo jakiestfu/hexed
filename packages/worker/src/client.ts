@@ -1,5 +1,5 @@
 /**
- * Client-side API for interacting with the SharedWorker
+ * Client-side API for interacting with the Worker
  */
 
 import type {
@@ -49,29 +49,26 @@ interface PendingRequest {
 }
 
 /**
- * Create a worker client connected to the SharedWorker
+ * Create a worker client connected to the Worker
  */
 export function createWorkerClient(workerUrl: string | URL): WorkerClient {
-  let sharedWorker: SharedWorker | null = null;
-  let port: MessagePort | null = null;
+  let worker: Worker | null = null;
   const pendingRequests = new Map<string, PendingRequest>();
   const REQUEST_TIMEOUT = 30000; // 30 seconds
 
   /**
-   * Initialize the SharedWorker connection
+   * Initialize the Worker connection
    */
-  function initialize(): MessagePort {
-    if (port) {
-      return port;
+  function initialize(): Worker {
+    if (worker) {
+      return worker;
     }
 
     try {
-      sharedWorker = new SharedWorker(workerUrl, { type: "module" });
-      port = sharedWorker.port;
-      port.start();
+      worker = new Worker(workerUrl, { type: "module" });
 
       // Handle messages from worker
-      port.onmessage = (event: MessageEvent<ResponseMessage>) => {
+      worker.onmessage = (event: MessageEvent<ResponseMessage>) => {
         const message = event.data;
         const pending = pendingRequests.get(message.id);
 
@@ -93,20 +90,20 @@ export function createWorkerClient(workerUrl: string | URL): WorkerClient {
         }
       };
 
-      port.onerror = (error) => {
-        console.error("Worker port error:", error);
+      worker.onerror = (error) => {
+        console.error("Worker error:", error);
         // Reject all pending requests
-        for (const pending of pendingRequests.values()) {
+        for (const pending of Array.from(pendingRequests.values())) {
           clearTimeout(pending.timeout);
           pending.reject(new Error("Worker connection error"));
         }
         pendingRequests.clear();
       };
 
-      return port;
+      return worker;
     } catch (error) {
       throw new Error(
-        `Failed to create SharedWorker: ${error instanceof Error ? error.message : "Unknown error"}`
+        `Failed to create Worker: ${error instanceof Error ? error.message : "Unknown error"}`
       );
     }
   }
@@ -117,7 +114,7 @@ export function createWorkerClient(workerUrl: string | URL): WorkerClient {
   function sendRequest<T extends ResponseMessage>(
     request: RequestMessage
   ): Promise<T> {
-    const port = initialize();
+    const worker = initialize();
 
     return new Promise<T>((resolve, reject) => {
       const timeout = setTimeout(() => {
@@ -138,9 +135,9 @@ export function createWorkerClient(workerUrl: string | URL): WorkerClient {
         if (request.type === "OPEN_FILE") {
           // FileSystemFileHandle is not transferable, so we send it directly
           // The worker will receive it and store it
-          port.postMessage(request);
+          worker.postMessage(request);
         } else {
-          port.postMessage(request);
+          worker.postMessage(request);
         }
       } catch (error) {
         clearTimeout(timeout);
@@ -155,7 +152,10 @@ export function createWorkerClient(workerUrl: string | URL): WorkerClient {
   }
 
   return {
-    async openFile(fileId: string, handle: FileSystemFileHandle): Promise<void> {
+    async openFile(
+      fileId: string,
+      handle: FileSystemFileHandle
+    ): Promise<void> {
       const request: OpenFileRequest = {
         id: generateMessageId(),
         type: "OPEN_FILE",
@@ -212,20 +212,15 @@ export function createWorkerClient(workerUrl: string | URL): WorkerClient {
 
     disconnect(): void {
       // Reject all pending requests
-      for (const pending of pendingRequests.values()) {
+      for (const pending of Array.from(pendingRequests.values())) {
         clearTimeout(pending.timeout);
         pending.reject(new Error("Worker disconnected"));
       }
       pendingRequests.clear();
 
-      if (port) {
-        port.close();
-        port = null;
-      }
-
-      if (sharedWorker) {
-        // SharedWorker doesn't have a close method, but we can disconnect the port
-        sharedWorker = null;
+      if (worker) {
+        worker.terminate();
+        worker = null;
       }
     },
   };

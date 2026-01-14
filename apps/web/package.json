@@ -19,6 +19,7 @@
     "@hexed/canvas": "workspace:*",
     "@hexed/types": "workspace:*",
     "@hexed/ui": "workspace:*",
+    "@hexed/worker": "workspace:*",
     "@tailwindcss/postcss": "^4.1.0",
     "lucide-react": "^0.468.0",
     "next-themes": "^0.4.6",

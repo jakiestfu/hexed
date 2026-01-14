@@ -3,6 +3,7 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import type { BinarySnapshot } from '@hexed/types';
 
 import { createSnapshotFromFile } from '~/components/hex-editor/utils';
+import { useWorkerClient } from '~/hooks/use-worker-client';
 
 /**
  * Hook for watching FileSystemFileHandle files for changes
@@ -10,30 +11,50 @@ import { createSnapshotFromFile } from '~/components/hex-editor/utils';
  */
 export function useFileHandleWatcher(
   handle: FileSystemFileHandle | null,
-  filePath: string | null
+  filePath: string | null,
+  fileId?: string | null
 ) {
+  const workerClient = useWorkerClient();
   const [snapshots, setSnapshots] = useState<BinarySnapshot[]>([]);
   const [isConnected, setIsConnected] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const handleRef = useRef<FileSystemFileHandle | null>(handle);
+  const fileIdRef = useRef<string | null | undefined>(fileId);
   const observerRef = useRef<FileSystemObserver | null>(null);
   const snapshotIndexRef = useRef<number>(0);
 
-  // Update refs when handle changes
+  // Update refs when handle or fileId changes
   useEffect(() => {
     handleRef.current = handle;
-  }, [handle]);
+    fileIdRef.current = fileId;
+  }, [handle, fileId]);
 
   const readAndAddSnapshot = useCallback(async () => {
     // Use refs to get latest values for async operations
     const currentHandle = handleRef.current;
+    const currentFileId = fileIdRef.current;
 
     if (!currentHandle) {
       return;
     }
 
     try {
-      const snapshot = await createSnapshotFromFile(currentHandle);
+      // Ensure file is open in worker if we have worker client and fileId
+      if (workerClient && currentFileId) {
+        try {
+          await workerClient.openFile(currentFileId, currentHandle);
+        } catch (workerError) {
+          console.warn('Failed to open file in worker:', workerError);
+          // Continue anyway, will fall back to direct reading
+        }
+      }
+
+      // Create snapshot using worker if available
+      const snapshot = await createSnapshotFromFile(
+        currentHandle,
+        workerClient || null,
+        currentFileId || undefined
+      );
 
       // Update snapshot with proper index, label, and filePath
       const index = snapshotIndexRef.current;
@@ -54,7 +75,7 @@ export function useFileHandleWatcher(
       setIsConnected(false);
       console.error('Error reading file handle:', err);
     }
-  }, []);
+  }, [workerClient]);
 
   const connect = useCallback(() => {
     // Use the current prop values directly, not refs

@@ -1,5 +1,5 @@
 /**
- * SharedWorker entry point for multi-tab file access
+ * Worker entry point for file access
  */
 
 import { FileHandleManager } from "./file-handle-manager";
@@ -20,19 +20,17 @@ import type {
 } from "./types";
 
 /**
- * Shared worker context
+ * Worker context
  */
 interface WorkerContext {
   handleManager: FileHandleManager;
   windowManager: WindowManager;
-  ports: Set<MessagePort>;
 }
 
-// Global context shared across all connections
+// Global context for this worker instance
 const context: WorkerContext = {
   handleManager: new FileHandleManager(),
   windowManager: new WindowManager(),
-  ports: new Set<MessagePort>(),
 };
 
 /**
@@ -43,15 +41,15 @@ function generateMessageId(): string {
 }
 
 /**
- * Send a response message to a specific port
+ * Send a response message
  */
-function sendResponse(port: MessagePort, message: ResponseMessage): void {
+function sendResponse(message: ResponseMessage): void {
   try {
     // Transfer Uint8Array as Transferable for performance
     if (message.type === "BYTE_RANGE_RESPONSE") {
-      port.postMessage(message, [message.data.buffer]);
+      self.postMessage(message, [message.data.buffer]);
     } else {
-      port.postMessage(message);
+      self.postMessage(message);
     }
   } catch (error) {
     console.error("Error sending response:", error);
@@ -62,7 +60,6 @@ function sendResponse(port: MessagePort, message: ResponseMessage): void {
  * Send an error response
  */
 function sendError(
-  port: MessagePort,
   error: string,
   originalMessageId?: string
 ): void {
@@ -72,26 +69,24 @@ function sendError(
     error,
     originalMessageId,
   };
-  sendResponse(port, response);
+  sendResponse(response);
 }
 
 /**
  * Handle OPEN_FILE request
  */
 async function handleOpenFile(
-  port: MessagePort,
   request: OpenFileRequest
 ): Promise<void> {
   try {
     await context.handleManager.openFile(request.fileId, request.handle);
     const response: ConnectedResponse = {
-      id: generateMessageId(),
+      id: request.id,
       type: "CONNECTED",
     };
-    sendResponse(port, response);
+    sendResponse(response);
   } catch (error) {
     sendError(
-      port,
       error instanceof Error ? error.message : "Failed to open file",
       request.id
     );
@@ -102,12 +97,11 @@ async function handleOpenFile(
  * Handle READ_BYTE_RANGE request
  */
 async function handleReadByteRange(
-  port: MessagePort,
   request: ReadByteRangeRequest
 ): Promise<void> {
   try {
     if (!context.handleManager.hasFile(request.fileId)) {
-      sendError(port, `File ${request.fileId} is not open`, request.id);
+      sendError(`File ${request.fileId} is not open`, request.id);
       return;
     }
 
@@ -120,17 +114,16 @@ async function handleReadByteRange(
     );
 
     const response: ByteRangeResponse = {
-      id: generateMessageId(),
+      id: request.id,
       type: "BYTE_RANGE_RESPONSE",
       fileId: request.fileId,
       start: request.start,
       end: request.end,
       data,
     };
-    sendResponse(port, response);
+    sendResponse(response);
   } catch (error) {
     sendError(
-      port,
       error instanceof Error ? error.message : "Failed to read byte range",
       request.id
     );
@@ -141,21 +134,19 @@ async function handleReadByteRange(
  * Handle GET_FILE_SIZE request
  */
 async function handleGetFileSize(
-  port: MessagePort,
   request: GetFileSizeRequest
 ): Promise<void> {
   try {
     const size = await context.handleManager.getFileSize(request.fileId);
     const response: FileSizeResponse = {
-      id: generateMessageId(),
+      id: request.id,
       type: "FILE_SIZE_RESPONSE",
       fileId: request.fileId,
       size,
     };
-    sendResponse(port, response);
+    sendResponse(response);
   } catch (error) {
     sendError(
-      port,
       error instanceof Error ? error.message : "Failed to get file size",
       request.id
     );
@@ -165,18 +156,17 @@ async function handleGetFileSize(
 /**
  * Handle CLOSE_FILE request
  */
-function handleCloseFile(port: MessagePort, request: CloseFileRequest): void {
+function handleCloseFile(request: CloseFileRequest): void {
   try {
     context.handleManager.closeFile(request.fileId);
     context.windowManager.clearCache(request.fileId);
     const response: ConnectedResponse = {
-      id: generateMessageId(),
+      id: request.id,
       type: "CONNECTED",
     };
-    sendResponse(port, response);
+    sendResponse(response);
   } catch (error) {
     sendError(
-      port,
       error instanceof Error ? error.message : "Failed to close file",
       request.id
     );
@@ -187,19 +177,17 @@ function handleCloseFile(port: MessagePort, request: CloseFileRequest): void {
  * Handle SET_WINDOW_SIZE request
  */
 function handleSetWindowSize(
-  port: MessagePort,
   request: SetWindowSizeRequest
 ): void {
   try {
     context.windowManager.setWindowSize(request.fileId, request.windowSize);
     const response: ConnectedResponse = {
-      id: generateMessageId(),
+      id: request.id,
       type: "CONNECTED",
     };
-    sendResponse(port, response);
+    sendResponse(response);
   } catch (error) {
     sendError(
-      port,
       error instanceof Error ? error.message : "Failed to set window size",
       request.id
     );
@@ -210,30 +198,28 @@ function handleSetWindowSize(
  * Route a request message to the appropriate handler
  */
 async function handleRequest(
-  port: MessagePort,
   message: RequestMessage
 ): Promise<void> {
   switch (message.type) {
     case "OPEN_FILE":
-      await handleOpenFile(port, message);
+      await handleOpenFile(message);
       break;
     case "READ_BYTE_RANGE":
-      await handleReadByteRange(port, message);
+      await handleReadByteRange(message);
       break;
     case "GET_FILE_SIZE":
-      await handleGetFileSize(port, message);
+      await handleGetFileSize(message);
       break;
     case "CLOSE_FILE":
-      handleCloseFile(port, message);
+      handleCloseFile(message);
       break;
     case "SET_WINDOW_SIZE":
-      handleSetWindowSize(port, message);
+      handleSetWindowSize(message);
       break;
     case "SEARCH_REQUEST":
     case "CHECKSUM_REQUEST":
       // Future operations - not implemented yet
       sendError(
-        port,
         `Operation ${message.type} not yet implemented`,
         message.id
       );
@@ -241,7 +227,6 @@ async function handleRequest(
     default:
       const unknownMessage = message as { type: string; id: string };
       sendError(
-        port,
         `Unknown message type: ${unknownMessage.type}`,
         unknownMessage.id
       );
@@ -249,54 +234,31 @@ async function handleRequest(
 }
 
 /**
- * Handle a new port connection
+ * Worker global scope handler
  */
-function handleConnect(port: MessagePort): void {
-  context.ports.add(port);
-
-  // Send connection acknowledgment
+if (typeof self !== "undefined") {
+  // Send connection acknowledgment on startup
   const response: ConnectedResponse = {
     id: generateMessageId(),
     type: "CONNECTED",
   };
-  sendResponse(port, response);
+  sendResponse(response);
 
-  // Handle messages from this port
-  port.onmessage = (event: MessageEvent<WorkerMessage>) => {
+  // Handle messages from client
+  self.onmessage = (event: MessageEvent<WorkerMessage>) => {
     const message = event.data;
     if (message.type === "CONNECTED" || message.type.startsWith("RESPONSE")) {
       // Ignore response messages (they come from worker, not client)
       return;
     }
-    handleRequest(port, message as RequestMessage).catch((error) => {
+    handleRequest(message as RequestMessage).catch((error) => {
       console.error("Unhandled error in request handler:", error);
-      sendError(port, "Internal error processing request", message.id);
+      sendError("Internal error processing request", message.id);
     });
   };
 
-  // Handle port disconnection
-  port.addEventListener("error", (error: Event) => {
-    console.error("Port error:", error);
-    context.ports.delete(port);
-  });
-
-  // Note: SharedWorker ports don't have onclose, but we can detect disconnection
-  // by catching errors when trying to send messages
-}
-
-/**
- * SharedWorker global scope handler
- */
-if (typeof self !== "undefined" && "SharedWorkerGlobalScope" in self) {
-  // SharedWorker context
-  const sharedWorkerScope = self as unknown as SharedWorkerGlobalScope;
-
-  sharedWorkerScope.onconnect = (event: MessageEvent) => {
-    const port = event.ports[0];
-    handleConnect(port);
+  // Handle worker errors
+  self.onerror = (error: ErrorEvent) => {
+    console.error("Worker error:", error);
   };
-} else if (typeof self !== "undefined") {
-  // Fallback for regular Worker context (for testing)
-  const workerScope = self as unknown as Worker;
-  handleConnect(workerScope as unknown as MessagePort);
 }

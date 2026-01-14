@@ -14,6 +14,7 @@ import {
 
 import type { RecentFile } from '~/hooks/use-recent-files';
 import { useRecentFiles } from '~/hooks/use-recent-files';
+import { useWorkerClient } from '~/hooks/use-worker-client';
 import { encodeHandleId } from '~/utils/path-encoding';
 import { createSnapshotFromFile, formatTimestamp, getBasename } from './utils';
 
@@ -77,6 +78,7 @@ export const DataPicker: FunctionComponent<DataPickerProps> = ({
 }) => {
   const navigate = useNavigate();
   const { addRecentFile, getFileHandleById } = useRecentFiles();
+  const workerClient = useWorkerClient();
   const [isLoading, setIsLoading] = useState(false);
   const [isMounted, setIsMounted] = useState(false);
   const supportsFileSystemAccess =
@@ -104,8 +106,22 @@ export const DataPicker: FunctionComponent<DataPickerProps> = ({
     try {
       const handleData = await getFileHandleById(recentFile.handleId);
       if (handleData) {
-        // Create snapshot and store in sessionStorage as fallback
-        const snapshot = await createSnapshotFromFile(handleData.handle);
+        // Open file in worker if worker client is available
+        if (workerClient) {
+          try {
+            await workerClient.openFile(recentFile.handleId, handleData.handle);
+          } catch (workerError) {
+            console.warn('Failed to open file in worker:', workerError);
+            // Continue anyway, will fall back to direct reading
+          }
+        }
+
+        // Create snapshot using worker if available
+        const snapshot = await createSnapshotFromFile(
+          handleData.handle,
+          workerClient,
+          recentFile.handleId
+        );
         const snapshotKey = `hexed:pending-handle-${recentFile.handleId}`;
         try {
           // Store snapshot data (convert Uint8Array to array for JSON)
@@ -153,6 +169,16 @@ export const DataPicker: FunctionComponent<DataPickerProps> = ({
       const handleId = await addRecentFile(handle.name, 'file-system', handle);
 
       if (handleId) {
+        // Open file in worker if worker client is available
+        if (workerClient) {
+          try {
+            await workerClient.openFile(handleId, handle);
+          } catch (workerError) {
+            console.warn('Failed to open file in worker:', workerError);
+            // Continue anyway, worker will be opened when page loads
+          }
+        }
+
         // Navigate to edit page with handleId
         const encodedHandleId = encodeHandleId(handleId);
         navigate(`/edit/${encodedHandleId}`);
