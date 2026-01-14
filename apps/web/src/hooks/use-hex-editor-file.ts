@@ -1,7 +1,8 @@
 import * as React from "react"
 
+import { useRecentFiles } from "@hexed/editor"
+
 import { useFileHandleWatcher } from "~/hooks/use-file-handle-watcher"
-import { useRecentFiles } from "~/hooks/use-recent-files"
 import { useFileManager } from "~/providers/file-manager-provider"
 
 /**

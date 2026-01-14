@@ -28,7 +28,6 @@ export type HexEditorProps = {
   loading?: boolean
   onClose?: () => void
   onFileSelect?: (filePath: string | BinarySnapshot) => void
-  recentFiles?: RecentFile[]
   className?: string
   fileSource?: FileSource
   originalSource?: string

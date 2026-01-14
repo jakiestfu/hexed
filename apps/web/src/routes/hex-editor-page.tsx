@@ -1,19 +1,23 @@
 import * as React from "react"
 import { useNavigate, useParams } from "react-router-dom"
 
-import { createSnapshotFromFile, HexEditor, useDragDrop } from "@hexed/editor"
+import {
+  createSnapshotFromFile,
+  HexEditor,
+  useDragDrop,
+  useRecentFiles
+} from "@hexed/editor"
 import type { BinarySnapshot } from "@hexed/types"
 
 import { Logo } from "~/components/logo"
 import { useHexEditorFile } from "~/hooks/use-hex-editor-file"
-import { useRecentFiles } from "~/hooks/use-recent-files"
 import { useFileManager } from "~/providers/file-manager-provider"
 import { decodeHandleId, encodeHandleId } from "~/utils/path-encoding"
 
 export function HexEditorPage() {
   const params = useParams()
   const navigate = useNavigate()
-  const { recentFiles, addRecentFile, getFileHandleById } = useRecentFiles()
+  const { addRecentFile, getFileHandleById } = useRecentFiles()
   const { setOnFileSelect } = useDragDrop()
   const fileManager = useFileManager()
 
@@ -160,6 +164,7 @@ export function HexEditorPage() {
       return null
     }
   }, [addRecentFile, fileManager, navigate])
+
   console.log("RERENDERING HEX EDITOR PAGE")
   return (
     <HexEditor
@@ -173,7 +178,6 @@ export function HexEditorPage() {
       originalSource={filePath || ""}
       error={error}
       onRestartWatching={restart}
-      recentFiles={recentFiles}
       onRecentFileSelect={handleRecentFileSelect}
       onFilePickerOpen={handleFilePickerOpen}
       logo={

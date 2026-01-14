@@ -111,7 +111,6 @@ export const HexEditor: FunctionComponent<
   loading = false,
   onClose,
   onFileSelect,
-  recentFiles = [],
   className = "",
   fileSource = "file-system",
   originalSource,
@@ -449,7 +448,6 @@ export const HexEditor: FunctionComponent<
     if (!hasFile) {
       return (
         <EmptyState
-          recentFiles={recentFiles}
           onRecentFileSelect={onRecentFileSelect}
           onFilePickerOpen={onFilePickerOpen}
         />

@@ -1,9 +1,6 @@
-"use client"
-
 import * as React from "react"
 
-import { FileSource } from "@hexed/editor"
-
+import type { FileSource, RecentFile } from "../types"
 import {
   clearAllFileHandles,
   deleteFileHandle,
@@ -14,16 +11,9 @@ import {
   updateFileHandleTimestamp,
   verifyHandlePermission,
   type FileHandleMetadata
-} from "~/utils/file-handle-storage"
+} from "../utils/file-handle-storage"
 
 const MAX_RECENT_FILES = 10
-
-export interface RecentFile {
-  path: string
-  timestamp: number
-  source?: FileSource
-  handleId?: string // IndexedDB ID for FileSystemFileHandle
-}
 
 /**
  * Hook for managing recently opened files in IndexedDB

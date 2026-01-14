@@ -26,6 +26,7 @@ import {
   FileSourceIcon,
   formatFilenameForDisplay,
   Histogram,
+  useRecentFiles,
   useSettings
 } from "@hexed/editor"
 import type { BinarySnapshot } from "@hexed/types"
@@ -48,7 +49,6 @@ import {
   DropdownMenuSubTrigger
 } from "@hexed/ui"
 
-import { useRecentFiles } from "~/hooks/use-recent-files"
 import { Hotkeys } from "~/utils/hotkey-format"
 import { encodeHandleId } from "~/utils/path-encoding"
 
