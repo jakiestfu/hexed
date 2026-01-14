@@ -1,17 +1,18 @@
 import * as React from "react"
 
-import { useRecentFiles } from "@hexed/editor"
-
-import { useFileHandleWatcher } from "~/hooks/use-file-handle-watcher"
-import { useFileManager } from "~/providers/file-manager-provider"
+import type { FileManager } from "../utils"
+import { useRecentFiles } from "./use-recent-files"
+import { useFileHandleWatcher } from "./use-file-handle-watcher"
 
 /**
  * Hook for managing file loading and watching for HexEditor
  * Encapsulates all file-related state and logic
  */
-export function useHexEditorFile(handleId: string | null) {
+export function useHexEditorFile(
+  handleId: string | null,
+  fileManager: FileManager | null
+) {
   const { getFileHandleById, addRecentFile } = useRecentFiles()
-  const fileManager = useFileManager()
 
   const [fileHandle, setFileHandle] =
     React.useState<FileSystemFileHandle | null>(null)
@@ -90,7 +91,7 @@ export function useHexEditorFile(handleId: string | null) {
     isConnected,
     error: watchError,
     restart
-  } = useFileHandleWatcher(fileHandle, filePath, handleId)
+  } = useFileHandleWatcher(fileHandle, filePath, handleId, fileManager)
 
   // Combine loading states
   const loading =

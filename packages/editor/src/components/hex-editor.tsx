@@ -71,6 +71,7 @@ import type { HexEditorProps, HexEditorViewProps } from "../types";
 import { formatFilenameForDisplay } from "../utils";
 import { useGlobalKeyboard } from "../hooks/use-global-keyboard";
 import { useSettings } from "../hooks/use-settings";
+import { useHexEditorFile } from "../hooks/use-hex-editor-file";
 
 const HexEditorView: FunctionComponent<HexEditorViewProps> = ({
   scrollToOffset,
@@ -105,21 +106,20 @@ const HexEditorView: FunctionComponent<HexEditorViewProps> = ({
 export const HexEditor: FunctionComponent<
   HexEditorProps & { logo?: ReactNode }
 > = ({
-  snapshots,
-  filePath,
-  isConnected,
-  loading = false,
+  handleId,
   onClose,
   onFileSelect,
   className = "",
   fileSource = "file-system",
   originalSource,
-  error,
-  onRestartWatching,
   onHandleReady,
   fileManager,
   logo,
 }) => {
+  // Use hook to manage file loading and watching
+  const { snapshots, filePath, isConnected, loading, error, restart } =
+    useHexEditorFile(handleId || null, fileManager || null)
+
   const [activeTab, setActiveTab] = useState<string>("0");
   const {
     showAscii,
@@ -351,7 +351,7 @@ export const HexEditor: FunctionComponent<
               originalSource={originalSource || filePath || ""}
               isConnected={isConnected}
               error={error}
-              onRestartWatching={onRestartWatching}
+              onRestartWatching={restart}
             >
               <div className="flex items-center gap-2 min-w-0 cursor-pointer hover:opacity-80 transition-opacity group">
                 <FileSourceIcon

@@ -25,17 +25,12 @@ export function getFileSourceDisplayName(source: FileSource): string {
 }
 
 export type HexEditorProps = {
-  snapshots: BinarySnapshot[]
-  filePath?: string | null
-  isConnected: boolean
-  loading?: boolean
+  handleId?: string | null
   onClose?: () => void
   onFileSelect?: (filePath: string | BinarySnapshot) => void
   className?: string
   fileSource?: FileSource
   originalSource?: string
-  error?: string | null
-  onRestartWatching?: () => void
   onAddSnapshot?: (snapshot: BinarySnapshot) => void
   // Data picker callbacks (for empty state)
   onHandleReady?: (handleData: FileHandleMetadata, handleId: string) => Promise<void>

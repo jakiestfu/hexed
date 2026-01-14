@@ -1,9 +1,9 @@
 import { useCallback, useEffect, useRef, useState } from "react"
 
-import { createSnapshotFromFile } from "@hexed/editor"
 import type { BinarySnapshot } from "@hexed/types"
 
-import { useFileManager } from "~/providers/file-manager-provider"
+import { createSnapshotFromFile } from "../utils"
+import type { FileManager } from "../utils"
 
 /**
  * Hook for watching FileSystemFileHandle files for changes
@@ -12,27 +12,30 @@ import { useFileManager } from "~/providers/file-manager-provider"
 export function useFileHandleWatcher(
   handle: FileSystemFileHandle | null,
   filePath: string | null,
-  fileId?: string | null
+  fileId: string | null | undefined,
+  fileManager: FileManager | null
 ) {
-  const fileManager = useFileManager()
   const [snapshots, setSnapshots] = useState<BinarySnapshot[]>([])
   const [isConnected, setIsConnected] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const handleRef = useRef<FileSystemFileHandle | null>(handle)
   const fileIdRef = useRef<string | null | undefined>(fileId)
+  const fileManagerRef = useRef<FileManager | null>(fileManager)
   const observerRef = useRef<FileSystemObserver | null>(null)
   const snapshotIndexRef = useRef<number>(0)
 
-  // Update refs when handle or fileId changes
+  // Update refs when handle, fileId, or fileManager changes
   useEffect(() => {
     handleRef.current = handle
     fileIdRef.current = fileId
-  }, [handle, fileId])
+    fileManagerRef.current = fileManager
+  }, [handle, fileId, fileManager])
 
   const readAndAddSnapshot = useCallback(async () => {
     // Use refs to get latest values for async operations
     const currentHandle = handleRef.current
     const currentFileId = fileIdRef.current
+    const currentFileManager = fileManagerRef.current
 
     if (!currentHandle) {
       return
@@ -40,9 +43,9 @@ export function useFileHandleWatcher(
 
     try {
       // Ensure file is open in worker if we have file manager and fileId
-      if (fileManager && currentFileId) {
+      if (currentFileManager && currentFileId) {
         try {
-          await fileManager.openFile(currentFileId, currentHandle)
+          await currentFileManager.openFile(currentFileId, currentHandle)
         } catch (workerError) {
           console.warn("Failed to open file in worker:", workerError)
           // Continue anyway, will fall back to direct reading
@@ -52,7 +55,7 @@ export function useFileHandleWatcher(
       // Create snapshot using worker if available
       const snapshot = await createSnapshotFromFile(
         currentHandle,
-        fileManager || null,
+        currentFileManager || null,
         currentFileId || undefined
       )
 
@@ -75,7 +78,7 @@ export function useFileHandleWatcher(
       setIsConnected(false)
       console.error("Error reading file handle:", err)
     }
-  }, [fileManager])
+  }, [])
 
   const connect = useCallback(() => {
     // Use the current prop values directly, not refs

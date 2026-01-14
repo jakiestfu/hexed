@@ -10,7 +10,6 @@ import {
 import type { BinarySnapshot } from "@hexed/types"
 
 import { Logo } from "~/components/logo"
-import { useHexEditorFile } from "~/hooks/use-hex-editor-file"
 import { useFileManager } from "~/providers/file-manager-provider"
 import { decodeHandleId, encodeHandleId } from "~/utils/path-encoding"
 
@@ -27,13 +26,6 @@ export function HexEditorPage() {
     return decodeHandleId(idParam)
   }, [params.id])
 
-  // Use hook to manage file loading and watching
-  const { snapshots, filePath, isConnected, loading, error, restart } =
-    useHexEditorFile(handleId)
-
-  // console.log("RERENDERING HEX EDITOR PAGE")
-
-  const currentSnapshot = snapshots[0] || null
   const [showHistogram, setShowHistogram] = React.useState(false)
 
   // Memoized callbacks
@@ -106,24 +98,20 @@ export function HexEditorPage() {
     },
     [fileManager, navigate]
   )
+
   console.log("RERENDERING HEX EDITOR PAGE")
+
   return (
     <HexEditor
-      snapshots={snapshots}
-      filePath={filePath}
-      isConnected={isConnected}
-      loading={loading}
+      handleId={handleId}
       onClose={handleId ? handleClose : undefined}
       onFileSelect={handleFileSelect}
       fileSource="file-system"
-      originalSource={filePath || ""}
-      error={error}
-      onRestartWatching={restart}
+      originalSource={handleId ? undefined : ""}
       onHandleReady={handleHandleReady}
       fileManager={fileManager}
       logo={
         <Logo
-          currentSnapshot={currentSnapshot}
           showHistogram={showHistogram}
           onShowHistogramChange={setShowHistogram}
         />
