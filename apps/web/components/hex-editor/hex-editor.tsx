@@ -376,7 +376,11 @@ export const HexEditor: FunctionComponent<HexEditorProps> = ({
                       ? isConnected
                         ? 'bg-green-500'
                         : 'bg-red-500'
-                      : 'bg-gray-500'
+                      : fileSource === 'upload'
+                        ? isConnected
+                          ? 'bg-green-500'
+                          : 'bg-gray-500'
+                        : 'bg-gray-500'
                   }`}
                 />
                 {fileSource}

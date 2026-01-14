@@ -60,8 +60,8 @@ export function useRecentFiles() {
       filePath: string,
       source: FileSource = 'disk',
       handle?: FileSystemFileHandle
-    ) => {
-      if (typeof window === 'undefined') return;
+    ): Promise<string | undefined> => {
+      if (typeof window === 'undefined') return undefined;
 
       try {
         const now = Date.now();
@@ -121,8 +121,11 @@ export function useRecentFiles() {
           const updated = [updatedFile, ...filtered].slice(0, MAX_RECENT_FILES);
           return updated;
         });
+
+        return handleId;
       } catch (error) {
         console.error('Failed to save recent file:', error);
+        return undefined;
       }
     },
     []

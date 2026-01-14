@@ -7,7 +7,6 @@ import type { BinarySnapshot } from "@hexed/types"
 
 import { useDragDrop } from "~/components/hex-editor/drag-drop-provider"
 import { HexEditor } from "~/components/hex-editor/hex-editor"
-import { FileSource } from "~/components/hex-editor/types"
 import { useRecentFiles } from "~/hooks/use-recent-files"
 import { encodeFilePath, isUrlPath } from "~/utils/path-encoding"
 
@@ -15,43 +14,7 @@ export default function Home() {
   const router = useRouter()
   const { recentFiles, addRecentFile } = useRecentFiles()
   const { setOnFileSelect } = useDragDrop()
-  const [directSnapshots, setDirectSnapshots] = React.useState<
-    BinarySnapshot[]
-  >([])
-  const [directFilePath, setDirectFilePath] = React.useState<string | null>(
-    null
-  )
-  const [fileSource, setFileSource] = React.useState<FileSource>("upload")
-  const [originalSource, setOriginalSource] = React.useState<string>("")
 
-  // Check for pending snapshot from menu navigation
-  React.useEffect(() => {
-    if (typeof window === 'undefined') return;
-
-    const pendingSnapshot = sessionStorage.getItem('hexed:pending-snapshot');
-    if (pendingSnapshot) {
-      try {
-        const snapshotData = JSON.parse(pendingSnapshot);
-        // Convert array back to Uint8Array
-        const snapshot: BinarySnapshot = {
-          ...snapshotData,
-          data: new Uint8Array(snapshotData.data)
-        };
-        setDirectSnapshots([snapshot]);
-        setDirectFilePath(snapshot.filePath);
-        setFileSource("upload");
-        setOriginalSource(snapshot.filePath);
-        sessionStorage.removeItem('hexed:pending-snapshot');
-      } catch (error) {
-        console.error('Failed to load pending snapshot:', error);
-        sessionStorage.removeItem('hexed:pending-snapshot');
-      }
-    }
-  }, [])
-
-  const handleAddSnapshot = React.useCallback((snapshot: BinarySnapshot) => {
-    setDirectSnapshots((prev) => [...prev, snapshot])
-  }, [])
 
   const handleFileSelect = React.useCallback(
     (input: string | BinarySnapshot) => {
@@ -65,39 +28,27 @@ export default function Home() {
         const encodedPath = encodeFilePath(input)
         router.push(`/edit/${encodedPath}`)
       } else {
-        // BinarySnapshot - check if it's a URL or client upload
+        // BinarySnapshot - this should only happen from drag-drop
+        // For drag-drop, we don't have a FileSystemFileHandle, so we can't watch it
+        // Just navigate to a URL-encoded path or handle it differently
         const isUrl = isUrlPath(input.filePath)
 
-        // If it's a URL, encode and navigate to edit route
         if (isUrl) {
           addRecentFile(input.filePath, "url")
           const encodedUrl = encodeFilePath(input.filePath)
           router.push(`/edit/${encodedUrl}`)
         } else {
-          // Client upload (FileSystemFileHandle) - check if we should add as snapshot or replace
-          const currentFileSource: FileSource = "upload"
-
-          // If we already have snapshots and the current file is client based, add as snapshot
-          if (directSnapshots.length > 0 && fileSource === "upload") {
-            handleAddSnapshot(input)
-          } else {
-            // Otherwise, replace
-            // Note: addRecentFile will be called with handle if available from the picker
-            setDirectSnapshots([input])
-            setDirectFilePath(input.filePath)
-            setFileSource(currentFileSource)
-            setOriginalSource(input.filePath)
-          }
+          // Drag-drop file - can't watch it, but we can still show it
+          // For now, navigate to a temporary path or show error
+          // TODO: Consider if drag-drop should also save handles somehow
+          console.warn('Drag-drop files cannot be watched. Consider using File System Access API picker.')
+          // Still navigate but it won't be watchable
+          const encodedPath = encodeFilePath(input.filePath)
+          router.push(`/edit/${encodedPath}`)
         }
       }
     },
-    [
-      addRecentFile,
-      router,
-      directSnapshots.length,
-      fileSource,
-      handleAddSnapshot
-    ]
+    [addRecentFile, router, recentFiles]
   )
 
   // Register the file select handler with drag-drop provider
@@ -108,30 +59,7 @@ export default function Home() {
     }
   }, [handleFileSelect, setOnFileSelect])
 
-  const handleClose = () => {
-    setDirectSnapshots([])
-    setDirectFilePath(null)
-    setFileSource("upload")
-    setOriginalSource("")
-  }
-
-  // If we have direct snapshots, render editor with them
-  if (directSnapshots.length > 0 && directFilePath) {
-    return (
-      <HexEditor
-        snapshots={directSnapshots}
-        filePath={directFilePath}
-        isConnected={false}
-        onClose={handleClose}
-        recentFiles={recentFiles}
-        fileSource={fileSource}
-        originalSource={originalSource}
-        onAddSnapshot={handleAddSnapshot}
-      />
-    )
-  }
-
-  // Otherwise, show empty state
+  // Always show empty state - all file loading happens on /edit page
   return (
     <HexEditor
       snapshots={[]}

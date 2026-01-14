@@ -6,7 +6,6 @@ import {
   BarChart3,
   Binary,
   CaseSensitive,
-  File,
   FileText,
   FolderOpen,
   Github,
@@ -44,10 +43,9 @@ import {
 import { useRecentFiles } from '~/hooks/use-recent-files';
 import { useSettings } from '~/hooks/use-settings';
 import { Hotkeys } from '~/utils/hotkey-format';
-import { encodeFilePath } from '~/utils/path-encoding';
+import { encodeFilePath, encodeHandleId } from '~/utils/path-encoding';
 import { FileSourceIcon } from './hex-editor/file-source-icon';
 import { Histogram } from './hex-editor/histogram';
-import { createSnapshotFromFile } from './hex-editor/utils';
 import { formatFilenameForDisplay } from './hex-editor/utils';
 
 export type MenuItem = {
@@ -85,7 +83,7 @@ export const Menu: FunctionComponent<MenuProps> = ({
   onShowHistogramChange
 }) => {
   const { theme, setTheme } = useTheme();
-  const { recentFiles, clearRecentFiles, removeRecentFile, getFileHandleById, addRecentFile } = useRecentFiles();
+  const { recentFiles, clearRecentFiles, removeRecentFile } = useRecentFiles();
   const {
     showAscii,
     setShowAscii,
@@ -208,37 +206,38 @@ export const Menu: FunctionComponent<MenuProps> = ({
             {recentFiles.length > 0 ? (
               <>
                 {recentFiles.map((file) => {
-                  const encodedPath = encodeFilePath(file.path);
-                  // Use stored source, fallback to "path" for backward compatibility
+                  // Use stored source, fallback to "upload" for backward compatibility
                   const fileSource = file.source || 'upload';
                   const isClientFile = fileSource === 'upload';
 
-                  if (isClientFile) {
+                  if (isClientFile && file.handleId) {
+                    // For upload files with handleId, navigate to /edit/<handleId>
+                    const encodedHandleId = encodeHandleId(file.handleId);
                     return (
                       <DropdownMenuItem
                         key={file.path}
-                        onClick={async () => {
-                          // Try to reopen file handle if it exists
-                          if (file.handleId) {
-                            try {
-                              const handleData = await getFileHandleById(file.handleId);
-                              if (handleData) {
-                                const snapshot = await createSnapshotFromFile(handleData.handle);
-                                await addRecentFile(handleData.path, "upload", handleData.handle);
-                                // Navigate to home page - it will handle the snapshot
-                                window.location.href = '/';
-                                // Store snapshot in sessionStorage for home page to pick up
-                                sessionStorage.setItem('hexed:pending-snapshot', JSON.stringify({
-                                  ...snapshot,
-                                  data: Array.from(snapshot.data)
-                                }));
-                                return;
-                              }
-                            } catch (error) {
-                              console.error('Error reopening file handle:', error);
-                            }
-                          }
-                          // If handle doesn't exist or failed, show dialog
+                        asChild
+                      >
+                        <Link
+                          href={`/edit/${encodedHandleId}`}
+                          className="flex items-center gap-2 cursor-pointer"
+                        >
+                          <FileSourceIcon
+                            fileSource={fileSource}
+                            className="mr-2"
+                          />
+                          {formatFilenameForDisplay(file.path)}
+                        </Link>
+                      </DropdownMenuItem>
+                    );
+                  }
+
+                  if (isClientFile && !file.handleId) {
+                    // For upload files without handleId, show dialog on click
+                    return (
+                      <DropdownMenuItem
+                        key={file.path}
+                        onClick={() => {
                           setClickedClientFilePath(file.path);
                           setShowClientFileDialog(true);
                         }}
@@ -255,6 +254,8 @@ export const Menu: FunctionComponent<MenuProps> = ({
                     );
                   }
 
+                  // For disk and URL files, use regular path encoding
+                  const encodedPath = encodeFilePath(file.path);
                   return (
                     <DropdownMenuItem
                       key={file.path}
@@ -475,10 +476,10 @@ export const Menu: FunctionComponent<MenuProps> = ({
           <DialogHeader>
             <DialogTitle>Could not restore file</DialogTitle>
             <DialogDescription>
-              This file was opened using the File System Access API, but the file
-              handle could not be restored. This may happen if the file was moved
-              or deleted, or if permissions were revoked. Please select the file
-              again to open it.
+              This file was opened using the File System Access API, but the
+              file handle could not be restored. This may happen if the file was
+              moved or deleted, or if permissions were revoked. Please select
+              the file again to open it.
             </DialogDescription>
           </DialogHeader>
           <div className="flex justify-end gap-2 mt-4">

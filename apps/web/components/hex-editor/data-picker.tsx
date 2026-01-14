@@ -203,9 +203,17 @@ export const DataPicker: FunctionComponent<DataPickerProps> = ({
       });
 
       const file = await handle.getFile();
-      const snapshot = await createSnapshotFromFile(handle);
-      await addRecentFile(file.name, 'upload', handle);
-      onFileSelect(snapshot);
+      // Save handle and get handleId
+      const handleId = await addRecentFile(file.name, 'upload', handle);
+      
+      if (handleId) {
+        // Navigate to edit page with handleId
+        const encodedHandleId = encodeHandleId(handleId);
+        router.push(`/edit/${encodedHandleId}`);
+      } else {
+        console.error('Failed to save file handle');
+        alert('Failed to save file handle. Please try again.');
+      }
     } catch (error) {
       // User cancelled or error occurred
       if (error instanceof DOMException && error.name !== 'AbortError') {
