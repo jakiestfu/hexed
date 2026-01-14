@@ -199,7 +199,7 @@ export const DataPicker: FunctionComponent<DataPickerProps> = ({
 
   return (
     <Card
-      className={`w-full max-w-lg border-none h-[250px] transition-opacity duration-300 ${
+      className={`w-full max-w-lg border-none h-[250px] transition-all duration-300 ${
         isMounted ? "opacity-100" : "opacity-0"
       }`}
     >

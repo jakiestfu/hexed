@@ -1,15 +1,16 @@
-'use client';
+"use client"
 
-import { useLocalStorage } from './use-local-storage';
+import { useLocalStorage } from "./use-local-storage"
 
-const ASCII = 'hexed:show-ascii';
-const CHECKSUMS = 'hexed:show-checksums';
-const STRINGS = 'hexed:show-strings';
-const TEMPLATES = 'hexed:show-templates';
-const INTERPRETER = 'hexed:show-interpreter';
-const SIDEBAR_POSITION = 'hexed:sidebar-position';
+const ASCII = "hexed:show-ascii"
+const CHECKSUMS = "hexed:show-checksums"
+const STRINGS = "hexed:show-strings"
+const TEMPLATES = "hexed:show-templates"
+const INTERPRETER = "hexed:show-interpreter"
+const SIDEBAR_POSITION = "hexed:sidebar-position"
+const MEMORY_PROFILER = "hexed:show-memory-profiler"
 
-export type SidebarPosition = 'left' | 'right';
+export type SidebarPosition = "left" | "right"
 
 /**
  * Consolidated hook for managing all application settings in localStorage
@@ -17,20 +18,24 @@ export type SidebarPosition = 'left' | 'right';
  * @returns An object containing all settings and their setters
  */
 export function useSettings() {
-  const [showAscii, setShowAscii] = useLocalStorage(ASCII, true);
-  const [showChecksums, setShowChecksums] = useLocalStorage(CHECKSUMS, true);
-  const [showStrings, setShowStrings] = useLocalStorage(STRINGS, false);
-  const [showTemplates, setShowTemplates] = useLocalStorage(TEMPLATES, false);
+  const [showAscii, setShowAscii] = useLocalStorage(ASCII, true)
+  const [showChecksums, setShowChecksums] = useLocalStorage(CHECKSUMS, true)
+  const [showStrings, setShowStrings] = useLocalStorage(STRINGS, false)
+  const [showTemplates, setShowTemplates] = useLocalStorage(TEMPLATES, false)
   const [showInterpreter, setShowInterpreter] = useLocalStorage(
     INTERPRETER,
     false
-  );
+  )
   const [sidebarPosition, setSidebarPosition] =
-    useLocalStorage<SidebarPosition>(SIDEBAR_POSITION, 'right');
+    useLocalStorage<SidebarPosition>(SIDEBAR_POSITION, "right")
+  const [showMemoryProfiler, setShowMemoryProfiler] = useLocalStorage(
+    MEMORY_PROFILER,
+    true
+  )
 
   const toggleSidebarPosition = () => {
-    setSidebarPosition((prev) => (prev === 'left' ? 'right' : 'left'));
-  };
+    setSidebarPosition((prev) => (prev === "left" ? "right" : "left"))
+  }
 
   return {
     // ASCII visibility
@@ -51,6 +56,9 @@ export function useSettings() {
     // Sidebar position
     sidebarPosition,
     setSidebarPosition,
-    toggleSidebarPosition
-  };
+    toggleSidebarPosition,
+    // Memory profiler visibility
+    showMemoryProfiler,
+    setShowMemoryProfiler
+  }
 }

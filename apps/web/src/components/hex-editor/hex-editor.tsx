@@ -132,7 +132,8 @@ export const HexEditor: FunctionComponent<HexEditorProps> = ({
     showStrings,
     setShowStrings,
     sidebarPosition,
-    toggleSidebarPosition
+    toggleSidebarPosition,
+    showMemoryProfiler
   } = useSettings();
 
   const [diffMode, setDiffMode] = useState<DiffViewMode>('inline');
@@ -154,7 +155,7 @@ export const HexEditor: FunctionComponent<HexEditorProps> = ({
       <span className="text-xs text-muted-foreground">
         {formatFileSize(currentSnapshot?.data.length || 0)}
       </span>
-      <MemoryProfiler />
+      {showMemoryProfiler && <MemoryProfiler />}
     </div>
   ) : undefined;
 
