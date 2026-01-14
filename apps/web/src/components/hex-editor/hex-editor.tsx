@@ -343,10 +343,6 @@ export const HexEditor: FunctionComponent<HexEditorProps> = ({
         center={
           !hasFile ? (
             <div className="flex items-center gap-2 min-w-0">
-              <FileSourceIcon
-                fileSource={fileSource}
-                className="h-4 w-4 text-muted-foreground shrink-0"
-              />
               <span className="font-mono text-sm text-muted-foreground">
                 No file selected
               </span>
@@ -461,14 +457,14 @@ export const HexEditor: FunctionComponent<HexEditorProps> = ({
       return <EmptyState recentFiles={recentFiles} />;
     }
 
-    if (loading) {
+    if (loading || (hasFile && !hasSnapshots)) {
       return (
         <div className="flex flex-col items-center justify-center gap-4 text-center h-full">
           <Loader2 className="h-8 w-8 animate-spin text-primary" />
           <div>
             <h3 className="font-semibold">Loading file...</h3>
             <p className="text-sm text-muted-foreground mt-1">
-              Reading {filePath}
+              {filePath ? `Reading ${filePath}` : 'Loading...'}
             </p>
           </div>
         </div>

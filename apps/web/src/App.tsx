@@ -18,17 +18,15 @@ const router = createBrowserRouter([
   }
 ]);
 
-export function App() {
-  return (
-    <ThemeProvider
-      attribute="class"
-      defaultTheme="system"
-      enableSystem
-      disableTransitionOnChange
-    >
-      <DragDropProvider>
-        <RouterProvider router={router} />
-      </DragDropProvider>
-    </ThemeProvider>
-  );
-}
+export const App = () => (
+  <ThemeProvider
+    attribute="class"
+    defaultTheme="system"
+    enableSystem
+    disableTransitionOnChange
+  >
+    <DragDropProvider>
+      <RouterProvider router={router} />
+    </DragDropProvider>
+  </ThemeProvider>
+);
