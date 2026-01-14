@@ -3,6 +3,7 @@ import { useHotkeys } from "react-hotkeys-hook"
 
 import { toHexString } from "@hexed/binary-utils/formatter"
 import type { Sidebar } from "./use-settings"
+import { useSettings } from "./use-settings"
 
 export interface UseGlobalKeyboardOptions {
   /** Current selection range */
@@ -23,20 +24,12 @@ export interface UseGlobalKeyboardOptions {
   onToggleSearch: () => void
   /** Callback to close search input */
   onCloseSearch: () => void
-  /** Callback to close all sidebars */
-  onCloseSidebars: () => void
   /** Callback to deselect bytes */
   onDeselectBytes: () => void
   /** Optional callback when bytes are copied (for notifications, etc.) */
   onCopy?: (hexString: string) => void
-  /** Callback to toggle ASCII visibility */
-  onToggleAscii?: () => void
-  /** Callback to toggle checksums visibility */
-  onToggleChecksums?: () => void
   /** Callback to toggle histogram dialog */
   onToggleHistogram?: () => void
-  /** Callback to toggle sidebar position */
-  onToggleSidebarPosition?: () => void
 }
 
 /**
@@ -60,14 +53,13 @@ export function useGlobalKeyboard({
   setSidebar,
   onToggleSearch,
   onCloseSearch,
-  onCloseSidebars,
   onDeselectBytes,
   onCopy,
-  onToggleAscii,
-  onToggleChecksums,
-  onToggleHistogram,
-  onToggleSidebarPosition
+  onToggleHistogram
 }: UseGlobalKeyboardOptions): void {
+  // Get settings from context
+  const { setShowAscii, setShowChecksums, toggleSidebarPosition } = useSettings()
+
   // Ensure we're on the client side
   const [isClient, setIsClient] = useState(false)
 
@@ -141,7 +133,7 @@ export function useGlobalKeyboard({
       onCloseSearch()
     } else if (sidebar !== null) {
       // Second priority: close sidebars
-      onCloseSidebars()
+      setSidebar(null)
     } else if (selectedOffsetRange !== null) {
       // Third priority: deselect bytes
       onDeselectBytes()
@@ -151,7 +143,7 @@ export function useGlobalKeyboard({
     sidebar,
     selectedOffsetRange,
     onCloseSearch,
-    onCloseSidebars,
+    setSidebar,
     onDeselectBytes
   ])
 
@@ -216,16 +208,15 @@ export function useGlobalKeyboard({
     "ctrl+shift+a, meta+shift+a",
     (event) => {
       if (isTypingInInput()) return
-      if (!onToggleAscii) return
 
       event.preventDefault()
-      onToggleAscii()
+      setShowAscii((prev) => !prev)
     },
     {
-      enabled: isClient && !!onToggleAscii,
+      enabled: isClient,
       enableOnFormTags: false
     },
-    [isClient, onToggleAscii, isTypingInInput]
+    [isClient, setShowAscii, isTypingInInput]
   )
 
   // Toggle checksums: Ctrl+Shift+C or meta+Shift+C
@@ -233,16 +224,15 @@ export function useGlobalKeyboard({
     "ctrl+shift+c, meta+shift+c",
     (event) => {
       if (isTypingInInput()) return
-      if (!onToggleChecksums) return
 
       event.preventDefault()
-      onToggleChecksums()
+      setShowChecksums((prev) => !prev)
     },
     {
-      enabled: isClient && !!onToggleChecksums,
+      enabled: isClient,
       enableOnFormTags: false
     },
-    [isClient, onToggleChecksums, isTypingInInput]
+    [isClient, setShowChecksums, isTypingInInput]
   )
 
   // Toggle histogram: Ctrl+Shift+H or meta+Shift+H
@@ -315,15 +305,14 @@ export function useGlobalKeyboard({
     "ctrl+shift+p, meta+shift+p",
     (event) => {
       if (isTypingInInput()) return
-      if (!onToggleSidebarPosition) return
 
       event.preventDefault()
-      onToggleSidebarPosition()
+      toggleSidebarPosition()
     },
     {
-      enabled: isClient && !!onToggleSidebarPosition,
+      enabled: isClient,
       enableOnFormTags: false
     },
-    [isClient, onToggleSidebarPosition, isTypingInInput]
+    [isClient, toggleSidebarPosition, isTypingInInput]
   )
 }

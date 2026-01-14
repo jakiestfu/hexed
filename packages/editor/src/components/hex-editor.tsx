@@ -80,18 +80,7 @@ export const HexEditor: FunctionComponent<
     useHexEditorFile(handleId || null, fileManager || null)
 
   const [activeTab, setActiveTab] = useState<string>("0")
-  const {
-    showAscii,
-    setShowAscii,
-    showChecksums,
-    setShowChecksums,
-    sidebar,
-    setSidebar,
-    sidebarPosition,
-    toggleSidebarPosition,
-    showMemoryProfiler,
-    showWorkerStatus
-  } = useSettings()
+  const { showAscii, sidebar, setSidebar, sidebarPosition } = useSettings()
 
   const [diffMode, setDiffMode] = useState<DiffViewMode>("inline")
   const [dataType, setDataType] = useState<string>("Signed Int")
@@ -144,10 +133,6 @@ export const HexEditor: FunctionComponent<
     })
   }, [])
 
-  const handleCloseSidebars = useCallback(() => {
-    setSidebar(null)
-  }, [setSidebar])
-
   const handleDeselectBytes = useCallback(() => {
     setSelectedOffsetRange(null)
   }, [])
@@ -165,21 +150,9 @@ export const HexEditor: FunctionComponent<
   )
 
   // Callbacks for new keyboard shortcuts
-  const handleToggleAscii = useCallback(() => {
-    setShowAscii((prev) => !prev)
-  }, [setShowAscii])
-
-  const handleToggleChecksums = useCallback(() => {
-    setShowChecksums((prev) => !prev)
-  }, [setShowChecksums])
-
   const handleToggleHistogram = useCallback(() => {
     setShowHistogram((prev) => !prev)
   }, [])
-
-  const handleToggleSidebarPosition = useCallback(() => {
-    toggleSidebarPosition()
-  }, [toggleSidebarPosition])
 
   // Stable callback for closing search
   const handleCloseSearch = useCallback(() => {
@@ -202,12 +175,8 @@ export const HexEditor: FunctionComponent<
     setSidebar,
     onToggleSearch: handleToggleSearch,
     onCloseSearch: handleCloseSearch,
-    onCloseSidebars: handleCloseSidebars,
     onDeselectBytes: handleDeselectBytes,
-    onToggleAscii: handleToggleAscii,
-    onToggleChecksums: handleToggleChecksums,
-    onToggleHistogram: handleToggleHistogram,
-    onToggleSidebarPosition: handleToggleSidebarPosition
+    onToggleHistogram: handleToggleHistogram
   })
 
   // Focus search input when search toolbar is shown

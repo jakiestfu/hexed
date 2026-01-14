@@ -1,10 +1,12 @@
 "use client"
 
 import type { FunctionComponent } from "react"
+
 import type { Endianness, NumberFormat } from "@hexed/binary-utils/interpreter"
 import { ResizablePanel } from "@hexed/ui"
-import type { SelectionRange } from "../types"
+
 import { useSettings } from "../hooks/use-settings"
+import type { SelectionRange } from "../types"
 import { Interpreter } from "./interpreter"
 import { Strings } from "./strings"
 import { Templates } from "./templates"
@@ -52,7 +54,7 @@ export const HexSidebar: FunctionComponent<HexSidebarProps> = ({
       minSize={minSize}
       collapsible
     >
-      <div className={`h-full ${borderClass}`}>
+      <div className={`h-full`}>
         {sidebar === "interpreter" && (
           <Interpreter
             data={snapshotData}

@@ -18,12 +18,16 @@ const MAX_RECENT_FILES = 10
 /**
  * Hook for managing recently opened files in IndexedDB
  */
-export function useRecentFiles() {
+export function useRecentFiles(
+  { loadFiles = true }: { loadFiles?: boolean } = {
+    loadFiles: true
+  }
+) {
   const [recentFiles, setRecentFiles] = React.useState<RecentFile[]>([])
 
   // Load recent files from IndexedDB on mount
   React.useEffect(() => {
-    if (typeof window === "undefined") return
+    if (typeof window === "undefined" || !loadFiles) return
 
     const loadRecentFiles = async () => {
       try {
@@ -44,7 +48,7 @@ export function useRecentFiles() {
     }
 
     loadRecentFiles()
-  }, [])
+  }, [loadFiles])
 
   const addRecentFile = React.useCallback(
     async (

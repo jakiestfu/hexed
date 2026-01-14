@@ -1,5 +1,6 @@
 import * as React from "react"
 
+import { useFileManager } from "../providers/file-manager-provider"
 import type { FileManager } from "../utils"
 import { useFileHandleWatcher } from "./use-file-handle-watcher"
 import { useRecentFiles } from "./use-recent-files"
@@ -8,18 +9,20 @@ import { useRecentFiles } from "./use-recent-files"
  * Hook for managing file loading and watching for HexEditor
  * Encapsulates all file-related state and logic
  */
-export function useHexEditorFile(
-  handleId: string | null,
-  fileManager: FileManager | null
-) {
-  const { getFileHandleById, addRecentFile } = useRecentFiles()
+export function useHexEditorFile(handleId: string | null) {
+  const fileManager = useFileManager()
+  const { getFileHandleById, addRecentFile } = useRecentFiles({
+    loadFiles: false
+  })
 
   const [fileHandle, setFileHandle] =
     React.useState<FileSystemFileHandle | null>(null)
   const [initialLoading, setInitialLoading] = React.useState(false)
   const [loadError, setLoadError] = React.useState<string | null>(null)
+  const runIdRef = React.useRef(0)
 
   // Load handle metadata when handleId changes
+  console.log("USE HEX EDITOR FILE RENDER")
   React.useEffect(() => {
     if (!handleId) {
       setFileHandle(null)
@@ -44,9 +47,10 @@ export function useHexEditorFile(
             console.warn("Failed to parse cached snapshot:", parseError)
           }
         }
-
         // Load from IndexedDB handle
+        console.log("USE HEX EDITOR FILE LOAD HANDLE BEFORE*")
         const handleData = await getFileHandleById(handleId)
+        console.log("USE HEX EDITOR FILE LOAD HANDLE AFTER*", handleData)
         if (!handleData) {
           throw new Error("File handle not found or permission denied")
         }
