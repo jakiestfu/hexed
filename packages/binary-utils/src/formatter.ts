@@ -159,22 +159,22 @@ export function formatFileSize(bytes: number): string {
   if (bytes < MB) {
     const kb = bytes / KB;
     const formattedKb = kb % 1 === 0 ? kb.toFixed(0) : kb.toFixed(1);
-    return `${formattedBytes} bytes (${formattedKb}kb)`;
+    return `${formattedBytes} bytes (${formattedKb} KB)`;
   }
 
   if (bytes < GB) {
     const mb = bytes / MB;
     const formattedMb = mb % 1 === 0 ? mb.toFixed(0) : mb.toFixed(1);
-    return `${formattedBytes} bytes (${formattedMb}mb)`;
+    return `${formattedBytes} bytes (${formattedMb} MB)`;
   }
 
   if (bytes < TB) {
     const gb = bytes / GB;
     const formattedGb = gb % 1 === 0 ? gb.toFixed(0) : gb.toFixed(1);
-    return `${formattedBytes} bytes (${formattedGb}gb)`;
+    return `${formattedBytes} bytes (${formattedGb} GB)`;
   }
 
   const tb = bytes / TB;
   const formattedTb = tb % 1 === 0 ? tb.toFixed(0) : tb.toFixed(1);
-  return `${formattedBytes} bytes (${formattedTb}tb)`;
+  return `${formattedBytes} bytes (${formattedTb} TB)`;
 }

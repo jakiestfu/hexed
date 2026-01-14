@@ -67,13 +67,20 @@ export class FileHandleManager {
 
     // Clamp range to file bounds
     const clampedStart = Math.max(0, Math.min(start, fileSize));
-    const clampedEnd = Math.max(clampedStart, Math.min(end, fileSize));
+    
+    // If end >= fileSize, read the entire file from start to the end
+    // This ensures we always read the complete file when requested
+    const clampedEnd = end >= fileSize 
+      ? fileSize 
+      : Math.max(clampedStart, Math.min(end, fileSize));
 
     if (clampedStart >= fileSize) {
       return new Uint8Array(0);
     }
 
     // Read the byte range using File.slice()
+    // Note: File.slice() is exclusive of end, so slice(0, fileSize) reads bytes 0 to fileSize-1
+    // which is exactly fileSize bytes
     const blob = file.slice(clampedStart, clampedEnd);
     const arrayBuffer = await blob.arrayBuffer();
     const data = new Uint8Array(arrayBuffer);

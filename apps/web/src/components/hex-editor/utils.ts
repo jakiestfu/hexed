@@ -71,7 +71,7 @@ export function createSnapshotFromArrayBuffer(
 function isFileSystemFileHandle(
   input: File | FileSystemFileHandle
 ): input is FileSystemFileHandle {
-  return 'kind' in input && input.kind === 'file'
+  return "kind" in input && input.kind === "file"
 }
 
 /**
@@ -89,13 +89,41 @@ export async function createSnapshotFromHandle(
     try {
       // Ensure file is open in worker
       await workerClient.openFile(fileId, handle)
-      
+
       // Get file size
       const fileSize = await workerClient.getFileSize(fileId)
-      
-      // Read entire file
+
+      // Read entire file - readByteRange will use the current file size internally
+      // to ensure we read the complete file even if it changed
       const data = await workerClient.readByteRange(fileId, 0, fileSize)
-      
+
+      // Verify that we read the entire file
+      // Get the current file size again to check for any changes
+      const currentFileSize = await workerClient.getFileSize(fileId)
+      if (data.length !== currentFileSize) {
+        console.warn(
+          `Snapshot data length (${data.length}) does not match file size (${currentFileSize}). ` +
+            `File may have changed during read. Re-reading...`
+        )
+        // Re-read the file to get the complete current version
+        const correctedData = await workerClient.readByteRange(
+          fileId,
+          0,
+          currentFileSize
+        )
+        if (correctedData.length !== currentFileSize) {
+          throw new Error(
+            `Failed to read complete file: expected ${currentFileSize} bytes, got ${correctedData.length}`
+          )
+        }
+        const snapshot = createSnapshotFromArrayBuffer(
+          correctedData.buffer,
+          handle.name || "file"
+        )
+        snapshot.md5 = await calculateChecksum(snapshot.data)
+        return snapshot
+      }
+
       // Create snapshot
       const snapshot = createSnapshotFromArrayBuffer(
         data.buffer,
@@ -104,7 +132,10 @@ export async function createSnapshotFromHandle(
       snapshot.md5 = await calculateChecksum(snapshot.data)
       return snapshot
     } catch (error) {
-      console.warn('Failed to read file via worker, falling back to direct read:', error)
+      console.warn(
+        "Failed to read file via worker, falling back to direct read:",
+        error
+      )
       // Fall through to direct file reading
     }
   }
