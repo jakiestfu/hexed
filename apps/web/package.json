@@ -5,7 +5,6 @@
   "scripts": {
     "dev": "next dev",
     "build": "next build",
-    "start": "next start",
     "typecheck": "tsc --noEmit",
     "clean": "rm -rf .next node_modules",
     "format": "prettier --check \"**/*.{js,cjs,mjs,ts,tsx,mdx}\" --ignore-path=\"../.prettierignore\"",
@@ -20,7 +19,6 @@
     "@hexed/types": "workspace:*",
     "@hexed/ui": "workspace:*",
     "@tailwindcss/postcss": "^4.1.0",
-    "chokidar": "^4.0.3",
     "lucide-react": "^0.468.0",
     "next": "^15.5.9",
     "next-themes": "^0.4.6",

@@ -1,6 +1,6 @@
 # Hexed Web App
 
-The main TanStack Start application for Hexed.
+A static Next.js application for Hexed - a modern hex editor for inspecting and tracking binary file changes.
 
 ## Development
 
@@ -8,34 +8,11 @@ The main TanStack Start application for Hexed.
 # Start dev server
 pnpm dev
 
-# Build
+# Build static site
 pnpm build
-
-# Start production
-pnpm start
 ```
 
-## API Routes
-
-### `/api/watch`
-
-SSE endpoint for watching binary file changes.
-
-**Query Parameters:**
-
-- `file` (required): Full path to the file to watch
-
-**Response:**
-Server-Sent Events stream with JSON messages:
-
-```typescript
-{
-  type: 'connected' | 'snapshot' | 'error' | 'disconnected',
-  data?: BinarySnapshot,
-  error?: string,
-  timestamp: number
-}
-```
+The build will generate a fully static site in the `out/` directory that can be served by any static file server.
 
 ## Components
 
@@ -43,7 +20,3 @@ Server-Sent Events stream with JSON messages:
 - `hex-editor.tsx`: Main hex editor with ASCII view and diff modes
 - `diff-viewer.tsx`: Statistics card showing change counts
 - `ascii-view.tsx`: ASCII representation of bytes
-
-## Utilities
-
-- `use-file-watcher.ts`: React hook for SSE connection and state management

@@ -1,16 +1,11 @@
+"use client"
+
 import * as React from "react"
-import type { Metadata } from "next"
 
 import "@hexed/ui/styles"
 
 import { ClientLayoutWrapper } from "~/components/client-layout-wrapper"
 import { ThemeProvider } from "~/providers/theme-provider"
-
-export const metadata: Metadata = {
-  title: "Hexed - Binary File Inspector",
-  description:
-    "A modern hex editor for inspecting and tracking binary file changes"
-}
 
 export default function RootLayout({
   children
@@ -23,6 +18,11 @@ export default function RootLayout({
       suppressHydrationWarning
     >
       <head>
+        <title>Hexed - Binary File Inspector</title>
+        <meta
+          name="description"
+          content="A modern hex editor for inspecting and tracking binary file changes"
+        />
         <script
           dangerouslySetInnerHTML={{
             __html: `

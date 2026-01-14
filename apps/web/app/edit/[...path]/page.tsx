@@ -19,9 +19,9 @@ export default function EditPage() {
   const { addRecentFile, getFileHandleById } = useRecentFiles();
   const { setOnFileSelect } = useDragDrop();
 
-  // Get handle ID from URL parameter
+  // Get handle ID from URL parameter (catch-all routes return arrays)
   const handleId = React.useMemo(() => {
-    const pathParam = params.path as string;
+    const pathParam = Array.isArray(params.path) ? params.path[0] : params.path;
     if (!pathParam) return null;
     return decodeHandleId(pathParam);
   }, [params.path]);

@@ -135,15 +135,6 @@ export const HexEditor: FunctionComponent<HexEditorProps> = ({
     toggleSidebarPosition
   } = useSettings();
 
-  console.log({
-    showAscii,
-    showChecksums,
-    showInterpreter,
-    showTemplates,
-    showStrings,
-    sidebarPosition
-  });
-
   const [diffMode, setDiffMode] = useState<DiffViewMode>('inline');
   const [dataType, setDataType] = useState<string>('Signed Int');
   const [endianness, setEndianness] = useState<string>('le');
