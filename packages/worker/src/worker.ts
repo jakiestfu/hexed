@@ -2,6 +2,7 @@
  * Worker entry point for file access
  */
 
+import { createLogger } from "@hexed/logger";
 import { FileHandleManager } from "./file-handle-manager";
 import { WindowManager } from "./window-manager";
 import type {
@@ -18,6 +19,8 @@ import type {
   ErrorResponse,
   ConnectedResponse,
 } from "./types";
+
+const logger = createLogger("worker");
 
 /**
  * Worker context
@@ -59,10 +62,12 @@ function sendResponse(message: ResponseMessage): void {
 /**
  * Send an error response
  */
-function sendError(
-  error: string,
-  originalMessageId?: string
-): void {
+function sendError(error: string, originalMessageId?: string): void {
+  logger.log(
+    "Error:",
+    error,
+    originalMessageId ? `(request: ${originalMessageId})` : ""
+  );
   const response: ErrorResponse = {
     id: generateMessageId(),
     type: "ERROR",
@@ -75,11 +80,11 @@ function sendError(
 /**
  * Handle OPEN_FILE request
  */
-async function handleOpenFile(
-  request: OpenFileRequest
-): Promise<void> {
+async function handleOpenFile(request: OpenFileRequest): Promise<void> {
+  logger.log(`Opening file: ${request.fileId} (request: ${request.id})`);
   try {
     await context.handleManager.openFile(request.fileId, request.handle);
+    logger.log(`File opened successfully: ${request.fileId}`);
     const response: ConnectedResponse = {
       id: request.id,
       type: "CONNECTED",
@@ -99,6 +104,9 @@ async function handleOpenFile(
 async function handleReadByteRange(
   request: ReadByteRangeRequest
 ): Promise<void> {
+  logger.log(
+    `Reading byte range: ${request.fileId} [${request.start}-${request.end}] (request: ${request.id})`
+  );
   try {
     if (!context.handleManager.hasFile(request.fileId)) {
       sendError(`File ${request.fileId} is not open`, request.id);
@@ -113,6 +121,9 @@ async function handleReadByteRange(
         context.handleManager.readByteRange(request.fileId, start, end)
     );
 
+    logger.log(
+      `Byte range read successfully: ${request.fileId} [${request.start}-${request.end}], ${data.length} bytes`
+    );
     const response: ByteRangeResponse = {
       id: request.id,
       type: "BYTE_RANGE_RESPONSE",
@@ -133,11 +144,11 @@ async function handleReadByteRange(
 /**
  * Handle GET_FILE_SIZE request
  */
-async function handleGetFileSize(
-  request: GetFileSizeRequest
-): Promise<void> {
+async function handleGetFileSize(request: GetFileSizeRequest): Promise<void> {
+  logger.log(`Getting file size: ${request.fileId} (request: ${request.id})`);
   try {
     const size = await context.handleManager.getFileSize(request.fileId);
+    logger.log(`File size: ${request.fileId} = ${size} bytes`);
     const response: FileSizeResponse = {
       id: request.id,
       type: "FILE_SIZE_RESPONSE",
@@ -157,9 +168,11 @@ async function handleGetFileSize(
  * Handle CLOSE_FILE request
  */
 function handleCloseFile(request: CloseFileRequest): void {
+  logger.log(`Closing file: ${request.fileId} (request: ${request.id})`);
   try {
     context.handleManager.closeFile(request.fileId);
     context.windowManager.clearCache(request.fileId);
+    logger.log(`File closed successfully: ${request.fileId}`);
     const response: ConnectedResponse = {
       id: request.id,
       type: "CONNECTED",
@@ -176,9 +189,10 @@ function handleCloseFile(request: CloseFileRequest): void {
 /**
  * Handle SET_WINDOW_SIZE request
  */
-function handleSetWindowSize(
-  request: SetWindowSizeRequest
-): void {
+function handleSetWindowSize(request: SetWindowSizeRequest): void {
+  logger.log(
+    `Setting window size: ${request.fileId} = ${request.windowSize} bytes (request: ${request.id})`
+  );
   try {
     context.windowManager.setWindowSize(request.fileId, request.windowSize);
     const response: ConnectedResponse = {
@@ -197,9 +211,7 @@ function handleSetWindowSize(
 /**
  * Route a request message to the appropriate handler
  */
-async function handleRequest(
-  message: RequestMessage
-): Promise<void> {
+async function handleRequest(message: RequestMessage): Promise<void> {
   switch (message.type) {
     case "OPEN_FILE":
       await handleOpenFile(message);
@@ -219,10 +231,7 @@ async function handleRequest(
     case "SEARCH_REQUEST":
     case "CHECKSUM_REQUEST":
       // Future operations - not implemented yet
-      sendError(
-        `Operation ${message.type} not yet implemented`,
-        message.id
-      );
+      sendError(`Operation ${message.type} not yet implemented`, message.id);
       break;
     default:
       const unknownMessage = message as { type: string; id: string };
@@ -237,6 +246,7 @@ async function handleRequest(
  * Worker global scope handler
  */
 if (typeof self !== "undefined") {
+  logger.log("Worker initialized");
   // Send connection acknowledgment on startup
   const response: ConnectedResponse = {
     id: generateMessageId(),
@@ -251,14 +261,15 @@ if (typeof self !== "undefined") {
       // Ignore response messages (they come from worker, not client)
       return;
     }
+    logger.log(`Received request: ${message.type} (id: ${message.id})`);
     handleRequest(message as RequestMessage).catch((error) => {
-      console.error("Unhandled error in request handler:", error);
+      logger.log("Unhandled error in request handler:", error);
       sendError("Internal error processing request", message.id);
     });
   };
 
   // Handle worker errors
   self.onerror = (error: ErrorEvent) => {
-    console.error("Worker error:", error);
+    logger.log("Worker error:", error);
   };
 }

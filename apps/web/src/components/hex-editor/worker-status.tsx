@@ -2,7 +2,7 @@ import type { FunctionComponent } from "react"
 
 import { Popover, PopoverContent, PopoverTrigger } from "@hexed/ui"
 
-import { useWorkerClient } from "~/hooks/use-worker-client"
+import { useWorkerClient } from "~/providers/worker-provider"
 
 /**
  * Worker status component that displays worker connection status

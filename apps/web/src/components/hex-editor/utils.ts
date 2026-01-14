@@ -1,5 +1,6 @@
 import type { BinarySnapshot } from "@hexed/types"
-import type { WorkerClient } from "@hexed/worker"
+
+import type { FileManager } from "~/providers/file-manager-provider"
 
 /**
  * Remove query parameters from a path or URL
@@ -76,19 +77,25 @@ function isFileSystemFileHandle(
 
 /**
  * Create snapshot from FileSystemFileHandle using worker
- * If workerClient and fileId are provided, uses worker for reading
+ * If fileManager and fileId are provided, uses worker for reading
  * Otherwise falls back to direct file reading
  */
 export async function createSnapshotFromHandle(
   handle: FileSystemFileHandle,
-  workerClient?: WorkerClient | null,
+  fileManager?: FileManager | null,
   fileId?: string
 ): Promise<BinarySnapshot> {
   // Use worker if available
-  if (workerClient && fileId) {
+  if (fileManager && fileId) {
     try {
       // Ensure file is open in worker
-      await workerClient.openFile(fileId, handle)
+      await fileManager.openFile(fileId, handle)
+
+      // Get worker client for read operations
+      const workerClient = fileManager.getWorkerClient()
+      if (!workerClient) {
+        throw new Error("Worker client not available")
+      }
 
       // Get file size
       const fileSize = await workerClient.getFileSize(fileId)
@@ -117,7 +124,7 @@ export async function createSnapshotFromHandle(
           )
         }
         const snapshot = createSnapshotFromArrayBuffer(
-          correctedData.buffer,
+          new Uint8Array(correctedData).buffer,
           handle.name || "file"
         )
         snapshot.md5 = await calculateChecksum(snapshot.data)
@@ -126,7 +133,7 @@ export async function createSnapshotFromHandle(
 
       // Create snapshot
       const snapshot = createSnapshotFromArrayBuffer(
-        data.buffer,
+        new Uint8Array(data).buffer,
         handle.name || "file"
       )
       snapshot.md5 = await calculateChecksum(snapshot.data)
@@ -147,16 +154,16 @@ export async function createSnapshotFromHandle(
 
 /**
  * Create snapshot from File object or FileSystemFileHandle
- * If handle and workerClient/fileId are provided, uses worker
+ * If handle and fileManager/fileId are provided, uses worker
  */
 export async function createSnapshotFromFile(
   file: File | FileSystemFileHandle,
-  workerClient?: WorkerClient | null,
+  fileManager?: FileManager | null,
   fileId?: string
 ): Promise<BinarySnapshot> {
   // Handle FileSystemFileHandle
   if (isFileSystemFileHandle(file)) {
-    return createSnapshotFromHandle(file, workerClient, fileId)
+    return createSnapshotFromHandle(file, fileManager, fileId)
   }
 
   // Handle File object (always use direct reading)

@@ -9,7 +9,7 @@ import { useDragDrop } from '~/components/hex-editor/drag-drop-provider';
 import { HexEditor } from '~/components/hex-editor/hex-editor';
 import { useFileHandleWatcher } from '~/hooks/use-file-handle-watcher';
 import { useRecentFiles } from '~/hooks/use-recent-files';
-import { useWorkerClient } from '~/hooks/use-worker-client';
+import { useFileManager } from '~/providers/file-manager-provider';
 import { decodeHandleId } from '~/utils/path-encoding';
 
 export function HexEditorPage() {
@@ -17,7 +17,7 @@ export function HexEditorPage() {
   const navigate = useNavigate();
   const { recentFiles, addRecentFile, getFileHandleById } = useRecentFiles();
   const { setOnFileSelect } = useDragDrop();
-  const workerClient = useWorkerClient();
+  const fileManager = useFileManager();
 
   // Get handle ID from URL parameter
   const hasIdParam = !!params.id;
@@ -71,10 +71,10 @@ export function HexEditorPage() {
         setHandleFilePath(handleData.handle.name);
         setHandleFileHandle(handleData.handle);
 
-        // Open file in worker if worker client is available
-        if (workerClient) {
+        // Open file in worker if file manager is available
+        if (fileManager) {
           try {
-            await workerClient.openFile(handleId, handleData.handle);
+            await fileManager.openFile(handleId, handleData.handle);
           } catch (workerError) {
             console.warn('Failed to open file in worker:', workerError);
             // Continue anyway, worker will be opened when watcher reads
@@ -93,7 +93,7 @@ export function HexEditorPage() {
     };
 
     loadHandleMetadata();
-  }, [handleId, getFileHandleById, addRecentFile]);
+  }, [handleId, getFileHandleById, addRecentFile, fileManager]);
 
   // Use file handle watcher for handle-based files
   const {

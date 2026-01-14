@@ -2,6 +2,7 @@
  * Client-side API for interacting with the Worker
  */
 
+import { createLogger } from "@hexed/logger";
 import type {
   RequestMessage,
   ResponseMessage,
@@ -15,6 +16,8 @@ import type {
   ErrorResponse,
   ConnectedResponse,
 } from "./types";
+
+const logger = createLogger("worker-client");
 
 /**
  * Generate a unique message ID
@@ -80,20 +83,22 @@ export function createWorkerClient(
 
           if (message.type === "ERROR") {
             const errorMsg = (message as ErrorResponse).error;
+            logger.log(`Error response: ${errorMsg} (request: ${message.id})`);
             pending.reject(new Error(errorMsg));
           } else {
+            logger.log(`Response received: ${message.type} (request: ${message.id})`);
             pending.resolve(message);
           }
         } else if (message.type === "CONNECTED") {
           // Initial connection acknowledgment - no pending request
-          console.log("Worker connected");
+          logger.log("Worker connected");
         } else {
-          console.warn("Received response for unknown request:", message.id);
+          logger.log(`Received response for unknown request: ${message.id}`);
         }
       };
 
       worker.onerror = (error) => {
-        console.error("Worker error:", error);
+        logger.log("Worker error:", error);
         // Reject all pending requests
         for (const pending of Array.from(pendingRequests.values())) {
           clearTimeout(pending.timeout);
@@ -117,9 +122,11 @@ export function createWorkerClient(
     request: RequestMessage
   ): Promise<T> {
     const worker = initialize();
+    logger.log(`Sending request: ${request.type} (id: ${request.id})`);
 
     return new Promise<T>((resolve, reject) => {
       const timeout = setTimeout(() => {
+        logger.log(`Request timeout: ${request.type} (id: ${request.id})`);
         pendingRequests.delete(request.id);
         reject(new Error(`Request timeout: ${request.type}`));
       }, REQUEST_TIMEOUT);
@@ -142,6 +149,7 @@ export function createWorkerClient(
           worker.postMessage(request);
         }
       } catch (error) {
+        logger.log(`Failed to send request: ${request.type}`, error);
         clearTimeout(timeout);
         pendingRequests.delete(request.id);
         reject(
@@ -158,6 +166,7 @@ export function createWorkerClient(
       fileId: string,
       handle: FileSystemFileHandle
     ): Promise<void> {
+      logger.log(`Opening file: ${fileId}`);
       const request: OpenFileRequest = {
         id: generateMessageId(),
         type: "OPEN_FILE",
@@ -165,6 +174,7 @@ export function createWorkerClient(
         handle,
       };
       await sendRequest<ConnectedResponse>(request);
+      logger.log(`File opened: ${fileId}`);
     },
 
     async readByteRange(
@@ -172,6 +182,7 @@ export function createWorkerClient(
       start: number,
       end: number
     ): Promise<Uint8Array> {
+      logger.log(`Reading byte range: ${fileId} [${start}-${end}]`);
       const request: ReadByteRangeRequest = {
         id: generateMessageId(),
         type: "READ_BYTE_RANGE",
@@ -180,20 +191,24 @@ export function createWorkerClient(
         end,
       };
       const response = await sendRequest<ByteRangeResponse>(request);
+      logger.log(`Byte range read: ${fileId} [${start}-${end}], ${response.data.length} bytes`);
       return response.data;
     },
 
     async getFileSize(fileId: string): Promise<number> {
+      logger.log(`Getting file size: ${fileId}`);
       const request: GetFileSizeRequest = {
         id: generateMessageId(),
         type: "GET_FILE_SIZE",
         fileId,
       };
       const response = await sendRequest<FileSizeResponse>(request);
+      logger.log(`File size: ${fileId} = ${response.size} bytes`);
       return response.size;
     },
 
     async setWindowSize(fileId: string, size: number): Promise<void> {
+      logger.log(`Setting window size: ${fileId} = ${size} bytes`);
       const request: SetWindowSizeRequest = {
         id: generateMessageId(),
         type: "SET_WINDOW_SIZE",
@@ -204,15 +219,18 @@ export function createWorkerClient(
     },
 
     async closeFile(fileId: string): Promise<void> {
+      logger.log(`Closing file: ${fileId}`);
       const request: CloseFileRequest = {
         id: generateMessageId(),
         type: "CLOSE_FILE",
         fileId,
       };
       await sendRequest<ConnectedResponse>(request);
+      logger.log(`File closed: ${fileId}`);
     },
 
     disconnect(): void {
+      logger.log("Disconnecting worker client");
       // Reject all pending requests
       for (const pending of Array.from(pendingRequests.values())) {
         clearTimeout(pending.timeout);

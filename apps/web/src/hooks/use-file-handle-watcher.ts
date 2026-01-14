@@ -3,7 +3,7 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import type { BinarySnapshot } from '@hexed/types';
 
 import { createSnapshotFromFile } from '~/components/hex-editor/utils';
-import { useWorkerClient } from '~/hooks/use-worker-client';
+import { useFileManager } from '~/providers/file-manager-provider';
 
 /**
  * Hook for watching FileSystemFileHandle files for changes
@@ -14,7 +14,7 @@ export function useFileHandleWatcher(
   filePath: string | null,
   fileId?: string | null
 ) {
-  const workerClient = useWorkerClient();
+  const fileManager = useFileManager();
   const [snapshots, setSnapshots] = useState<BinarySnapshot[]>([]);
   const [isConnected, setIsConnected] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -39,10 +39,10 @@ export function useFileHandleWatcher(
     }
 
     try {
-      // Ensure file is open in worker if we have worker client and fileId
-      if (workerClient && currentFileId) {
+      // Ensure file is open in worker if we have file manager and fileId
+      if (fileManager && currentFileId) {
         try {
-          await workerClient.openFile(currentFileId, currentHandle);
+          await fileManager.openFile(currentFileId, currentHandle);
         } catch (workerError) {
           console.warn('Failed to open file in worker:', workerError);
           // Continue anyway, will fall back to direct reading
@@ -52,7 +52,7 @@ export function useFileHandleWatcher(
       // Create snapshot using worker if available
       const snapshot = await createSnapshotFromFile(
         currentHandle,
-        workerClient || null,
+        fileManager || null,
         currentFileId || undefined
       );
 
@@ -75,7 +75,7 @@ export function useFileHandleWatcher(
       setIsConnected(false);
       console.error('Error reading file handle:', err);
     }
-  }, [workerClient]);
+  }, [fileManager]);
 
   const connect = useCallback(() => {
     // Use the current prop values directly, not refs

@@ -17,6 +17,7 @@
     "clean": "rm -rf dist node_modules"
   },
   "dependencies": {
+    "@hexed/logger": "workspace:*",
     "@hexed/types": "workspace:*"
   },
   "devDependencies": {

@@ -14,7 +14,7 @@ import {
 
 import type { RecentFile } from "~/hooks/use-recent-files"
 import { useRecentFiles } from "~/hooks/use-recent-files"
-import { useWorkerClient } from "~/hooks/use-worker-client"
+import { useFileManager } from "~/providers/file-manager-provider"
 import { encodeHandleId } from "~/utils/path-encoding"
 import { createSnapshotFromFile, formatTimestamp, getBasename } from "./utils"
 
@@ -78,7 +78,7 @@ export const DataPicker: FunctionComponent<DataPickerProps> = ({
 }) => {
   const navigate = useNavigate()
   const { addRecentFile, getFileHandleById } = useRecentFiles()
-  const workerClient = useWorkerClient()
+  const fileManager = useFileManager()
   const [isLoading, setIsLoading] = useState(false)
   const [isMounted, setIsMounted] = useState(false)
   const supportsFileSystemAccess =
@@ -106,10 +106,10 @@ export const DataPicker: FunctionComponent<DataPickerProps> = ({
     try {
       const handleData = await getFileHandleById(recentFile.handleId)
       if (handleData) {
-        // Open file in worker if worker client is available
-        if (workerClient) {
+        // Open file in worker if file manager is available
+        if (fileManager) {
           try {
-            await workerClient.openFile(recentFile.handleId, handleData.handle)
+            await fileManager.openFile(recentFile.handleId, handleData.handle)
           } catch (workerError) {
             console.warn("Failed to open file in worker:", workerError)
             // Continue anyway, will fall back to direct reading
@@ -119,7 +119,7 @@ export const DataPicker: FunctionComponent<DataPickerProps> = ({
         // Create snapshot using worker if available
         const snapshot = await createSnapshotFromFile(
           handleData.handle,
-          workerClient,
+          fileManager || null,
           recentFile.handleId
         )
         const snapshotKey = `hexed:pending-handle-${recentFile.handleId}`
@@ -169,10 +169,10 @@ export const DataPicker: FunctionComponent<DataPickerProps> = ({
       const handleId = await addRecentFile(handle.name, "file-system", handle)
 
       if (handleId) {
-        // Open file in worker if worker client is available
-        if (workerClient) {
+        // Open file in worker if file manager is available
+        if (fileManager) {
           try {
-            await workerClient.openFile(handleId, handle)
+            await fileManager.openFile(handleId, handle)
           } catch (workerError) {
             console.warn("Failed to open file in worker:", workerError)
             // Continue anyway, worker will be opened when page loads
