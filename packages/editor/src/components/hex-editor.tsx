@@ -1,7 +1,7 @@
-'use client';
+"use client";
 
-import { useEffect, useMemo, useRef, useState } from 'react';
-import type { FunctionComponent } from 'react';
+import { useEffect, useMemo, useRef, useState } from "react";
+import type { FunctionComponent, ReactNode } from "react";
 import {
   BarChart3,
   Binary,
@@ -13,13 +13,13 @@ import {
   FileText,
   Loader2,
   Type,
-  X
-} from 'lucide-react';
+  X,
+} from "lucide-react";
 
-import { computeDiff } from '@hexed/binary-utils/differ';
-import { formatFileSize } from '@hexed/binary-utils/formatter';
-import { HexCanvas, type HexCanvasRef } from '@hexed/canvas';
-import type { DiffViewMode } from '@hexed/types';
+import { computeDiff } from "@hexed/binary-utils/differ";
+import { formatFileSize } from "@hexed/binary-utils/formatter";
+import { HexCanvas, type HexCanvasRef } from "@hexed/canvas";
+import type { DiffViewMode } from "@hexed/types";
 import {
   Button,
   Card,
@@ -52,29 +52,25 @@ import {
   ToggleGroupItem,
   Tooltip,
   TooltipContent,
-  TooltipTrigger
-} from '@hexed/ui';
+  TooltipTrigger,
+} from "@hexed/ui";
 
-import { DiffViewer } from '~/components/hex-editor/diff-viewer';
-import { EmptyState } from '~/components/hex-editor/empty-state';
-import { FileSourceIcon } from '~/components/hex-editor/file-source-icon';
-import { FileStatusPopover } from '~/components/hex-editor/file-status-popover';
-import { FindInput } from '~/components/hex-editor/find-input';
-import { HexFooter } from '~/components/hex-editor/hex-footer';
-import { HexToolbar } from '~/components/hex-editor/hex-toolbar';
-import { Interpreter } from '~/components/hex-editor/interpreter';
-import { MemoryProfiler } from '~/components/hex-editor/memory-profiler';
-import { Strings } from '~/components/hex-editor/strings';
-import { Templates } from '~/components/hex-editor/templates';
-import { WorkerStatus } from '~/components/hex-editor/worker-status';
-import type {
-  HexEditorProps,
-  HexEditorViewProps
-} from '~/components/hex-editor/types';
-import { formatFilenameForDisplay } from '~/components/hex-editor/utils';
-import { Logo } from '~/components/logo';
-import { useGlobalKeyboard } from '~/hooks/use-global-keyboard';
-import { useSettings } from '~/hooks/use-settings';
+import { DiffViewer } from "./diff-viewer";
+import { EmptyState } from "./empty-state";
+import { FileSourceIcon } from "./file-source-icon";
+import { FileStatusPopover } from "./file-status-popover";
+import { FindInput } from "./find-input";
+import { HexFooter } from "./hex-footer";
+import { HexToolbar } from "./hex-toolbar";
+import { Interpreter } from "./interpreter";
+import { MemoryProfiler } from "./memory-profiler";
+import { Strings } from "./strings";
+import { Templates } from "./templates";
+import { WorkerStatus } from "./worker-status";
+import type { HexEditorProps, HexEditorViewProps } from "../types";
+import { formatFilenameForDisplay } from "../utils";
+import { useGlobalKeyboard } from "../hooks/use-global-keyboard";
+import { useSettings } from "../hooks/use-settings";
 
 const HexEditorView: FunctionComponent<HexEditorViewProps> = ({
   scrollToOffset,
@@ -82,7 +78,7 @@ const HexEditorView: FunctionComponent<HexEditorViewProps> = ({
   showAscii,
   diff,
   selectedOffsetRange,
-  onSelectedOffsetRangeChange
+  onSelectedOffsetRangeChange,
 }) => {
   const hexCanvasRef = useRef<HexCanvasRef | null>(null);
 
@@ -106,7 +102,9 @@ const HexEditorView: FunctionComponent<HexEditorViewProps> = ({
   );
 };
 
-export const HexEditor: FunctionComponent<HexEditorProps> = ({
+export const HexEditor: FunctionComponent<
+  HexEditorProps & { logo?: ReactNode }
+> = ({
   snapshots,
   filePath,
   isConnected,
@@ -114,13 +112,16 @@ export const HexEditor: FunctionComponent<HexEditorProps> = ({
   onClose,
   onFileSelect,
   recentFiles = [],
-  className = '',
-  fileSource = 'file-system',
+  className = "",
+  fileSource = "file-system",
   originalSource,
   error,
-  onRestartWatching
+  onRestartWatching,
+  onRecentFileSelect,
+  onFilePickerOpen,
+  logo,
 }) => {
-  const [activeTab, setActiveTab] = useState<string>('0');
+  const [activeTab, setActiveTab] = useState<string>("0");
   const {
     showAscii,
     setShowAscii,
@@ -135,15 +136,15 @@ export const HexEditor: FunctionComponent<HexEditorProps> = ({
     sidebarPosition,
     toggleSidebarPosition,
     showMemoryProfiler,
-    showWorkerStatus
+    showWorkerStatus,
   } = useSettings();
 
-  const [diffMode, setDiffMode] = useState<DiffViewMode>('inline');
-  const [dataType, setDataType] = useState<string>('Signed Int');
-  const [endianness, setEndianness] = useState<string>('le');
-  const [numberFormat, setNumberFormat] = useState<string>('dec');
+  const [diffMode, setDiffMode] = useState<DiffViewMode>("inline");
+  const [dataType, setDataType] = useState<string>("Signed Int");
+  const [endianness, setEndianness] = useState<string>("le");
+  const [numberFormat, setNumberFormat] = useState<string>("dec");
   const currentSnapshot = snapshots[parseInt(activeTab, 10)] || snapshots[0];
-  const hasFile = filePath != null && filePath !== '';
+  const hasFile = filePath != null && filePath !== "";
   const hasSnapshots = snapshots.length > 0;
   const hasMultipleSnapshots = snapshots.length > 1;
 
@@ -163,7 +164,7 @@ export const HexEditor: FunctionComponent<HexEditorProps> = ({
   ) : undefined;
 
   const diff = useMemo(() => {
-    if (!previousSnapshot || diffMode === 'none') return null;
+    if (!previousSnapshot || diffMode === "none") return null;
     return computeDiff(previousSnapshot, currentSnapshot);
   }, [previousSnapshot, currentSnapshot, diffMode]);
 
@@ -294,7 +295,7 @@ export const HexEditor: FunctionComponent<HexEditorProps> = ({
     onToggleInterpreter: handleToggleInterpreter,
     onToggleTemplates: handleToggleTemplates,
     onToggleStrings: handleToggleStrings,
-    onToggleSidebarPosition: handleToggleSidebarPosition
+    onToggleSidebarPosition: handleToggleSidebarPosition,
   });
 
   // Focus search input when search toolbar is shown
@@ -306,12 +307,12 @@ export const HexEditor: FunctionComponent<HexEditorProps> = ({
 
   // Derived value for toggle group
   const paneToggleValue = showInterpreter
-    ? 'interpreter'
+    ? "interpreter"
     : showTemplates
-      ? 'templates'
+      ? "templates"
       : showStrings
-        ? 'strings'
-        : '';
+        ? "strings"
+        : "";
 
   // Handle pane toggle group change
   const handlePaneToggleChange = (value: string) => {
@@ -320,13 +321,13 @@ export const HexEditor: FunctionComponent<HexEditorProps> = ({
     setShowStrings(false);
 
     switch (value) {
-      case 'interpreter':
+      case "interpreter":
         setShowInterpreter(true);
         break;
-      case 'templates':
+      case "templates":
         setShowTemplates(true);
         break;
-      case 'strings':
+      case "strings":
         setShowStrings(true);
         break;
       default:
@@ -337,13 +338,7 @@ export const HexEditor: FunctionComponent<HexEditorProps> = ({
     <CardHeader className="p-0! gap-0 m-0 bg-muted/30">
       {/* Primary Toolbar */}
       <HexToolbar
-        left={
-          <Logo
-            currentSnapshot={currentSnapshot}
-            showHistogram={showHistogram}
-            onShowHistogramChange={setShowHistogram}
-          />
-        }
+        left={logo}
         center={
           !hasFile ? (
             <div className="flex items-center gap-2 min-w-0">
@@ -354,7 +349,7 @@ export const HexEditor: FunctionComponent<HexEditorProps> = ({
           ) : (
             <FileStatusPopover
               fileSource={fileSource}
-              originalSource={originalSource || filePath || ''}
+              originalSource={originalSource || filePath || ""}
               isConnected={isConnected}
               error={error}
               onRestartWatching={onRestartWatching}
@@ -372,7 +367,7 @@ export const HexEditor: FunctionComponent<HexEditorProps> = ({
                 </span>
                 <div
                   className={`inline-flex h-2 w-2 rounded-full shrink-0 ${
-                    isConnected ? 'bg-green-500' : 'bg-gray-500'
+                    isConnected ? "bg-green-500" : "bg-gray-500"
                   }`}
                 />
               </div>
@@ -401,10 +396,10 @@ export const HexEditor: FunctionComponent<HexEditorProps> = ({
 
       <div
         className={cn(
-          'border-b',
+          "border-b",
           hasFile && showSearch && hasSnapshots && currentSnapshot?.data
-            ? ''
-            : 'hidden'
+            ? ""
+            : "hidden"
         )}
       >
         <div className="p-4">
@@ -416,7 +411,7 @@ export const HexEditor: FunctionComponent<HexEditorProps> = ({
               setScrollToOffset(offset);
               setSelectedOffsetRange({
                 start: offset,
-                end: offset + length - 1
+                end: offset + length - 1,
               });
             }}
             onClose={() => setShowSearch(false)}
@@ -430,14 +425,11 @@ export const HexEditor: FunctionComponent<HexEditorProps> = ({
           <div className="p-4">
             <TabsList>
               {snapshots.map((snapshot, index) => (
-                <TabsTrigger
-                  key={snapshot.id}
-                  value={index.toString()}
-                >
+                <TabsTrigger key={snapshot.id} value={index.toString()}>
                   {snapshot.label}
                   {showChecksums && (
                     <span className="text-xs text-muted-foreground font-mono">
-                      {snapshot.md5 ? ` (${snapshot.md5.slice(0, 7)})` : ''}
+                      {snapshot.md5 ? ` (${snapshot.md5.slice(0, 7)})` : ""}
                     </span>
                   )}
                 </TabsTrigger>
@@ -448,17 +440,20 @@ export const HexEditor: FunctionComponent<HexEditorProps> = ({
       )}
 
       {diff ? (
-        <DiffViewer
-          diff={diff}
-          onScrollToOffset={setScrollToOffset}
-        />
+        <DiffViewer diff={diff} onScrollToOffset={setScrollToOffset} />
       ) : null}
     </CardHeader>
   );
 
   const renderCardContent = (insideTabs: boolean) => {
     if (!hasFile) {
-      return <EmptyState recentFiles={recentFiles} />;
+      return (
+        <EmptyState
+          recentFiles={recentFiles}
+          onRecentFileSelect={onRecentFileSelect}
+          onFilePickerOpen={onFilePickerOpen}
+        />
+      );
     }
 
     if (loading || (hasFile && !hasSnapshots)) {
@@ -468,7 +463,7 @@ export const HexEditor: FunctionComponent<HexEditorProps> = ({
           <div>
             <h3 className="font-semibold">Loading file...</h3>
             <p className="text-sm text-muted-foreground mt-1">
-              {filePath ? `Reading ${filePath}` : 'Loading...'}
+              {filePath ? `Reading ${filePath}` : "Loading..."}
             </p>
           </div>
         </div>
@@ -519,7 +514,7 @@ export const HexEditor: FunctionComponent<HexEditorProps> = ({
       }
 
       // Render panels based on sidebar position
-      const borderClass = sidebarPosition === 'left' ? 'border-r' : 'border-l';
+      const borderClass = sidebarPosition === "left" ? "border-r" : "border-l";
 
       const interpreterPanel = showInterpreter ? (
         <ResizablePanel
@@ -532,8 +527,8 @@ export const HexEditor: FunctionComponent<HexEditorProps> = ({
             <Interpreter
               data={snapshot.data}
               selectedOffset={selectedOffset}
-              endianness={endianness as 'le' | 'be'}
-              numberFormat={numberFormat as 'dec' | 'hex'}
+              endianness={endianness as "le" | "be"}
+              numberFormat={numberFormat as "dec" | "hex"}
               onClose={() => setShowInterpreter(false)}
               onScrollToOffset={setScrollToOffset}
               onPIPStateChange={setIsInterpreterPIPActive}
@@ -607,10 +602,7 @@ export const HexEditor: FunctionComponent<HexEditorProps> = ({
           minSize={15}
           collapsible
         >
-          <ResizablePanelGroup
-            direction="horizontal"
-            className="h-full"
-          >
+          <ResizablePanelGroup direction="horizontal" className="h-full">
             {interpreterPanel}
             {showInterpreter && showTemplates && <ResizableHandle withHandle />}
             {templatesPanel}
@@ -628,11 +620,8 @@ export const HexEditor: FunctionComponent<HexEditorProps> = ({
           value={index.toString()}
           className="h-full"
         >
-          <ResizablePanelGroup
-            direction="horizontal"
-            className="h-full"
-          >
-            {sidebarPosition === 'left' ? (
+          <ResizablePanelGroup direction="horizontal" className="h-full">
+            {sidebarPosition === "left" ? (
               <>
                 {sidebarGroup}
                 {hasSidebars && <ResizableHandle withHandle />}
@@ -669,10 +658,7 @@ export const HexEditor: FunctionComponent<HexEditorProps> = ({
             <HexFooter
               left={
                 <div className="flex items-center gap-2">
-                  <Select
-                    value={dataType}
-                    onValueChange={setDataType}
-                  >
+                  <Select value={dataType} onValueChange={setDataType}>
                     <SelectTrigger size="sm">
                       <SelectValue />
                     </SelectTrigger>
@@ -697,10 +683,7 @@ export const HexEditor: FunctionComponent<HexEditorProps> = ({
                         <ChevronDownIcon className="ml-2 h-4 w-4 opacity-50" />
                       </Button>
                     </DropdownMenuTrigger>
-                    <DropdownMenuContent
-                      align="start"
-                      className="w-48"
-                    >
+                    <DropdownMenuContent align="start" className="w-48">
                       <DropdownMenuGroup>
                         <DropdownMenuLabel>Endianness</DropdownMenuLabel>
                         <DropdownMenuRadioGroup
@@ -744,7 +727,7 @@ export const HexEditor: FunctionComponent<HexEditorProps> = ({
                         onPressedChange={setShowAscii}
                         aria-label="Toggle ASCII view"
                         size="sm"
-                        className={showAscii ? 'bg-accent' : ''}
+                        className={showAscii ? "bg-accent" : ""}
                       >
                         <CaseSensitive />
                       </Toggle>
@@ -778,7 +761,7 @@ export const HexEditor: FunctionComponent<HexEditorProps> = ({
                           value="interpreter"
                           aria-label="Toggle interpreter"
                           className={
-                            paneToggleValue === 'interpreter' ? 'bg-accent' : ''
+                            paneToggleValue === "interpreter" ? "bg-accent" : ""
                           }
                         >
                           <Binary />
@@ -786,8 +769,8 @@ export const HexEditor: FunctionComponent<HexEditorProps> = ({
                       </TooltipTrigger>
                       <TooltipContent>
                         {selectedOffset === null
-                          ? 'Select bytes to enable interpreter'
-                          : 'Toggle interpreter panel'}
+                          ? "Select bytes to enable interpreter"
+                          : "Toggle interpreter panel"}
                       </TooltipContent>
                     </Tooltip>
                     <Tooltip>
@@ -796,7 +779,7 @@ export const HexEditor: FunctionComponent<HexEditorProps> = ({
                           value="templates"
                           aria-label="Toggle templates panel"
                           className={
-                            paneToggleValue === 'templates' ? 'bg-accent' : ''
+                            paneToggleValue === "templates" ? "bg-accent" : ""
                           }
                         >
                           <FileText />
@@ -810,7 +793,7 @@ export const HexEditor: FunctionComponent<HexEditorProps> = ({
                           value="strings"
                           aria-label="Toggle strings panel"
                           className={
-                            paneToggleValue === 'strings' ? 'bg-accent' : ''
+                            paneToggleValue === "strings" ? "bg-accent" : ""
                           }
                         >
                           <Type />

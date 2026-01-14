@@ -2,7 +2,7 @@
 
 import * as React from 'react';
 
-import { FileSource } from '~/components/hex-editor/types';
+import { FileSource } from '@hexed/editor';
 import {
   clearAllFileHandles,
   deleteFileHandle,

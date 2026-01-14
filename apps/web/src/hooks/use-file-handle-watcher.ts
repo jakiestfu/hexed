@@ -2,7 +2,7 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 
 import type { BinarySnapshot } from '@hexed/types';
 
-import { createSnapshotFromFile } from '~/components/hex-editor/utils';
+import { createSnapshotFromFile } from '@hexed/editor';
 import { useFileManager } from '~/providers/file-manager-provider';
 
 /**

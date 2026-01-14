@@ -54,7 +54,7 @@ const formatHexDisplayFromNibbles = (nibbles: string) => {
 }
 
 const nibbleIndexToDisplayPos = (nibbleIndex: number) => {
-  // after every 2 nibbles, there’s one space
+  // after every 2 nibbles, there's one space
   return nibbleIndex + Math.floor(nibbleIndex / 2)
 }
 

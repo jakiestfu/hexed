@@ -30,13 +30,9 @@ import {
   TooltipTrigger
 } from "@hexed/ui"
 
-import { ObjectTree } from "~/components/hex-editor/object-tree"
-import { TemplatesCombobox } from "~/components/hex-editor/templates-combobox"
-import type { TemplatesProps } from "~/components/hex-editor/types"
-import { MarkdownRenderer } from "~/components/markdown-renderer"
-import { usePIP } from "~/hooks/use-pip"
-import { useQueryParamState } from "~/hooks/use-query-param-state"
-import { useSettings } from "~/hooks/use-settings"
+import { ObjectTree } from "./object-tree"
+import { TemplatesCombobox } from "./templates-combobox"
+import type { TemplatesProps } from "../types"
 
 type TemplateEntry = {
   name: string
@@ -107,7 +103,9 @@ export const Templates: FunctionComponent<TemplatesProps> = ({
   onClose,
   onScrollToOffset,
   onSelectedOffsetRangeChange,
-  onPIPStateChange
+  onPIPStateChange,
+  selectedTemplateName: controlledTemplateName,
+  onTemplateNameChange: controlledOnTemplateNameChange
 }) => {
   const templatesRef = useRef<HTMLDivElement>(null)
   const { isPIPActive, stylesLoaded, togglePIP, isSupported } = usePIP(
@@ -115,10 +113,14 @@ export const Templates: FunctionComponent<TemplatesProps> = ({
   )
   const { toggleSidebarPosition } = useSettings()
   const [commandOpen, setCommandOpen] = useState(false)
-  const [templateValue, setTemplateValue] = useQueryParamState<string>(
-    "template",
-    ""
-  )
+  // Use controlled state if provided, otherwise use internal state
+  const [internalTemplateValue, setInternalTemplateValue] = useState("")
+  const templateValue =
+    controlledTemplateName !== undefined
+      ? controlledTemplateName
+      : internalTemplateValue
+  const setTemplateValue =
+    controlledOnTemplateNameChange || setInternalTemplateValue
   const [selectedTemplate, setSelectedTemplate] =
     useState<TemplateEntry | null>(null)
   const [parsedData, setParsedData] = useState<Record<string, unknown> | null>(
@@ -458,10 +460,12 @@ export const Templates: FunctionComponent<TemplatesProps> = ({
                     {selectedSpec?.doc && (
                       <Card>
                         <CardContent className="text-sm">
-                          <MarkdownRenderer
-                            compressed
-                            content={selectedSpec.doc}
-                          />
+                          {/* Note: MarkdownRenderer will need to be passed as a prop or imported from web app */}
+                          <div className="prose prose-sm max-w-none">
+                            <pre className="whitespace-pre-wrap text-xs">
+                              {selectedSpec.doc}
+                            </pre>
+                          </div>
                         </CardContent>
                       </Card>
                     )}

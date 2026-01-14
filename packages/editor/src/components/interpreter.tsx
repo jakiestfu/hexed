@@ -60,9 +60,9 @@ import {
   TooltipTrigger
 } from "@hexed/ui"
 
-import { usePIP } from "~/hooks/use-pip"
-import { useSettings } from "~/hooks/use-settings"
-import type { InterpreterProps } from "./types"
+import { usePIP } from "../hooks/use-pip"
+import { useSettings } from "../hooks/use-settings"
+import type { InterpreterProps } from "../types"
 
 interface InterpretedValue {
   type: string

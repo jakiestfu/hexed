@@ -1,6 +1,13 @@
 import type { BinarySnapshot } from "@hexed/types"
 
-import type { FileManager } from "~/providers/file-manager-provider"
+// Minimal interface for FileManager to avoid dependency on web app providers
+export interface FileManager {
+  openFile(fileId: string, handle: FileSystemFileHandle): Promise<void>
+  getWorkerClient(): {
+    getFileSize(fileId: string): Promise<number>
+    readByteRange(fileId: string, start: number, end: number): Promise<Uint8Array>
+  } | null
+}
 
 /**
  * Remove query parameters from a path or URL

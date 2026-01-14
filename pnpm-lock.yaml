@@ -41,6 +41,12 @@ importers:
       '@hexed/canvas':
         specifier: workspace:*
         version: link:../../packages/canvas
+      '@hexed/editor':
+        specifier: workspace:*
+        version: link:../../packages/editor
+      '@hexed/logger':
+        specifier: workspace:*
+        version: link:../../packages/logger
       '@hexed/types':
         specifier: workspace:*
         version: link:../../packages/types
@@ -189,6 +195,64 @@ importers:
       typescript:
         specifier: ^5.7.2
         version: 5.9.3
+
+  packages/editor:
+    dependencies:
+      '@hexed/binary-templates':
+        specifier: workspace:*
+        version: link:../binary-templates
+      '@hexed/binary-utils':
+        specifier: workspace:*
+        version: link:../binary-utils
+      '@hexed/canvas':
+        specifier: workspace:*
+        version: link:../canvas
+      '@hexed/types':
+        specifier: workspace:*
+        version: link:../types
+      '@hexed/ui':
+        specifier: workspace:*
+        version: link:../ui
+      lucide-react:
+        specifier: ^0.468.0
+        version: 0.468.0(react@19.2.3)
+      react:
+        specifier: 19.2.3
+        version: 19.2.3
+      react-dom:
+        specifier: 19.2.3
+        version: 19.2.3(react@19.2.3)
+      react-hotkeys-hook:
+        specifier: ^4.5.1
+        version: 4.6.2(react-dom@19.2.3(react@19.2.3))(react@19.2.3)
+      recharts:
+        specifier: 2.15.4
+        version: 2.15.4(react-dom@19.2.3(react@19.2.3))(react@19.2.3)
+    devDependencies:
+      '@hexed/eslint-config':
+        specifier: workspace:*
+        version: link:../../tooling/eslint-config
+      '@hexed/prettier-config':
+        specifier: workspace:*
+        version: link:../../tooling/prettier-config
+      '@hexed/typescript-config':
+        specifier: workspace:*
+        version: link:../../tooling/typescript-config
+      '@types/react':
+        specifier: ^19.2.3
+        version: 19.2.7
+      '@types/react-dom':
+        specifier: ^19.2.3
+        version: 19.2.3(@types/react@19.2.7)
+      typescript:
+        specifier: ^5.7.2
+        version: 5.8.3
+
+  packages/logger:
+    devDependencies:
+      typescript:
+        specifier: ^5.7.2
+        version: 5.8.3
 
   packages/types:
     devDependencies:
@@ -358,6 +422,9 @@ importers:
 
   packages/worker:
     dependencies:
+      '@hexed/logger':
+        specifier: workspace:*
+        version: link:../logger
       '@hexed/types':
         specifier: workspace:*
         version: link:../types

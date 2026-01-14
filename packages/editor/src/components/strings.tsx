@@ -37,9 +37,9 @@ import {
   TooltipTrigger
 } from "@hexed/ui"
 
-import { usePIP } from "~/hooks/use-pip"
-import { useSettings } from "~/hooks/use-settings"
-import type { StringsProps } from "./types"
+import { usePIP } from "../hooks/use-pip"
+import { useSettings } from "../hooks/use-settings"
+import type { StringsProps } from "../types"
 
 export const Strings: FunctionComponent<StringsProps> = ({
   data,

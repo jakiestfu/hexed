@@ -2,16 +2,17 @@ import type { FunctionComponent } from "react"
 
 import { Popover, PopoverContent, PopoverTrigger } from "@hexed/ui"
 
-import { useWorkerClient } from "~/providers/worker-provider"
+export type WorkerStatusProps = {
+  isActive?: boolean
+}
 
 /**
  * Worker status component that displays worker connection status
  * Shows a compact label with detailed information in a popover
  */
-export const WorkerStatus: FunctionComponent = () => {
-  const workerClient = useWorkerClient()
-
-  const isActive = workerClient !== null
+export const WorkerStatus: FunctionComponent<WorkerStatusProps> = ({
+  isActive = false
+}) => {
   const status = isActive ? "Active" : "Inactive"
   const label = `Worker ${status}`
 

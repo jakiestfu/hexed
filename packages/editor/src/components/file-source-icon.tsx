@@ -3,7 +3,7 @@ import { FolderOpen } from "lucide-react"
 
 import { cn } from "@hexed/ui"
 
-import { FileSource } from "./types"
+import { FileSource } from "../types"
 
 export type FileSourceIconProps = {
   fileSource: FileSource

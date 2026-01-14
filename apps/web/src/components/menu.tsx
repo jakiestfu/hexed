@@ -22,6 +22,12 @@ import {
 import { useTheme } from "next-themes"
 import { Link } from "react-router-dom"
 
+import {
+  FileSourceIcon,
+  formatFilenameForDisplay,
+  Histogram,
+  useSettings
+} from "@hexed/editor"
 import type { BinarySnapshot } from "@hexed/types"
 import {
   Button,
@@ -43,12 +49,8 @@ import {
 } from "@hexed/ui"
 
 import { useRecentFiles } from "~/hooks/use-recent-files"
-import { useSettings } from "~/hooks/use-settings"
 import { Hotkeys } from "~/utils/hotkey-format"
 import { encodeHandleId } from "~/utils/path-encoding"
-import { FileSourceIcon } from "./hex-editor/file-source-icon"
-import { Histogram } from "./hex-editor/histogram"
-import { formatFilenameForDisplay } from "./hex-editor/utils"
 
 export type MenuItem = {
   label: string

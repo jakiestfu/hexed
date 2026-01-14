@@ -1,7 +1,14 @@
 import type { Endianness, NumberFormat } from "@hexed/binary-utils/interpreter"
 import type { BinarySnapshot, DiffResult } from "@hexed/types"
 
-import type { RecentFile } from "~/hooks/use-recent-files"
+// Define RecentFile type locally to avoid dependency on web app hooks
+// This matches the structure used by the editor components
+export type RecentFile = {
+  path: string
+  timestamp: number
+  source?: FileSource
+  handleId?: string // IndexedDB ID for FileSystemFileHandle
+}
 
 export type FileSource = "file-system"
 
@@ -28,6 +35,9 @@ export type HexEditorProps = {
   error?: string | null
   onRestartWatching?: () => void
   onAddSnapshot?: (snapshot: BinarySnapshot) => void
+  // Data picker callbacks (for empty state)
+  onRecentFileSelect?: (handleId: string) => Promise<void>
+  onFilePickerOpen?: () => Promise<string | null> // Returns handleId or null
 }
 
 export type SelectionRange = { start: number; end: number } | null
@@ -58,6 +68,9 @@ export type TemplatesProps = {
   onScrollToOffset?: (offset: number) => void
   onSelectedOffsetRangeChange?: (range: SelectionRange) => void
   onPIPStateChange?: (isPIPActive: boolean) => void
+  // Props for URL state management (optional - uses internal state if not provided)
+  selectedTemplateName?: string
+  onTemplateNameChange?: (name: string) => void
 }
 
 export type StringsProps = {

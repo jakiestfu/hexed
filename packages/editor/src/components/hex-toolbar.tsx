@@ -3,23 +3,35 @@ import type { FunctionComponent, ReactNode } from "react"
 
 import { cn } from "@hexed/ui"
 
-import { isElectron } from "~/utils/electron"
-
-type HexToolbarProps = {
+export type HexToolbarProps = {
   left?: ReactNode
   center?: ReactNode
   right?: ReactNode
+  isElectron?: boolean | (() => boolean) // Optional prop to check if running in Electron
+}
+
+/**
+ * Checks if the app is running in Electron
+ * This is a minimal implementation - can be overridden via props
+ */
+function isElectron(): boolean {
+  return typeof window !== "undefined" && (window as any).electron !== undefined
 }
 
 export const HexToolbar: FunctionComponent<HexToolbarProps> = ({
   left,
   center,
-  right
+  right,
+  isElectron: isElectronProp
 }) => {
   const [isInElectron, setIsInElectron] = useState(false)
 
   useEffect(() => {
-    const inElectron = isElectron()
+    const inElectron = typeof isElectronProp === "function"
+      ? isElectronProp()
+      : isElectronProp !== undefined
+        ? isElectronProp
+        : isElectron()
     setIsInElectron(inElectron)
 
     if (inElectron) {
@@ -41,7 +53,7 @@ export const HexToolbar: FunctionComponent<HexToolbarProps> = ({
         document.head.removeChild(style)
       }
     }
-  }, [])
+  }, [isElectronProp])
 
   return (
     <div
