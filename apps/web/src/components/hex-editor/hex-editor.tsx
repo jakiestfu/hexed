@@ -66,6 +66,7 @@ import { Interpreter } from '~/components/hex-editor/interpreter';
 import { MemoryProfiler } from '~/components/hex-editor/memory-profiler';
 import { Strings } from '~/components/hex-editor/strings';
 import { Templates } from '~/components/hex-editor/templates';
+import { WorkerStatus } from '~/components/hex-editor/worker-status';
 import type {
   HexEditorProps,
   HexEditorViewProps
@@ -133,7 +134,8 @@ export const HexEditor: FunctionComponent<HexEditorProps> = ({
     setShowStrings,
     sidebarPosition,
     toggleSidebarPosition,
-    showMemoryProfiler
+    showMemoryProfiler,
+    showWorkerStatus
   } = useSettings();
 
   const [diffMode, setDiffMode] = useState<DiffViewMode>('inline');
@@ -156,6 +158,7 @@ export const HexEditor: FunctionComponent<HexEditorProps> = ({
         {formatFileSize(currentSnapshot?.data.length || 0)}
       </span>
       {showMemoryProfiler && <MemoryProfiler />}
+      {showWorkerStatus && <WorkerStatus />}
     </div>
   ) : undefined;
 

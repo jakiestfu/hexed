@@ -92,7 +92,9 @@ export const Menu: FunctionComponent<MenuProps> = ({
     sidebarPosition,
     setSidebarPosition,
     showMemoryProfiler,
-    setShowMemoryProfiler
+    setShowMemoryProfiler,
+    showWorkerStatus,
+    setShowWorkerStatus
   } = useSettings()
   const [showClientFileDialog, setShowClientFileDialog] = useState(false)
   const [clickedClientFilePath, setClickedClientFilePath] = useState<
@@ -279,6 +281,13 @@ export const Menu: FunctionComponent<MenuProps> = ({
               className="cursor-pointer"
             >
               Show Memory Profiler
+            </DropdownMenuCheckboxItem>
+            <DropdownMenuCheckboxItem
+              checked={showWorkerStatus}
+              onCheckedChange={setShowWorkerStatus}
+              className="cursor-pointer"
+            >
+              Show Worker Status
             </DropdownMenuCheckboxItem>
           </DropdownMenuSubContent>
         </DropdownMenuSub>
