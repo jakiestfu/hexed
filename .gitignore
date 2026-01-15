@@ -1,0 +1,12 @@
+node_modules
+dist
+.turbo
+.vinxi
+.output
+.vercel
+.netlify
+.env
+.DS_Store
+*.log
+.next
+*.tsbuildinfo
