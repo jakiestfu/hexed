@@ -1,0 +1,27 @@
+import{k as r}from"./index-COmSdSC_.js";var f=Object.getOwnPropertyNames,p=(i,e)=>function(){return e||(0,i[f(i)[0]])((e={exports:{}}).exports,e),e.exports},d=p({"<stdin>"(i){(function(e,s){typeof define=="function"&&define.amd?define(["exports","kaitai-struct/KaitaiStream"],s):typeof i=="object"&&i!==null&&typeof i.nodeType!="number"?s(i,r.KaitaiStream):s(e.AvantesRoh60||(e.AvantesRoh60={}),e.KaitaiStream)})(typeof self<"u"?self:i,function(e,s){var n=(function(){function o(t,a,h){this._io=t,this._parent=a,this._root=h||this,this._debug={},this._read()}return o.prototype._read=function(){this._debug.unknown1={start:this._io.pos,ioOffset:this._io.byteOffset},this.unknown1=this._io.readF4le(),this._debug.unknown1.end=this._io.pos,this._debug.wlintercept={start:this._io.pos,ioOffset:this._io.byteOffset},this.wlintercept=this._io.readF4le(),this._debug.wlintercept.end=this._io.pos,this._debug.wlx1={start:this._io.pos,ioOffset:this._io.byteOffset},this.wlx1=this._io.readF4le(),this._debug.wlx1.end=this._io.pos,this._debug.wlx2={start:this._io.pos,ioOffset:this._io.byteOffset},this.wlx2=this._io.readF4le(),this._debug.wlx2.end=this._io.pos,this._debug.wlx3={start:this._io.pos,ioOffset:this._io.byteOffset},this.wlx3=this._io.readF4le(),this._debug.wlx3.end=this._io.pos,this._debug.wlx4={start:this._io.pos,ioOffset:this._io.byteOffset},this.wlx4=this._io.readF4le(),this._debug.wlx4.end=this._io.pos,this._debug.unknown2={start:this._io.pos,ioOffset:this._io.byteOffset},this._debug.unknown2.arr=[],this.unknown2=[];for(var t=0;t<9;t++)this._debug.unknown2.arr[t]={start:this._io.pos,ioOffset:this._io.byteOffset},this.unknown2.push(this._io.readF4le()),this._debug.unknown2.arr[t].end=this._io.pos;this._debug.unknown2.end=this._io.pos,this._debug.ipixfirst={start:this._io.pos,ioOffset:this._io.byteOffset},this.ipixfirst=this._io.readF4le(),this._debug.ipixfirst.end=this._io.pos,this._debug.ipixlast={start:this._io.pos,ioOffset:this._io.byteOffset},this.ipixlast=this._io.readF4le(),this._debug.ipixlast.end=this._io.pos,this._debug.unknown3={start:this._io.pos,ioOffset:this._io.byteOffset},this._debug.unknown3.arr=[],this.unknown3=[];for(var t=0;t<4;t++)this._debug.unknown3.arr[t]={start:this._io.pos,ioOffset:this._io.byteOffset},this.unknown3.push(this._io.readF4le()),this._debug.unknown3.arr[t].end=this._io.pos;this._debug.unknown3.end=this._io.pos,this._debug.spectrum={start:this._io.pos,ioOffset:this._io.byteOffset},this._debug.spectrum.arr=[],this.spectrum=[];for(var t=0;t<Math.trunc(this.ipixlast)-Math.trunc(this.ipixfirst)-1;t++)this._debug.spectrum.arr[t]={start:this._io.pos,ioOffset:this._io.byteOffset},this.spectrum.push(this._io.readF4le()),this._debug.spectrum.arr[t].end=this._io.pos;this._debug.spectrum.end=this._io.pos,this._debug.integrationMs={start:this._io.pos,ioOffset:this._io.byteOffset},this.integrationMs=this._io.readF4le(),this._debug.integrationMs.end=this._io.pos,this._debug.averaging={start:this._io.pos,ioOffset:this._io.byteOffset},this.averaging=this._io.readF4le(),this._debug.averaging.end=this._io.pos,this._debug.pixelSmoothing={start:this._io.pos,ioOffset:this._io.byteOffset},this.pixelSmoothing=this._io.readF4le(),this._debug.pixelSmoothing.end=this._io.pos},o})();e.AvantesRoh60=n})}});const u=d(),l={id:"avantes_roh60",title:"Avantes USB spectrometer ROH file 6.0",ksy:{meta:{id:"avantes_roh60",title:"Avantes USB spectrometer ROH file 6.0","file-extension":"roh",xref:{wikidata:"Q29960673"},license:"CC0-1.0",endian:"le"},doc:`Avantes USB spectrometers are supplied with a Windows binary which
+generates one ROH and one RCM file when the user clicks "Save
+experiment". In the version of 6.0, the ROH file contains a header
+of 22 four-byte floats, then the spectrum as a float array and a
+footer of 3 floats. The first and last pixel numbers are specified in the
+header and determine the (length+1) of the spectral data. In the tested
+files, the length is (2032-211-1)=1820 pixels, but Kaitai determines this
+automatically anyway.
+
+The wavelength calibration is stored as a polynomial with coefficients
+of 'wlintercept', 'wlx1', ... 'wlx4', the argument of which is the
+(pixel number + 1), as found out by comparing with the original
+Avantes converted data files. There is no intensity calibration saved,
+but it is recommended to do it in your program - the CCD in the spectrometer
+is so uneven that one should prepare exact pixel-to-pixel calibration curves
+to get reasonable spectral results.
+
+The rest of the header floats is not known to the author. Note that the
+newer version of Avantes software has a different format, see also
+<https://www.mathworks.com/matlabcentral/fileexchange/37103-avantes-to-matlab>
+
+The RCM file contains the user-specified comment, so it may be useful
+for automatic conversion of data. You may wish to divide the spectra by
+the integration time before comparing them.
+
+Written and tested by Filip Dominec, 2017-2018
+`,seq:[{id:"unknown1",type:"f4"},{id:"wlintercept",type:"f4"},{id:"wlx1",type:"f4"},{id:"wlx2",type:"f4"},{id:"wlx3",type:"f4"},{id:"wlx4",type:"f4"},{id:"unknown2",type:"f4",repeat:"expr","repeat-expr":9},{id:"ipixfirst",type:"f4"},{id:"ipixlast",type:"f4"},{id:"unknown3",type:"f4",repeat:"expr","repeat-expr":4},{id:"spectrum",type:"f4",repeat:"expr","repeat-expr":"ipixlast.to_i - ipixfirst.to_i - 1"},{id:"integration_ms",type:"f4"},{id:"averaging",type:"f4"},{id:"pixel_smoothing",type:"f4"}]}};export{u as default,l as spec};
