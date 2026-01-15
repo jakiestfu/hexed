@@ -21,7 +21,24 @@ export type HexEditorProps = {
   fileSource?: FileSource
   onAddSnapshot?: (snapshot: BinarySnapshot) => void
   // Data picker callbacks (for empty state)
-  onHandleReady?: (handleId: string) => void
+  onHandleIdChange?: (handleId: string) => void
+  // Logo props (optional - Logo is integrated internally)
+  onNavigate?: (path: string) => void
+  LinkComponent?: React.ComponentType<{
+    to: string
+    className?: string
+    children: React.ReactNode
+  }>
+  theme?: string
+  setTheme?: (theme: string) => void
+  packageInfo?: {
+    name: string
+    description: string
+    version: string
+    repository: {
+      url: string
+    }
+  }
 }
 
 export type SelectionRange = { start: number; end: number } | null

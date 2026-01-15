@@ -15,6 +15,10 @@ export * from "./components/memory-profiler"
 export * from "./components/strings"
 export * from "./components/templates"
 export * from "./components/drag-drop-provider"
+export * from "./components/logo"
+export * from "./components/menu"
+export * from "./components/debug-file-button"
+export * from "./components/markdown-renderer"
 
 // Types
 export * from "./types"

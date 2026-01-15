@@ -1,27 +1,18 @@
 import * as React from "react"
-import { useNavigate, useParams } from "react-router-dom"
+import { useTheme } from "next-themes"
+import { Link, useNavigate, useParams } from "react-router-dom"
 
 import { HexEditor } from "@hexed/editor"
 import { createLogger } from "@hexed/logger"
 
-import { DebugFileButton } from "~/components/debug-file-button"
-import { Logo } from "~/components/logo"
-import { decodeHandleId, encodeHandleId } from "~/utils/path-encoding"
+import packageJson from "../../package.public.json"
 
 const logger = createLogger("HexEditorPage")
 
 export function HexEditorPage() {
-  const params = useParams()
+  const { id: handleId } = useParams()
   const navigate = useNavigate()
-
-  // Get handle ID from URL parameter
-  const handleId = React.useMemo(() => {
-    const idParam = params.id
-    if (!idParam) return null
-    return decodeHandleId(idParam)
-  }, [params.id])
-
-  const [showHistogram, setShowHistogram] = React.useState(false)
+  const { theme, setTheme } = useTheme()
 
   // Memoized callbacks
   const handleClose = React.useCallback(() => {
@@ -30,27 +21,30 @@ export function HexEditorPage() {
 
   const handleHandleReady = React.useCallback(
     (handleId: string) => {
-      const encodedHandleId = encodeHandleId(handleId)
-      navigate(`/edit/${encodedHandleId}`)
+      navigate(`/edit/${handleId}`)
     },
     [navigate]
   )
+
+  const handleNavigate = React.useCallback(
+    (path: string) => {
+      navigate(path)
+    },
+    [navigate]
+  )
+
   logger.log("Rendering HexEditorPage")
   return (
     <HexEditor
       handleId={handleId}
       onClose={handleId ? handleClose : undefined}
       fileSource="file-system"
-      onHandleReady={handleHandleReady}
-      logo={
-        <>
-          <Logo
-            showHistogram={showHistogram}
-            onShowHistogramChange={setShowHistogram}
-          />
-          <DebugFileButton />
-        </>
-      }
+      onHandleIdChange={handleHandleReady}
+      onNavigate={handleNavigate}
+      LinkComponent={Link}
+      theme={theme}
+      setTheme={setTheme}
+      packageInfo={packageJson}
     />
   )
 }

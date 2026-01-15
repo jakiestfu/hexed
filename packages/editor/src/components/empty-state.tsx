@@ -1,23 +1,23 @@
-import type { FunctionComponent } from "react";
+import type { FunctionComponent } from "react"
 
-import { useRecentFiles } from "../hooks/use-recent-files";
-import { DataPicker } from "./data-picker";
+import { useRecentFiles } from "../hooks/use-recent-files"
+import { DataPicker } from "./data-picker"
 
 type EmptyStateProps = {
-  onHandleReady?: (handleId: string) => void;
-};
+  onHandleIdChange?: (handleId: string) => void
+}
 
 export const EmptyState: FunctionComponent<EmptyStateProps> = ({
-  onHandleReady,
+  onHandleIdChange
 }) => {
-  const { recentFiles } = useRecentFiles();
+  const { recentFiles } = useRecentFiles()
 
   return (
     <div className="flex flex-col items-center justify-center h-full gap-8">
       <DataPicker
         recentFiles={recentFiles}
-        onHandleReady={onHandleReady}
+        onHandleIdChange={onHandleIdChange}
       />
     </div>
-  );
-};
+  )
+}

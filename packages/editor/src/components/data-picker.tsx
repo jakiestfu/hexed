@@ -18,12 +18,12 @@ import {
 } from "@hexed/ui"
 
 import { useRecentFiles } from "../hooks/use-recent-files"
-import type { FileHandleMetadata } from "../utils/file-handle-storage"
 import { createSnapshotFromFile, formatTimestamp, getBasename } from "../utils"
+import type { FileHandleMetadata } from "../utils/file-handle-storage"
 
 type DataPickerProps = {
   recentFiles: FileHandleMetadata[]
-  onHandleReady?: (handleId: string) => void
+  onHandleIdChange?: (handleId: string) => void
 }
 
 // Recent Files Component
@@ -49,10 +49,7 @@ const RecentFilesDropdown: FunctionComponent<{
             sizes.set(file.id, fileObj.size)
           } catch (error) {
             // Silently fail for individual files
-            console.warn(
-              `Failed to get size for file ${file.id}:`,
-              error
-            )
+            console.warn(`Failed to get size for file ${file.id}:`, error)
           }
         })
       )
@@ -133,7 +130,7 @@ const RecentFilesDropdown: FunctionComponent<{
 
 export const DataPicker: FunctionComponent<DataPickerProps> = ({
   recentFiles,
-  onHandleReady
+  onHandleIdChange
 }) => {
   const { addRecentFile, getFileHandleById } = useRecentFiles()
   const [isLoading, setIsLoading] = useState(false)
@@ -152,8 +149,8 @@ export const DataPicker: FunctionComponent<DataPickerProps> = ({
   }, [])
 
   const handleRecentFileSelect = async (handleId: string) => {
-    if (!onHandleReady) {
-      console.warn("onHandleReady callback not provided")
+    if (!onHandleIdChange) {
+      console.warn("onHandleIdChange callback not provided")
       return
     }
 
@@ -163,26 +160,8 @@ export const DataPicker: FunctionComponent<DataPickerProps> = ({
       if (!handleData) {
         throw new Error("File handle not found or permission denied")
       }
-
-      // Create snapshot using direct file reading
-      const snapshot = await createSnapshotFromFile(handleData.handle)
-      const snapshotKey = `hexed:pending-handle-${handleId}`
-      try {
-        // Store snapshot data (convert Uint8Array to array for JSON)
-        const snapshotData = {
-          ...snapshot,
-          data: Array.from(snapshot.data)
-        }
-        sessionStorage.setItem(snapshotKey, JSON.stringify(snapshotData))
-      } catch (storageError) {
-        console.warn(
-          "Failed to store snapshot in sessionStorage:",
-          storageError
-        )
-      }
-
       // Call callback with handleId
-      onHandleReady(handleId)
+      onHandleIdChange(handleId)
     } catch (error) {
       console.error("Error reopening file handle:", error)
       alert("Could not reopen file. Please select it again.")
@@ -197,8 +176,8 @@ export const DataPicker: FunctionComponent<DataPickerProps> = ({
       return
     }
 
-    if (!onHandleReady) {
-      console.warn("onHandleReady callback not provided")
+    if (!onHandleIdChange) {
+      console.warn("onHandleIdChange callback not provided")
       return
     }
 
@@ -236,7 +215,7 @@ export const DataPicker: FunctionComponent<DataPickerProps> = ({
       }
 
       // Call callback with handleId
-      onHandleReady(handleId)
+      onHandleIdChange(handleId)
     } catch (error) {
       // User cancelled or error occurred
       if (error instanceof DOMException && error.name !== "AbortError") {
@@ -263,7 +242,7 @@ export const DataPicker: FunctionComponent<DataPickerProps> = ({
             <Button
               onClick={handleFileSystemAccessPicker}
               disabled={
-                isLoading || !supportsFileSystemAccess || !onHandleReady
+                isLoading || !supportsFileSystemAccess || !onHandleIdChange
               }
               className="flex-1"
             >
@@ -274,7 +253,7 @@ export const DataPicker: FunctionComponent<DataPickerProps> = ({
               )}
               {isLoading ? "Opening..." : "Choose File"}
             </Button>
-            {onHandleReady && (
+            {onHandleIdChange && (
               <RecentFilesDropdown
                 recentFiles={recentFiles}
                 onSelect={handleRecentFileSelect}
@@ -297,7 +276,7 @@ export const DataPicker: FunctionComponent<DataPickerProps> = ({
               "File System Access API is not supported in this browser"
             )}
             {recentFiles.length > 0 &&
-              onHandleReady &&
+              onHandleIdChange &&
               " or select from recent files"}
           </p>
         </div>

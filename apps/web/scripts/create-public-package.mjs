@@ -1,4 +1,6 @@
 #!/usr/bin/env node
+/* eslint-env node */
+/* global console, process */
 
 import { readFileSync, writeFileSync, existsSync } from "fs"
 import { join, dirname } from "path"

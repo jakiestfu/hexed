@@ -47,24 +47,12 @@ importers:
 
   apps/web:
     dependencies:
-      '@hexed/binary-templates':
-        specifier: workspace:*
-        version: link:../../packages/binary-templates
-      '@hexed/binary-utils':
-        specifier: workspace:*
-        version: link:../../packages/binary-utils
-      '@hexed/canvas':
-        specifier: workspace:*
-        version: link:../../packages/canvas
       '@hexed/editor':
         specifier: workspace:*
         version: link:../../packages/editor
       '@hexed/logger':
         specifier: workspace:*
         version: link:../../packages/logger
-      '@hexed/types':
-        specifier: workspace:*
-        version: link:../../packages/types
       '@hexed/ui':
         specifier: workspace:*
         version: link:../../packages/ui
@@ -74,9 +62,6 @@ importers:
       '@tailwindcss/postcss':
         specifier: ^4.1.0
         version: 4.1.18
-      lucide-react:
-        specifier: ^0.468.0
-        version: 0.468.0(react@19.2.3)
       next-themes:
         specifier: ^0.4.6
         version: 0.4.6(react-dom@19.2.3(react@19.2.3))(react@19.2.3)
@@ -89,18 +74,9 @@ importers:
       react-dom:
         specifier: 19.2.3
         version: 19.2.3(react@19.2.3)
-      react-hotkeys-hook:
-        specifier: ^4.5.1
-        version: 4.6.2(react-dom@19.2.3(react@19.2.3))(react@19.2.3)
-      react-markdown:
-        specifier: ^9.0.1
-        version: 9.1.0(@types/react@19.2.7)(react@19.2.3)
       react-router-dom:
         specifier: ^7.1.0
         version: 7.12.0(react-dom@19.2.3(react@19.2.3))(react@19.2.3)
-      recharts:
-        specifier: 2.15.4
-        version: 2.15.4(react-dom@19.2.3(react@19.2.3))(react@19.2.3)
       tailwindcss:
         specifier: ^4.0.0
         version: 4.1.18
@@ -261,6 +237,9 @@ importers:
       react-hotkeys-hook:
         specifier: ^4.5.1
         version: 4.6.2(react-dom@19.2.3(react@19.2.3))(react@19.2.3)
+      react-markdown:
+        specifier: ^9.0.1
+        version: 9.1.0(@types/react@19.2.7)(react@19.2.3)
       recharts:
         specifier: 2.15.4
         version: 2.15.4(react-dom@19.2.3(react@19.2.3))(react@19.2.3)

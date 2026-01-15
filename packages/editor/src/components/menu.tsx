@@ -21,13 +21,12 @@ import {
   Trash2,
   Type
 } from "lucide-react"
-import { useTheme } from "next-themes"
-import { Link } from "react-router-dom"
 
 import {
   FileSourceIcon,
   formatFilenameForDisplay,
   Histogram,
+  Hotkeys,
   Sidebar,
   useRecentFiles,
   useSettings
@@ -52,9 +51,6 @@ import {
   DropdownMenuSubTrigger
 } from "@hexed/ui"
 
-import { Hotkeys } from "~/utils/hotkey-format"
-import { encodeHandleId } from "~/utils/path-encoding"
-import packageJson from "../../package.public.json"
 import { Brand } from "./logo"
 
 export type MenuItem = {
@@ -64,18 +60,43 @@ export type MenuItem = {
   href?: string
 }
 
+export type PackageInfo = {
+  name: string
+  description: string
+  version: string
+  repository: {
+    url: string
+  }
+}
+
 export type MenuProps = {
   currentSnapshot?: BinarySnapshot | null
   showHistogram: boolean
   onShowHistogramChange: (show: boolean) => void
+  // Navigation
+  onNavigate?: (path: string) => void
+  LinkComponent?: React.ComponentType<{
+    to: string
+    className?: string
+    children: React.ReactNode
+  }>
+  // Theme
+  theme?: string
+  setTheme?: (theme: string) => void
+  // Package info
+  packageInfo?: PackageInfo
 }
 
 export const Menu: FunctionComponent<MenuProps> = ({
   currentSnapshot,
   showHistogram,
-  onShowHistogramChange
+  onShowHistogramChange,
+  onNavigate,
+  LinkComponent,
+  theme,
+  setTheme,
+  packageInfo
 }) => {
-  const { theme, setTheme } = useTheme()
   const { recentFiles, clearRecentFiles, removeRecentFile } = useRecentFiles()
   const {
     sidebar,
@@ -87,9 +108,7 @@ export const Menu: FunctionComponent<MenuProps> = ({
     sidebarPosition,
     setSidebarPosition,
     showMemoryProfiler,
-    setShowMemoryProfiler,
-    showWorkerStatus,
-    setShowWorkerStatus
+    setShowMemoryProfiler
   } = useSettings()
   const [showClientFileDialog, setShowClientFileDialog] = useState(false)
   const [clickedClientFileHandleId, setClickedClientFileHandleId] = useState<
@@ -98,11 +117,11 @@ export const Menu: FunctionComponent<MenuProps> = ({
   const [showAboutDialog, setShowAboutDialog] = useState(false)
 
   const handleShare = async () => {
-    if (navigator.share) {
+    if (navigator.share && packageInfo) {
       try {
         await navigator.share({
           title: "Hexed",
-          text: packageJson.description,
+          text: packageInfo.description,
           url: window.location.href
         })
       } catch (error) {
@@ -121,13 +140,29 @@ export const Menu: FunctionComponent<MenuProps> = ({
       <DropdownMenuContent align="start">
         {/* Home */}
         <DropdownMenuItem asChild>
-          <Link
-            to="/"
-            className="flex items-center gap-2 cursor-pointer"
-          >
-            <Home className="mr-2 h-4 w-4" />
-            Home
-          </Link>
+          {LinkComponent ? (
+            <LinkComponent
+              to="/"
+              className="flex items-center gap-2 cursor-pointer"
+            >
+              <Home className="mr-2 h-4 w-4" />
+              Home
+            </LinkComponent>
+          ) : (
+            <a
+              href="/"
+              className="flex items-center gap-2 cursor-pointer"
+              onClick={(e) => {
+                if (onNavigate) {
+                  e.preventDefault()
+                  onNavigate("/")
+                }
+              }}
+            >
+              <Home className="mr-2 h-4 w-4" />
+              Home
+            </a>
+          )}
         </DropdownMenuItem>
         <DropdownMenuSeparator />
 
@@ -157,23 +192,42 @@ export const Menu: FunctionComponent<MenuProps> = ({
                 {recentFiles.map((file) => {
                   // Use stored source, fallback to "file-system" for backward compatibility
                   const fileSource = file.source || "file-system"
-                  const encodedHandleId = encodeHandleId(file.id)
+                  const editPath = `/edit/${file.id}`
 
                   return (
                     <DropdownMenuItem
                       key={file.id}
                       asChild
                     >
-                      <Link
-                        to={`/edit/${encodedHandleId}`}
-                        className="flex items-center gap-2 cursor-pointer"
-                      >
-                        <FileSourceIcon
-                          fileSource={fileSource}
-                          className="mr-2"
-                        />
-                        {formatFilenameForDisplay(file.handle.name)}
-                      </Link>
+                      {LinkComponent ? (
+                        <LinkComponent
+                          to={editPath}
+                          className="flex items-center gap-2 cursor-pointer"
+                        >
+                          <FileSourceIcon
+                            fileSource={fileSource}
+                            className="mr-2"
+                          />
+                          {formatFilenameForDisplay(file.handle.name)}
+                        </LinkComponent>
+                      ) : (
+                        <a
+                          href={editPath}
+                          className="flex items-center gap-2 cursor-pointer"
+                          onClick={(e) => {
+                            if (onNavigate) {
+                              e.preventDefault()
+                              onNavigate(editPath)
+                            }
+                          }}
+                        >
+                          <FileSourceIcon
+                            fileSource={fileSource}
+                            className="mr-2"
+                          />
+                          {formatFilenameForDisplay(file.handle.name)}
+                        </a>
+                      )}
                     </DropdownMenuItem>
                   )
                 })}
@@ -244,13 +298,6 @@ export const Menu: FunctionComponent<MenuProps> = ({
               className="cursor-pointer"
             >
               Show Memory Profiler
-            </DropdownMenuCheckboxItem>
-            <DropdownMenuCheckboxItem
-              checked={showWorkerStatus}
-              onCheckedChange={setShowWorkerStatus}
-              className="cursor-pointer"
-            >
-              Show Worker Status
             </DropdownMenuCheckboxItem>
           </DropdownMenuSubContent>
         </DropdownMenuSub>
@@ -349,40 +396,42 @@ export const Menu: FunctionComponent<MenuProps> = ({
             </DropdownMenuRadioGroup>
           </DropdownMenuSubContent>
         </DropdownMenuSub>
-        <DropdownMenuSub>
-          <DropdownMenuSubTrigger className="cursor-pointer">
-            <Palette className="mr-2 h-4 w-4" />
-            Theme
-          </DropdownMenuSubTrigger>
-          <DropdownMenuSubContent>
-            <DropdownMenuRadioGroup
-              value={theme || "system"}
-              onValueChange={(value) => setTheme(value)}
-            >
-              <DropdownMenuRadioItem
-                value="light"
-                className="cursor-pointer"
+        {setTheme && (
+          <DropdownMenuSub>
+            <DropdownMenuSubTrigger className="cursor-pointer">
+              <Palette className="mr-2 h-4 w-4" />
+              Theme
+            </DropdownMenuSubTrigger>
+            <DropdownMenuSubContent>
+              <DropdownMenuRadioGroup
+                value={theme || "system"}
+                onValueChange={(value) => setTheme(value)}
               >
-                <Sun className="mr-2 h-4 w-4" />
-                Light
-              </DropdownMenuRadioItem>
-              <DropdownMenuRadioItem
-                value="dark"
-                className="cursor-pointer"
-              >
-                <Moon className="mr-2 h-4 w-4" />
-                Dark
-              </DropdownMenuRadioItem>
-              <DropdownMenuRadioItem
-                value="system"
-                className="cursor-pointer"
-              >
-                <Monitor className="mr-2 h-4 w-4" />
-                System
-              </DropdownMenuRadioItem>
-            </DropdownMenuRadioGroup>
-          </DropdownMenuSubContent>
-        </DropdownMenuSub>
+                <DropdownMenuRadioItem
+                  value="light"
+                  className="cursor-pointer"
+                >
+                  <Sun className="mr-2 h-4 w-4" />
+                  Light
+                </DropdownMenuRadioItem>
+                <DropdownMenuRadioItem
+                  value="dark"
+                  className="cursor-pointer"
+                >
+                  <Moon className="mr-2 h-4 w-4" />
+                  Dark
+                </DropdownMenuRadioItem>
+                <DropdownMenuRadioItem
+                  value="system"
+                  className="cursor-pointer"
+                >
+                  <Monitor className="mr-2 h-4 w-4" />
+                  System
+                </DropdownMenuRadioItem>
+              </DropdownMenuRadioGroup>
+            </DropdownMenuSubContent>
+          </DropdownMenuSub>
+        )}
         <DropdownMenuSeparator />
         <DropdownMenuItem
           onClick={() => setShowAboutDialog(true)}
@@ -435,54 +484,56 @@ export const Menu: FunctionComponent<MenuProps> = ({
           </div>
         </DialogContent>
       </Dialog>
-      <Dialog
-        open={showAboutDialog}
-        onOpenChange={setShowAboutDialog}
-      >
-        <DialogContent className="text-center">
-          <DialogHeader>
-            <DialogTitle className="sr-only">
-              About {packageJson.name}
-            </DialogTitle>
-          </DialogHeader>
-          <div className="flex flex-col items-center gap-4 py-4">
-            <Brand />
-            <p className="text-muted-foreground max-w-xs">
-              {packageJson.description}
-            </p>
-            <p className="text-sm text-muted-foreground font-mono">
-              Version {packageJson.version}
-            </p>
-            <div className="flex flex-col sm:flex-row gap-2 mt-2 w-full sm:w-auto">
-              <Button
-                variant="outline"
-                asChild
-                className="flex items-center gap-2"
-              >
-                <a
-                  href={packageJson.repository.url.replace(".git", "")}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="flex items-center gap-2"
-                >
-                  <Github className="h-4 w-4" />
-                  View on GitHub
-                </a>
-              </Button>
-              {canShare && (
+      {packageInfo && (
+        <Dialog
+          open={showAboutDialog}
+          onOpenChange={setShowAboutDialog}
+        >
+          <DialogContent className="text-center">
+            <DialogHeader>
+              <DialogTitle className="sr-only">
+                About {packageInfo.name}
+              </DialogTitle>
+            </DialogHeader>
+            <div className="flex flex-col items-center gap-4 py-4">
+              <Brand />
+              <p className="text-muted-foreground max-w-xs">
+                {packageInfo.description}
+              </p>
+              <p className="text-sm text-muted-foreground font-mono">
+                Version {packageInfo.version}
+              </p>
+              <div className="flex flex-col sm:flex-row gap-2 mt-2 w-full sm:w-auto">
                 <Button
                   variant="outline"
-                  onClick={handleShare}
+                  asChild
                   className="flex items-center gap-2"
                 >
-                  <Share2 className="h-4 w-4" />
-                  {/* Share */}
+                  <a
+                    href={packageInfo.repository.url.replace(".git", "")}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="flex items-center gap-2"
+                  >
+                    <Github className="h-4 w-4" />
+                    View on GitHub
+                  </a>
                 </Button>
-              )}
+                {canShare && (
+                  <Button
+                    variant="outline"
+                    onClick={handleShare}
+                    className="flex items-center gap-2"
+                  >
+                    <Share2 className="h-4 w-4" />
+                    {/* Share */}
+                  </Button>
+                )}
+              </div>
             </div>
-          </div>
-        </DialogContent>
-      </Dialog>
+          </DialogContent>
+        </Dialog>
+      )}
     </>
   )
 }

@@ -65,15 +65,15 @@
     "zod": "^4.3.5"
   },
   "devDependencies": {
+    "@hexed/eslint-config": "workspace:*",
+    "@hexed/prettier-config": "workspace:*",
+    "@hexed/typescript-config": "workspace:*",
     "@types/react": "^19.2.3",
     "@types/react-dom": "^19.2.3",
     "react": "^19.2.3",
     "react-dom": "^19.2.3",
     "tailwindcss": "^4.0.0",
-    "typescript": "^5.7.2",
-    "@hexed/eslint-config": "workspace:*",
-    "@hexed/prettier-config": "workspace:*",
-    "@hexed/typescript-config": "workspace:*"
+    "typescript": "^5.7.2"
   },
   "prettier": "@hexed/prettier-config",
   "peerDependencies": {

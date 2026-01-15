@@ -4,7 +4,7 @@ import { ChevronDown, Ghost } from "lucide-react"
 import type { BinarySnapshot } from "@hexed/types"
 import { Button, cn, DropdownMenu, DropdownMenuTrigger } from "@hexed/ui"
 
-import { Menu, type MenuItem } from "./menu"
+import { Menu, type MenuItem, type PackageInfo } from "./menu"
 
 export type { MenuItem } from "./menu"
 
@@ -13,6 +13,18 @@ export type LogoProps = {
   currentSnapshot?: BinarySnapshot | null
   showHistogram?: boolean
   onShowHistogramChange?: (show: boolean) => void
+  // Navigation
+  onNavigate?: (path: string) => void
+  LinkComponent?: React.ComponentType<{
+    to: string
+    className?: string
+    children: React.ReactNode
+  }>
+  // Theme
+  theme?: string
+  setTheme?: (theme: string) => void
+  // Package info
+  packageInfo?: PackageInfo
 }
 
 export const Brand: FunctionComponent<{
@@ -40,7 +52,12 @@ export const Logo: FunctionComponent<LogoProps> = ({
   inline = false,
   currentSnapshot,
   showHistogram: controlledShowHistogram,
-  onShowHistogramChange: controlledOnShowHistogramChange
+  onShowHistogramChange: controlledOnShowHistogramChange,
+  onNavigate,
+  LinkComponent,
+  theme,
+  setTheme,
+  packageInfo
 }) => {
   const [internalShowHistogram, setInternalShowHistogram] = useState(false)
 
@@ -65,6 +82,11 @@ export const Logo: FunctionComponent<LogoProps> = ({
           currentSnapshot={currentSnapshot}
           showHistogram={showHistogram}
           onShowHistogramChange={onShowHistogramChange}
+          onNavigate={onNavigate}
+          LinkComponent={LinkComponent}
+          theme={theme}
+          setTheme={setTheme}
+          packageInfo={packageInfo}
         />
       </DropdownMenu>
     </div>

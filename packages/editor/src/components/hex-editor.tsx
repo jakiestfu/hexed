@@ -1,7 +1,7 @@
 "use client"
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react"
-import type { FunctionComponent, ReactNode } from "react"
+import type { FunctionComponent } from "react"
 import { Loader2 } from "lucide-react"
 
 import { computeDiff } from "@hexed/binary-utils/differ"
@@ -30,6 +30,7 @@ import { HexToolbar } from "./hex-toolbar"
 import { HexToolbarDiff } from "./hex-toolbar-diff"
 import { HexToolbarSearch } from "./hex-toolbar-search"
 import { HexToolbarTabs } from "./hex-toolbar-tabs"
+import { Logo } from "./logo"
 
 const HexEditorView: FunctionComponent<HexEditorViewProps> = ({
   scrollToOffset,
@@ -61,15 +62,17 @@ const HexEditorView: FunctionComponent<HexEditorViewProps> = ({
   )
 }
 
-export const HexEditor: FunctionComponent<
-  HexEditorProps & { logo?: ReactNode }
-> = ({
+export const HexEditor: FunctionComponent<HexEditorProps> = ({
   handleId,
   onClose,
   className = "",
   fileSource = "file-system",
-  onHandleReady,
-  logo
+  onHandleIdChange,
+  onNavigate,
+  LinkComponent,
+  theme,
+  setTheme,
+  packageInfo
 }) => {
   // Use hook to manage file loading and watching
   const { snapshots, fileHandle, isConnected, loading, error, restart } =
@@ -208,7 +211,18 @@ export const HexEditor: FunctionComponent<
       >
         <CardHeader className="p-0! gap-0 m-0 bg-muted/30">
           <HexToolbar
-            left={logo}
+            left={
+              <Logo
+                currentSnapshot={currentSnapshot}
+                showHistogram={showHistogram}
+                onShowHistogramChange={setShowHistogram}
+                onNavigate={onNavigate}
+                LinkComponent={LinkComponent}
+                theme={theme}
+                setTheme={setTheme}
+                packageInfo={packageInfo}
+              />
+            }
             filePath={fileHandle?.name}
             fileSource={fileSource}
             isConnected={isConnected}
@@ -234,7 +248,7 @@ export const HexEditor: FunctionComponent<
         </CardHeader>
         <CardContent className="p-0 grow overflow-auto">
           {!hasFile ? (
-            <EmptyState onHandleReady={onHandleReady} />
+            <EmptyState onHandleIdChange={onHandleIdChange} />
           ) : loading || (hasFile && !hasSnapshots) ? (
             <div className="flex flex-col items-center justify-center gap-4 text-center h-full">
               <Loader2 className="h-8 w-8 animate-spin text-primary" />
