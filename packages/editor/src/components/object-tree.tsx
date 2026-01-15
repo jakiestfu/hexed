@@ -39,7 +39,6 @@ const TreeNodeView: FunctionComponent<TreeNodeViewProps> = ({
 
     // Try to extract start/end from _debug
     let debugInfo: { start?: number; end?: number } | undefined
-    console.log("NODE", node)
     // Use root's _debug and path to navigate to the correct debug info
     if (node.rootOriginalNode?._debug) {
       const rootDebug = node.rootOriginalNode._debug

@@ -7,10 +7,6 @@ import { useRecentFiles } from "./use-recent-files"
  * Hook for managing file loading and watching for HexEditor
  * Encapsulates all file-related state and logic
  */
-// const snapshots = []
-// const isConnected = false
-// const watchError = null
-// const restart = () => {}
 export function useHexEditorFile(handleId: string | null) {
   const { getFileHandleById, addRecentFile } = useRecentFiles({
     loadFiles: false
@@ -23,7 +19,6 @@ export function useHexEditorFile(handleId: string | null) {
   const runIdRef = React.useRef(0)
 
   // Load handle metadata when handleId changes
-  console.log("USE HEX EDITOR FILE RENDER")
   React.useEffect(() => {
     if (!handleId) {
       setFileHandle(null)
@@ -49,25 +44,18 @@ export function useHexEditorFile(handleId: string | null) {
           }
         }
         // Load from IndexedDB handle
-        console.log("USE HEX EDITOR FILE LOAD HANDLE BEFORE*")
         const handleData = await getFileHandleById(handleId)
-        console.log("USE HEX EDITOR FILE LOAD HANDLE AFTER*", handleData)
         if (!handleData) {
           throw new Error("File handle not found or permission denied")
         }
 
         setFileHandle(handleData.handle)
-
-        // // Update recent files (will check for duplicates internally)
-        // addRecentFile(handleData.handle.name, "file-system", handleData.handle)
       } catch (error) {
         console.error("Failed to load handle metadata:", error)
         const errorMessage =
           error instanceof Error ? error.message : "Failed to load file"
         setLoadError(errorMessage)
         setFileHandle(null)
-      } finally {
-        // setInitialLoading(false)
       }
     }
 

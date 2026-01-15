@@ -2,7 +2,6 @@ import type { Endianness, NumberFormat } from "@hexed/binary-utils/interpreter"
 import type { BinarySnapshot, DiffResult } from "@hexed/types"
 
 import type { FileHandleMetadata } from "./utils/file-handle-storage"
-import type { FileManager } from "./utils"
 
 export type FileSource = "file-system"
 

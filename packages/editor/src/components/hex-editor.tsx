@@ -256,18 +256,6 @@ export const HexEditor: FunctionComponent<
               // Calculate default sizes based on visible panels
               const hasSidebars = sidebar !== null
 
-              // Calculate sizes for the sidebar group relative to hex canvas
-              // let hexCanvasDefaultSize = 100
-              // let sidebarGroupDefaultSize = 0
-
-              // if (true) {
-              //   hexCanvasDefaultSize = 70
-              //   sidebarGroupDefaultSize = 30
-              // }
-
-              // Determine minSize based on sidebar type
-              // const sidebarMinSize = sidebar === "interpreter" ? 15 : 10
-
               const hexCanvasPanel = (
                 <ResizablePanel
                   id="hex-canvas"

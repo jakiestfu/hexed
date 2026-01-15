@@ -74,16 +74,6 @@ function isFileSystemFileHandle(
 }
 
 /**
- * Create snapshot from FileSystemFileHandle using direct file reading
- */
-export async function createSnapshotFromHandle(
-  handle: FileSystemFileHandle
-): Promise<BinarySnapshot> {
-  const file = await handle.getFile()
-  return createSnapshotFromFile(file)
-}
-
-/**
  * Create snapshot from File object or FileSystemFileHandle using direct file reading
  */
 export async function createSnapshotFromFile(
@@ -107,22 +97,6 @@ export async function createSnapshotFromFile(
     arrayBuffer,
     file.name || "file"
   )
-  snapshot.md5 = await calculateChecksum(snapshot.data)
-  return snapshot
-}
-
-/**
- * Create snapshot from URL
- */
-export async function createSnapshotFromURL(
-  url: string
-): Promise<BinarySnapshot> {
-  const response = await fetch(url)
-  if (!response.ok) {
-    throw new Error(`Failed to fetch: ${response.statusText}`)
-  }
-  const arrayBuffer = await response.arrayBuffer()
-  const snapshot = createSnapshotFromArrayBuffer(arrayBuffer, url)
   snapshot.md5 = await calculateChecksum(snapshot.data)
   return snapshot
 }
