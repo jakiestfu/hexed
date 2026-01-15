@@ -1,6 +1,7 @@
 import * as React from "react"
 
-import { useFileHandleWatcher } from "./use-file-handle-watcher"
+import { useFileData } from "./use-file-data"
+import { useHandleToFile } from "./use-handle-to-file"
 import { useRecentFiles } from "./use-recent-files"
 
 /**
@@ -53,40 +54,46 @@ export function useHexEditorFile(
         }
 
         setFileHandle(handleData.handle)
+        setInitialLoading(false)
       } catch (error) {
         console.error("Failed to load handle metadata:", error)
         const errorMessage =
           error instanceof Error ? error.message : "Failed to load file"
         setLoadError(errorMessage)
         setFileHandle(null)
+        setInitialLoading(false)
       }
     }
 
     openFileHandler()
   }, [handleId, getFileHandleById, addRecentFile])
 
-  // Use file handle watcher for handle-based files
+  // Convert handle to File using the new hook
   const {
-    snapshots,
-    snapshot,
-    isConnected,
-    error: watchError,
-    restart
-  } = useFileHandleWatcher(fileHandle, snapshotId)
+    file,
+    loading: fileLoading,
+    error: fileError
+  } = useHandleToFile(fileHandle)
+
+  // Read file data using the new hook
+  const { data, loading: dataLoading, error: dataError } = useFileData(file)
 
   // Combine loading states
-  const loading =
-    !fileHandle ||
-    (snapshots.length === 0 && !watchError && !loadError && !!handleId)
+  const loading = initialLoading || fileLoading || dataLoading
 
   // Combine errors (load error takes precedence)
-  const error = loadError || watchError
+  const error = loadError || fileError || dataError
+
+  // No-op restart function (kept for component compatibility)
+  const restart = React.useCallback(() => {
+    // No-op: file watching is not implemented yet
+  }, [])
 
   return {
-    snapshots,
-    snapshot,
+    snapshots: [],
+    data,
     fileHandle,
-    isConnected,
+    isConnected: false,
     loading,
     error,
     restart

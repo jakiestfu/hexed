@@ -23,6 +23,7 @@ import { useGlobalKeyboard } from "../hooks/use-global-keyboard"
 import { useHexEditorFile } from "../hooks/use-hex-editor-file"
 import { useSettings } from "../hooks/use-settings"
 import type { HexEditorProps, HexEditorViewProps } from "../types"
+import { createMinimalSnapshot } from "../utils"
 import { EmptyState } from "./empty-state"
 import { HexFooter } from "./hex-footer"
 import { HexSidebar } from "./hex-sidebar"
@@ -34,7 +35,7 @@ import { Logo } from "./logo"
 
 const HexEditorView: FunctionComponent<HexEditorViewProps> = ({
   scrollToOffset,
-  snapshot,
+  data,
   showAscii,
   diff,
   selectedOffsetRange,
@@ -52,7 +53,7 @@ const HexEditorView: FunctionComponent<HexEditorViewProps> = ({
     <div className="h-full flex-1 min-w-0">
       <HexCanvas
         ref={hexCanvasRef}
-        data={snapshot.data}
+        data={data}
         showAscii={showAscii}
         diff={diff}
         selectedOffsetRange={selectedOffsetRange}
@@ -73,7 +74,7 @@ export const HexEditor: FunctionComponent<HexEditorProps> = ({
   packageInfo
 }) => {
   // Use hook to manage file loading and watching
-  const { snapshots, fileHandle, isConnected, loading, error, restart } =
+  const { data, fileHandle, isConnected, loading, error, restart } =
     useHexEditorFile(handleId || null)
 
   const [activeTab, setActiveTab] = useState<string>("0")
@@ -83,20 +84,15 @@ export const HexEditor: FunctionComponent<HexEditorProps> = ({
   const [dataType, setDataType] = useState<string>("Signed Int")
   const [endianness, setEndianness] = useState<string>("le")
   const [numberFormat, setNumberFormat] = useState<string>("dec")
-  const currentSnapshot = snapshots[parseInt(activeTab, 10)] || snapshots[0]
+
   const hasFile = fileHandle != null
-  const hasSnapshots = snapshots.length > 0
-  const hasMultipleSnapshots = snapshots.length > 1
+  const hasData = data !== null
 
-  // Get previous snapshot for the active tab
-  const activeTabIndex = parseInt(activeTab, 10)
-  const previousSnapshot =
-    activeTabIndex > 0 ? snapshots[activeTabIndex - 1] : undefined
-
+  // Diff is disabled since we don't have multiple snapshots
   const diff = useMemo(() => {
-    if (!previousSnapshot || diffMode === "none") return null
-    return computeDiff(previousSnapshot, currentSnapshot)
-  }, [previousSnapshot, currentSnapshot, diffMode])
+    if (diffMode === "none") return null
+    return null
+  }, [diffMode])
 
   const [scrollToOffset, setScrollToOffset] = useState<number | null>(null)
   const [selectedOffsetRange, setSelectedOffsetRange] = useState<{
@@ -166,7 +162,7 @@ export const HexEditor: FunctionComponent<HexEditorProps> = ({
   // Global keyboard shortcuts
   useGlobalKeyboard({
     selectedOffsetRange,
-    data: currentSnapshot?.data || new Uint8Array(),
+    data: data || new Uint8Array(),
     showSearch,
     onToggleSearch: handleToggleSearch,
     onCloseSearch: handleCloseSearch,
@@ -211,7 +207,7 @@ export const HexEditor: FunctionComponent<HexEditorProps> = ({
           <HexToolbar
             left={
               <Logo
-                currentSnapshot={currentSnapshot}
+                // currentSnapshot={currentSnapshot}
                 showHistogram={showHistogram}
                 onShowHistogramChange={setShowHistogram}
                 onHandleIdChange={onHandleIdChange}
@@ -228,16 +224,16 @@ export const HexEditor: FunctionComponent<HexEditorProps> = ({
             onClose={onClose}
           />
           <HexToolbarSearch
-            data={currentSnapshot?.data}
+            data={data || undefined}
             showSearch={showSearch}
             hasFile={hasFile}
-            hasSnapshots={hasSnapshots}
+            hasSnapshots={hasData}
             inputRef={searchInputRef}
             syncRangeToFindInput={showSearch ? rangeToSyncToFindInput : null}
             onMatchFound={handleMatchFound}
             onClose={handleCloseSearch}
           />
-          <HexToolbarTabs snapshots={snapshots} />
+          {/* <HexToolbarTabs snapshots={snapshots} /> */}
           <HexToolbarDiff
             diff={diff}
             onScrollToOffset={handleScrollToOffset}
@@ -246,7 +242,7 @@ export const HexEditor: FunctionComponent<HexEditorProps> = ({
         <CardContent className="p-0 grow overflow-auto">
           {!hasFile ? (
             <EmptyState onHandleIdChange={onHandleIdChange} />
-          ) : loading || (hasFile && !hasSnapshots) ? (
+          ) : loading || (hasFile && !hasData) ? (
             <div className="flex flex-col items-center justify-center gap-4 text-center h-full">
               <Loader2 className="h-8 w-8 animate-spin text-primary" />
               <div>
@@ -258,12 +254,12 @@ export const HexEditor: FunctionComponent<HexEditorProps> = ({
                 </p>
               </div>
             </div>
-          ) : !hasSnapshots ? (
+          ) : !hasData ? (
             <div className="flex items-center justify-center h-full text-muted-foreground">
               No data available
             </div>
           ) : (
-            snapshots.map((snapshot, index) => {
+            (() => {
               // Calculate default sizes based on visible panels
               const hasSidebars = sidebar !== null
 
@@ -275,7 +271,7 @@ export const HexEditor: FunctionComponent<HexEditorProps> = ({
                 >
                   <HexEditorView
                     scrollToOffset={scrollToOffset}
-                    snapshot={snapshot}
+                    data={data}
                     showAscii={showAscii}
                     diff={diff}
                     selectedOffsetRange={selectedOffsetRange}
@@ -289,8 +285,7 @@ export const HexEditor: FunctionComponent<HexEditorProps> = ({
                 <HexSidebar
                   defaultSize={30}
                   minSize={30}
-                  snapshotData={snapshot.data}
-                  currentSnapshotData={currentSnapshot?.data}
+                  data={data}
                   selectedOffset={selectedOffset}
                   endianness={endianness as "le" | "be"}
                   numberFormat={numberFormat as "dec" | "hex"}
@@ -303,8 +298,7 @@ export const HexEditor: FunctionComponent<HexEditorProps> = ({
 
               return (
                 <TabsContent
-                  key={snapshot.id}
-                  value={index.toString()}
+                  value="0"
                   className="h-full"
                 >
                   <ResizablePanelGroup
@@ -327,7 +321,7 @@ export const HexEditor: FunctionComponent<HexEditorProps> = ({
                   </ResizablePanelGroup>
                 </TabsContent>
               )
-            })
+            })()
           )}
         </CardContent>
         {hasFile ? (
@@ -339,8 +333,8 @@ export const HexEditor: FunctionComponent<HexEditorProps> = ({
               setEndianness={setEndianness}
               numberFormat={numberFormat}
               setNumberFormat={setNumberFormat}
-              currentSnapshot={currentSnapshot}
-              hasSnapshots={hasSnapshots}
+              data={data}
+              hasSnapshots={hasData}
               selectedOffset={selectedOffset}
               paneToggleValue={paneToggleValue}
               onShowHistogram={handleToggleHistogram}

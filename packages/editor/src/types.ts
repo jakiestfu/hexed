@@ -38,7 +38,7 @@ export type SelectionRange = { start: number; end: number } | null
 
 export type HexEditorViewProps = {
   scrollToOffset: number | null
-  snapshot: BinarySnapshot
+  data: Uint8Array
   diff: DiffResult | null
   showAscii: boolean
   selectedOffsetRange: SelectionRange

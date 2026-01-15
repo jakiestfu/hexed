@@ -43,7 +43,7 @@ export type HexFooterProps = {
   setEndianness: (value: string) => void
   numberFormat: string
   setNumberFormat: (value: string) => void
-  currentSnapshot?: BinarySnapshot
+  data: Uint8Array | null
   hasSnapshots: boolean
   selectedOffset: number | null
   paneToggleValue: string
@@ -57,23 +57,19 @@ export const HexFooter: FunctionComponent<HexFooterProps> = ({
   setEndianness,
   numberFormat,
   setNumberFormat,
-  currentSnapshot,
+  data,
   hasSnapshots,
   selectedOffset,
   paneToggleValue,
   onShowHistogram
 }) => {
-  const {
-    showAscii,
-    setShowAscii,
-    showMemoryProfiler,
-    setSidebar
-  } = useSettings()
+  const { showAscii, setShowAscii, showMemoryProfiler, setSidebar } =
+    useSettings()
 
-  const bytesLabel = currentSnapshot ? (
+  const bytesLabel = data ? (
     <div className="flex items-center gap-2 font-mono">
       <span className="text-xs text-muted-foreground">
-        {formatFileSize(currentSnapshot.data.length || 0)}
+        {formatFileSize(data.length || 0)}
       </span>
       {showMemoryProfiler && <MemoryProfiler />}
     </div>
@@ -176,7 +172,7 @@ export const HexFooter: FunctionComponent<HexFooterProps> = ({
                 variant="outline"
                 size="sm"
                 onClick={onShowHistogram}
-                disabled={!hasSnapshots || !currentSnapshot?.data}
+                disabled={!hasSnapshots || !data}
                 aria-label="Show histogram"
               >
                 <BarChart3 className="h-4 w-4" />

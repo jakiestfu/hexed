@@ -14,8 +14,7 @@ import { Templates } from "./templates"
 export type HexSidebarProps = {
   defaultSize: number
   minSize: number
-  snapshotData: Uint8Array
-  currentSnapshotData?: Uint8Array
+  data: Uint8Array
   selectedOffset: number | null
   endianness: Endianness
   numberFormat: NumberFormat
@@ -28,8 +27,7 @@ export type HexSidebarProps = {
 export const HexSidebar: FunctionComponent<HexSidebarProps> = ({
   defaultSize,
   minSize,
-  snapshotData,
-  currentSnapshotData,
+  data,
   selectedOffset,
   endianness,
   numberFormat,
@@ -57,7 +55,7 @@ export const HexSidebar: FunctionComponent<HexSidebarProps> = ({
       <div className={`h-full`}>
         {sidebar === "interpreter" && (
           <Interpreter
-            data={snapshotData}
+            data={data}
             selectedOffset={selectedOffset}
             endianness={endianness}
             numberFormat={numberFormat}
@@ -67,7 +65,7 @@ export const HexSidebar: FunctionComponent<HexSidebarProps> = ({
         )}
         {sidebar === "templates" && (
           <Templates
-            data={currentSnapshotData}
+            data={data}
             filePath={filePath}
             onClose={() => setSidebar(null)}
             onScrollToOffset={onScrollToOffset}
@@ -76,7 +74,7 @@ export const HexSidebar: FunctionComponent<HexSidebarProps> = ({
         )}
         {sidebar === "strings" && (
           <Strings
-            data={snapshotData}
+            data={data}
             onClose={() => setSidebar(null)}
             onScrollToOffset={onScrollToOffset}
             onSelectedOffsetRangeChange={onSelectedOffsetRangeChange}

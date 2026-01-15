@@ -70,7 +70,7 @@ export type PackageInfo = {
 }
 
 export type MenuProps = {
-  currentSnapshot?: BinarySnapshot | null
+  // currentSnapshot?: BinarySnapshot | null
   showHistogram: boolean
   onShowHistogramChange: (show: boolean) => void
   // Navigation
@@ -84,7 +84,7 @@ export type MenuProps = {
 }
 
 export const Menu: FunctionComponent<MenuProps> = ({
-  currentSnapshot,
+  // currentSnapshot,
   showHistogram,
   onShowHistogramChange,
   theme,
@@ -281,7 +281,6 @@ export const Menu: FunctionComponent<MenuProps> = ({
           <DropdownMenuSubContent>
             <DropdownMenuItem
               onClick={() => onShowHistogramChange(true)}
-              disabled={!currentSnapshot?.data}
               className="cursor-pointer"
             >
               <BarChart3 className="mr-2 h-4 w-4" />
@@ -413,7 +412,7 @@ export const Menu: FunctionComponent<MenuProps> = ({
           About
         </DropdownMenuItem>
       </DropdownMenuContent>
-      {currentSnapshot?.data && (
+      {/* {currentSnapshot?.data && (
         <Dialog
           open={showHistogram}
           onOpenChange={onShowHistogramChange}
@@ -422,7 +421,7 @@ export const Menu: FunctionComponent<MenuProps> = ({
             <Histogram data={currentSnapshot.data} />
           </DialogContent>
         </Dialog>
-      )}
+      )} */}
       <Dialog
         open={showClientFileDialog}
         onOpenChange={setShowClientFileDialog}

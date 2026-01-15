@@ -119,5 +119,24 @@ export function formatTimestamp(timestamp: number): string {
   return date.toLocaleDateString()
 }
 
+/**
+ * Create a minimal snapshot object from data and file handle
+ * Used when components require a BinarySnapshot but we only have raw data
+ */
+export function createMinimalSnapshot(
+  data: Uint8Array | null,
+  fileHandle: FileSystemFileHandle | null
+): BinarySnapshot {
+  return {
+    id: "current",
+    filePath: fileHandle?.name || "",
+    data: data || new Uint8Array(),
+    timestamp: Date.now(),
+    index: 0,
+    label: "Current",
+    md5: undefined
+  }
+}
+
 // Export utilities from other files
 export * from "./utils/hotkey-format"

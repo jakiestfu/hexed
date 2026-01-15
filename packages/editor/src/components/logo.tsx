@@ -10,7 +10,7 @@ export type { MenuItem } from "./menu"
 
 export type LogoProps = {
   inline?: boolean
-  currentSnapshot?: BinarySnapshot | null
+  // currentSnapshot?: BinarySnapshot | null
   showHistogram?: boolean
   onShowHistogramChange?: (show: boolean) => void
   // Theme
@@ -44,7 +44,7 @@ export const Brand: FunctionComponent<{
 
 export const Logo: FunctionComponent<LogoProps> = ({
   inline = false,
-  currentSnapshot,
+  // currentSnapshot,
   showHistogram: controlledShowHistogram,
   onShowHistogramChange: controlledOnShowHistogramChange,
   theme,
@@ -72,7 +72,7 @@ export const Logo: FunctionComponent<LogoProps> = ({
           </Button>
         </DropdownMenuTrigger>
         <Menu
-          currentSnapshot={currentSnapshot}
+          // currentSnapshot={currentSnapshot}
           showHistogram={showHistogram}
           onShowHistogramChange={onShowHistogramChange}
           onHandleIdChange={onHandleIdChange}
