@@ -78,7 +78,7 @@ export const HexFooter: FunctionComponent<HexFooterProps> = ({
         {formatFileSize(currentSnapshot.data.length || 0)}
       </span>
       {showMemoryProfiler && <MemoryProfiler />}
-      {showWorkerStatus && <WorkerStatus />}
+      {showWorkerStatus && <WorkerStatus isActive />}
     </div>
   ) : undefined
 

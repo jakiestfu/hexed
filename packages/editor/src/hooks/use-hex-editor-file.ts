@@ -9,6 +9,10 @@ import { useRecentFiles } from "./use-recent-files"
  * Hook for managing file loading and watching for HexEditor
  * Encapsulates all file-related state and logic
  */
+// const snapshots = []
+// const isConnected = false
+// const watchError = null
+// const restart = () => {}
 export function useHexEditorFile(handleId: string | null) {
   const fileManager = useFileManager()
   const { getFileHandleById, addRecentFile } = useRecentFiles({
@@ -76,7 +80,7 @@ export function useHexEditorFile(handleId: string | null) {
         setLoadError(errorMessage)
         setFileHandle(null)
       } finally {
-        setInitialLoading(false)
+        // setInitialLoading(false)
       }
     }
 
@@ -93,7 +97,7 @@ export function useHexEditorFile(handleId: string | null) {
 
   // Combine loading states
   const loading =
-    initialLoading ||
+    !fileHandle ||
     (snapshots.length === 0 && !watchError && !loadError && !!handleId)
 
   // Combine errors (load error takes precedence)

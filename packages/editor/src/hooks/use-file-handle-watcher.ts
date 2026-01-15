@@ -68,13 +68,12 @@ export function useFileHandleWatcher(
       setSnapshots((prev) => [...prev, snapshot])
       snapshotIndexRef.current++
 
-      setIsConnected(true)
       setError(null)
     } catch (err) {
       const errorMessage =
         err instanceof Error ? err.message : "Failed to read file"
       setError(errorMessage)
-      setIsConnected(false)
+
       console.error("Error reading file handle:", err)
     }
   }, [])
@@ -84,33 +83,29 @@ export function useFileHandleWatcher(
     // This ensures we react to prop changes immediately
     if (!handle) {
       setSnapshots([])
-      setIsConnected(false)
+
       setError(null)
       snapshotIndexRef.current = 0
       return
     }
-
     // Disconnect existing observer
     if (observerRef.current) {
       observerRef.current.disconnect()
       observerRef.current = null
     }
-
     // Reset state
-    setSnapshots([])
-    setError(null)
+    // setSnapshots([])
+    // setError(null)
     snapshotIndexRef.current = 0
-
     // Read initial snapshot
     readAndAddSnapshot().then(() => {
       // Check if FileSystemObserver is available (experimental API)
       // @ts-expect-error - FileSystemObserver is experimental and may not be in types
       if (typeof FileSystemObserver === "undefined") {
         // FileSystemObserver not available - just loaded initial snapshot without watching
-        setIsConnected(false) // Not watching, just loaded
+        // Not watching, just loaded
         return
       }
-
       try {
         // Create FileSystemObserver with callback
         // @ts-expect-error - FileSystemObserver is experimental and may not be in types
@@ -122,18 +117,15 @@ export function useFileHandleWatcher(
             }
           }
         )
-
         // Start observing the file handle
         observer.observe(handle).then(() => {
           observerRef.current = observer
-          setIsConnected(true)
         })
       } catch (observerError) {
         console.warn(
           "FileSystemObserver not available or failed to initialize:",
           observerError
         )
-        setIsConnected(false)
       }
     })
   }, [handle, readAndAddSnapshot])
@@ -147,7 +139,6 @@ export function useFileHandleWatcher(
         observerRef.current.disconnect()
         observerRef.current = null
       }
-      setIsConnected(false)
     }
   }, [connect])
 
@@ -155,7 +146,7 @@ export function useFileHandleWatcher(
     connect()
   }, [connect])
 
-  return { snapshots, isConnected, error, restart }
+  return { snapshots, isConnected: true, error, restart }
 }
 
 // Types for FileSystemObserver (experimental API)
