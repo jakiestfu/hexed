@@ -50,7 +50,7 @@ export type HexEditorViewProps = {
   selectedOffsetRange: SelectionRange
   onSelectedOffsetRangeChange: (range: SelectionRange) => void
   totalSize?: number
-  scrollTop: number
+  scrollTopRef: React.MutableRefObject<number>
 }
 
 export type InterpreterProps = {

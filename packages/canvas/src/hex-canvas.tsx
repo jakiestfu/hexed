@@ -12,13 +12,13 @@ import type { FunctionComponent } from "react"
 import type { DiffResult } from "@hexed/types"
 
 import { useCalculateEditorLayout } from "./hooks/use-calculate-editor-layout"
+import { useDrawCanvas } from "./hooks/use-draw-canvas"
 import { useKeyboardNavigation } from "./hooks/use-keyboard-navigation"
 import { useSelection } from "./hooks/use-selection"
 import {
   calculateScrollPosition,
   calculateSelectionRange,
   didDragOccur,
-  drawHexCanvas,
   isOffsetInRange,
   type SelectionRange
 } from "./utils/canvas"
@@ -41,7 +41,7 @@ export interface HexCanvasProps {
   onSelectedOffsetRangeChange?: (range: SelectionRange) => void
   colors?: Partial<HexCanvasColors>
   totalSize?: number
-  scrollTop: number
+  scrollTopRef: React.MutableRefObject<number>
   dimensions: { width: number; height: number }
   onRequestScrollToOffset?: (offset: number, targetScrollTop: number) => void
   containerRef?: React.RefObject<HTMLElement | null>
@@ -50,7 +50,6 @@ export interface HexCanvasProps {
 
 export interface HexCanvasRef {
   scrollToOffset: (offset: number) => void
-  totalHeight: number
 }
 
 export interface HexCanvasColors {
@@ -82,7 +81,6 @@ export const HexCanvas = forwardRef<HexCanvasRef, HexCanvasProps>(
       onSelectedOffsetRangeChange,
       colors: colorsProp,
       totalSize,
-      scrollTop,
       dimensions,
       onRequestScrollToOffset,
       containerRef,
@@ -193,8 +191,7 @@ export const HexCanvas = forwardRef<HexCanvasRef, HexCanvasProps>(
     }, [])
 
     useImperativeHandle(ref, () => ({
-      scrollToOffset,
-      totalHeight
+      scrollToOffset
     }))
 
     // Expose canvas element ref to parent component
@@ -219,9 +216,14 @@ export const HexCanvas = forwardRef<HexCanvasRef, HexCanvasProps>(
     const getRowFromY = useCallback(
       (mouseY: number): number | null => {
         if (!layout) return null
-        return getRowFromYUtil(mouseY, scrollTop, layout, rowsLength)
+        return getRowFromYUtil(
+          mouseY,
+          containerRef?.current?.scrollTop ?? 0,
+          layout,
+          rowsLength
+        )
       },
-      [layout, scrollTop, rowsLength]
+      [layout, containerRef, rowsLength]
     )
 
     // Helper function to calculate byte offset from mouse position
@@ -484,33 +486,13 @@ export const HexCanvas = forwardRef<HexCanvasRef, HexCanvasProps>(
     //   handleSelectionClick(null);
     // });
 
-    // Render canvas
-    useEffect(() => {
-      const canvas = canvasRef.current
-      const ctx = canvas?.getContext("2d")
-      if (!canvas || !ctx || !layout || dimensions.height === 0) return
-
-      drawHexCanvas(
-        canvas,
-        ctx,
-        layout,
-        dimensions,
-        rows,
-        scrollTop,
-        showAscii,
-        colors,
-        diff,
-        highlightedOffset,
-        selectedRange,
-        hoveredRow,
-        hoveredOffset
-      )
-    }, [
-      dimensions.width,
-      dimensions.height,
+    // Render canvas using requestAnimationFrame
+    useDrawCanvas(
+      containerRef,
+      canvasRef,
       layout,
+      dimensions,
       rows,
-      scrollTop,
       showAscii,
       colors,
       diff,
@@ -518,7 +500,7 @@ export const HexCanvas = forwardRef<HexCanvasRef, HexCanvasProps>(
       selectedRange,
       hoveredRow,
       hoveredOffset
-    ])
+    )
 
     return (
       <canvas

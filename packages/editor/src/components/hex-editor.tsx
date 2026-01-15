@@ -51,8 +51,8 @@ const HexEditorView: FunctionComponent<HexEditorViewProps> = ({
   diff,
   selectedOffsetRange,
   onSelectedOffsetRangeChange,
-  totalSize,
-  scrollTop
+  totalSize
+  // scrollTopRef
 }) => {
   // Handle scroll to offset requests from HexCanvas
   const handleRequestScrollToOffset = useCallback(
@@ -86,10 +86,10 @@ const HexEditorView: FunctionComponent<HexEditorViewProps> = ({
         selectedOffsetRange={selectedOffsetRange}
         onSelectedOffsetRangeChange={onSelectedOffsetRangeChange}
         totalSize={totalSize}
-        scrollTop={scrollTop}
+        // scrollTopRef={scrollTopRef}
+        containerRef={containerRef}
         dimensions={dimensions}
         onRequestScrollToOffset={handleRequestScrollToOffset}
-        containerRef={containerRef}
       />
       {/* Spacer to make container scrollable to total height */}
       <div style={{ height: `${layout.totalHeight}px`, width: "100%" }} />
@@ -121,8 +121,9 @@ export const HexEditor: FunctionComponent<HexEditorProps> = ({
     },
     []
   )
-  const scrollTop = useScrollTop(containerElement)
-
+  const scrollTopRef = useRef<number>(0)
+  // const scrollTop = useScrollTop(containerElement, scrollTopRef)
+  // console.log("scrollTop", scrollTop)
   const [activeTab, setActiveTab] = useState<string>("0")
   const { showAscii, sidebar, sidebarPosition } = useSettings()
 
@@ -339,7 +340,7 @@ export const HexEditor: FunctionComponent<HexEditorProps> = ({
                     style={{ position: "relative" }}
                   >
                     <HexEditorView
-                      scrollTop={scrollTop}
+                      scrollTopRef={scrollTopRef}
                       layout={layout}
                       hexCanvasRef={hexCanvasRef}
                       canvasElementRef={canvasElementRef}
