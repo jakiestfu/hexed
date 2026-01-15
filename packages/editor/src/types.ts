@@ -43,6 +43,7 @@ export type HexEditorViewProps = {
   showAscii: boolean
   selectedOffsetRange: SelectionRange
   onSelectedOffsetRangeChange: (range: SelectionRange) => void
+  totalSize?: number
 }
 
 export type InterpreterProps = {

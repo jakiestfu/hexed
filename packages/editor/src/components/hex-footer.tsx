@@ -37,13 +37,13 @@ import { useSettings, type Sidebar } from "../hooks/use-settings"
 import { MemoryProfiler } from "./memory-profiler"
 
 export type HexFooterProps = {
+  totalSize: number | undefined
   dataType: string
   setDataType: (value: string) => void
   endianness: string
   setEndianness: (value: string) => void
   numberFormat: string
   setNumberFormat: (value: string) => void
-  data: Uint8Array | null
   hasSnapshots: boolean
   selectedOffset: number | null
   paneToggleValue: string
@@ -51,13 +51,13 @@ export type HexFooterProps = {
 }
 
 export const HexFooter: FunctionComponent<HexFooterProps> = ({
+  totalSize,
   dataType,
   setDataType,
   endianness,
   setEndianness,
   numberFormat,
   setNumberFormat,
-  data,
   hasSnapshots,
   selectedOffset,
   paneToggleValue,
@@ -66,10 +66,10 @@ export const HexFooter: FunctionComponent<HexFooterProps> = ({
   const { showAscii, setShowAscii, showMemoryProfiler, setSidebar } =
     useSettings()
 
-  const bytesLabel = data ? (
+  const bytesLabel = totalSize ? (
     <div className="flex items-center gap-2 font-mono">
       <span className="text-xs text-muted-foreground">
-        {formatFileSize(data.length || 0)}
+        {formatFileSize(totalSize)}
       </span>
       {showMemoryProfiler && <MemoryProfiler />}
     </div>
@@ -172,7 +172,7 @@ export const HexFooter: FunctionComponent<HexFooterProps> = ({
                 variant="outline"
                 size="sm"
                 onClick={onShowHistogram}
-                disabled={!hasSnapshots || !data}
+                disabled={!hasSnapshots}
                 aria-label="Show histogram"
               >
                 <BarChart3 className="h-4 w-4" />

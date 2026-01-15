@@ -39,7 +39,8 @@ const HexEditorView: FunctionComponent<HexEditorViewProps> = ({
   showAscii,
   diff,
   selectedOffsetRange,
-  onSelectedOffsetRangeChange
+  onSelectedOffsetRangeChange,
+  totalSize
 }) => {
   const hexCanvasRef = useRef<HexCanvasRef | null>(null)
 
@@ -58,6 +59,7 @@ const HexEditorView: FunctionComponent<HexEditorViewProps> = ({
         diff={diff}
         selectedOffsetRange={selectedOffsetRange}
         onSelectedOffsetRangeChange={onSelectedOffsetRangeChange}
+        totalSize={totalSize}
       />
     </div>
   )
@@ -74,7 +76,7 @@ export const HexEditor: FunctionComponent<HexEditorProps> = ({
   packageInfo
 }) => {
   // Use hook to manage file loading and watching
-  const { data, fileHandle, isConnected, loading, error, restart } =
+  const { data, file, fileHandle, isConnected, loading, error, restart } =
     useHexEditorFile(handleId || null)
 
   const [activeTab, setActiveTab] = useState<string>("0")
@@ -276,6 +278,7 @@ export const HexEditor: FunctionComponent<HexEditorProps> = ({
                     diff={diff}
                     selectedOffsetRange={selectedOffsetRange}
                     onSelectedOffsetRangeChange={setSelectedOffsetRange}
+                    totalSize={file?.size}
                   />
                 </ResizablePanel>
               )
@@ -333,7 +336,7 @@ export const HexEditor: FunctionComponent<HexEditorProps> = ({
               setEndianness={setEndianness}
               numberFormat={numberFormat}
               setNumberFormat={setNumberFormat}
-              data={data}
+              totalSize={file?.size}
               hasSnapshots={hasData}
               selectedOffset={selectedOffset}
               paneToggleValue={paneToggleValue}
