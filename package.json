@@ -7,7 +7,6 @@
     "dev": "pnpm --filter @hexed/web dev",
     "preview": "pnpm --filter @hexed/web preview",
     "build": "pnpm --filter @hexed/web build",
-    "start": "pnpm --filter @hexed/web start",
     "dev:desktop": "pnpm --filter desktop dev",
     "build:desktop": "pnpm --filter desktop build",
     "_typecheck": "pnpm -r typecheck",

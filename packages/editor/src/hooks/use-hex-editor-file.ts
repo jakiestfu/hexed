@@ -67,8 +67,8 @@ export function useHexEditorFile(handleId: string | null) {
           }
         }
 
-        // Update recent files (will check for duplicates internally)
-        addRecentFile(handleData.handle.name, "file-system", handleData.handle)
+        // // Update recent files (will check for duplicates internally)
+        // addRecentFile(handleData.handle.name, "file-system", handleData.handle)
       } catch (error) {
         console.error("Failed to load handle metadata:", error)
         const errorMessage =

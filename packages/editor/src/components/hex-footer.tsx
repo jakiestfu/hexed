@@ -7,6 +7,8 @@ import {
   FileText,
   Type
 } from "lucide-react"
+
+import { formatFileSize } from "@hexed/binary-utils/formatter"
 import type { BinarySnapshot } from "@hexed/types"
 import {
   Button,
@@ -31,10 +33,9 @@ import {
   TooltipTrigger
 } from "@hexed/ui"
 
-import { formatFileSize } from "@hexed/binary-utils/formatter"
+import { useSettings, type Sidebar } from "../hooks/use-settings"
 import { MemoryProfiler } from "./memory-profiler"
 import { WorkerStatus } from "./worker-status"
-import { useSettings, type Sidebar } from "../hooks/use-settings"
 
 export type HexFooterProps = {
   dataType: string
@@ -47,7 +48,6 @@ export type HexFooterProps = {
   hasSnapshots: boolean
   selectedOffset: number | null
   paneToggleValue: string
-  setSidebar: (value: Sidebar) => void
   onShowHistogram: () => void
 }
 
@@ -62,11 +62,15 @@ export const HexFooter: FunctionComponent<HexFooterProps> = ({
   hasSnapshots,
   selectedOffset,
   paneToggleValue,
-  setSidebar,
   onShowHistogram
 }) => {
-  const { showAscii, setShowAscii, showMemoryProfiler, showWorkerStatus } =
-    useSettings()
+  const {
+    showAscii,
+    setShowAscii,
+    showMemoryProfiler,
+    showWorkerStatus,
+    setSidebar
+  } = useSettings()
 
   const bytesLabel = currentSnapshot ? (
     <div className="flex items-center gap-2 font-mono">
@@ -82,7 +86,10 @@ export const HexFooter: FunctionComponent<HexFooterProps> = ({
     <div className="flex items-center justify-between w-full border-t bg-muted/30 p-4">
       <div className="flex items-start min-w-0 flex-1">
         <div className="flex items-center gap-2">
-          <Select value={dataType} onValueChange={setDataType}>
+          <Select
+            value={dataType}
+            onValueChange={setDataType}
+          >
             <SelectTrigger size="sm">
               <SelectValue />
             </SelectTrigger>
@@ -107,14 +114,19 @@ export const HexFooter: FunctionComponent<HexFooterProps> = ({
                 <ChevronDownIcon className="ml-2 h-4 w-4 opacity-50" />
               </Button>
             </DropdownMenuTrigger>
-            <DropdownMenuContent align="start" className="w-48">
+            <DropdownMenuContent
+              align="start"
+              className="w-48"
+            >
               <DropdownMenuGroup>
                 <DropdownMenuLabel>Endianness</DropdownMenuLabel>
                 <DropdownMenuRadioGroup
                   value={endianness}
                   onValueChange={setEndianness}
                 >
-                  <DropdownMenuRadioItem value="le">little</DropdownMenuRadioItem>
+                  <DropdownMenuRadioItem value="le">
+                    little
+                  </DropdownMenuRadioItem>
                   <DropdownMenuRadioItem value="be">big</DropdownMenuRadioItem>
                 </DropdownMenuRadioGroup>
               </DropdownMenuGroup>
@@ -125,7 +137,9 @@ export const HexFooter: FunctionComponent<HexFooterProps> = ({
                   value={numberFormat}
                   onValueChange={setNumberFormat}
                 >
-                  <DropdownMenuRadioItem value="dec">decimal</DropdownMenuRadioItem>
+                  <DropdownMenuRadioItem value="dec">
+                    decimal
+                  </DropdownMenuRadioItem>
                   <DropdownMenuRadioItem value="hex">
                     hexadecimal
                   </DropdownMenuRadioItem>
@@ -136,7 +150,9 @@ export const HexFooter: FunctionComponent<HexFooterProps> = ({
         </div>
       </div>
       {bytesLabel ? (
-        <div className="flex items-center grow justify-center">{bytesLabel}</div>
+        <div className="flex items-center grow justify-center">
+          {bytesLabel}
+        </div>
       ) : (
         <span />
       )}

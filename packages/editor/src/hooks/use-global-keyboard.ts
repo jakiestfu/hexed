@@ -2,6 +2,7 @@ import { useCallback, useEffect, useMemo, useState } from "react"
 import { useHotkeys } from "react-hotkeys-hook"
 
 import { toHexString } from "@hexed/binary-utils/formatter"
+
 import type { Sidebar } from "./use-settings"
 import { useSettings } from "./use-settings"
 
@@ -12,14 +13,6 @@ export interface UseGlobalKeyboardOptions {
   data: Uint8Array
   /** Whether search input is visible */
   showSearch: boolean
-  /** Current sidebar state */
-  sidebar: Sidebar
-  /** Setter for sidebar state */
-  setSidebar: (
-    value:
-      | Sidebar
-      | ((prev: Sidebar) => Sidebar)
-  ) => void
   /** Callback to toggle search input */
   onToggleSearch: () => void
   /** Callback to close search input */
@@ -49,8 +42,6 @@ export function useGlobalKeyboard({
   selectedOffsetRange,
   data,
   showSearch,
-  sidebar,
-  setSidebar,
   onToggleSearch,
   onCloseSearch,
   onDeselectBytes,
@@ -58,7 +49,13 @@ export function useGlobalKeyboard({
   onToggleHistogram
 }: UseGlobalKeyboardOptions): void {
   // Get settings from context
-  const { setShowAscii, setShowChecksums, toggleSidebarPosition } = useSettings()
+  const {
+    setShowAscii,
+    setShowChecksums,
+    toggleSidebarPosition,
+    sidebar,
+    setSidebar
+  } = useSettings()
 
   // Ensure we're on the client side
   const [isClient, setIsClient] = useState(false)
@@ -183,7 +180,14 @@ export function useGlobalKeyboard({
         (showSearch || sidebar !== null || selectedOffsetRange !== null),
       enableOnFormTags: false
     },
-    [isClient, showSearch, sidebar, selectedOffsetRange, handleEscape, isTypingInInput]
+    [
+      isClient,
+      showSearch,
+      sidebar,
+      selectedOffsetRange,
+      handleEscape,
+      isTypingInInput
+    ]
   )
 
   // Toggle search: Ctrl+F or meta+F

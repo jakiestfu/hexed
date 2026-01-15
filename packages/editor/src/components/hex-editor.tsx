@@ -76,7 +76,7 @@ export const HexEditor: FunctionComponent<
     useHexEditorFile(handleId || null)
 
   const [activeTab, setActiveTab] = useState<string>("0")
-  const { showAscii, sidebar, setSidebar, sidebarPosition } = useSettings()
+  const { showAscii, sidebar, sidebarPosition } = useSettings()
 
   const [diffMode, setDiffMode] = useState<DiffViewMode>("inline")
   const [dataType, setDataType] = useState<string>("Signed Int")
@@ -167,8 +167,6 @@ export const HexEditor: FunctionComponent<
     selectedOffsetRange,
     data: currentSnapshot?.data || new Uint8Array(),
     showSearch,
-    sidebar,
-    setSidebar,
     onToggleSearch: handleToggleSearch,
     onCloseSearch: handleCloseSearch,
     onDeselectBytes: handleDeselectBytes,
@@ -333,22 +331,23 @@ export const HexEditor: FunctionComponent<
             })
           )}
         </CardContent>
-        <CardFooter className="p-0">
-          <HexFooter
-            dataType={dataType}
-            setDataType={setDataType}
-            endianness={endianness}
-            setEndianness={setEndianness}
-            numberFormat={numberFormat}
-            setNumberFormat={setNumberFormat}
-            currentSnapshot={currentSnapshot}
-            hasSnapshots={hasSnapshots}
-            selectedOffset={selectedOffset}
-            paneToggleValue={paneToggleValue}
-            setSidebar={setSidebar}
-            onShowHistogram={handleToggleHistogram}
-          />
-        </CardFooter>
+        {hasFile ? (
+          <CardFooter className="p-0">
+            <HexFooter
+              dataType={dataType}
+              setDataType={setDataType}
+              endianness={endianness}
+              setEndianness={setEndianness}
+              numberFormat={numberFormat}
+              setNumberFormat={setNumberFormat}
+              currentSnapshot={currentSnapshot}
+              hasSnapshots={hasSnapshots}
+              selectedOffset={selectedOffset}
+              paneToggleValue={paneToggleValue}
+              onShowHistogram={handleToggleHistogram}
+            />
+          </CardFooter>
+        ) : null}
       </Tabs>
     </Card>
   )
