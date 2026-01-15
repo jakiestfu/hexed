@@ -76,11 +76,7 @@ export function useHexEditorFile(
   } = useHandleToFile(fileHandle)
 
   // Read file data using the new hook
-  const {
-    data,
-    loading: dataLoading,
-    error: dataError
-  } = useFileData(file, 0, 1024)
+  const { data, loading: dataLoading, error: dataError } = useFileData(file)
 
   // Combine loading states
   const loading = initialLoading || fileLoading || dataLoading

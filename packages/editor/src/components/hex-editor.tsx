@@ -5,7 +5,7 @@ import type { FunctionComponent } from "react"
 import { Loader2 } from "lucide-react"
 
 import { computeDiff } from "@hexed/binary-utils/differ"
-import { HexCanvas, type HexCanvasRef } from "@hexed/canvas"
+import { HexCanvas, useDimensions, type HexCanvasRef } from "@hexed/canvas"
 import type { DiffViewMode } from "@hexed/types"
 import {
   Card,
@@ -34,7 +34,7 @@ import { HexToolbarTabs } from "./hex-toolbar-tabs"
 import { Logo } from "./logo"
 
 const HexEditorView: FunctionComponent<HexEditorViewProps> = ({
-  scrollToOffset,
+  scrollToOffset: scrollToOffsetProp,
   data,
   showAscii,
   diff,
@@ -43,15 +43,67 @@ const HexEditorView: FunctionComponent<HexEditorViewProps> = ({
   totalSize
 }) => {
   const hexCanvasRef = useRef<HexCanvasRef | null>(null)
+  const containerRef = useRef<HTMLDivElement>(null)
+  const dimensions = useDimensions(containerRef)
+  const [scrollTop, setScrollTop] = useState(0)
+  const [totalHeight, setTotalHeight] = useState(0)
+
+  // Handle scroll events
+  const handleScroll = useCallback(() => {
+    if (containerRef.current) {
+      setScrollTop(containerRef.current.scrollTop)
+    }
+  }, [])
 
   useEffect(() => {
-    if (scrollToOffset !== null) {
-      hexCanvasRef.current?.scrollToOffset(scrollToOffset)
+    const container = containerRef.current
+    if (!container) return
+
+    container.addEventListener("scroll", handleScroll, { passive: true })
+    return () => {
+      container.removeEventListener("scroll", handleScroll)
     }
-  }, [scrollToOffset])
+  }, [handleScroll])
+
+  // Handle scroll to offset requests from HexCanvas
+  const handleRequestScrollToOffset = useCallback(
+    (offset: number, targetScrollTop: number) => {
+      if (containerRef.current) {
+        containerRef.current.scrollTo({
+          top: targetScrollTop,
+          behavior: "smooth"
+        })
+      }
+    },
+    []
+  )
+
+  // Expose scrollToOffset via ref for external use
+  useEffect(() => {
+    if (scrollToOffsetProp !== null) {
+      hexCanvasRef.current?.scrollToOffset(scrollToOffsetProp)
+    }
+  }, [scrollToOffsetProp])
+
+  // Sync totalHeight from HexCanvas ref
+  useEffect(() => {
+    const updateTotalHeight = () => {
+      if (hexCanvasRef.current) {
+        setTotalHeight(hexCanvasRef.current.totalHeight)
+      }
+    }
+    updateTotalHeight()
+    // Use a small interval to check for updates (ref values don't trigger re-renders)
+    const interval = setInterval(updateTotalHeight, 100)
+    return () => clearInterval(interval)
+  }, [dimensions.width, dimensions.height, data.length, totalSize])
 
   return (
-    <div className="h-full flex-1 min-w-0">
+    <div
+      ref={containerRef}
+      className="h-full w-full overflow-auto"
+      style={{ position: "relative" }}
+    >
       <HexCanvas
         ref={hexCanvasRef}
         data={data}
@@ -60,7 +112,13 @@ const HexEditorView: FunctionComponent<HexEditorViewProps> = ({
         selectedOffsetRange={selectedOffsetRange}
         onSelectedOffsetRangeChange={onSelectedOffsetRangeChange}
         totalSize={totalSize}
+        scrollTop={scrollTop}
+        dimensions={dimensions}
+        onRequestScrollToOffset={handleRequestScrollToOffset}
+        containerRef={containerRef}
       />
+      {/* Spacer to make container scrollable to total height */}
+      <div style={{ height: `${totalHeight}px`, width: "100%" }} />
     </div>
   )
 }

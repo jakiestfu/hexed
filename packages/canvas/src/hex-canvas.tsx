@@ -12,7 +12,6 @@ import type { FunctionComponent } from "react"
 import { formatDataIntoRows } from "@hexed/binary-utils/formatter"
 import type { DiffResult } from "@hexed/types"
 
-import { useDimensions } from "./hooks/use-dimensions"
 import { useKeyboardNavigation } from "./hooks/use-keyboard-navigation"
 import { useSelection } from "./hooks/use-selection"
 import {
@@ -44,10 +43,15 @@ export interface HexCanvasProps {
   onSelectedOffsetRangeChange?: (range: SelectionRange) => void
   colors?: Partial<HexCanvasColors>
   totalSize?: number
+  scrollTop: number
+  dimensions: { width: number; height: number }
+  onRequestScrollToOffset?: (offset: number, targetScrollTop: number) => void
+  containerRef?: React.RefObject<HTMLElement | null>
 }
 
 export interface HexCanvasRef {
   scrollToOffset: (offset: number) => void
+  totalHeight: number
 }
 
 export interface HexCanvasColors {
@@ -78,14 +82,15 @@ export const HexCanvas = forwardRef<HexCanvasRef, HexCanvasProps>(
       onSelectedOffsetChange,
       onSelectedOffsetRangeChange,
       colors: colorsProp,
-      totalSize
+      totalSize,
+      scrollTop,
+      dimensions,
+      onRequestScrollToOffset,
+      containerRef
     },
     ref
   ) => {
     const canvasRef = useRef<HTMLCanvasElement>(null)
-    const containerRef = useRef<HTMLDivElement>(null)
-    const dimensions = useDimensions(containerRef)
-    const [scrollTop, setScrollTop] = useState(0)
     const [themeChangeCounter, setThemeChangeCounter] = useState(0)
     const [internalHighlightedOffset, setInternalHighlightedOffset] = useState<
       number | null
@@ -127,7 +132,7 @@ export const HexCanvas = forwardRef<HexCanvasRef, HexCanvasProps>(
 
     // Compute colors from props and CSS variables
     const colors = useMemo(() => {
-      if (!containerRef.current) return {} as HexCanvasColors
+      if (!containerRef?.current) return {} as HexCanvasColors
       const defaults = getDefaultColors(containerRef.current)
 
       return {
@@ -140,7 +145,13 @@ export const HexCanvas = forwardRef<HexCanvasRef, HexCanvasProps>(
         byteHover: { ...defaults.byteHover, ...colorsProp?.byteHover },
         selection: { ...defaults.selection, ...colorsProp?.selection }
       }
-    }, [colorsProp, dimensions.width, dimensions.height, themeChangeCounter])
+    }, [
+      colorsProp,
+      containerRef,
+      dimensions.width,
+      dimensions.height,
+      themeChangeCounter
+    ])
 
     // Calculate layout metrics based on canvas dimensions
     const layout = useMemo((): LayoutMetrics | null => {
@@ -167,41 +178,15 @@ export const HexCanvas = forwardRef<HexCanvasRef, HexCanvasProps>(
       return rows.length
     }, [totalSize, layout, rows.length])
 
-    // Calculate total canvas height (including vertical padding)
-    const totalHeight = useMemo(() => {
-      return calculateTotalHeight(rowsLength, layout, dimensions.height)
-    }, [rowsLength, layout, dimensions.height])
-
-    // Handle scroll
-    const handleScroll = useCallback(() => {
-      if (containerRef.current) {
-        setScrollTop(containerRef.current.scrollTop)
-      }
-    }, [])
-
-    useEffect(() => {
-      const container = containerRef.current
-      if (!container) return
-
-      container.addEventListener("scroll", handleScroll, { passive: true })
-      return () => {
-        container.removeEventListener("scroll", handleScroll)
-      }
-    }, [handleScroll])
-
     // Expose scrollToOffset via ref
     const scrollToOffset = useCallback(
       (offset: number) => {
-        if (!layout || !containerRef.current) return
+        if (!layout || !onRequestScrollToOffset) return
         const targetScrollTop = calculateScrollPosition(
           offset,
           layout,
           dimensions.height
         )
-        containerRef.current.scrollTo({
-          top: targetScrollTop,
-          behavior: "smooth"
-        })
 
         // Set highlighted offset
         setInternalHighlightedOffset(offset)
@@ -216,8 +201,10 @@ export const HexCanvas = forwardRef<HexCanvasRef, HexCanvasProps>(
           setInternalHighlightedOffset(null)
           highlightTimeoutRef.current = null
         }, 2000)
+
+        onRequestScrollToOffset(offset, targetScrollTop)
       },
-      [layout, dimensions.height]
+      [layout, dimensions.height, onRequestScrollToOffset]
     )
 
     // Cleanup timeout on unmount
@@ -229,8 +216,14 @@ export const HexCanvas = forwardRef<HexCanvasRef, HexCanvasProps>(
       }
     }, [])
 
+    // Calculate total canvas height (including vertical padding)
+    const totalHeight = useMemo(() => {
+      return calculateTotalHeight(rowsLength, layout, dimensions.height)
+    }, [rowsLength, layout, dimensions.height])
+
     useImperativeHandle(ref, () => ({
-      scrollToOffset
+      scrollToOffset,
+      totalHeight
     }))
 
     // Use selection hook
@@ -550,33 +543,24 @@ export const HexCanvas = forwardRef<HexCanvasRef, HexCanvasProps>(
     ])
 
     return (
-      <div
-        ref={containerRef}
-        className={`h-full w-full overflow-auto ${className}`}
-        style={{ position: "relative" }}
-      >
-        {/* Canvas stays fixed in viewport */}
-        <canvas
-          ref={canvasRef}
-          className="font-mono"
-          tabIndex={0}
-          style={{
-            display: "block",
-            position: "sticky",
-            top: 0,
-            left: 0,
-            zIndex: 1,
-            userSelect: "none",
-            outline: "none"
-          }}
-          onMouseDown={handleMouseDown}
-          onMouseMove={handleMouseMove}
-          onMouseUp={handleMouseUp}
-          onMouseLeave={handleMouseLeave}
-        />
-        {/* Spacer to make container scrollable to total height */}
-        <div style={{ height: `${totalHeight}px`, width: "100%" }} />
-      </div>
+      <canvas
+        ref={canvasRef}
+        className={`font-mono ${className}`}
+        tabIndex={0}
+        style={{
+          display: "block",
+          position: "sticky",
+          top: 0,
+          left: 0,
+          zIndex: 1,
+          userSelect: "none",
+          outline: "none"
+        }}
+        onMouseDown={handleMouseDown}
+        onMouseMove={handleMouseMove}
+        onMouseUp={handleMouseUp}
+        onMouseLeave={handleMouseLeave}
+      />
     )
   }
 )
