@@ -10,11 +10,13 @@ import {
   FolderOpen,
   Github,
   Home,
+  Info,
   Monitor,
   Moon,
   Palette,
   PanelLeft,
   Save,
+  Share2,
   Sun,
   Trash2,
   Type
@@ -52,6 +54,8 @@ import {
 
 import { Hotkeys } from "~/utils/hotkey-format"
 import { encodeHandleId } from "~/utils/path-encoding"
+import packageJson from "../../package.json"
+import { Brand } from "./logo"
 
 export type MenuItem = {
   label: string
@@ -91,6 +95,26 @@ export const Menu: FunctionComponent<MenuProps> = ({
   const [clickedClientFilePath, setClickedClientFilePath] = useState<
     string | null
   >(null)
+  const [showAboutDialog, setShowAboutDialog] = useState(false)
+
+  const handleShare = async () => {
+    if (navigator.share) {
+      try {
+        await navigator.share({
+          title: "Hexed",
+          text: packageJson.description,
+          url: window.location.href
+        })
+      } catch (error) {
+        // User cancelled or error occurred - silently fail
+        if (error instanceof Error && error.name !== "AbortError") {
+          console.error("Error sharing:", error)
+        }
+      }
+    }
+  }
+
+  const canShare = typeof navigator !== "undefined" && "share" in navigator
 
   return (
     <>
@@ -383,16 +407,12 @@ export const Menu: FunctionComponent<MenuProps> = ({
           </DropdownMenuSubContent>
         </DropdownMenuSub>
         <DropdownMenuSeparator />
-        <DropdownMenuItem asChild>
-          <a
-            href={"https://github.com/jakiestfu/hexed"}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="flex items-center gap-2 cursor-pointer"
-          >
-            <Github className="mr-2 h-4 w-4" />
-            View on GitHub
-          </a>
+        <DropdownMenuItem
+          onClick={() => setShowAboutDialog(true)}
+          className="cursor-pointer"
+        >
+          <Info className="mr-2 h-4 w-4" />
+          About
         </DropdownMenuItem>
       </DropdownMenuContent>
       {currentSnapshot?.data && (
@@ -435,6 +455,54 @@ export const Menu: FunctionComponent<MenuProps> = ({
             <Button onClick={() => setShowClientFileDialog(false)}>
               Close
             </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
+      <Dialog
+        open={showAboutDialog}
+        onOpenChange={setShowAboutDialog}
+      >
+        <DialogContent className="text-center">
+          <DialogHeader>
+            <DialogTitle className="sr-only">
+              About {packageJson.name}
+            </DialogTitle>
+          </DialogHeader>
+          <div className="flex flex-col items-center gap-4 py-4">
+            <Brand />
+            <p className="text-muted-foreground max-w-xs">
+              {packageJson.description}
+            </p>
+            <p className="text-sm text-muted-foreground font-mono">
+              Version {packageJson.version}
+            </p>
+            <div className="flex flex-col sm:flex-row gap-2 mt-2 w-full sm:w-auto">
+              <Button
+                variant="outline"
+                asChild
+                className="flex items-center gap-2"
+              >
+                <a
+                  href={packageJson.repository.url.replace(".git", "")}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="flex items-center gap-2"
+                >
+                  <Github className="h-4 w-4" />
+                  View on GitHub
+                </a>
+              </Button>
+              {canShare && (
+                <Button
+                  variant="outline"
+                  onClick={handleShare}
+                  className="flex items-center gap-2"
+                >
+                  <Share2 className="h-4 w-4" />
+                  {/* Share */}
+                </Button>
+              )}
+            </div>
           </div>
         </DialogContent>
       </Dialog>

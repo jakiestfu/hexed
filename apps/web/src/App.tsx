@@ -1,6 +1,5 @@
-import * as React from "react"
 import { ThemeProvider } from "next-themes"
-import { createBrowserRouter, RouterProvider } from "react-router-dom"
+import { createHashRouter, RouterProvider } from "react-router-dom"
 
 import { DragDropProvider } from "@hexed/editor"
 
@@ -10,7 +9,7 @@ import { HexEditorPage } from "~/routes/hex-editor-page"
 
 const editor = <HexEditorPage />
 
-const router = createBrowserRouter([
+const router = createHashRouter([
   {
     path: "/",
     element: editor

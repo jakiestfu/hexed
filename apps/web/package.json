@@ -2,6 +2,12 @@
   "name": "@hexed/web",
   "version": "0.0.1",
   "private": true,
+  "description": "A modern hex editor for inspecting and tracking binary file changes",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/jakiestfu/hexed.git"
+  },
+  "homepage": "https://jakiestfu.github.io/hexed",
   "scripts": {
     "dev": "vite",
     "build": "vite build",
