@@ -9,6 +9,9 @@
   },
   "homepage": "https://jakiestfu.github.io/hexed",
   "scripts": {
+    "predev": "node scripts/create-public-package.mjs",
+    "prebuild": "node scripts/create-public-package.mjs",
+    "postinstall": "node scripts/create-public-package.mjs",
     "dev": "vite",
     "build": "vite build",
     "preview": "vite preview",

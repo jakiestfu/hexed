@@ -4,6 +4,7 @@ import { useNavigate, useParams } from "react-router-dom"
 import { HexEditor } from "@hexed/editor"
 import { createLogger } from "@hexed/logger"
 
+import { DebugFileButton } from "~/components/debug-file-button"
 import { Logo } from "~/components/logo"
 import { decodeHandleId, encodeHandleId } from "~/utils/path-encoding"
 
@@ -42,10 +43,13 @@ export function HexEditorPage() {
       fileSource="file-system"
       onHandleReady={handleHandleReady}
       logo={
-        <Logo
-          showHistogram={showHistogram}
-          onShowHistogramChange={setShowHistogram}
-        />
+        <>
+          <Logo
+            showHistogram={showHistogram}
+            onShowHistogramChange={setShowHistogram}
+          />
+          <DebugFileButton />
+        </>
       }
     />
   )

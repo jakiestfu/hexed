@@ -6,6 +6,11 @@ import {
   Button,
   Card,
   CardContent,
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
   Popover,
   PopoverContent,
   PopoverTrigger
@@ -84,6 +89,8 @@ export const DataPicker: FunctionComponent<DataPickerProps> = ({
   const fileManager = useFileManager()
   const [isLoading, setIsLoading] = useState(false)
   const [isMounted, setIsMounted] = useState(false)
+  const [showFileSystemInfoDialog, setShowFileSystemInfoDialog] =
+    useState(false)
   const supportsFileSystemAccess =
     typeof window !== "undefined" && "showOpenFilePicker" in window
 
@@ -227,8 +234,10 @@ export const DataPicker: FunctionComponent<DataPickerProps> = ({
       }`}
     >
       <CardContent className="space-y-4">
-        <div className="space-y-2 mt-4">
-          <label className="text-sm font-medium">Select a file</label>
+        <div className="space-y-4 mt-4">
+          <label className="text-sm font-medium inline-block mb-2">
+            Select a file
+          </label>
           <div className="flex gap-2">
             <Button
               onClick={handleFileSystemAccessPicker}
@@ -252,15 +261,86 @@ export const DataPicker: FunctionComponent<DataPickerProps> = ({
             )}
           </div>
           <p className="text-xs text-muted-foreground">
-            {supportsFileSystemAccess
-              ? "Choose a file using the File System Access API"
-              : "File System Access API is not supported in this browser"}
+            {supportsFileSystemAccess ? (
+              <>
+                Choose a file using the{" "}
+                <button
+                  type="button"
+                  onClick={() => setShowFileSystemInfoDialog(true)}
+                  className="underline cursor-pointer hover:text-foreground transition-colors"
+                >
+                  File System Access API
+                </button>
+              </>
+            ) : (
+              "File System Access API is not supported in this browser"
+            )}
             {recentFiles.length > 0 &&
               onHandleReady &&
               " or select from recent files"}
           </p>
         </div>
       </CardContent>
+      <Dialog
+        open={showFileSystemInfoDialog}
+        onOpenChange={setShowFileSystemInfoDialog}
+      >
+        <DialogContent className="max-w-lg">
+          <DialogHeader>
+            <DialogTitle>About File System Access API</DialogTitle>
+            <DialogDescription>
+              A local-first approach to file access. All data stays on your
+              device. No uploads, no cloud storage, no server communication.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4 py-4">
+            <div>
+              <h3 className="font-semibold text-sm mb-2">What is it?</h3>
+              <p className="text-sm text-muted-foreground">
+                The File System Access API is a web standard that allows web
+                applications to read and write files and directories on the
+                user's device with their explicit permission. It provides a
+                native-like file access experience directly in the browser.
+              </p>
+            </div>
+            <div>
+              <h3 className="font-semibold text-sm mb-2">Why is it used?</h3>
+              <p className="text-sm text-muted-foreground">
+                This API enables persistent file access with user permission.
+                Once granted, files can be reopened without re-prompting,
+                enabling local-first workflows. File handles are stored
+                client-side, allowing quick access to recently opened files and
+                change tracking without exposing data to external servers.
+              </p>
+            </div>
+            <div>
+              <h3 className="font-semibold text-sm mb-2">Storage</h3>
+              <p className="text-sm text-muted-foreground">
+                File handles are securely stored in IndexedDB (database name:
+                "hexed-file-handles"). You can inspect this data in your
+                browser's Developer Tools under Application → IndexedDB. The
+                handles are stored locally on your device and never sent to any
+                server.
+              </p>
+            </div>
+            <div className="pt-2">
+              <Button
+                variant="outline"
+                asChild
+                className="w-full sm:w-auto"
+              >
+                <a
+                  href="https://developer.mozilla.org/en-US/docs/Web/API/File_System_Access_API"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                >
+                  Learn more on MDN
+                </a>
+              </Button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
     </Card>
   )
 }

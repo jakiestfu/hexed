@@ -54,7 +54,7 @@ import {
 
 import { Hotkeys } from "~/utils/hotkey-format"
 import { encodeHandleId } from "~/utils/path-encoding"
-import packageJson from "../../package.json"
+import packageJson from "../../package.public.json"
 import { Brand } from "./logo"
 
 export type MenuItem = {
