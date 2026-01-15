@@ -1,6 +1,6 @@
 import * as React from "react"
 import { useTheme } from "next-themes"
-import { Link, useNavigate, useParams } from "react-router-dom"
+import { useNavigate, useParams } from "react-router-dom"
 
 import { HexEditor } from "@hexed/editor"
 import { createLogger } from "@hexed/logger"

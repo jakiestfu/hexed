@@ -7,7 +7,10 @@ import { useRecentFiles } from "./use-recent-files"
  * Hook for managing file loading and watching for HexEditor
  * Encapsulates all file-related state and logic
  */
-export function useHexEditorFile(handleId: string | null) {
+export function useHexEditorFile(
+  handleId: string | null,
+  snapshotId?: string | number | null
+) {
   const { getFileHandleById, addRecentFile } = useRecentFiles({
     loadFiles: false
   })
@@ -27,22 +30,22 @@ export function useHexEditorFile(handleId: string | null) {
       return
     }
 
-    const loadHandleMetadata = async () => {
+    const openFileHandler = async () => {
       setInitialLoading(true)
       setLoadError(null)
 
       try {
         // First check sessionStorage for cached snapshot (for initial fast load)
-        const snapshotKey = `hexed:pending-handle-${handleId}`
-        const cachedSnapshot = sessionStorage.getItem(snapshotKey)
-        if (cachedSnapshot) {
-          try {
-            // Clean up sessionStorage
-            sessionStorage.removeItem(snapshotKey)
-          } catch (parseError) {
-            console.warn("Failed to parse cached snapshot:", parseError)
-          }
-        }
+        // const snapshotKey = `hexed:pending-handle-${handleId}`
+        // const cachedSnapshot = sessionStorage.getItem(snapshotKey)
+        // if (cachedSnapshot) {
+        //   try {
+        //     // Clean up sessionStorage
+        //     sessionStorage.removeItem(snapshotKey)
+        //   } catch (parseError) {
+        //     console.warn("Failed to parse cached snapshot:", parseError)
+        //   }
+        // }
         // Load from IndexedDB handle
         const handleData = await getFileHandleById(handleId)
         if (!handleData) {
@@ -59,16 +62,17 @@ export function useHexEditorFile(handleId: string | null) {
       }
     }
 
-    loadHandleMetadata()
+    openFileHandler()
   }, [handleId, getFileHandleById, addRecentFile])
 
   // Use file handle watcher for handle-based files
   const {
     snapshots,
+    snapshot,
     isConnected,
     error: watchError,
     restart
-  } = useFileHandleWatcher(fileHandle, handleId)
+  } = useFileHandleWatcher(fileHandle, snapshotId)
 
   // Combine loading states
   const loading =
@@ -80,6 +84,7 @@ export function useHexEditorFile(handleId: string | null) {
 
   return {
     snapshots,
+    snapshot,
     fileHandle,
     isConnected,
     loading,

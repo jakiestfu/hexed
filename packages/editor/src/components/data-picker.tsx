@@ -197,22 +197,22 @@ export const DataPicker: FunctionComponent<DataPickerProps> = ({
         return
       }
 
-      // Create snapshot using direct file reading
-      const snapshot = await createSnapshotFromFile(handle)
-      const snapshotKey = `hexed:pending-handle-${handleId}`
-      try {
-        // Store snapshot data (convert Uint8Array to array for JSON)
-        const snapshotData = {
-          ...snapshot,
-          data: Array.from(snapshot.data)
-        }
-        sessionStorage.setItem(snapshotKey, JSON.stringify(snapshotData))
-      } catch (storageError) {
-        console.warn(
-          "Failed to store snapshot in sessionStorage:",
-          storageError
-        )
-      }
+      // // Create snapshot using direct file reading
+      // const snapshot = await createSnapshotFromFile(handle)
+      // const snapshotKey = `hexed:pending-handle-${handleId}`
+      // try {
+      //   // Store snapshot data (convert Uint8Array to array for JSON)
+      //   const snapshotData = {
+      //     ...snapshot,
+      //     data: Array.from(snapshot.data)
+      //   }
+      //   sessionStorage.setItem(snapshotKey, JSON.stringify(snapshotData))
+      // } catch (storageError) {
+      //   console.warn(
+      //     "Failed to store snapshot in sessionStorage:",
+      //     storageError
+      //   )
+      // }
 
       // Call callback with handleId
       onHandleIdChange(handleId)
