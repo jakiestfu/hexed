@@ -1,11 +1,16 @@
 "use client"
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react"
-import type { FunctionComponent } from "react"
+import type { FunctionComponent, RefCallback } from "react"
 import { Loader2 } from "lucide-react"
 
 import { computeDiff } from "@hexed/binary-utils/differ"
-import { HexCanvas, useDimensions, type HexCanvasRef } from "@hexed/canvas"
+import {
+  HexCanvas,
+  useCalculateEditorLayout,
+  useDimensions,
+  type HexCanvasRef
+} from "@hexed/canvas"
 import type { DiffViewMode } from "@hexed/types"
 import {
   Card,
@@ -21,6 +26,7 @@ import {
 
 import { useGlobalKeyboard } from "../hooks/use-global-keyboard"
 import { useHexEditorFile } from "../hooks/use-hex-editor-file"
+import { useScrollTop } from "../hooks/use-scroll-top"
 import { useSettings } from "../hooks/use-settings"
 import type { HexEditorProps, HexEditorViewProps } from "../types"
 import { createMinimalSnapshot } from "../utils"
@@ -34,37 +40,20 @@ import { HexToolbarTabs } from "./hex-toolbar-tabs"
 import { Logo } from "./logo"
 
 const HexEditorView: FunctionComponent<HexEditorViewProps> = ({
+  layout,
+  hexCanvasRef,
+  canvasElementRef,
+  dimensions,
+  containerRef,
   scrollToOffset: scrollToOffsetProp,
   data,
   showAscii,
   diff,
   selectedOffsetRange,
   onSelectedOffsetRangeChange,
-  totalSize
+  totalSize,
+  scrollTop
 }) => {
-  const hexCanvasRef = useRef<HexCanvasRef | null>(null)
-  const containerRef = useRef<HTMLDivElement>(null)
-  const dimensions = useDimensions(containerRef)
-  const [scrollTop, setScrollTop] = useState(0)
-  const [totalHeight, setTotalHeight] = useState(0)
-
-  // Handle scroll events
-  const handleScroll = useCallback(() => {
-    if (containerRef.current) {
-      setScrollTop(containerRef.current.scrollTop)
-    }
-  }, [])
-
-  useEffect(() => {
-    const container = containerRef.current
-    if (!container) return
-
-    container.addEventListener("scroll", handleScroll, { passive: true })
-    return () => {
-      container.removeEventListener("scroll", handleScroll)
-    }
-  }, [handleScroll])
-
   // Handle scroll to offset requests from HexCanvas
   const handleRequestScrollToOffset = useCallback(
     (offset: number, targetScrollTop: number) => {
@@ -85,27 +74,12 @@ const HexEditorView: FunctionComponent<HexEditorViewProps> = ({
     }
   }, [scrollToOffsetProp])
 
-  // Sync totalHeight from HexCanvas ref
-  useEffect(() => {
-    const updateTotalHeight = () => {
-      if (hexCanvasRef.current) {
-        setTotalHeight(hexCanvasRef.current.totalHeight)
-      }
-    }
-    updateTotalHeight()
-    // Use a small interval to check for updates (ref values don't trigger re-renders)
-    const interval = setInterval(updateTotalHeight, 100)
-    return () => clearInterval(interval)
-  }, [dimensions.width, dimensions.height, data.length, totalSize])
-
   return (
-    <div
-      ref={containerRef}
-      className="h-full w-full overflow-auto"
-      style={{ position: "relative" }}
-    >
+    <>
       <HexCanvas
+        layout={layout}
         ref={hexCanvasRef}
+        canvasRef={canvasElementRef}
         data={data}
         showAscii={showAscii}
         diff={diff}
@@ -118,8 +92,8 @@ const HexEditorView: FunctionComponent<HexEditorViewProps> = ({
         containerRef={containerRef}
       />
       {/* Spacer to make container scrollable to total height */}
-      <div style={{ height: `${totalHeight}px`, width: "100%" }} />
-    </div>
+      <div style={{ height: `${layout.totalHeight}px`, width: "100%" }} />
+    </>
   )
 }
 
@@ -133,9 +107,21 @@ export const HexEditor: FunctionComponent<HexEditorProps> = ({
   setTheme,
   packageInfo
 }) => {
-  // Use hook to manage file loading and watching
-  const { data, file, fileHandle, isConnected, loading, error, restart } =
-    useHexEditorFile(handleId || null)
+  /**
+   * Container Setup
+   */
+  const containerRef = useRef<HTMLDivElement | null>(null)
+  const [containerElement, setContainerElement] =
+    useState<HTMLDivElement | null>(null)
+
+  const containerRefCallback: RefCallback<HTMLDivElement> = useCallback(
+    (element: HTMLDivElement | null) => {
+      containerRef.current = element
+      setContainerElement(element)
+    },
+    []
+  )
+  const scrollTop = useScrollTop(containerElement)
 
   const [activeTab, setActiveTab] = useState<string>("0")
   const { showAscii, sidebar, sidebarPosition } = useSettings()
@@ -145,8 +131,26 @@ export const HexEditor: FunctionComponent<HexEditorProps> = ({
   const [endianness, setEndianness] = useState<string>("le")
   const [numberFormat, setNumberFormat] = useState<string>("dec")
 
+  /**
+   * Layout Calculations
+   */
+  // Use hook to manage file loading and watching
+  const { data, file, fileHandle, isConnected, loading, error, restart } =
+    useHexEditorFile(handleId || null)
+
   const hasFile = fileHandle != null
   const hasData = data !== null
+
+  const hexCanvasRef = useRef<HexCanvasRef | null>(null)
+  const canvasElementRef = useRef<HTMLCanvasElement | null>(null)
+  const dimensions = useDimensions(containerElement)
+  const layout = useCalculateEditorLayout(
+    canvasElementRef,
+    dimensions,
+    showAscii,
+    data || new Uint8Array(),
+    file?.size
+  )
 
   // Diff is disabled since we don't have multiple snapshots
   const diff = useMemo(() => {
@@ -253,7 +257,7 @@ export const HexEditor: FunctionComponent<HexEditorProps> = ({
       end: offset + length - 1
     })
   }, [])
-  // return <p>wat</p>
+
   return (
     <Card
       className={`p-0 m-0 w-full h-full rounded-none border-none shadow-none ${className}`}
@@ -329,15 +333,27 @@ export const HexEditor: FunctionComponent<HexEditorProps> = ({
                   defaultSize={70}
                   minSize={20}
                 >
-                  <HexEditorView
-                    scrollToOffset={scrollToOffset}
-                    data={data}
-                    showAscii={showAscii}
-                    diff={diff}
-                    selectedOffsetRange={selectedOffsetRange}
-                    onSelectedOffsetRangeChange={setSelectedOffsetRange}
-                    totalSize={file?.size}
-                  />
+                  <div
+                    ref={containerRefCallback}
+                    className="h-full w-full overflow-auto"
+                    style={{ position: "relative" }}
+                  >
+                    <HexEditorView
+                      scrollTop={scrollTop}
+                      layout={layout}
+                      hexCanvasRef={hexCanvasRef}
+                      canvasElementRef={canvasElementRef}
+                      dimensions={dimensions}
+                      containerRef={containerRef}
+                      scrollToOffset={scrollToOffset}
+                      data={data}
+                      showAscii={showAscii}
+                      diff={diff}
+                      selectedOffsetRange={selectedOffsetRange}
+                      onSelectedOffsetRangeChange={setSelectedOffsetRange}
+                      totalSize={file?.size}
+                    />
+                  </div>
                 </ResizablePanel>
               )
 

@@ -9,16 +9,14 @@ import {
 } from "react"
 import type { FunctionComponent } from "react"
 
-import { formatDataIntoRows } from "@hexed/binary-utils/formatter"
 import type { DiffResult } from "@hexed/types"
 
+import { useCalculateEditorLayout } from "./hooks/use-calculate-editor-layout"
 import { useKeyboardNavigation } from "./hooks/use-keyboard-navigation"
 import { useSelection } from "./hooks/use-selection"
 import {
-  calculateLayout,
   calculateScrollPosition,
   calculateSelectionRange,
-  calculateTotalHeight,
   didDragOccur,
   drawHexCanvas,
   isOffsetInRange,
@@ -27,11 +25,11 @@ import {
 import { getDefaultColors } from "./utils/colors"
 import {
   getOffsetFromPosition as getOffsetFromPositionUtil,
-  getRowFromY as getRowFromYUtil,
-  type LayoutMetrics
+  getRowFromY as getRowFromYUtil
 } from "./utils/coordinates"
 
 export interface HexCanvasProps {
+  layout: ReturnType<typeof useCalculateEditorLayout>
   data: Uint8Array
   showAscii?: boolean
   className?: string
@@ -47,6 +45,7 @@ export interface HexCanvasProps {
   dimensions: { width: number; height: number }
   onRequestScrollToOffset?: (offset: number, targetScrollTop: number) => void
   containerRef?: React.RefObject<HTMLElement | null>
+  canvasRef?: React.RefObject<HTMLCanvasElement | null>
 }
 
 export interface HexCanvasRef {
@@ -86,7 +85,9 @@ export const HexCanvas = forwardRef<HexCanvasRef, HexCanvasProps>(
       scrollTop,
       dimensions,
       onRequestScrollToOffset,
-      containerRef
+      containerRef,
+      canvasRef: externalCanvasRef,
+      layout: { layout, rows, rowsLength, totalHeight }
     },
     ref
   ) => {
@@ -153,31 +154,6 @@ export const HexCanvas = forwardRef<HexCanvasRef, HexCanvasProps>(
       themeChangeCounter
     ])
 
-    // Calculate layout metrics based on canvas dimensions
-    const layout = useMemo((): LayoutMetrics | null => {
-      if (dimensions.width === 0 || dimensions.height === 0) return null
-
-      const canvas = canvasRef.current
-      const ctx = canvasRef.current?.getContext("2d")
-      if (!ctx || !canvas) return null
-
-      return calculateLayout(ctx, canvas, dimensions, showAscii)
-    }, [dimensions.width, dimensions.height, showAscii])
-
-    // Format data into rows
-    const rows = useMemo(() => {
-      if (!layout) return []
-      return formatDataIntoRows(data, layout.bytesPerRow)
-    }, [data, layout])
-
-    // Calculate total number of rows based on totalSize or actual data
-    const rowsLength = useMemo(() => {
-      if (totalSize !== undefined && layout) {
-        return Math.ceil(totalSize / layout.bytesPerRow)
-      }
-      return rows.length
-    }, [totalSize, layout, rows.length])
-
     // Expose scrollToOffset via ref
     const scrollToOffset = useCallback(
       (offset: number) => {
@@ -216,15 +192,17 @@ export const HexCanvas = forwardRef<HexCanvasRef, HexCanvasProps>(
       }
     }, [])
 
-    // Calculate total canvas height (including vertical padding)
-    const totalHeight = useMemo(() => {
-      return calculateTotalHeight(rowsLength, layout, dimensions.height)
-    }, [rowsLength, layout, dimensions.height])
-
     useImperativeHandle(ref, () => ({
       scrollToOffset,
       totalHeight
     }))
+
+    // Expose canvas element ref to parent component
+    useEffect(() => {
+      if (externalCanvasRef) {
+        externalCanvasRef.current = canvasRef.current
+      }
+    }, [externalCanvasRef])
 
     // Use selection hook
     const { selectedOffset, handleClick: handleSelectionClick } = useSelection({

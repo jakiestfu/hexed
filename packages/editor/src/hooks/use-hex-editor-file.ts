@@ -10,7 +10,8 @@ import { useRecentFiles } from "./use-recent-files"
  */
 export function useHexEditorFile(
   handleId: string | null,
-  snapshotId?: string | number | null
+  start?: number,
+  end?: number
 ) {
   const { getFileHandleById, addRecentFile } = useRecentFiles({
     loadFiles: false
@@ -76,7 +77,11 @@ export function useHexEditorFile(
   } = useHandleToFile(fileHandle)
 
   // Read file data using the new hook
-  const { data, loading: dataLoading, error: dataError } = useFileData(file)
+  const {
+    data,
+    loading: dataLoading,
+    error: dataError
+  } = useFileData(file, start, end)
 
   // Combine loading states
   const loading = initialLoading || fileLoading || dataLoading

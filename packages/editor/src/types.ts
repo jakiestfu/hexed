@@ -1,4 +1,5 @@
 import type { Endianness, NumberFormat } from "@hexed/binary-utils/interpreter"
+import { HexCanvasRef, useCalculateEditorLayout } from "@hexed/canvas"
 import type { BinarySnapshot, DiffResult } from "@hexed/types"
 
 import type { FileHandleMetadata } from "./utils/file-handle-storage"
@@ -37,6 +38,11 @@ export type HexEditorProps = {
 export type SelectionRange = { start: number; end: number } | null
 
 export type HexEditorViewProps = {
+  layout: ReturnType<typeof useCalculateEditorLayout>
+  hexCanvasRef: React.RefObject<HexCanvasRef | null>
+  canvasElementRef: React.RefObject<HTMLCanvasElement | null>
+  dimensions: { width: number; height: number }
+  containerRef: React.RefObject<HTMLDivElement | null>
   scrollToOffset: number | null
   data: Uint8Array
   diff: DiffResult | null
@@ -44,6 +50,7 @@ export type HexEditorViewProps = {
   selectedOffsetRange: SelectionRange
   onSelectedOffsetRangeChange: (range: SelectionRange) => void
   totalSize?: number
+  scrollTop: number
 }
 
 export type InterpreterProps = {
