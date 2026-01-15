@@ -21,14 +21,7 @@ export type HexEditorProps = {
   fileSource?: FileSource
   onAddSnapshot?: (snapshot: BinarySnapshot) => void
   // Data picker callbacks (for empty state)
-  onHandleIdChange?: (handleId: string) => void
-  // Logo props (optional - Logo is integrated internally)
-  onNavigate?: (path: string) => void
-  LinkComponent?: React.ComponentType<{
-    to: string
-    className?: string
-    children: React.ReactNode
-  }>
+  onHandleIdChange?: (handleId: string | null) => void
   theme?: string
   setTheme?: (theme: string) => void
   packageInfo?: {

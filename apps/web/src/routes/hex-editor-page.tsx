@@ -20,15 +20,12 @@ export function HexEditorPage() {
   }, [navigate])
 
   const handleHandleReady = React.useCallback(
-    (handleId: string) => {
+    (handleId: string | null) => {
+      if (!handleId) {
+        navigate("/")
+        return
+      }
       navigate(`/edit/${handleId}`)
-    },
-    [navigate]
-  )
-
-  const handleNavigate = React.useCallback(
-    (path: string) => {
-      navigate(path)
     },
     [navigate]
   )
@@ -40,8 +37,6 @@ export function HexEditorPage() {
       onClose={handleId ? handleClose : undefined}
       fileSource="file-system"
       onHandleIdChange={handleHandleReady}
-      onNavigate={handleNavigate}
-      LinkComponent={Link}
       theme={theme}
       setTheme={setTheme}
       packageInfo={packageJson}

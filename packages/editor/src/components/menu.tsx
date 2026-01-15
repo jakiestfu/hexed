@@ -75,27 +75,22 @@ export type MenuProps = {
   onShowHistogramChange: (show: boolean) => void
   // Navigation
   onNavigate?: (path: string) => void
-  LinkComponent?: React.ComponentType<{
-    to: string
-    className?: string
-    children: React.ReactNode
-  }>
   // Theme
   theme?: string
   setTheme?: (theme: string) => void
   // Package info
   packageInfo?: PackageInfo
+  onHandleIdChange?: (handleId: string | null) => void
 }
 
 export const Menu: FunctionComponent<MenuProps> = ({
   currentSnapshot,
   showHistogram,
   onShowHistogramChange,
-  onNavigate,
-  LinkComponent,
   theme,
   setTheme,
-  packageInfo
+  packageInfo,
+  onHandleIdChange
 }) => {
   const { recentFiles, clearRecentFiles, removeRecentFile } = useRecentFiles()
   const {
@@ -140,29 +135,19 @@ export const Menu: FunctionComponent<MenuProps> = ({
       <DropdownMenuContent align="start">
         {/* Home */}
         <DropdownMenuItem asChild>
-          {LinkComponent ? (
-            <LinkComponent
-              to="/"
-              className="flex items-center gap-2 cursor-pointer"
-            >
-              <Home className="mr-2 h-4 w-4" />
-              Home
-            </LinkComponent>
-          ) : (
-            <a
-              href="/"
-              className="flex items-center gap-2 cursor-pointer"
-              onClick={(e) => {
-                if (onNavigate) {
-                  e.preventDefault()
-                  onNavigate("/")
-                }
-              }}
-            >
-              <Home className="mr-2 h-4 w-4" />
-              Home
-            </a>
-          )}
+          <a
+            href={`${window.location.origin + window.location.pathname}`}
+            className="flex items-center gap-2 cursor-pointer"
+            onClick={(e) => {
+              if (onHandleIdChange) {
+                e.preventDefault()
+                onHandleIdChange(null)
+              }
+            }}
+          >
+            <Home className="mr-2 h-4 w-4" />
+            Home
+          </a>
         </DropdownMenuItem>
         <DropdownMenuSeparator />
 
@@ -199,35 +184,22 @@ export const Menu: FunctionComponent<MenuProps> = ({
                       key={file.id}
                       asChild
                     >
-                      {LinkComponent ? (
-                        <LinkComponent
-                          to={editPath}
-                          className="flex items-center gap-2 cursor-pointer"
-                        >
-                          <FileSourceIcon
-                            fileSource={fileSource}
-                            className="mr-2"
-                          />
-                          {formatFilenameForDisplay(file.handle.name)}
-                        </LinkComponent>
-                      ) : (
-                        <a
-                          href={editPath}
-                          className="flex items-center gap-2 cursor-pointer"
-                          onClick={(e) => {
-                            if (onNavigate) {
-                              e.preventDefault()
-                              onNavigate(editPath)
-                            }
-                          }}
-                        >
-                          <FileSourceIcon
-                            fileSource={fileSource}
-                            className="mr-2"
-                          />
-                          {formatFilenameForDisplay(file.handle.name)}
-                        </a>
-                      )}
+                      <a
+                        href={editPath}
+                        className="flex items-center gap-2 cursor-pointer"
+                        onClick={(e) => {
+                          if (onHandleIdChange) {
+                            e.preventDefault()
+                            onHandleIdChange(file.id)
+                          }
+                        }}
+                      >
+                        <FileSourceIcon
+                          fileSource={fileSource}
+                          className="mr-2"
+                        />
+                        {formatFilenameForDisplay(file.handle.name)}
+                      </a>
                     </DropdownMenuItem>
                   )
                 })}

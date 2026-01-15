@@ -13,18 +13,12 @@ export type LogoProps = {
   currentSnapshot?: BinarySnapshot | null
   showHistogram?: boolean
   onShowHistogramChange?: (show: boolean) => void
-  // Navigation
-  onNavigate?: (path: string) => void
-  LinkComponent?: React.ComponentType<{
-    to: string
-    className?: string
-    children: React.ReactNode
-  }>
   // Theme
   theme?: string
   setTheme?: (theme: string) => void
   // Package info
   packageInfo?: PackageInfo
+  onHandleIdChange?: (handleId: string | null) => void
 }
 
 export const Brand: FunctionComponent<{
@@ -53,11 +47,10 @@ export const Logo: FunctionComponent<LogoProps> = ({
   currentSnapshot,
   showHistogram: controlledShowHistogram,
   onShowHistogramChange: controlledOnShowHistogramChange,
-  onNavigate,
-  LinkComponent,
   theme,
   setTheme,
-  packageInfo
+  packageInfo,
+  onHandleIdChange
 }) => {
   const [internalShowHistogram, setInternalShowHistogram] = useState(false)
 
@@ -82,8 +75,7 @@ export const Logo: FunctionComponent<LogoProps> = ({
           currentSnapshot={currentSnapshot}
           showHistogram={showHistogram}
           onShowHistogramChange={onShowHistogramChange}
-          onNavigate={onNavigate}
-          LinkComponent={LinkComponent}
+          onHandleIdChange={onHandleIdChange}
           theme={theme}
           setTheme={setTheme}
           packageInfo={packageInfo}

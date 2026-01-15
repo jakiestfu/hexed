@@ -68,8 +68,6 @@ export const HexEditor: FunctionComponent<HexEditorProps> = ({
   className = "",
   fileSource = "file-system",
   onHandleIdChange,
-  onNavigate,
-  LinkComponent,
   theme,
   setTheme,
   packageInfo
@@ -216,8 +214,7 @@ export const HexEditor: FunctionComponent<HexEditorProps> = ({
                 currentSnapshot={currentSnapshot}
                 showHistogram={showHistogram}
                 onShowHistogramChange={setShowHistogram}
-                onNavigate={onNavigate}
-                LinkComponent={LinkComponent}
+                onHandleIdChange={onHandleIdChange}
                 theme={theme}
                 setTheme={setTheme}
                 packageInfo={packageInfo}
