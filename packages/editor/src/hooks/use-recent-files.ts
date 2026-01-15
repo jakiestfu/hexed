@@ -1,6 +1,6 @@
 import * as React from "react"
 
-import type { FileSource, RecentFile } from "../types"
+import type { FileSource } from "../types"
 import {
   clearAllFileHandles,
   deleteFileHandle,
@@ -23,7 +23,7 @@ export function useRecentFiles(
     loadFiles: true
   }
 ) {
-  const [recentFiles, setRecentFiles] = React.useState<RecentFile[]>([])
+  const [recentFiles, setRecentFiles] = React.useState<FileHandleMetadata[]>([])
 
   // Load recent files from IndexedDB on mount
   React.useEffect(() => {
@@ -32,16 +32,7 @@ export function useRecentFiles(
     const loadRecentFiles = async () => {
       try {
         const handles = await getAllFileHandles()
-        const files: RecentFile[] = handles
-          .slice(0, MAX_RECENT_FILES)
-          .map((handle) => ({
-            path: handle.handle.name,
-            timestamp: handle.timestamp,
-            source: handle.source,
-            handleId: handle.id
-          }))
-
-        setRecentFiles(files)
+        setRecentFiles(handles.slice(0, MAX_RECENT_FILES))
       } catch (error) {
         console.error("Failed to load recent files from IndexedDB:", error)
       }
@@ -95,22 +86,9 @@ export function useRecentFiles(
           })
         }
 
-        // Update state with file (move to top)
-        const updatedFile: RecentFile = {
-          path: fileName,
-          timestamp: now,
-          source,
-          handleId
-        }
-
-        setRecentFiles((prev) => {
-          // Remove if already exists (to avoid duplicates)
-          const filtered = prev.filter((file) => file.path !== fileName)
-
-          // Add updated file at the beginning
-          const updated = [updatedFile, ...filtered].slice(0, MAX_RECENT_FILES)
-          return updated
-        })
+        // Reload handles from IndexedDB to get the updated metadata
+        const handles = await getAllFileHandles()
+        setRecentFiles(handles.slice(0, MAX_RECENT_FILES))
 
         return handleId
       } catch (error) {
@@ -121,25 +99,18 @@ export function useRecentFiles(
     []
   )
 
-  const removeRecentFile = React.useCallback(
-    async (fileName: string) => {
-      if (typeof window === "undefined") return
+  const removeRecentFile = React.useCallback(async (handleId: string) => {
+    if (typeof window === "undefined") return
 
-      try {
-        // Find the file to get its handleId
-        const file = recentFiles.find((f) => f.path === fileName)
-        if (file?.handleId) {
-          await deleteFileHandle(file.handleId)
-        }
+    try {
+      await deleteFileHandle(handleId)
 
-        // Update state
-        setRecentFiles((prev) => prev.filter((file) => file.path !== fileName))
-      } catch (error) {
-        console.error("Failed to remove recent file:", error)
-      }
-    },
-    [recentFiles]
-  )
+      // Update state
+      setRecentFiles((prev) => prev.filter((file) => file.id !== handleId))
+    } catch (error) {
+      console.error("Failed to remove recent file:", error)
+    }
+  }, [])
 
   const clearRecentFiles = React.useCallback(async () => {
     if (typeof window === "undefined") return

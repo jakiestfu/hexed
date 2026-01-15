@@ -3,8 +3,6 @@ import { createHashRouter, RouterProvider } from "react-router-dom"
 
 import { DragDropProvider } from "@hexed/editor"
 
-import { FileManagerProvider } from "~/providers/file-manager-provider"
-import { WorkerProvider } from "~/providers/worker-provider"
 import { HexEditorPage } from "~/routes/hex-editor-page"
 
 const editor = <HexEditorPage />
@@ -21,18 +19,14 @@ const router = createHashRouter([
 ])
 
 export const App = () => (
-  <WorkerProvider>
-    <FileManagerProvider>
-      <ThemeProvider
-        attribute="class"
-        defaultTheme="system"
-        enableSystem
-        disableTransitionOnChange
-      >
-        <DragDropProvider>
-          <RouterProvider router={router} />
-        </DragDropProvider>
-      </ThemeProvider>
-    </FileManagerProvider>
-  </WorkerProvider>
+  <ThemeProvider
+    attribute="class"
+    defaultTheme="system"
+    enableSystem
+    disableTransitionOnChange
+  >
+    <DragDropProvider>
+      <RouterProvider router={router} />
+    </DragDropProvider>
+  </ThemeProvider>
 )

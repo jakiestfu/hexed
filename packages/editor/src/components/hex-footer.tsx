@@ -35,7 +35,6 @@ import {
 
 import { useSettings, type Sidebar } from "../hooks/use-settings"
 import { MemoryProfiler } from "./memory-profiler"
-import { WorkerStatus } from "./worker-status"
 
 export type HexFooterProps = {
   dataType: string
@@ -68,7 +67,6 @@ export const HexFooter: FunctionComponent<HexFooterProps> = ({
     showAscii,
     setShowAscii,
     showMemoryProfiler,
-    showWorkerStatus,
     setSidebar
   } = useSettings()
 
@@ -78,7 +76,6 @@ export const HexFooter: FunctionComponent<HexFooterProps> = ({
         {formatFileSize(currentSnapshot.data.length || 0)}
       </span>
       {showMemoryProfiler && <MemoryProfiler />}
-      {showWorkerStatus && <WorkerStatus isActive />}
     </div>
   ) : undefined
 

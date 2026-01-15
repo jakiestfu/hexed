@@ -14,7 +14,6 @@ export * from "./components/interpreter"
 export * from "./components/memory-profiler"
 export * from "./components/strings"
 export * from "./components/templates"
-export * from "./components/worker-status"
 export * from "./components/drag-drop-provider"
 
 // Types
@@ -33,6 +32,3 @@ export * from "./hooks/use-performance-metrics"
 export * from "./hooks/use-recent-files"
 export * from "./hooks/use-hex-editor-file"
 export * from "./hooks/use-file-handle-watcher"
-
-// Providers
-export * from "./providers/file-manager-provider"

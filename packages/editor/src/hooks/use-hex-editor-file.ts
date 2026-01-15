@@ -1,7 +1,5 @@
 import * as React from "react"
 
-import { useFileManager } from "../providers/file-manager-provider"
-import type { FileManager } from "../utils"
 import { useFileHandleWatcher } from "./use-file-handle-watcher"
 import { useRecentFiles } from "./use-recent-files"
 
@@ -14,7 +12,6 @@ import { useRecentFiles } from "./use-recent-files"
 // const watchError = null
 // const restart = () => {}
 export function useHexEditorFile(handleId: string | null) {
-  const fileManager = useFileManager()
   const { getFileHandleById, addRecentFile } = useRecentFiles({
     loadFiles: false
   })
@@ -61,16 +58,6 @@ export function useHexEditorFile(handleId: string | null) {
 
         setFileHandle(handleData.handle)
 
-        // Open file in worker if file manager is available
-        if (fileManager) {
-          try {
-            await fileManager.openFile(handleId, handleData.handle)
-          } catch (workerError) {
-            console.warn("Failed to open file in worker:", workerError)
-            // Continue anyway, worker will be opened when watcher reads
-          }
-        }
-
         // // Update recent files (will check for duplicates internally)
         // addRecentFile(handleData.handle.name, "file-system", handleData.handle)
       } catch (error) {
@@ -85,7 +72,7 @@ export function useHexEditorFile(handleId: string | null) {
     }
 
     loadHandleMetadata()
-  }, [handleId, getFileHandleById, addRecentFile, fileManager])
+  }, [handleId, getFileHandleById, addRecentFile])
 
   // Use file handle watcher for handle-based files
   const {
@@ -93,7 +80,7 @@ export function useHexEditorFile(handleId: string | null) {
     isConnected,
     error: watchError,
     restart
-  } = useFileHandleWatcher(fileHandle, handleId, fileManager)
+  } = useFileHandleWatcher(fileHandle, handleId)
 
   // Combine loading states
   const loading =

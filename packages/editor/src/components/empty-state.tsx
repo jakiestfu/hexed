@@ -1,7 +1,6 @@
 import type { FunctionComponent } from "react";
 
 import { useRecentFiles } from "../hooks/use-recent-files";
-import { useFileManager } from "../providers/file-manager-provider";
 import { DataPicker } from "./data-picker";
 
 type EmptyStateProps = {
@@ -11,7 +10,6 @@ type EmptyStateProps = {
 export const EmptyState: FunctionComponent<EmptyStateProps> = ({
   onHandleReady,
 }) => {
-  const fileManager = useFileManager();
   const { recentFiles } = useRecentFiles();
 
   return (

@@ -7,7 +7,6 @@ const CHECKSUMS = "hexed:show-checksums"
 const SIDEBAR = "hexed:sidebar"
 const SIDEBAR_POSITION = "hexed:sidebar-position"
 const MEMORY_PROFILER = "hexed:show-memory-profiler"
-const WORKER_STATUS = "hexed:show-worker-status"
 
 export type SidebarPosition = "left" | "right"
 export type Sidebar = "templates" | "strings" | "interpreter" | null
@@ -25,10 +24,6 @@ export function useSettings() {
     useLocalStorage<SidebarPosition>(SIDEBAR_POSITION, "right")
   const [showMemoryProfiler, setShowMemoryProfiler] = useLocalStorage(
     MEMORY_PROFILER,
-    true
-  )
-  const [showWorkerStatus, setShowWorkerStatus] = useLocalStorage(
-    WORKER_STATUS,
     true
   )
 
@@ -52,9 +47,6 @@ export function useSettings() {
     toggleSidebarPosition,
     // Memory profiler visibility
     showMemoryProfiler,
-    setShowMemoryProfiler,
-    // Worker status visibility
-    showWorkerStatus,
-    setShowWorkerStatus
+    setShowMemoryProfiler
   }
 }

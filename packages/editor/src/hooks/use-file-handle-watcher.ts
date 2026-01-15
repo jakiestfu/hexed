@@ -3,7 +3,6 @@ import { useCallback, useEffect, useRef, useState } from "react"
 import type { BinarySnapshot } from "@hexed/types"
 
 import { createSnapshotFromFile } from "../utils"
-import type { FileManager } from "../utils"
 
 /**
  * Hook for watching FileSystemFileHandle files for changes
@@ -11,52 +10,33 @@ import type { FileManager } from "../utils"
  */
 export function useFileHandleWatcher(
   handle: FileSystemFileHandle | null,
-  fileId: string | null | undefined,
-  fileManager: FileManager | null
+  fileId: string | null | undefined
 ) {
   const [snapshots, setSnapshots] = useState<BinarySnapshot[]>([])
   const [isConnected, setIsConnected] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const handleRef = useRef<FileSystemFileHandle | null>(handle)
   const fileIdRef = useRef<string | null | undefined>(fileId)
-  const fileManagerRef = useRef<FileManager | null>(fileManager)
   const observerRef = useRef<FileSystemObserver | null>(null)
   const snapshotIndexRef = useRef<number>(0)
 
-  // Update refs when handle, fileId, or fileManager changes
+  // Update refs when handle or fileId changes
   useEffect(() => {
     handleRef.current = handle
     fileIdRef.current = fileId
-    fileManagerRef.current = fileManager
-  }, [handle, fileId, fileManager])
+  }, [handle, fileId])
 
   const readAndAddSnapshot = useCallback(async () => {
     // Use refs to get latest values for async operations
     const currentHandle = handleRef.current
-    const currentFileId = fileIdRef.current
-    const currentFileManager = fileManagerRef.current
 
     if (!currentHandle) {
       return
     }
 
     try {
-      // Ensure file is open in worker if we have file manager and fileId
-      if (currentFileManager && currentFileId) {
-        try {
-          await currentFileManager.openFile(currentFileId, currentHandle)
-        } catch (workerError) {
-          console.warn("Failed to open file in worker:", workerError)
-          // Continue anyway, will fall back to direct reading
-        }
-      }
-
-      // Create snapshot using worker if available
-      const snapshot = await createSnapshotFromFile(
-        currentHandle,
-        currentFileManager || null,
-        currentFileId || undefined
-      )
+      // Create snapshot using direct file reading
+      const snapshot = await createSnapshotFromFile(currentHandle)
 
       // Update snapshot with proper index, label, and filePath
       const index = snapshotIndexRef.current

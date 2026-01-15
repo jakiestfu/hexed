@@ -2,6 +2,7 @@ import { useEffect, useState } from "react"
 import type { FunctionComponent } from "react"
 import { Clock, FolderOpen, Loader2 } from "lucide-react"
 
+import { formatFileSize } from "@hexed/binary-utils/formatter"
 import {
   Button,
   Card,
@@ -17,24 +18,58 @@ import {
 } from "@hexed/ui"
 
 import { useRecentFiles } from "../hooks/use-recent-files"
-import { useFileManager } from "../providers/file-manager-provider"
-import type { RecentFile } from "../types"
+import type { FileHandleMetadata } from "../utils/file-handle-storage"
 import { createSnapshotFromFile, formatTimestamp, getBasename } from "../utils"
 
 type DataPickerProps = {
-  recentFiles: RecentFile[]
+  recentFiles: FileHandleMetadata[]
   onHandleReady?: (handleId: string) => void
 }
 
 // Recent Files Component
 const RecentFilesDropdown: FunctionComponent<{
-  recentFiles: RecentFile[]
+  recentFiles: FileHandleMetadata[]
   onSelect: (handleId: string) => void
 }> = ({ recentFiles, onSelect }) => {
+  const { getFileHandleById } = useRecentFiles()
+  const [fileSizes, setFileSizes] = useState<Map<string, number>>(new Map())
+  const [isLoadingSizes, setIsLoadingSizes] = useState(false)
+
   if (recentFiles.length === 0) return null
 
+  const loadFileSizes = async () => {
+    setIsLoadingSizes(true)
+    const sizes = new Map<string, number>()
+
+    try {
+      await Promise.all(
+        recentFiles.map(async (file) => {
+          try {
+            const fileObj = await file.handle.getFile()
+            sizes.set(file.id, fileObj.size)
+          } catch (error) {
+            // Silently fail for individual files
+            console.warn(
+              `Failed to get size for file ${file.id}:`,
+              error
+            )
+          }
+        })
+      )
+      setFileSizes(sizes)
+    } finally {
+      setIsLoadingSizes(false)
+    }
+  }
+
   return (
-    <Popover>
+    <Popover
+      onOpenChange={(open) => {
+        if (open && fileSizes.size === 0) {
+          loadFileSizes()
+        }
+      }}
+    >
       <PopoverTrigger asChild>
         <Button
           type="button"
@@ -53,28 +88,43 @@ const RecentFilesDropdown: FunctionComponent<{
           <div className="px-2 py-1.5 text-xs font-semibold text-muted-foreground">
             Recent Files
           </div>
-          {recentFiles.map((file) => (
-            <Button
-              key={file.path}
-              type="button"
-              variant="ghost"
-              className="w-full justify-start text-left h-auto py-2 px-2"
-              onClick={() => {
-                if (file.handleId) {
-                  onSelect(file.handleId)
-                }
-              }}
-            >
-              <div className="flex flex-col items-start gap-0.5 flex-1 min-w-0">
-                <span className="font-mono text-sm truncate w-full">
-                  {getBasename(file.path)}
-                </span>
-                <span className="text-xs text-muted-foreground">
-                  {formatTimestamp(file.timestamp)}
-                </span>
-              </div>
-            </Button>
-          ))}
+          {recentFiles.map((file) => {
+            const fileSize = fileSizes.get(file.id)
+            return (
+              <Button
+                key={file.id}
+                type="button"
+                variant="ghost"
+                className="w-full justify-start text-left h-auto py-2 px-2"
+                onClick={() => {
+                  onSelect(file.id)
+                }}
+              >
+                <div className="flex flex-col items-start gap-0.5 flex-1 min-w-0">
+                  <span className="font-mono text-sm truncate w-full">
+                    {getBasename(file.handle.name)}
+                  </span>
+                  <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                    <span>{formatTimestamp(file.timestamp)}</span>
+                    {fileSize !== undefined && (
+                      <>
+                        <span>•</span>
+                        <span>{formatFileSize(fileSize, true)}</span>
+                      </>
+                    )}
+                    {isLoadingSizes && fileSize === undefined && (
+                      <>
+                        <span>•</span>
+                        <span className="text-muted-foreground/50">
+                          Loading size...
+                        </span>
+                      </>
+                    )}
+                  </div>
+                </div>
+              </Button>
+            )
+          })}
         </div>
       </PopoverContent>
     </Popover>
@@ -86,7 +136,6 @@ export const DataPicker: FunctionComponent<DataPickerProps> = ({
   onHandleReady
 }) => {
   const { addRecentFile, getFileHandleById } = useRecentFiles()
-  const fileManager = useFileManager()
   const [isLoading, setIsLoading] = useState(false)
   const [isMounted, setIsMounted] = useState(false)
   const [showFileSystemInfoDialog, setShowFileSystemInfoDialog] =
@@ -115,22 +164,8 @@ export const DataPicker: FunctionComponent<DataPickerProps> = ({
         throw new Error("File handle not found or permission denied")
       }
 
-      // Open file in worker if file manager is available
-      if (fileManager) {
-        try {
-          await fileManager.openFile(handleId, handleData.handle)
-        } catch (workerError) {
-          console.warn("Failed to open file in worker:", workerError)
-          // Continue anyway, will fall back to direct reading
-        }
-      }
-
-      // Create snapshot using worker if available
-      const snapshot = await createSnapshotFromFile(
-        handleData.handle,
-        fileManager || null,
-        handleId
-      )
+      // Create snapshot using direct file reading
+      const snapshot = await createSnapshotFromFile(handleData.handle)
       const snapshotKey = `hexed:pending-handle-${handleId}`
       try {
         // Store snapshot data (convert Uint8Array to array for JSON)
@@ -183,22 +218,8 @@ export const DataPicker: FunctionComponent<DataPickerProps> = ({
         return
       }
 
-      // Open file in worker if file manager is available
-      if (fileManager) {
-        try {
-          await fileManager.openFile(handleId, handle)
-        } catch (workerError) {
-          console.warn("Failed to open file in worker:", workerError)
-          // Continue anyway, will fall back to direct reading
-        }
-      }
-
-      // Create snapshot using worker if available
-      const snapshot = await createSnapshotFromFile(
-        handle,
-        fileManager || null,
-        handleId
-      )
+      // Create snapshot using direct file reading
+      const snapshot = await createSnapshotFromFile(handle)
       const snapshotKey = `hexed:pending-handle-${handleId}`
       try {
         // Store snapshot data (convert Uint8Array to array for JSON)

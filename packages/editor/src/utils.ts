@@ -1,14 +1,5 @@
 import type { BinarySnapshot } from "@hexed/types"
 
-// Minimal interface for FileManager to avoid dependency on web app providers
-export interface FileManager {
-  openFile(fileId: string, handle: FileSystemFileHandle): Promise<void>
-  getWorkerClient(): {
-    getFileSize(fileId: string): Promise<number>
-    readByteRange(fileId: string, start: number, end: number): Promise<Uint8Array>
-  } | null
-}
-
 /**
  * Remove query parameters from a path or URL
  */
@@ -83,97 +74,34 @@ function isFileSystemFileHandle(
 }
 
 /**
- * Create snapshot from FileSystemFileHandle using worker
- * If fileManager and fileId are provided, uses worker for reading
- * Otherwise falls back to direct file reading
+ * Create snapshot from FileSystemFileHandle using direct file reading
  */
 export async function createSnapshotFromHandle(
-  handle: FileSystemFileHandle,
-  fileManager?: FileManager | null,
-  fileId?: string
+  handle: FileSystemFileHandle
 ): Promise<BinarySnapshot> {
-  // Use worker if available
-  if (fileManager && fileId) {
-    try {
-      // Ensure file is open in worker
-      await fileManager.openFile(fileId, handle)
-
-      // Get worker client for read operations
-      const workerClient = fileManager.getWorkerClient()
-      if (!workerClient) {
-        throw new Error("Worker client not available")
-      }
-
-      // Get file size
-      const fileSize = await workerClient.getFileSize(fileId)
-
-      // Read entire file - readByteRange will use the current file size internally
-      // to ensure we read the complete file even if it changed
-      const data = await workerClient.readByteRange(fileId, 0, fileSize)
-
-      // Verify that we read the entire file
-      // Get the current file size again to check for any changes
-      const currentFileSize = await workerClient.getFileSize(fileId)
-      if (data.length !== currentFileSize) {
-        console.warn(
-          `Snapshot data length (${data.length}) does not match file size (${currentFileSize}). ` +
-            `File may have changed during read. Re-reading...`
-        )
-        // Re-read the file to get the complete current version
-        const correctedData = await workerClient.readByteRange(
-          fileId,
-          0,
-          currentFileSize
-        )
-        if (correctedData.length !== currentFileSize) {
-          throw new Error(
-            `Failed to read complete file: expected ${currentFileSize} bytes, got ${correctedData.length}`
-          )
-        }
-        const snapshot = createSnapshotFromArrayBuffer(
-          new Uint8Array(correctedData).buffer,
-          handle.name || "file"
-        )
-        snapshot.md5 = await calculateChecksum(snapshot.data)
-        return snapshot
-      }
-
-      // Create snapshot
-      const snapshot = createSnapshotFromArrayBuffer(
-        new Uint8Array(data).buffer,
-        handle.name || "file"
-      )
-      snapshot.md5 = await calculateChecksum(snapshot.data)
-      return snapshot
-    } catch (error) {
-      console.warn(
-        "Failed to read file via worker, falling back to direct read:",
-        error
-      )
-      // Fall through to direct file reading
-    }
-  }
-
-  // Fallback to direct file reading
   const file = await handle.getFile()
   return createSnapshotFromFile(file)
 }
 
 /**
- * Create snapshot from File object or FileSystemFileHandle
- * If handle and fileManager/fileId are provided, uses worker
+ * Create snapshot from File object or FileSystemFileHandle using direct file reading
  */
 export async function createSnapshotFromFile(
-  file: File | FileSystemFileHandle,
-  fileManager?: FileManager | null,
-  fileId?: string
+  file: File | FileSystemFileHandle
 ): Promise<BinarySnapshot> {
-  // Handle FileSystemFileHandle
+  // Handle FileSystemFileHandle - get File and read directly
   if (isFileSystemFileHandle(file)) {
-    return createSnapshotFromHandle(file, fileManager, fileId)
+    const fileObj = await file.getFile()
+    const arrayBuffer = await fileObj.arrayBuffer()
+    const snapshot = createSnapshotFromArrayBuffer(
+      arrayBuffer,
+      file.name || "file"
+    )
+    snapshot.md5 = await calculateChecksum(snapshot.data)
+    return snapshot
   }
 
-  // Handle File object (always use direct reading)
+  // Handle File object - read directly
   const arrayBuffer = await file.arrayBuffer()
   const snapshot = createSnapshotFromArrayBuffer(
     arrayBuffer,

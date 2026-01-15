@@ -92,7 +92,7 @@ export const Menu: FunctionComponent<MenuProps> = ({
     setShowWorkerStatus
   } = useSettings()
   const [showClientFileDialog, setShowClientFileDialog] = useState(false)
-  const [clickedClientFilePath, setClickedClientFilePath] = useState<
+  const [clickedClientFileHandleId, setClickedClientFileHandleId] = useState<
     string | null
   >(null)
   const [showAboutDialog, setShowAboutDialog] = useState(false)
@@ -157,46 +157,23 @@ export const Menu: FunctionComponent<MenuProps> = ({
                 {recentFiles.map((file) => {
                   // Use stored source, fallback to "file-system" for backward compatibility
                   const fileSource = file.source || "file-system"
+                  const encodedHandleId = encodeHandleId(file.id)
 
-                  if (file.handleId) {
-                    // For file-system files with handleId, navigate to /edit/<handleId>
-                    const encodedHandleId = encodeHandleId(file.handleId)
-                    return (
-                      <DropdownMenuItem
-                        key={file.path}
-                        asChild
-                      >
-                        <Link
-                          to={`/edit/${encodedHandleId}`}
-                          className="flex items-center gap-2 cursor-pointer"
-                        >
-                          <FileSourceIcon
-                            fileSource={fileSource}
-                            className="mr-2"
-                          />
-                          {formatFilenameForDisplay(file.path)}
-                        </Link>
-                      </DropdownMenuItem>
-                    )
-                  }
-
-                  // For files without handleId, show dialog on click
                   return (
                     <DropdownMenuItem
-                      key={file.path}
-                      onClick={() => {
-                        setClickedClientFilePath(file.path)
-                        setShowClientFileDialog(true)
-                      }}
-                      className="cursor-pointer"
+                      key={file.id}
+                      asChild
                     >
-                      <FileSourceIcon
-                        fileSource={fileSource}
-                        className="mr-2"
-                      />
-                      <span className="text-muted-foreground">
-                        {formatFilenameForDisplay(file.path)}
-                      </span>
+                      <Link
+                        to={`/edit/${encodedHandleId}`}
+                        className="flex items-center gap-2 cursor-pointer"
+                      >
+                        <FileSourceIcon
+                          fileSource={fileSource}
+                          className="mr-2"
+                        />
+                        {formatFilenameForDisplay(file.handle.name)}
+                      </Link>
                     </DropdownMenuItem>
                   )
                 })}
@@ -443,11 +420,11 @@ export const Menu: FunctionComponent<MenuProps> = ({
             <Button
               variant="outline"
               onClick={() => {
-                if (clickedClientFilePath) {
-                  removeRecentFile(clickedClientFilePath)
+                if (clickedClientFileHandleId) {
+                  removeRecentFile(clickedClientFileHandleId)
                 }
                 setShowClientFileDialog(false)
-                setClickedClientFilePath(null)
+                setClickedClientFileHandleId(null)
               }}
             >
               Remove from recent files

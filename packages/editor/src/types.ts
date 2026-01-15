@@ -4,15 +4,6 @@ import type { BinarySnapshot, DiffResult } from "@hexed/types"
 import type { FileHandleMetadata } from "./utils/file-handle-storage"
 import type { FileManager } from "./utils"
 
-// Define RecentFile type locally to avoid dependency on web app hooks
-// This matches the structure used by the editor components
-export type RecentFile = {
-  path: string
-  timestamp: number
-  source?: FileSource
-  handleId?: string // IndexedDB ID for FileSystemFileHandle
-}
-
 export type FileSource = "file-system"
 
 /**
