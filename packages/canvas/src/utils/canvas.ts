@@ -3,6 +3,17 @@ import type { FormattedRow } from "@hexed/binary-utils/formatter"
 import type { DiffResult } from "@hexed/types"
 
 import type { HexCanvasColors } from "../hex-canvas"
+import {
+  addressHexGap,
+  addressPadding,
+  asciiPadding,
+  borderWidth,
+  cellWidth,
+  hexAsciiGap,
+  hexByteGap,
+  rowHeight,
+  verticalPadding
+} from "./constants"
 import { getCellBounds, type LayoutMetrics } from "./coordinates"
 
 export type SelectionRange = { start: number; end: number } | null
@@ -38,17 +49,6 @@ export function calculateLayout(
   const addressWidth = ctx.measureText(addressText).width
   const hexByteWidth = ctx.measureText(hexByteText).width
   const asciiCharWidth = ctx.measureText(asciiText).width
-
-  // Constants
-  const hexByteGap = 0 // Space between hex bytes
-  const borderWidth = 1
-  const addressPadding = 16
-  const cellWidth = 30 // Fixed width of each hex cell
-  const rowHeight = 24 // Fixed row height
-  const asciiPadding = 16
-  const addressHexGap = 16 // Gap between address and hex columns
-  const hexAsciiGap = 16 // Gap between hex and ASCII columns
-  const verticalPadding = 16 // Vertical padding for top and bottom rows
 
   // Calculate available width for hex bytes
   // Total width - address column - gaps - minimal padding

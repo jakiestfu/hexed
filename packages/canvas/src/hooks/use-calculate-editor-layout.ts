@@ -20,28 +20,8 @@ import { useFormatData } from "./use-format-data"
 export function useCalculateEditorLayout(
   canvasRef: React.RefObject<HTMLCanvasElement | null>,
   dimensions: { width: number; height: number },
-  showAscii: boolean,
-  totalSize: number | undefined
-): {
-  layout: LayoutMetrics | null
-  rowsLength: number
-  totalHeight: number
-  visibleBytes: number
-} {
-  // Track canvas availability to trigger recalculation when ref becomes available
-  // const [canvasAvailable, setCanvasAvailable] = useState(false)
-  // const prevCanvasAvailableRef = useRef(false)
-
-  // Monitor canvas ref availability - update state when canvas becomes available
-  // useEffect(() => {
-  //   const hasCanvas = canvasRef.current !== null
-  //   if (hasCanvas !== prevCanvasAvailableRef.current) {
-  //     prevCanvasAvailableRef.current = hasCanvas
-  //     // setCanvasAvailable(hasCanvas)
-  //   }
-  // })
-
-  // Calculate layout metrics based on canvas dimensions
+  showAscii: boolean
+) {
   const layout = useMemo((): LayoutMetrics | null => {
     if (dimensions.width === 0 || dimensions.height === 0) return null
 
@@ -58,6 +38,18 @@ export function useCalculateEditorLayout(
     // canvasAvailable
   ])
 
+  return layout
+}
+
+export type VisibleDataLayoutMetrics = ReturnType<
+  typeof useCalculateVisibleData
+>
+export function useCalculateVisibleData(
+  layout: LayoutMetrics | null,
+  dimensions: { width: number; height: number },
+  // windowSize: number,
+  totalSize: number | undefined
+) {
   // Calculate total number of rows based on totalSize or actual data
   const rowsLength = useMemo(() => {
     if (totalSize !== undefined && layout) {
@@ -66,30 +58,46 @@ export function useCalculateEditorLayout(
     return 0
   }, [totalSize, layout])
 
-  const visibleBytes = useMemo(() => {
+  const visibleRows = useMemo(() => {
     if (!layout) return 0
-    const visibleRows = Math.round(dimensions.height / layout.rowHeight)
-    return visibleRows * layout.bytesPerRow
-  }, [layout, dimensions.height, rowsLength])
+    return Math.round(
+      (dimensions.height - layout.verticalPadding) / layout.rowHeight
+    )
+  }, [dimensions.height, layout])
+
+  // const nonEmptyRows = useMemo(() => {
+  //   if (!layout) return 0
+  //   const renderedRows = Math.ceil(windowSize / layout.bytesPerRow)
+  //   return Math.min(visibleRows, renderedRows)
+  // }, [visibleRows, layout])
+
+  const visibleBytes = useMemo(
+    () => (layout ? visibleRows * layout.bytesPerRow : 0),
+    [layout, visibleRows]
+  )
 
   // Calculate total canvas height (including vertical padding)
   const totalHeight = useMemo(() => {
     return calculateTotalHeight(rowsLength, layout, dimensions.height)
   }, [rowsLength, layout, dimensions.height])
 
-  // // Format data into rows
-  // const rows = useFormatData(
-  //   data,
-  //   layout?.bytesPerRow ?? null,
-  //   dataStartOffset,
-  //   totalSize
-  // )
-
   return {
-    layout,
-    // rows,
     rowsLength,
     totalHeight,
+    visibleRows,
     visibleBytes
+    // nonEmptyRows
   }
+}
+
+export const useCalculateNonEmptyRows = (
+  layout: LayoutMetrics | null,
+  visibleRows: number,
+  windowSize: number
+) => {
+  return useMemo(() => {
+    if (!layout) return 0
+    const renderedRows = Math.ceil(windowSize / layout.bytesPerRow)
+    return Math.min(visibleRows, renderedRows)
+  }, [visibleRows, layout])
 }

@@ -1,6 +1,7 @@
 import { FormattedRow } from "@hexed/binary-utils"
 import type { Endianness, NumberFormat } from "@hexed/binary-utils/interpreter"
 import { HexCanvasRef, useCalculateEditorLayout } from "@hexed/canvas"
+import type { VisibleDataLayoutMetrics } from "@hexed/canvas"
 import type { BinarySnapshot, DiffResult } from "@hexed/types"
 
 import type { FileHandleMetadata } from "./utils/file-handle-storage"
@@ -53,6 +54,7 @@ export type HexEditorViewProps = {
   onSelectedOffsetRangeChange: (range: SelectionRange) => void
   totalSize?: number
   scrollTopRef: React.MutableRefObject<number>
+  visibleDataLayout: VisibleDataLayoutMetrics
 }
 
 export type InterpreterProps = {

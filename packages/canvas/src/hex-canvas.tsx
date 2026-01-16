@@ -12,7 +12,10 @@ import type { FunctionComponent } from "react"
 import { FormattedRow } from "@hexed/binary-utils"
 import type { DiffResult } from "@hexed/types"
 
-import { useCalculateEditorLayout } from "./hooks/use-calculate-editor-layout"
+import {
+  useCalculateEditorLayout,
+  VisibleDataLayoutMetrics
+} from "./hooks/use-calculate-editor-layout"
 import { useDrawCanvas } from "./hooks/use-draw-canvas"
 import { useKeyboardNavigation } from "./hooks/use-keyboard-navigation"
 import { useSelection } from "./hooks/use-selection"
@@ -26,12 +29,14 @@ import {
 import { getDefaultColors } from "./utils/colors"
 import {
   getOffsetFromPosition as getOffsetFromPositionUtil,
-  getRowFromY as getRowFromYUtil
+  getRowFromY as getRowFromYUtil,
+  LayoutMetrics
 } from "./utils/coordinates"
 
 export interface HexCanvasProps {
   rows: FormattedRow[]
-  layout: ReturnType<typeof useCalculateEditorLayout>
+  layout: LayoutMetrics | null
+  visibleDataLayout: VisibleDataLayoutMetrics
   data: Uint8Array
   showAscii?: boolean
   className?: string
@@ -86,8 +91,9 @@ export const HexCanvas = forwardRef<HexCanvasRef, HexCanvasProps>(
       dimensions,
       onRequestScrollToOffset,
       containerRef,
-      canvasRef, //: externalCanvasRef,
-      layout: { layout, rowsLength, totalHeight }
+      canvasRef,
+      visibleDataLayout: { rowsLength, totalHeight },
+      layout
     },
     ref
   ) => {

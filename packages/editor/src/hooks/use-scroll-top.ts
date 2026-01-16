@@ -10,12 +10,13 @@ export function useScrollTop(
   containerElement: HTMLElement | null,
   scrollTopRef?: React.MutableRefObject<number>
 ): number {
+  const scrollableElement = containerElement?.firstChild as HTMLElement | null
   const [scrollTop, setScrollTop] = useState(0)
 
   // Handle scroll events
   const handleScroll = useCallback(() => {
-    if (containerElement) {
-      const newScrollTop = containerElement.scrollTop
+    if (scrollableElement) {
+      const newScrollTop = scrollableElement.scrollTop
       // Update ref if provided (no re-render)
       if (scrollTopRef) {
         scrollTopRef.current = newScrollTop
@@ -23,16 +24,18 @@ export function useScrollTop(
       // Update state (causes re-render, but only if component needs it)
       setScrollTop(newScrollTop)
     }
-  }, [containerElement, scrollTopRef])
+  }, [scrollableElement, scrollTopRef])
 
   useEffect(() => {
-    if (!containerElement) return
+    if (!scrollableElement) return
 
-    containerElement.addEventListener("scroll", handleScroll, { passive: true })
+    scrollableElement.addEventListener("scroll", handleScroll, {
+      passive: true
+    })
     return () => {
-      containerElement.removeEventListener("scroll", handleScroll)
+      scrollableElement.removeEventListener("scroll", handleScroll)
     }
-  }, [containerElement, handleScroll])
+  }, [scrollableElement, handleScroll])
 
   return scrollTop
 }

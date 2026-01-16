@@ -8,6 +8,8 @@ import { computeDiff } from "@hexed/binary-utils/differ"
 import {
   HexCanvas,
   useCalculateEditorLayout,
+  useCalculateNonEmptyRows,
+  useCalculateVisibleData,
   useDimensions,
   useFormatData,
   type HexCanvasRef
@@ -32,6 +34,7 @@ import {
   useHexEditorFile
 } from "../hooks/use-hex-editor-file"
 import { useScrollTop } from "../hooks/use-scroll-top"
+import { useScrollWindow } from "../hooks/use-scroll-window"
 import { useSettings } from "../hooks/use-settings"
 import type { HexEditorProps, HexEditorViewProps } from "../types"
 import { createMinimalSnapshot } from "../utils"
@@ -57,7 +60,8 @@ const HexEditorView: FunctionComponent<HexEditorViewProps> = ({
   diff,
   selectedOffsetRange,
   onSelectedOffsetRangeChange,
-  totalSize
+  totalSize,
+  visibleDataLayout
   // scrollTopRef
 }) => {
   // Handle scroll to offset requests from HexCanvas
@@ -85,6 +89,7 @@ const HexEditorView: FunctionComponent<HexEditorViewProps> = ({
       <HexCanvas
         rows={rows}
         layout={layout}
+        visibleDataLayout={visibleDataLayout}
         ref={hexCanvasRef}
         canvasRef={canvasElementRef}
         data={data}
@@ -99,7 +104,9 @@ const HexEditorView: FunctionComponent<HexEditorViewProps> = ({
         onRequestScrollToOffset={handleRequestScrollToOffset}
       />
       {/* Spacer to make container scrollable to total height */}
-      <div style={{ height: `${layout.totalHeight}px`, width: "100%" }} />
+      <div
+        style={{ height: `${visibleDataLayout.totalHeight}px`, width: "100%" }}
+      />
     </>
   )
 }
@@ -150,20 +157,40 @@ export const HexEditor: FunctionComponent<HexEditorProps> = ({
   const layout = useCalculateEditorLayout(
     canvasElementRef,
     dimensions,
-    showAscii,
+    showAscii
+  )
+  // console.log("layout", layout)
+
+  const visibleDataLayout = useCalculateVisibleData(
+    layout,
+    dimensions,
+    // windowSize, //Math.min(file?.size ?? 0, windowSize)
     file?.size
   )
+  const windowSizeFactor = 1
+  const windowSize =
+    visibleDataLayout.visibleRows *
+    (layout?.bytesPerRow ?? 0) *
+    windowSizeFactor
+
+  const nonEmptyRows = useCalculateNonEmptyRows(
+    layout,
+    visibleDataLayout.visibleRows,
+    windowSize
+  )
+  // console.log("visibleDataLayout", visibleDataLayout, layout)
+  // Calculate dynamic window based on scroll position
+  const { windowStart, windowEnd } = useScrollWindow({
+    containerRef,
+    windowSize,
+    layout,
+    visibleRows: nonEmptyRows,
+    totalSize: file?.size
+  })
+
   // Use hook to manage file loading and watching
-  // const vb = layout.visibleBytes !== 0 ? layout.visibleBytes : undefined
   const { data, dataStartOffset, isConnected, loading, error, restart } =
-    useHexEditorFile(file, 0)
-  // console.log("layout.visibleBytes", vb)
-  console.log("HEX EDITOR RENDER", canvasElementRef)
-  // useEffect(() => {
-  //   if (file?.size && file?.size !== fileSize) {
-  //     setFileSize(file.size)
-  //   }
-  // }, [file, fileSize])
+    useHexEditorFile(file, windowStart, windowEnd, true)
 
   const hasFile = fileHandle != null
   const hasData = data !== null
@@ -171,7 +198,7 @@ export const HexEditor: FunctionComponent<HexEditorProps> = ({
   // Format data into rows
   const rows = useFormatData(
     data || new Uint8Array(),
-    layout.layout?.bytesPerRow ?? null,
+    layout?.bytesPerRow ?? null,
     dataStartOffset,
     file?.size
   )
@@ -364,6 +391,7 @@ export const HexEditor: FunctionComponent<HexEditorProps> = ({
                       selectedOffsetRange={selectedOffsetRange}
                       onSelectedOffsetRangeChange={setSelectedOffsetRange}
                       totalSize={file?.size}
+                      visibleDataLayout={visibleDataLayout}
                     />
                   </div>
 

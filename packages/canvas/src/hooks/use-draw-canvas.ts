@@ -53,7 +53,7 @@ export function useDrawCanvas(
       hoveredRow,
       hoveredOffset
     }
-    console.log("useDrawCanvas", latestValuesRef.current)
+    // console.log("useDrawCanvas", latestValuesRef.current)
   }, [
     layout,
     dimensions,
