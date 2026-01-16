@@ -41,10 +41,9 @@ export interface HexCanvasProps {
   onSelectedOffsetRangeChange?: (range: SelectionRange) => void
   colors?: Partial<HexCanvasColors>
   totalSize?: number
-  scrollTopRef: React.MutableRefObject<number>
   dimensions: { width: number; height: number }
   onRequestScrollToOffset?: (offset: number, targetScrollTop: number) => void
-  containerRef?: React.RefObject<HTMLElement | null>
+  containerRef: React.RefObject<HTMLElement | null>
   canvasRef?: React.RefObject<HTMLCanvasElement | null>
 }
 

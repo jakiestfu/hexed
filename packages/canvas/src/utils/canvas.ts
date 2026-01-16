@@ -1,17 +1,18 @@
-import { getDiffAtOffset } from "@hexed/binary-utils/differ";
-import type { DiffResult } from "@hexed/types";
-import type { FormattedRow } from "@hexed/binary-utils/formatter";
-import { getCellBounds, type LayoutMetrics } from "./coordinates";
-import type { HexCanvasColors } from "../hex-canvas";
+import { getDiffAtOffset } from "@hexed/binary-utils/differ"
+import type { FormattedRow } from "@hexed/binary-utils/formatter"
+import type { DiffResult } from "@hexed/types"
 
-export type SelectionRange = { start: number; end: number } | null;
+import type { HexCanvasColors } from "../hex-canvas"
+import { getCellBounds, type LayoutMetrics } from "./coordinates"
+
+export type SelectionRange = { start: number; end: number } | null
 
 /**
  * Minimum number of bytes per row in the hex canvas.
  * Set to 1 to allow full responsiveness down to 1 byte per row.
  * This can be increased if you want to enforce a higher minimum.
  */
-export const MIN_BYTES_PER_ROW = 1;
+export const MIN_BYTES_PER_ROW = 1
 
 /**
  * Calculate layout metrics based on canvas dimensions and context
@@ -22,69 +23,69 @@ export function calculateLayout(
   dimensions: { width: number; height: number },
   showAscii: boolean
 ): LayoutMetrics | null {
-  if (dimensions.width === 0 || dimensions.height === 0) return null;
+  if (dimensions.width === 0 || dimensions.height === 0) return null
 
-  const computedStyle = window.getComputedStyle(canvas);
+  const computedStyle = window.getComputedStyle(canvas)
 
   // Set font for measurements
-  ctx.font = `14px ${computedStyle.getPropertyValue("--font-mono")}`;
+  ctx.font = `14px ${computedStyle.getPropertyValue("--font-mono")}`
 
   // Measure text widths
-  const addressText = "0x00000000";
-  const hexByteText = "FF";
-  const asciiText = "A";
+  const addressText = "0x00000000"
+  const hexByteText = "FF"
+  const asciiText = "A"
 
-  const addressWidth = ctx.measureText(addressText).width;
-  const hexByteWidth = ctx.measureText(hexByteText).width;
-  const asciiCharWidth = ctx.measureText(asciiText).width;
+  const addressWidth = ctx.measureText(addressText).width
+  const hexByteWidth = ctx.measureText(hexByteText).width
+  const asciiCharWidth = ctx.measureText(asciiText).width
 
   // Constants
-  const hexByteGap = 0; // Space between hex bytes
-  const borderWidth = 1;
-  const addressPadding = 16;
-  const cellWidth = 30; // Fixed width of each hex cell
-  const rowHeight = 24; // Fixed row height
-  const asciiPadding = 16;
-  const addressHexGap = 16; // Gap between address and hex columns
-  const hexAsciiGap = 16; // Gap between hex and ASCII columns
-  const verticalPadding = 16; // Vertical padding for top and bottom rows
+  const hexByteGap = 0 // Space between hex bytes
+  const borderWidth = 1
+  const addressPadding = 16
+  const cellWidth = 30 // Fixed width of each hex cell
+  const rowHeight = 24 // Fixed row height
+  const asciiPadding = 16
+  const addressHexGap = 16 // Gap between address and hex columns
+  const hexAsciiGap = 16 // Gap between hex and ASCII columns
+  const verticalPadding = 16 // Vertical padding for top and bottom rows
 
   // Calculate available width for hex bytes
   // Total width - address column - gaps - minimal padding
-  const addressColumnTotalWidth = addressWidth + addressPadding * 2;
+  const addressColumnTotalWidth = addressWidth + addressPadding * 2
   let availableWidth =
-    dimensions.width - addressColumnTotalWidth - addressHexGap;
+    dimensions.width - addressColumnTotalWidth - addressHexGap
 
   // If showing ASCII, we need to account for it
   if (showAscii) {
     // Iteratively calculate bytesPerRow since ASCII width depends on it
     // Account for hex-to-ASCII gap
-    const hexAvailableWidth = availableWidth - hexAsciiGap;
-    let estimatedBytes = Math.floor(hexAvailableWidth / cellWidth);
+    const hexAvailableWidth = availableWidth - hexAsciiGap
+    let estimatedBytes = Math.floor(hexAvailableWidth / cellWidth)
 
     // Refine estimate accounting for ASCII column
     for (let i = 0; i < 5; i++) {
       const asciiColumnWidth =
-        estimatedBytes * asciiCharWidth + asciiPadding * 2 + borderWidth;
-      const remainingWidth = availableWidth - hexAsciiGap - asciiColumnWidth;
-      const newEstimatedBytes = Math.floor(remainingWidth / cellWidth);
+        estimatedBytes * asciiCharWidth + asciiPadding * 2 + borderWidth
+      const remainingWidth = availableWidth - hexAsciiGap - asciiColumnWidth
+      const newEstimatedBytes = Math.floor(remainingWidth / cellWidth)
 
       if (newEstimatedBytes === estimatedBytes) {
-        break;
+        break
       }
-      estimatedBytes = newEstimatedBytes;
+      estimatedBytes = newEstimatedBytes
     }
 
-    const finalBytesPerRow = Math.max(MIN_BYTES_PER_ROW, estimatedBytes);
+    const finalBytesPerRow = Math.max(MIN_BYTES_PER_ROW, estimatedBytes)
 
     // Calculate dynamic ASCII cell width to fill remaining canvas width
-    const hexColumnStartX = addressColumnTotalWidth + addressHexGap;
-    const hexColumnEndX = hexColumnStartX + finalBytesPerRow * cellWidth;
-    const asciiColumnX = hexColumnEndX + hexAsciiGap;
-    const asciiStartX = asciiColumnX + borderWidth + asciiPadding;
+    const hexColumnStartX = addressColumnTotalWidth + addressHexGap
+    const hexColumnEndX = hexColumnStartX + finalBytesPerRow * cellWidth
+    const asciiColumnX = hexColumnEndX + hexAsciiGap
+    const asciiStartX = asciiColumnX + borderWidth + asciiPadding
     const availableWidthForAsciiCells =
-      dimensions.width - asciiStartX - asciiPadding;
-    const asciiCellWidth = availableWidthForAsciiCells / finalBytesPerRow;
+      dimensions.width - asciiStartX - asciiPadding
+    const asciiCellWidth = availableWidthForAsciiCells / finalBytesPerRow
 
     return {
       rowHeight,
@@ -99,14 +100,14 @@ export function calculateLayout(
       cellWidth,
       hexAsciiGap,
       asciiPadding,
-      verticalPadding,
-    };
+      verticalPadding
+    }
   } else {
-    const calculatedBytes = Math.floor(availableWidth / cellWidth);
-    const finalBytesPerRow = Math.max(MIN_BYTES_PER_ROW, calculatedBytes);
+    const calculatedBytes = Math.floor(availableWidth / cellWidth)
+    const finalBytesPerRow = Math.max(MIN_BYTES_PER_ROW, calculatedBytes)
 
     // When ASCII is not shown, asciiCellWidth is not used, but we need to provide a default value
-    const asciiCellWidth = asciiCharWidth;
+    const asciiCellWidth = asciiCharWidth
 
     return {
       rowHeight,
@@ -121,8 +122,8 @@ export function calculateLayout(
       cellWidth,
       hexAsciiGap,
       asciiPadding,
-      verticalPadding,
-    };
+      verticalPadding
+    }
   }
 }
 
@@ -134,10 +135,10 @@ export function calculateTotalHeight(
   layout: LayoutMetrics | null,
   viewportHeight: number
 ): number {
-  if (!layout) return 0;
+  if (!layout) return 0
   return (
     rowsLength * layout.rowHeight + layout.verticalPadding * 2 - viewportHeight
-  );
+  )
 }
 
 /**
@@ -150,24 +151,25 @@ export function calculateVisibleRows(
   rowsLength: number,
   overscan: number = 5
 ): {
-  startRow: number;
-  endRow: number;
-  renderStartRow: number;
-  renderEndRow: number;
+  startRow: number
+  endRow: number
+  renderStartRow: number
+  renderEndRow: number
 } {
   // Calculate visible rows based on scroll position (accounting for vertical padding)
-  const scrollTopAdjusted = Math.max(0, scrollTop - layout.verticalPadding);
-  const startRow = Math.floor(scrollTopAdjusted / layout.rowHeight);
-  const endRow = Math.min(
-    rowsLength - 1,
-    Math.ceil((scrollTopAdjusted + viewportHeight) / layout.rowHeight)
-  );
+  const scrollTopAdjusted = Math.max(0, scrollTop - layout.verticalPadding)
+  const startRow = Math.floor(scrollTopAdjusted / layout.rowHeight)
+  const endRow =
+    Math.min(
+      rowsLength - 1,
+      Math.floor((scrollTopAdjusted + viewportHeight) / layout.rowHeight)
+    ) - 1
 
   // Render visible rows plus overscan
-  const renderStartRow = Math.max(0, startRow - overscan);
-  const renderEndRow = Math.min(rowsLength - 1, endRow + overscan);
+  const renderStartRow = Math.max(0, startRow - overscan)
+  const renderEndRow = Math.min(rowsLength - 1, endRow + overscan)
 
-  return { startRow, endRow, renderStartRow, renderEndRow };
+  return { startRow, endRow, renderStartRow, renderEndRow }
 }
 
 /**
@@ -178,12 +180,12 @@ export function calculateScrollPosition(
   layout: LayoutMetrics,
   viewportHeight: number
 ): number {
-  const rowIndex = Math.floor(offset / layout.bytesPerRow);
+  const rowIndex = Math.floor(offset / layout.bytesPerRow)
   // Calculate row's top position
-  const rowTop = rowIndex * layout.rowHeight + layout.verticalPadding;
+  const rowTop = rowIndex * layout.rowHeight + layout.verticalPadding
   // Center the row in the viewport
-  const targetScrollTop = rowTop + layout.rowHeight / 2 - viewportHeight / 2;
-  return Math.max(0, targetScrollTop); // Ensure we don't scroll to negative values
+  const targetScrollTop = rowTop + layout.rowHeight / 2 - viewportHeight / 2
+  return Math.max(0, targetScrollTop) // Ensure we don't scroll to negative values
 }
 
 /**
@@ -193,10 +195,10 @@ export function isOffsetInRange(
   offset: number,
   range: SelectionRange
 ): boolean {
-  if (!range) return false;
-  const min = Math.min(range.start, range.end);
-  const max = Math.max(range.start, range.end);
-  return offset >= min && offset <= max;
+  if (!range) return false
+  const min = Math.min(range.start, range.end)
+  const max = Math.max(range.start, range.end)
+  return offset >= min && offset <= max
 }
 
 /**
@@ -207,12 +209,12 @@ export function calculateSelectionRange(
   selectedOffset: number | null
 ): SelectionRange {
   if (propSelectedOffsetRange !== undefined) {
-    return propSelectedOffsetRange;
+    return propSelectedOffsetRange
   }
   if (selectedOffset !== null) {
-    return { start: selectedOffset, end: selectedOffset };
+    return { start: selectedOffset, end: selectedOffset }
   }
-  return null;
+  return null
 }
 
 /**
@@ -222,11 +224,11 @@ export function didDragOccur(
   dragStartOffset: number | null,
   selectedRange: SelectionRange
 ): boolean {
-  if (dragStartOffset === null || selectedRange === null) return false;
+  if (dragStartOffset === null || selectedRange === null) return false
   return (
     selectedRange.start !== dragStartOffset ||
     selectedRange.end !== dragStartOffset
-  );
+  )
 }
 
 /**
@@ -238,11 +240,11 @@ export function getDiffColor(
 ): { bg: string; text: string } {
   switch (diffType) {
     case "added":
-      return colors.diffAdded;
+      return colors.diffAdded
     case "removed":
-      return colors.diffRemoved;
+      return colors.diffRemoved
     case "modified":
-      return colors.diffModified;
+      return colors.diffModified
   }
 }
 
@@ -256,69 +258,69 @@ export function getCellStyles(
   isByteHovered: boolean,
   colors: HexCanvasColors
 ): {
-  fillStyle: string | null;
-  strokeStyle: string | null;
-  strokeWidth: number;
+  fillStyle: string | null
+  strokeStyle: string | null
+  strokeWidth: number
 } {
-  let fillStyle: string | null = null;
-  let strokeStyle: string | null = null;
-  let strokeWidth = 0;
+  let fillStyle: string | null = null
+  let strokeStyle: string | null = null
+  let strokeWidth = 0
 
   // Determine fill style (priority: diff > highlight > selection > hover)
   if (byteDiff) {
-    const diffColor = getDiffColor(byteDiff.type, colors);
-    fillStyle = diffColor.bg;
+    const diffColor = getDiffColor(byteDiff.type, colors)
+    fillStyle = diffColor.bg
   } else if (isHighlighted) {
-    fillStyle = colors.selection.bg;
+    fillStyle = colors.selection.bg
   } else if (isSelected) {
-    fillStyle = colors.selection.bg;
+    fillStyle = colors.selection.bg
   } else if (isByteHovered) {
-    fillStyle = colors.byteHover.bg;
+    fillStyle = colors.byteHover.bg
   }
 
   // Determine stroke style (priority: highlight > selection > hover)
   // Currently disabled - stroke is transparent
-  strokeStyle = "transparent";
+  strokeStyle = "transparent"
 
-  return { fillStyle, strokeStyle, strokeWidth };
+  return { fillStyle, strokeStyle, strokeWidth }
 }
 
 /**
  * Calculate hex column start X position
  */
 export function getHexColumnStartX(layout: LayoutMetrics): number {
-  return layout.addressColumnWidth + 16; // Gap between address and hex
+  return layout.addressColumnWidth + 16 // Gap between address and hex
 }
 
 /**
  * Calculate hex column end X position
  */
 export function getHexColumnEndX(layout: LayoutMetrics): number {
-  const hexColumnStartX = getHexColumnStartX(layout);
-  return hexColumnStartX + layout.bytesPerRow * layout.cellWidth;
+  const hexColumnStartX = getHexColumnStartX(layout)
+  return hexColumnStartX + layout.bytesPerRow * layout.cellWidth
 }
 
 /**
  * Calculate ASCII column X position
  */
 export function getAsciiColumnX(layout: LayoutMetrics): number {
-  const hexColumnEndX = getHexColumnEndX(layout);
-  return hexColumnEndX + layout.hexAsciiGap;
+  const hexColumnEndX = getHexColumnEndX(layout)
+  return hexColumnEndX + layout.hexAsciiGap
 }
 
 /**
  * Calculate ASCII start X position (after border and padding)
  */
 export function getAsciiStartX(layout: LayoutMetrics): number {
-  const asciiX = getAsciiColumnX(layout);
-  return asciiX + layout.borderWidth + layout.asciiPadding;
+  const asciiX = getAsciiColumnX(layout)
+  return asciiX + layout.borderWidth + layout.asciiPadding
 }
 
 /**
  * Calculate address/hex border X position
  */
 export function getAddressHexBorderX(layout: LayoutMetrics): number {
-  return layout.addressColumnWidth;
+  return layout.addressColumnWidth
 }
 
 /**
@@ -340,34 +342,34 @@ export function drawHexCanvas(
   hoveredOffset: number | null
 ): void {
   // Handle high DPI displays
-  const dpr = window.devicePixelRatio || 1;
-  const displayWidth = dimensions.width;
-  const displayHeight = dimensions.height; // Use viewport height, not total height
+  const dpr = window.devicePixelRatio || 1
+  const displayWidth = dimensions.width
+  const displayHeight = dimensions.height // Use viewport height, not total height
 
   // Set actual canvas size in memory (scaled by device pixel ratio)
-  canvas.width = displayWidth * dpr;
-  canvas.height = displayHeight * dpr;
+  canvas.width = displayWidth * dpr
+  canvas.height = displayHeight * dpr
 
   // Scale the context to account for device pixel ratio
-  ctx.scale(dpr, dpr);
+  ctx.scale(dpr, dpr)
 
   // Set CSS size to maintain correct display size
-  canvas.style.width = `${displayWidth}px`;
-  canvas.style.height = `${displayHeight}px`;
+  canvas.style.width = `${displayWidth}px`
+  canvas.style.height = `${displayHeight}px`
 
   // Set font
   ctx.font = `14px ${window
     .getComputedStyle(canvas)
-    .getPropertyValue("--font-mono")}`;
-  ctx.textBaseline = "middle";
-  ctx.textAlign = "center";
+    .getPropertyValue("--font-mono")}`
+  ctx.textBaseline = "middle"
+  ctx.textAlign = "center"
 
   // Clear canvas with background color
-  ctx.fillStyle = colors.background;
-  ctx.fillRect(0, 0, displayWidth, displayHeight);
+  ctx.fillStyle = colors.background
+  ctx.fillRect(0, 0, displayWidth, displayHeight)
 
   // If no rows, nothing to render
-  if (rows.length === 0) return;
+  if (rows.length === 0) return
 
   // Calculate visible rows based on scroll position (accounting for vertical padding)
   const { renderStartRow, renderEndRow } = calculateVisibleRows(
@@ -375,63 +377,63 @@ export function drawHexCanvas(
     layout,
     dimensions.height,
     rows.length
-  );
+  )
 
   // Calculate column positions
-  const hexColumnStartX = getHexColumnStartX(layout);
-  const hexColumnEndX = getHexColumnEndX(layout);
-  const addressHexBorderX = getAddressHexBorderX(layout);
-  ctx.strokeStyle = colors.border;
-  ctx.lineWidth = layout.borderWidth;
-  ctx.beginPath();
-  ctx.moveTo(addressHexBorderX, 0);
-  ctx.lineTo(addressHexBorderX, displayHeight);
-  ctx.stroke();
+  const hexColumnStartX = getHexColumnStartX(layout)
+  const hexColumnEndX = getHexColumnEndX(layout)
+  const addressHexBorderX = getAddressHexBorderX(layout)
+  ctx.strokeStyle = colors.border
+  ctx.lineWidth = layout.borderWidth
+  ctx.beginPath()
+  ctx.moveTo(addressHexBorderX, 0)
+  ctx.lineTo(addressHexBorderX, displayHeight)
+  ctx.stroke()
 
   // Draw ASCII border line once - full height, flush with canvas edges
   if (showAscii) {
-    const asciiX = getAsciiColumnX(layout);
-    ctx.strokeStyle = colors.border;
-    ctx.lineWidth = layout.borderWidth;
-    ctx.beginPath();
-    ctx.moveTo(asciiX, 0);
-    ctx.lineTo(asciiX, displayHeight);
-    ctx.stroke();
+    const asciiX = getAsciiColumnX(layout)
+    ctx.strokeStyle = colors.border
+    ctx.lineWidth = layout.borderWidth
+    ctx.beginPath()
+    ctx.moveTo(asciiX, 0)
+    ctx.lineTo(asciiX, displayHeight)
+    ctx.stroke()
   }
 
   for (let i = renderStartRow; i <= renderEndRow; i++) {
-    const row = rows[i];
+    const row = rows[i]
     // Calculate y position relative to canvas viewport (accounting for scroll and vertical padding)
-    const absoluteY = i * layout.rowHeight + layout.verticalPadding;
-    const y = absoluteY - scrollTop; // Transform to canvas coordinates
+    const absoluteY = i * layout.rowHeight + layout.verticalPadding
+    const y = absoluteY - scrollTop // Transform to canvas coordinates
 
     // Only render if row is visible in viewport
-    if (y + layout.rowHeight < 0 || y > displayHeight) continue;
+    if (y + layout.rowHeight < 0 || y > displayHeight) continue
 
     // Draw row hover background if row is hovered
-    const isRowHovered = hoveredRow === i;
+    const isRowHovered = hoveredRow === i
     if (isRowHovered) {
-      ctx.fillStyle = colors.rowHover;
-      ctx.fillRect(0, y, displayWidth, layout.rowHeight);
+      ctx.fillStyle = colors.rowHover
+      ctx.fillRect(0, y, displayWidth, layout.rowHeight)
     }
 
     // Draw address
-    ctx.textAlign = "left"; // Address is left-aligned
-    ctx.fillStyle = colors.addressText;
+    ctx.textAlign = "left" // Address is left-aligned
+    ctx.fillStyle = colors.addressText
     ctx.fillText(
       row.address,
       layout.addressPadding,
       y + layout.rowHeight / 2 // Center vertically (textBaseline is "middle")
-    );
+    )
 
     // Draw hex bytes with diff and highlight backgrounds
-    let hexX = hexColumnStartX;
+    let hexX = hexColumnStartX
     for (let j = 0; j < row.hexBytes.length; j++) {
-      const offset = row.startOffset + j;
-      const byteDiff = diff ? getDiffAtOffset(diff, offset) : null;
-      const isHighlighted = highlightedOffset === offset;
-      const isSelected = isOffsetInRange(offset, selectedRange);
-      const isByteHovered = hoveredOffset === offset;
+      const offset = row.startOffset + j
+      const byteDiff = diff ? getDiffAtOffset(diff, offset) : null
+      const isHighlighted = highlightedOffset === offset
+      const isSelected = isOffsetInRange(offset, selectedRange)
+      const isByteHovered = hoveredOffset === offset
 
       // Get cell bounds for this hex byte
       const hexBounds = getCellBounds(
@@ -439,7 +441,7 @@ export function drawHexCanvas(
         y,
         layout.cellWidth,
         layout.rowHeight
-      );
+      )
 
       // Get cell styles and draw
       const styles = getCellStyles(
@@ -448,53 +450,53 @@ export function drawHexCanvas(
         isSelected,
         isByteHovered,
         colors
-      );
+      )
 
       if (styles.fillStyle) {
-        ctx.fillStyle = styles.fillStyle;
+        ctx.fillStyle = styles.fillStyle
         ctx.fillRect(
           hexBounds.x,
           hexBounds.y,
           hexBounds.width,
           hexBounds.height
-        );
+        )
       }
 
       if (styles.strokeStyle) {
-        ctx.strokeStyle = styles.strokeStyle;
-        ctx.lineWidth = styles.strokeWidth;
+        ctx.strokeStyle = styles.strokeStyle
+        ctx.lineWidth = styles.strokeWidth
         ctx.strokeRect(
           hexBounds.x,
           hexBounds.y,
           hexBounds.width,
           hexBounds.height
-        );
+        )
       }
 
       // Draw hex byte text (centered in cell)
-      ctx.textAlign = "center"; // Center hex bytes in their cells
-      const textX = hexX + layout.cellWidth / 2;
+      ctx.textAlign = "center" // Center hex bytes in their cells
+      const textX = hexX + layout.cellWidth / 2
       if (byteDiff) {
-        const diffColor = getDiffColor(byteDiff.type, colors);
-        ctx.fillStyle = diffColor.text;
+        const diffColor = getDiffColor(byteDiff.type, colors)
+        ctx.fillStyle = diffColor.text
       } else {
-        ctx.fillStyle = colors.byteText;
+        ctx.fillStyle = colors.byteText
       }
-      ctx.fillText(row.hexBytes[j], textX, y + layout.rowHeight / 2);
-      hexX += layout.cellWidth;
+      ctx.fillText(row.hexBytes[j], textX, y + layout.rowHeight / 2)
+      hexX += layout.cellWidth
     }
 
     // Draw ASCII column if enabled
     if (showAscii) {
       // Draw ASCII characters with diff and highlight backgrounds
-      const asciiStartX = getAsciiStartX(layout);
+      const asciiStartX = getAsciiStartX(layout)
       for (let j = 0; j < row.ascii.length; j++) {
-        const offset = row.startOffset + j;
-        const byteDiff = diff ? getDiffAtOffset(diff, offset) : null;
-        const isHighlighted = highlightedOffset === offset;
-        const isSelected = isOffsetInRange(offset, selectedRange);
-        const isByteHovered = hoveredOffset === offset;
-        const charX = asciiStartX + j * layout.asciiCellWidth;
+        const offset = row.startOffset + j
+        const byteDiff = diff ? getDiffAtOffset(diff, offset) : null
+        const isHighlighted = highlightedOffset === offset
+        const isSelected = isOffsetInRange(offset, selectedRange)
+        const isByteHovered = hoveredOffset === offset
+        const charX = asciiStartX + j * layout.asciiCellWidth
 
         // Get cell bounds for this ASCII character
         const asciiBounds = getCellBounds(
@@ -503,7 +505,7 @@ export function drawHexCanvas(
           layout.asciiCellWidth,
           layout.rowHeight,
           1
-        );
+        )
 
         // Get cell styles and draw
         const styles = getCellStyles(
@@ -512,39 +514,39 @@ export function drawHexCanvas(
           isSelected,
           isByteHovered,
           colors
-        );
+        )
 
         if (styles.fillStyle) {
-          ctx.fillStyle = styles.fillStyle;
+          ctx.fillStyle = styles.fillStyle
           ctx.fillRect(
             asciiBounds.x + 1,
             asciiBounds.y,
             asciiBounds.width - 2,
             asciiBounds.height
-          );
+          )
         }
 
         if (styles.strokeStyle) {
-          ctx.strokeStyle = styles.strokeStyle;
-          ctx.lineWidth = styles.strokeWidth;
+          ctx.strokeStyle = styles.strokeStyle
+          ctx.lineWidth = styles.strokeWidth
           ctx.strokeRect(
             asciiBounds.x,
             asciiBounds.y,
             asciiBounds.width,
             asciiBounds.height
-          );
+          )
         }
 
         // Draw ASCII character text (centered within the cell)
-        ctx.textAlign = "center"; // Center text within each cell
-        const textX = charX + layout.asciiCellWidth / 2;
+        ctx.textAlign = "center" // Center text within each cell
+        const textX = charX + layout.asciiCellWidth / 2
         if (byteDiff) {
-          const diffColor = getDiffColor(byteDiff.type, colors);
-          ctx.fillStyle = diffColor.text;
+          const diffColor = getDiffColor(byteDiff.type, colors)
+          ctx.fillStyle = diffColor.text
         } else {
-          ctx.fillStyle = colors.asciiText;
+          ctx.fillStyle = colors.asciiText
         }
-        ctx.fillText(row.ascii[j], textX, y + layout.rowHeight / 2);
+        ctx.fillText(row.ascii[j], textX, y + layout.rowHeight / 2)
       }
     }
   }

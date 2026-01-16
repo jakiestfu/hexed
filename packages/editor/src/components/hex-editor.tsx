@@ -147,6 +147,7 @@ export const HexEditor: FunctionComponent<HexEditorProps> = ({
   const dimensions = useDimensions(containerElement)
   const layout = useCalculateEditorLayout(
     canvasElementRef,
+    containerRef,
     dimensions,
     showAscii,
     data || new Uint8Array(),

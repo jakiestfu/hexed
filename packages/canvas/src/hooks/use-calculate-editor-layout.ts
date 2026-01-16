@@ -1,4 +1,4 @@
-import { useMemo } from "react"
+import { useEffect, useMemo, useState } from "react"
 
 import type { FormattedRow } from "@hexed/binary-utils/formatter"
 import { formatDataIntoRows } from "@hexed/binary-utils/formatter"
@@ -13,19 +13,22 @@ import type { LayoutMetrics } from "../utils/coordinates"
  * @param showAscii - Whether to show ASCII column
  * @param data - The data to format into rows
  * @param totalSize - Optional total file size (for virtual scrolling)
- * @returns Layout metrics, formatted rows, row count, and total height
+ * @param containerRef - Reference to the scrollable container element
+ * @returns Layout metrics, formatted rows, row count, total height, and visible bytes
  */
 export function useCalculateEditorLayout(
   canvasRef: React.RefObject<HTMLCanvasElement | null>,
+  containerRef: React.RefObject<HTMLElement | null>,
   dimensions: { width: number; height: number },
   showAscii: boolean,
   data: Uint8Array,
-  totalSize?: number
+  totalSize: number | undefined
 ): {
   layout: LayoutMetrics | null
   rows: FormattedRow[]
   rowsLength: number
   totalHeight: number
+  visibleBytes: number
 } {
   // Calculate layout metrics based on canvas dimensions
   const layout = useMemo((): LayoutMetrics | null => {
@@ -57,10 +60,38 @@ export function useCalculateEditorLayout(
     return calculateTotalHeight(rowsLength, layout, dimensions.height)
   }, [rowsLength, layout, dimensions.height])
 
+  // Track scroll position for visibleBytes calculation
+  const [scrollTop, setScrollTop] = useState(0)
+
+  useEffect(() => {
+    const container = containerRef.current
+    if (!container) return
+
+    const handleScroll = () => {
+      setScrollTop(container.scrollTop)
+    }
+
+    container.addEventListener("scroll", handleScroll, { passive: true })
+    // Initialize scrollTop
+    setScrollTop(container.scrollTop)
+
+    return () => {
+      container.removeEventListener("scroll", handleScroll)
+    }
+  }, [containerRef])
+
+  // Calculate visible bytes based on scroll position
+  const visibleBytes = useMemo(() => {
+    if (!layout || !containerRef.current) return 0
+    const visibleRows = Math.round(dimensions.height / layout.rowHeight)
+    return visibleRows * layout.bytesPerRow
+  }, [layout, scrollTop, dimensions.height, rowsLength, containerRef])
+
   return {
     layout,
     rows,
     rowsLength,
-    totalHeight
+    totalHeight,
+    visibleBytes
   }
 }

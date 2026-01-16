@@ -41,7 +41,6 @@ export function useDrawCanvas(
 
   // Update refs when dependencies change
   useEffect(() => {
-    console.log("WAT")
     latestValuesRef.current = {
       layout,
       dimensions,
