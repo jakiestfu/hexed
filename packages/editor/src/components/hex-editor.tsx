@@ -99,11 +99,9 @@ export const HexEditor: FunctionComponent<HexEditorProps> = ({
     // windowSize, //Math.min(file?.size ?? 0, windowSize)
     file?.size
   )
-  const windowSizeFactor = 1 //1.5
-  const windowSize =
-    visibleDataLayout.visibleRows *
-    (layout?.bytesPerRow ?? 0) *
-    windowSizeFactor
+  // const windowSize = visibleDataLayout.visibleRows * (layout?.bytesPerRow ?? 0)
+  const windowed = true
+  const windowSize = visibleDataLayout.visibleRows * (layout?.bytesPerRow ?? 0)
 
   const nonEmptyRows = useCalculateNonEmptyRows(
     layout,
@@ -132,7 +130,12 @@ export const HexEditor: FunctionComponent<HexEditorProps> = ({
 
   // Use hook to manage file loading and watching
   const { data, dataStartOffset, isConnected, loading, error, restart } =
-    useHexEditorFile(file, windowStart, windowEnd, true)
+    useHexEditorFile(
+      file,
+      windowed ? windowStart : undefined,
+      windowed ? windowEnd : undefined,
+      windowed
+    )
 
   const hasFile = fileHandle != null
   const hasData = data !== null

@@ -1,9 +1,6 @@
-import { RefObject, useCallback, useEffect, useMemo, useState } from "react"
+import { RefObject, useCallback, useEffect, useRef, useState } from "react"
 
 import { useVirtualScrollTop, type LayoutMetrics } from "@hexed/canvas"
-
-import { useRequestAnimationFrame } from "../../../canvas/src/hooks/use-request-animation-frame"
-import { useScrollTop } from "./use-scroll-top"
 
 type UseScrollWindowParams = {
   canvasRef: RefObject<HTMLCanvasElement | null>
@@ -14,6 +11,8 @@ type UseScrollWindowParams = {
   layout: LayoutMetrics | null
   visibleRows: number
   totalSize?: number
+  overscanFactor?: number
+  thresholdFactor?: number
 }
 
 type UseScrollWindowReturn = {
@@ -23,97 +22,143 @@ type UseScrollWindowReturn = {
 
 /**
  * Hook that calculates file read window ranges based on scroll position.
- * The window moves in discrete steps based on visibleRowsHeight threshold.
+ * Implements a rolling window with overscan that updates only when approaching boundaries.
  *
- * @param containerRef - Ref to scrollable container element
- * @param windowSize - Number of bytes in the window (e.g., 1024)
- * @param layout - Layout metrics containing rowHeight and bytesPerRow
- * @param visibleRows - Number of visible rows
- * @param totalSize - Total file size (optional, for bounds checking)
- * @returns Window start and end byte offsets
+ * @param overscanFactor - Multiplier for visible rows to determine overscan (default: 2)
+ * @param thresholdFactor - Fraction of visible height to use as update threshold (default: 0.3)
  */
 export function useScrollWindow({
   canvasRef,
   elementHeight,
   totalHeight,
   scrollTopRef,
-  windowSize,
+  windowSize: providedWindowSize,
   layout,
   visibleRows,
-  totalSize
+  totalSize,
+  overscanFactor = 2,
+  thresholdFactor = 0.3
 }: UseScrollWindowParams): UseScrollWindowReturn {
-  // const scrollTop = useScrollTop(canvasRef.current)
   useVirtualScrollTop(canvasRef, scrollTopRef, elementHeight, totalHeight)
-  // console.log("SCROLL WINDOW STATE UPDATE")
-  // console.log("SCROLL WINDOW", {
-  //   scrollTop,
-  //   canvasRef,
-  //   elementHeight,
-  //   totalHeight,
-  //   layout,
-  //   totalSize
-  // })
-  // console.log("SCROLL WINDOW", { scrollTop, layout, totalSize, containerRef })
-
-  // useRequestAnimationFrame(() => {
-  //   console.log("wat")
-  // }, [])
 
   const getRange = useCallback(() => {
     if (!layout) {
       return {
         windowStart: 0,
-        windowEnd: windowSize
+        windowEnd: providedWindowSize
       }
     }
 
-    // Calculate the height of visible rows in pixels
-    const visibleRowsHeight = layout.rowHeight * visibleRows
+    const scrollTop = scrollTopRef.current
 
-    // Calculate which window bucket we're in based on scroll threshold
-    const windowIndex = Math.floor(scrollTopRef.current / visibleRowsHeight)
+    // Convert scrollTop (pixels) to row index
+    // Account for vertical padding in the layout
+    const adjustedScrollTop = Math.max(0, scrollTop - layout.verticalPadding)
+    const rowIndex = Math.floor(adjustedScrollTop / layout.rowHeight)
 
-    // Calculate window start aligned to window-size boundaries
-    const windowStart = windowIndex * windowSize
+    // Calculate visible byte range from scroll position
+    const visibleStartByte = Math.max(0, rowIndex * layout.bytesPerRow)
+    const visibleBytes = visibleRows * layout.bytesPerRow
+    const visibleEndByte = visibleStartByte + visibleBytes
 
-    // Clamp to file bounds
-    let clampedWindowStart = Math.max(0, windowStart)
+    // Calculate overscan based on visible rows
+    const overscanBytes = visibleRows * layout.bytesPerRow * overscanFactor
+
+    // Calculate window with overscan, centered around visible area
+    let windowStart = Math.max(0, visibleStartByte - overscanBytes)
+    let windowEnd = visibleEndByte + overscanBytes
+
+    // Clamp to file bounds while preserving window size
     if (totalSize !== undefined) {
-      const maxStart = Math.max(0, totalSize - windowSize)
-      clampedWindowStart = Math.min(clampedWindowStart, maxStart)
+      const windowSize = windowEnd - windowStart
+      // If window exceeds file size, align to end
+      if (windowEnd > totalSize) {
+        windowEnd = totalSize
+        windowStart = Math.max(0, totalSize - windowSize)
+      }
+      // Ensure window start doesn't go negative
+      windowStart = Math.max(0, windowStart)
     }
-
-    const windowEnd =
-      totalSize !== undefined
-        ? Math.min(clampedWindowStart + windowSize, totalSize)
-        : clampedWindowStart + windowSize
 
     return {
-      windowStart: clampedWindowStart,
+      windowStart,
       windowEnd
     }
-  }, [scrollTopRef, layout, visibleRows, windowSize, totalSize])
+  }, [
+    scrollTopRef,
+    layout,
+    visibleRows,
+    providedWindowSize,
+    totalSize,
+    overscanFactor
+  ])
 
   const [range, setRange] = useState<{
     windowStart: number
     windowEnd: number
-  }>({
-    windowStart: 0,
-    windowEnd: 0
-  })
+  }>(() => getRange())
+
+  // Use ref to track current range for threshold checks without causing effect re-runs
+  const rangeRef = useRef(range)
+  useEffect(() => {
+    rangeRef.current = range
+  }, [range])
 
   useEffect(() => {
+    if (!layout) {
+      const initialRange = getRange()
+      setRange(initialRange)
+      return
+    }
+
     let frameId: number | null = null
 
     const draw = () => {
-      const currentRange = getRange()
+      const scrollTop = scrollTopRef.current
+      const currentRange = rangeRef.current
+      const visibleRowsHeight = layout.rowHeight * visibleRows
+      const threshold = visibleRowsHeight * thresholdFactor
 
-      if (
-        range.windowStart !== currentRange.windowStart ||
-        range.windowEnd === 0
-      ) {
-        setRange(currentRange)
+      // Convert current window byte boundaries to pixel positions
+      const currentStartRow = Math.floor(
+        currentRange.windowStart / layout.bytesPerRow
+      )
+      const currentEndRow = Math.ceil(
+        currentRange.windowEnd / layout.bytesPerRow
+      )
+      const currentWindowStartPixel =
+        currentStartRow * layout.rowHeight + layout.verticalPadding
+      const currentWindowEndPixel =
+        currentEndRow * layout.rowHeight + layout.verticalPadding
+
+      // Calculate visible area boundaries from current scroll position
+      const adjustedScrollTop = Math.max(0, scrollTop - layout.verticalPadding)
+      const visibleStartRow = Math.floor(adjustedScrollTop / layout.rowHeight)
+      const visibleEndRow = visibleStartRow + visibleRows
+      const visibleStartPixel =
+        visibleStartRow * layout.rowHeight + layout.verticalPadding
+      const visibleEndPixel =
+        visibleEndRow * layout.rowHeight + layout.verticalPadding
+
+      // Check if visible area is approaching window boundaries
+      const nearStartBoundary =
+        visibleStartPixel < currentWindowStartPixel + threshold
+      const nearEndBoundary =
+        visibleEndPixel > currentWindowEndPixel - threshold
+      const shouldUpdate = nearStartBoundary || nearEndBoundary
+
+      if (shouldUpdate) {
+        const newRange = getRange()
+
+        // Only update if the range actually changed
+        if (
+          currentRange.windowStart !== newRange.windowStart ||
+          currentRange.windowEnd !== newRange.windowEnd
+        ) {
+          setRange(newRange)
+        }
       }
+
       frameId = requestAnimationFrame(draw)
     }
 
@@ -126,7 +171,7 @@ export function useScrollWindow({
         cancelAnimationFrame(frameId)
       }
     }
-  }, [canvasRef, getRange, range])
+  }, [canvasRef, getRange, layout, visibleRows, thresholdFactor])
 
   return range
 }
