@@ -53,6 +53,7 @@ export function useDrawCanvas(
       hoveredRow,
       hoveredOffset
     }
+    console.log("useDrawCanvas", latestValuesRef.current)
   }, [
     layout,
     dimensions,
@@ -74,14 +75,18 @@ export function useDrawCanvas(
       const canvas = canvasRef.current
       const ctx = canvas?.getContext("2d")
       const values = latestValuesRef.current
-
+      // console.log("draw!", { canvas, ctx, values })
       if (!canvas || !ctx || !values.layout || values.dimensions.height === 0) {
         frameId = requestAnimationFrame(draw)
         return
       }
 
       // Read scrollTop from ref (always gets latest value)
-      const scrollTop = containerRef.current?.scrollTop ?? 0
+      const firstChild = containerRef.current?.firstChild
+      const scrollTop =
+        firstChild && firstChild instanceof HTMLElement
+          ? firstChild.scrollTop
+          : 0
 
       drawHexCanvas(
         canvas,

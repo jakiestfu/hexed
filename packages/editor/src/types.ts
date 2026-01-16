@@ -1,3 +1,4 @@
+import { FormattedRow } from "@hexed/binary-utils"
 import type { Endianness, NumberFormat } from "@hexed/binary-utils/interpreter"
 import { HexCanvasRef, useCalculateEditorLayout } from "@hexed/canvas"
 import type { BinarySnapshot, DiffResult } from "@hexed/types"
@@ -38,6 +39,7 @@ export type HexEditorProps = {
 export type SelectionRange = { start: number; end: number } | null
 
 export type HexEditorViewProps = {
+  rows: FormattedRow[]
   layout: ReturnType<typeof useCalculateEditorLayout>
   hexCanvasRef: React.RefObject<HexCanvasRef | null>
   canvasElementRef: React.RefObject<HTMLCanvasElement | null>

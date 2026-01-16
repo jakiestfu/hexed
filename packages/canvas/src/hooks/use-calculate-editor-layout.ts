@@ -1,10 +1,10 @@
-import { useEffect, useMemo, useState } from "react"
+import { useEffect, useMemo, useRef, useState } from "react"
 
 import type { FormattedRow } from "@hexed/binary-utils/formatter"
-import { formatDataIntoRows } from "@hexed/binary-utils/formatter"
 
 import { calculateLayout, calculateTotalHeight } from "../utils/canvas"
 import type { LayoutMetrics } from "../utils/coordinates"
+import { useFormatData } from "./use-format-data"
 
 /**
  * Hook for calculating editor layout metrics, formatted rows, and total height
@@ -19,19 +19,28 @@ import type { LayoutMetrics } from "../utils/coordinates"
  */
 export function useCalculateEditorLayout(
   canvasRef: React.RefObject<HTMLCanvasElement | null>,
-  containerRef: React.RefObject<HTMLElement | null>,
   dimensions: { width: number; height: number },
   showAscii: boolean,
-  data: Uint8Array,
-  totalSize: number | undefined,
-  dataStartOffset?: number
+  totalSize: number | undefined
 ): {
   layout: LayoutMetrics | null
-  rows: FormattedRow[]
   rowsLength: number
   totalHeight: number
   visibleBytes: number
 } {
+  // Track canvas availability to trigger recalculation when ref becomes available
+  // const [canvasAvailable, setCanvasAvailable] = useState(false)
+  // const prevCanvasAvailableRef = useRef(false)
+
+  // Monitor canvas ref availability - update state when canvas becomes available
+  // useEffect(() => {
+  //   const hasCanvas = canvasRef.current !== null
+  //   if (hasCanvas !== prevCanvasAvailableRef.current) {
+  //     prevCanvasAvailableRef.current = hasCanvas
+  //     // setCanvasAvailable(hasCanvas)
+  //   }
+  // })
+
   // Calculate layout metrics based on canvas dimensions
   const layout = useMemo((): LayoutMetrics | null => {
     if (dimensions.width === 0 || dimensions.height === 0) return null
@@ -41,62 +50,44 @@ export function useCalculateEditorLayout(
     if (!ctx || !canvas) return null
 
     return calculateLayout(ctx, canvas, dimensions, showAscii)
-  }, [canvasRef, dimensions.width, dimensions.height, showAscii])
-
-  // Format data into rows
-  const rows = useMemo(() => {
-    if (!layout) return []
-    return formatDataIntoRows(
-      data,
-      layout.bytesPerRow,
-      dataStartOffset,
-      totalSize
-    )
-  }, [data, layout, dataStartOffset, totalSize])
+  }, [
+    canvasRef,
+    dimensions.width,
+    dimensions.height,
+    showAscii
+    // canvasAvailable
+  ])
 
   // Calculate total number of rows based on totalSize or actual data
   const rowsLength = useMemo(() => {
     if (totalSize !== undefined && layout) {
       return Math.ceil(totalSize / layout.bytesPerRow)
     }
-    return rows.length
-  }, [totalSize, layout, rows.length])
+    return 0
+  }, [totalSize, layout])
+
+  const visibleBytes = useMemo(() => {
+    if (!layout) return 0
+    const visibleRows = Math.round(dimensions.height / layout.rowHeight)
+    return visibleRows * layout.bytesPerRow
+  }, [layout, dimensions.height, rowsLength])
 
   // Calculate total canvas height (including vertical padding)
   const totalHeight = useMemo(() => {
     return calculateTotalHeight(rowsLength, layout, dimensions.height)
   }, [rowsLength, layout, dimensions.height])
 
-  // Track scroll position for visibleBytes calculation
-  const [scrollTop, setScrollTop] = useState(0)
-
-  useEffect(() => {
-    const container = containerRef.current
-    if (!container) return
-
-    const handleScroll = () => {
-      setScrollTop(container.scrollTop)
-    }
-
-    container.addEventListener("scroll", handleScroll, { passive: true })
-    // Initialize scrollTop
-    setScrollTop(container.scrollTop)
-
-    return () => {
-      container.removeEventListener("scroll", handleScroll)
-    }
-  }, [containerRef])
-
-  // Calculate visible bytes based on scroll position
-  const visibleBytes = useMemo(() => {
-    if (!layout || !containerRef.current) return 0
-    const visibleRows = Math.round(dimensions.height / layout.rowHeight)
-    return visibleRows * layout.bytesPerRow
-  }, [layout, scrollTop, dimensions.height, rowsLength, containerRef])
+  // // Format data into rows
+  // const rows = useFormatData(
+  //   data,
+  //   layout?.bytesPerRow ?? null,
+  //   dataStartOffset,
+  //   totalSize
+  // )
 
   return {
     layout,
-    rows,
+    // rows,
     rowsLength,
     totalHeight,
     visibleBytes

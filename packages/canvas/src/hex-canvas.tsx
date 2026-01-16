@@ -9,6 +9,7 @@ import {
 } from "react"
 import type { FunctionComponent } from "react"
 
+import { FormattedRow } from "@hexed/binary-utils"
 import type { DiffResult } from "@hexed/types"
 
 import { useCalculateEditorLayout } from "./hooks/use-calculate-editor-layout"
@@ -29,6 +30,7 @@ import {
 } from "./utils/coordinates"
 
 export interface HexCanvasProps {
+  rows: FormattedRow[]
   layout: ReturnType<typeof useCalculateEditorLayout>
   data: Uint8Array
   showAscii?: boolean
@@ -44,7 +46,7 @@ export interface HexCanvasProps {
   dimensions: { width: number; height: number }
   onRequestScrollToOffset?: (offset: number, targetScrollTop: number) => void
   containerRef: React.RefObject<HTMLElement | null>
-  canvasRef?: React.RefObject<HTMLCanvasElement | null>
+  canvasRef: React.RefObject<HTMLCanvasElement | null>
 }
 
 export interface HexCanvasRef {
@@ -69,6 +71,7 @@ export interface HexCanvasColors {
 export const HexCanvas = forwardRef<HexCanvasRef, HexCanvasProps>(
   (
     {
+      rows,
       data,
       showAscii = true,
       className = "",
@@ -83,12 +86,12 @@ export const HexCanvas = forwardRef<HexCanvasRef, HexCanvasProps>(
       dimensions,
       onRequestScrollToOffset,
       containerRef,
-      canvasRef: externalCanvasRef,
-      layout: { layout, rows, rowsLength, totalHeight }
+      canvasRef, //: externalCanvasRef,
+      layout: { layout, rowsLength, totalHeight }
     },
     ref
   ) => {
-    const canvasRef = useRef<HTMLCanvasElement>(null)
+    // const canvasRef = useRef<HTMLCanvasElement>(null)
     const [themeChangeCounter, setThemeChangeCounter] = useState(0)
     const [internalHighlightedOffset, setInternalHighlightedOffset] = useState<
       number | null
@@ -193,12 +196,16 @@ export const HexCanvas = forwardRef<HexCanvasRef, HexCanvasProps>(
       scrollToOffset
     }))
 
-    // Expose canvas element ref to parent component
-    useEffect(() => {
-      if (externalCanvasRef) {
-        externalCanvasRef.current = canvasRef.current
-      }
-    }, [externalCanvasRef])
+    // Callback ref to set both internal and external refs synchronously
+    // const setCanvasRef = useCallback(
+    //   (element: HTMLCanvasElement | null) => {
+    //     canvasRef.current = element
+    //     if (externalCanvasRef) {
+    //       externalCanvasRef.current = element
+    //     }
+    //   },
+    //   [externalCanvasRef]
+    // )
 
     // Use selection hook
     const { selectedOffset, handleClick: handleSelectionClick } = useSelection({
@@ -217,7 +224,12 @@ export const HexCanvas = forwardRef<HexCanvasRef, HexCanvasProps>(
         if (!layout) return null
         return getRowFromYUtil(
           mouseY,
-          containerRef?.current?.scrollTop ?? 0,
+          (() => {
+            const firstChild = containerRef?.current?.firstChild
+            return firstChild && firstChild instanceof HTMLElement
+              ? firstChild.scrollTop
+              : 0
+          })(),
           layout,
           rowsLength
         )

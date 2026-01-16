@@ -46,8 +46,8 @@ export function useFileData(
     let cancelled = false
 
     const loadData = async () => {
-      setLoading(true)
-      setError(null)
+      // setLoading(true)
+      // setError(null)
 
       try {
         // Determine the range to read

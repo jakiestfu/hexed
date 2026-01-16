@@ -1,7 +1,7 @@
 "use client"
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react"
-import type { FunctionComponent, RefCallback } from "react"
+import type { FunctionComponent } from "react"
 import { Loader2 } from "lucide-react"
 
 import { computeDiff } from "@hexed/binary-utils/differ"
@@ -9,6 +9,7 @@ import {
   HexCanvas,
   useCalculateEditorLayout,
   useDimensions,
+  useFormatData,
   type HexCanvasRef
 } from "@hexed/canvas"
 import type { DiffViewMode } from "@hexed/types"
@@ -25,7 +26,11 @@ import {
 } from "@hexed/ui"
 
 import { useGlobalKeyboard } from "../hooks/use-global-keyboard"
-import { useHexEditorFile } from "../hooks/use-hex-editor-file"
+import { useHandleToFile } from "../hooks/use-handle-to-file"
+import {
+  useHandleIdToFileHandle,
+  useHexEditorFile
+} from "../hooks/use-hex-editor-file"
 import { useScrollTop } from "../hooks/use-scroll-top"
 import { useSettings } from "../hooks/use-settings"
 import type { HexEditorProps, HexEditorViewProps } from "../types"
@@ -40,6 +45,7 @@ import { HexToolbarTabs } from "./hex-toolbar-tabs"
 import { Logo } from "./logo"
 
 const HexEditorView: FunctionComponent<HexEditorViewProps> = ({
+  rows,
   layout,
   hexCanvasRef,
   canvasElementRef,
@@ -77,6 +83,7 @@ const HexEditorView: FunctionComponent<HexEditorViewProps> = ({
   return (
     <>
       <HexCanvas
+        rows={rows}
         layout={layout}
         ref={hexCanvasRef}
         canvasRef={canvasElementRef}
@@ -111,16 +118,6 @@ export const HexEditor: FunctionComponent<HexEditorProps> = ({
    * Container Setup
    */
   const containerRef = useRef<HTMLDivElement | null>(null)
-  const [containerElement, setContainerElement] =
-    useState<HTMLDivElement | null>(null)
-
-  const containerRefCallback: RefCallback<HTMLDivElement> = useCallback(
-    (element: HTMLDivElement | null) => {
-      containerRef.current = element
-      setContainerElement(element)
-    },
-    []
-  )
   const scrollTopRef = useRef<number>(0)
   // const scrollTop = useScrollTop(containerElement, scrollTopRef)
   // console.log("scrollTop", scrollTop)
@@ -135,32 +132,48 @@ export const HexEditor: FunctionComponent<HexEditorProps> = ({
   /**
    * Layout Calculations
    */
-  // Use hook to manage file loading and watching
+
+  const hexCanvasRef = useRef<HexCanvasRef | null>(null)
+  const canvasElementRef = useRef<HTMLCanvasElement | null>(null)
+  const dimensions = useDimensions(containerRef)
+
+  // const [fileSize, setFileSize] = useState<number>(0)
+
+  const { fileHandle, error: loadError } = useHandleIdToFileHandle(handleId)
+
   const {
-    data,
-    dataStartOffset,
     file,
-    fileHandle,
-    isConnected,
-    loading,
-    error,
-    restart
-  } = useHexEditorFile(handleId)
+    loading: fileLoading,
+    error: fileError
+  } = useHandleToFile(fileHandle)
+
+  const layout = useCalculateEditorLayout(
+    canvasElementRef,
+    dimensions,
+    showAscii,
+    file?.size
+  )
+  // Use hook to manage file loading and watching
+  // const vb = layout.visibleBytes !== 0 ? layout.visibleBytes : undefined
+  const { data, dataStartOffset, isConnected, loading, error, restart } =
+    useHexEditorFile(file, 0)
+  // console.log("layout.visibleBytes", vb)
+  console.log("HEX EDITOR RENDER", canvasElementRef)
+  // useEffect(() => {
+  //   if (file?.size && file?.size !== fileSize) {
+  //     setFileSize(file.size)
+  //   }
+  // }, [file, fileSize])
 
   const hasFile = fileHandle != null
   const hasData = data !== null
 
-  const hexCanvasRef = useRef<HexCanvasRef | null>(null)
-  const canvasElementRef = useRef<HTMLCanvasElement | null>(null)
-  const dimensions = useDimensions(containerElement)
-  const layout = useCalculateEditorLayout(
-    canvasElementRef,
-    containerRef,
-    dimensions,
-    showAscii,
+  // Format data into rows
+  const rows = useFormatData(
     data || new Uint8Array(),
-    file?.size,
-    dataStartOffset
+    layout.layout?.bytesPerRow ?? null,
+    dataStartOffset,
+    file?.size
   )
 
   // Diff is disabled since we don't have multiple snapshots
@@ -268,7 +281,7 @@ export const HexEditor: FunctionComponent<HexEditorProps> = ({
       end: offset + length - 1
     })
   }, [])
-
+  // return <p>wat</p>
   return (
     <Card
       className={`p-0 m-0 w-full h-full rounded-none border-none shadow-none ${className}`}
@@ -315,49 +328,37 @@ export const HexEditor: FunctionComponent<HexEditorProps> = ({
           />
         </CardHeader>
         <CardContent className="p-0 grow overflow-auto">
-          {!hasFile ? (
-            <EmptyState onHandleIdChange={onHandleIdChange} />
-          ) : loading || (hasFile && !hasData) ? (
-            <div className="flex flex-col items-center justify-center gap-4 text-center h-full">
-              <Loader2 className="h-8 w-8 animate-spin text-primary" />
-              <div>
-                <h3 className="font-semibold">Loading file...</h3>
-                <p className="text-sm text-muted-foreground mt-1">
-                  {fileHandle?.name
-                    ? `Reading ${fileHandle.name}`
-                    : "Loading..."}
-                </p>
-              </div>
-            </div>
-          ) : !hasData ? (
-            <div className="flex items-center justify-center h-full text-muted-foreground">
-              No data available
-            </div>
-          ) : (
-            (() => {
-              // Calculate default sizes based on visible panels
-              const hasSidebars = sidebar !== null
+          {!hasFile ? <EmptyState onHandleIdChange={onHandleIdChange} /> : null}
 
-              const hexCanvasPanel = (
-                <ResizablePanel
-                  id="hex-canvas"
-                  defaultSize={70}
-                  minSize={20}
+          {(() => {
+            // Calculate default sizes based on visible panels
+            const hasSidebars = sidebar !== null
+
+            const hexCanvasPanel = (
+              <ResizablePanel
+                id="hex-canvas"
+                defaultSize={70}
+                minSize={20}
+              >
+                <div
+                  ref={containerRef}
+                  className="h-full w-full overflow-auto relative"
                 >
+                  {/* Always render HexEditorView, control visibility with CSS */}
                   <div
-                    ref={containerRefCallback}
-                    className="h-full w-full overflow-auto"
-                    style={{ position: "relative" }}
+                    style={{ display: hasData ? "block" : "none" }}
+                    className="h-full w-full overflow-auto relative"
                   >
                     <HexEditorView
+                      rows={rows}
                       scrollTopRef={scrollTopRef}
                       layout={layout}
                       hexCanvasRef={hexCanvasRef}
                       canvasElementRef={canvasElementRef}
-                      dimensions={dimensions}
                       containerRef={containerRef}
+                      dimensions={dimensions}
                       scrollToOffset={scrollToOffset}
-                      data={data}
+                      data={data || new Uint8Array()}
                       showAscii={showAscii}
                       diff={diff}
                       selectedOffsetRange={selectedOffsetRange}
@@ -365,11 +366,35 @@ export const HexEditor: FunctionComponent<HexEditorProps> = ({
                       totalSize={file?.size}
                     />
                   </div>
-                </ResizablePanel>
-              )
 
-              // Sidebar component
-              const sidebarPanel = hasSidebars ? (
+                  {/* Loading overlay */}
+                  {loading || (hasFile && !hasData) ? (
+                    <div className="absolute inset-0 flex flex-col items-center justify-center gap-4 text-center bg-background/80 z-10">
+                      <Loader2 className="h-8 w-8 animate-spin text-primary" />
+                      <div>
+                        <h3 className="font-semibold">Loading file...</h3>
+                        <p className="text-sm text-muted-foreground mt-1">
+                          {fileHandle?.name
+                            ? `Reading ${fileHandle.name}`
+                            : "Loading..."}
+                        </p>
+                      </div>
+                    </div>
+                  ) : null}
+
+                  {/* No data overlay */}
+                  {/* {!hasData && !loading ? (
+                    <div className="absolute inset-0 flex items-center justify-center text-muted-foreground bg-background/80 z-10">
+                      No data available
+                    </div>
+                  ) : null} */}
+                </div>
+              </ResizablePanel>
+            )
+
+            // Sidebar component - only render when we have data
+            const sidebarPanel =
+              hasSidebars && hasData ? (
                 <HexSidebar
                   defaultSize={30}
                   minSize={30}
@@ -384,33 +409,32 @@ export const HexEditor: FunctionComponent<HexEditorProps> = ({
                 />
               ) : null
 
-              return (
-                <TabsContent
-                  value="0"
+            return (
+              <TabsContent
+                value="0"
+                className="h-full"
+              >
+                <ResizablePanelGroup
+                  direction="horizontal"
                   className="h-full"
                 >
-                  <ResizablePanelGroup
-                    direction="horizontal"
-                    className="h-full"
-                  >
-                    {sidebarPosition === "left" ? (
-                      <>
-                        {sidebarPanel}
-                        {hasSidebars && <ResizableHandle withHandle />}
-                        {hexCanvasPanel}
-                      </>
-                    ) : (
-                      <>
-                        {hexCanvasPanel}
-                        {hasSidebars && <ResizableHandle withHandle />}
-                        {sidebarPanel}
-                      </>
-                    )}
-                  </ResizablePanelGroup>
-                </TabsContent>
-              )
-            })()
-          )}
+                  {sidebarPosition === "left" ? (
+                    <>
+                      {sidebarPanel}
+                      {hasSidebars && <ResizableHandle withHandle />}
+                      {hexCanvasPanel}
+                    </>
+                  ) : (
+                    <>
+                      {hexCanvasPanel}
+                      {hasSidebars && <ResizableHandle withHandle />}
+                      {sidebarPanel}
+                    </>
+                  )}
+                </ResizablePanelGroup>
+              </TabsContent>
+            )
+          })()}
         </CardContent>
         {hasFile ? (
           <CardFooter className="p-0">
