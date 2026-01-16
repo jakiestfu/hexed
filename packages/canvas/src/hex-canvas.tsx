@@ -7,7 +7,7 @@ import {
   useRef,
   useState
 } from "react"
-import type { FunctionComponent } from "react"
+import type { FunctionComponent, RefObject } from "react"
 
 import { FormattedRow } from "@hexed/binary-utils"
 import type { DiffResult } from "@hexed/types"
@@ -42,6 +42,7 @@ export interface HexCanvasProps {
   className?: string
   diff?: DiffResult | null
   highlightedOffset?: number | null
+  scrollTopRef: RefObject<number>
   selectedOffset?: number | null
   selectedOffsetRange?: SelectionRange
   onSelectedOffsetChange?: (offset: number | null) => void
@@ -84,6 +85,7 @@ export const HexCanvas = forwardRef<HexCanvasRef, HexCanvasProps>(
       className = "",
       diff = null,
       highlightedOffset: propHighlightedOffset = null,
+      scrollTopRef,
       selectedOffset: propSelectedOffset,
       selectedOffsetRange: propSelectedOffsetRange,
       onSelectedOffsetChange,
@@ -234,17 +236,12 @@ export const HexCanvas = forwardRef<HexCanvasRef, HexCanvasProps>(
         if (!layout) return null
         return getRowFromYUtil(
           mouseY,
-          (() => {
-            const firstChild = containerRef?.current?.firstChild
-            return firstChild && firstChild instanceof HTMLElement
-              ? firstChild.scrollTop
-              : 0
-          })(),
+          scrollTopRef.current ?? 0,
           layout,
           rowsLength
         )
       },
-      [layout, containerRef, rowsLength]
+      [layout, scrollTopRef, rowsLength]
     )
 
     // Helper function to calculate byte offset from mouse position
@@ -510,8 +507,8 @@ export const HexCanvas = forwardRef<HexCanvasRef, HexCanvasProps>(
 
     // Render canvas using requestAnimationFrame
     useDrawCanvas(
-      containerRef,
       canvasRef,
+      scrollTopRef,
       layout,
       dimensions,
       rows,

@@ -112,8 +112,18 @@ export const HexEditor: FunctionComponent<HexEditorProps> = ({
   )
   // console.log("visibleDataLayout", visibleDataLayout, layout)
   // Calculate dynamic window based on scroll position
+  // const { windowStart, windowEnd } = useScrollWindow({
+  //   containerRef,
+  //   windowSize,
+  //   layout,
+  //   visibleRows: nonEmptyRows,
+  //   totalSize: file?.size
+  // })
   const { windowStart, windowEnd } = useScrollWindow({
-    containerRef,
+    canvasRef: canvasElementRef,
+    scrollTopRef,
+    elementHeight: dimensions.height,
+    totalHeight: visibleDataLayout.totalHeight,
     windowSize,
     layout,
     visibleRows: nonEmptyRows,
@@ -327,6 +337,7 @@ export const HexEditor: FunctionComponent<HexEditorProps> = ({
                     className="h-full w-full overflow-auto relative"
                   >
                     <HexCanvas
+                      scrollTopRef={scrollTopRef}
                       rows={rows}
                       layout={layout}
                       visibleDataLayout={visibleDataLayout}
@@ -345,12 +356,12 @@ export const HexEditor: FunctionComponent<HexEditorProps> = ({
                       onRequestScrollToOffset={handleRequestScrollToOffset}
                     />
                     {/* Spacer to make container scrollable to total height */}
-                    <div
+                    {/* <div
                       style={{
                         height: `${visibleDataLayout.totalHeight}px`,
                         width: "100%"
                       }}
-                    />
+                    /> */}
                   </div>
 
                   {/* Loading overlay */}

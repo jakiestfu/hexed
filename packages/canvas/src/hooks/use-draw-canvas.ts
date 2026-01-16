@@ -1,4 +1,4 @@
-import { useEffect, useRef } from "react"
+import { RefObject, useEffect, useRef } from "react"
 
 import type { FormattedRow } from "@hexed/binary-utils/formatter"
 import type { DiffResult } from "@hexed/types"
@@ -12,8 +12,8 @@ import type { LayoutMetrics } from "../utils/coordinates"
  * Continuously schedules canvas updates to read latest scrollTop from ref
  */
 export function useDrawCanvas(
-  containerRef: React.RefObject<HTMLElement | null>,
   canvasRef: React.RefObject<HTMLCanvasElement | null>,
+  scrollTopRef: RefObject<number>,
   layout: LayoutMetrics | null,
   dimensions: { width: number; height: number },
   rows: FormattedRow[],
@@ -38,6 +38,7 @@ export function useDrawCanvas(
     diff,
     highlightedOffset,
     selectedRange,
+    scrollTopRef,
     hoveredRow,
     hoveredOffset,
     totalSize,
@@ -56,6 +57,7 @@ export function useDrawCanvas(
       diff,
       highlightedOffset,
       selectedRange,
+      scrollTopRef,
       hoveredRow,
       hoveredOffset,
       totalSize,
@@ -72,6 +74,7 @@ export function useDrawCanvas(
     diff,
     highlightedOffset,
     selectedRange,
+    scrollTopRef,
     hoveredRow,
     hoveredOffset,
     totalSize,
@@ -94,11 +97,7 @@ export function useDrawCanvas(
       }
 
       // Read scrollTop from ref (always gets latest value)
-      const firstChild = containerRef.current?.firstChild
-      const scrollTop =
-        firstChild && firstChild instanceof HTMLElement
-          ? firstChild.scrollTop
-          : 0
+      const scrollTop = scrollTopRef.current ?? 0
 
       drawHexCanvas(
         canvas,
@@ -132,5 +131,5 @@ export function useDrawCanvas(
         cancelAnimationFrame(frameId)
       }
     }
-  }, [canvasRef, containerRef])
+  }, [canvasRef])
 }

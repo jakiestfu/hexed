@@ -1,11 +1,15 @@
-import { useMemo } from "react"
+import { RefObject, useCallback, useEffect, useMemo, useState } from "react"
 
-import type { LayoutMetrics } from "@hexed/canvas"
+import { useVirtualScrollTop, type LayoutMetrics } from "@hexed/canvas"
 
+import { useRequestAnimationFrame } from "../../../canvas/src/hooks/use-request-animation-frame"
 import { useScrollTop } from "./use-scroll-top"
 
 type UseScrollWindowParams = {
-  containerRef: React.RefObject<HTMLElement | null>
+  canvasRef: RefObject<HTMLCanvasElement | null>
+  scrollTopRef: RefObject<number>
+  elementHeight: number
+  totalHeight: number
   windowSize: number
   layout: LayoutMetrics | null
   visibleRows: number
@@ -29,15 +33,33 @@ type UseScrollWindowReturn = {
  * @returns Window start and end byte offsets
  */
 export function useScrollWindow({
-  containerRef,
+  canvasRef,
+  elementHeight,
+  totalHeight,
+  scrollTopRef,
   windowSize,
   layout,
   visibleRows,
   totalSize
 }: UseScrollWindowParams): UseScrollWindowReturn {
-  const scrollTop = useScrollTop(containerRef.current)
+  // const scrollTop = useScrollTop(canvasRef.current)
+  useVirtualScrollTop(canvasRef, scrollTopRef, elementHeight, totalHeight)
+  // console.log("SCROLL WINDOW STATE UPDATE")
+  // console.log("SCROLL WINDOW", {
+  //   scrollTop,
+  //   canvasRef,
+  //   elementHeight,
+  //   totalHeight,
+  //   layout,
+  //   totalSize
+  // })
+  // console.log("SCROLL WINDOW", { scrollTop, layout, totalSize, containerRef })
 
-  return useMemo(() => {
+  // useRequestAnimationFrame(() => {
+  //   console.log("wat")
+  // }, [])
+
+  const getRange = useCallback(() => {
     if (!layout) {
       return {
         windowStart: 0,
@@ -49,7 +71,7 @@ export function useScrollWindow({
     const visibleRowsHeight = layout.rowHeight * visibleRows
 
     // Calculate which window bucket we're in based on scroll threshold
-    const windowIndex = Math.floor(scrollTop / visibleRowsHeight)
+    const windowIndex = Math.floor(scrollTopRef.current / visibleRowsHeight)
 
     // Calculate window start aligned to window-size boundaries
     const windowStart = windowIndex * windowSize
@@ -70,5 +92,41 @@ export function useScrollWindow({
       windowStart: clampedWindowStart,
       windowEnd
     }
-  }, [scrollTop, layout, visibleRows, windowSize, totalSize])
+  }, [scrollTopRef, layout, visibleRows, windowSize, totalSize])
+
+  const [range, setRange] = useState<{
+    windowStart: number
+    windowEnd: number
+  }>({
+    windowStart: 0,
+    windowEnd: 0
+  })
+
+  useEffect(() => {
+    let frameId: number | null = null
+
+    const draw = () => {
+      const currentRange = getRange()
+
+      if (
+        range.windowStart !== currentRange.windowStart ||
+        range.windowEnd === 0
+      ) {
+        setRange(currentRange)
+      }
+      frameId = requestAnimationFrame(draw)
+    }
+
+    // Start the animation loop
+    frameId = requestAnimationFrame(draw)
+
+    // Cleanup: cancel pending frame
+    return () => {
+      if (frameId !== null) {
+        cancelAnimationFrame(frameId)
+      }
+    }
+  }, [canvasRef, getRange, range])
+
+  return range
 }

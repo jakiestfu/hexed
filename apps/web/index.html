@@ -2,6 +2,7 @@
 <html
   lang="en"
   suppressHydrationWarning
+  class="overscroll-y-none"
 >
   <head>
     <meta charset="UTF-8" />
@@ -20,11 +21,11 @@
       content="A modern hex editor for inspecting and tracking binary file changes"
     />
     <script>
-      (function () {
-        if (typeof window !== 'undefined' && window.electron !== undefined) {
-          document.documentElement.setAttribute('data-electron', 'true');
+      ;(function () {
+        if (typeof window !== "undefined" && window.electron !== undefined) {
+          document.documentElement.setAttribute("data-electron", "true")
         }
-      })();
+      })()
     </script>
   </head>
   <body class="bg-background h-screen cursor-default font-sans antialiased">

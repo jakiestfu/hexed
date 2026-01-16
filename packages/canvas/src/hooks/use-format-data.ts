@@ -19,12 +19,12 @@ export function useFormatData(
   return useMemo(() => {
     if (bytesPerRow === null) return []
     const result = formatDataIntoRows(data, bytesPerRow, dataStartOffset)
-    console.log("result", {
-      data,
-      bytesPerRow,
-      dataStartOffset,
-      result
-    })
+    // console.log("result", {
+    //   data,
+    //   bytesPerRow,
+    //   dataStartOffset,
+    //   result
+    // })
     return result
   }, [data, bytesPerRow, dataStartOffset])
 }
