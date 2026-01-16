@@ -13,6 +13,7 @@ import {
   hexAsciiGap,
   hexByteGap,
   rowHeight,
+  scrollbarWidth,
   verticalPadding
 } from "./constants"
 import { getCellBounds, type LayoutMetrics } from "./coordinates"
@@ -52,10 +53,10 @@ export function calculateLayout(
   const asciiCharWidth = ctx.measureText(asciiText).width
 
   // Calculate available width for hex bytes
-  // Total width - address column - gaps - minimal padding
+  // Total width - address column - gaps - minimal padding - scrollbar width
   const addressColumnTotalWidth = addressWidth + addressPadding * 2
   let availableWidth =
-    dimensions.width - addressColumnTotalWidth - addressHexGap
+    dimensions.width - addressColumnTotalWidth - addressHexGap - scrollbarWidth
 
   // If showing ASCII, we need to account for it
   if (showAscii) {
@@ -79,13 +80,13 @@ export function calculateLayout(
 
     const finalBytesPerRow = Math.max(MIN_BYTES_PER_ROW, estimatedBytes)
 
-    // Calculate dynamic ASCII cell width to fill remaining canvas width
+    // Calculate dynamic ASCII cell width to fill remaining canvas width (excluding scrollbar)
     const hexColumnStartX = addressColumnTotalWidth + addressHexGap
     const hexColumnEndX = hexColumnStartX + finalBytesPerRow * cellWidth
     const asciiColumnX = hexColumnEndX + hexAsciiGap
     const asciiStartX = asciiColumnX + borderWidth + asciiPadding
     const availableWidthForAsciiCells =
-      dimensions.width - asciiStartX - asciiPadding
+      dimensions.width - asciiStartX - asciiPadding - scrollbarWidth
     const asciiCellWidth = availableWidthForAsciiCells / finalBytesPerRow
 
     return {
@@ -322,6 +323,46 @@ export function getAsciiStartX(layout: LayoutMetrics): number {
  */
 export function getAddressHexBorderX(layout: LayoutMetrics): number {
   return layout.addressColumnWidth
+}
+
+/**
+ * Draw scrollbar on the right side of the canvas
+ */
+export function drawScrollbar(
+  ctx: CanvasRenderingContext2D,
+  canvasWidth: number,
+  canvasHeight: number,
+  scrollTop: number,
+  maxScrollTop: number,
+  totalHeight: number
+): void {
+  if (maxScrollTop <= 0) return
+
+  const TRACK_COLOR = "#0000FF" // Blue
+  const THUMB_COLOR = "#FF0000" // Red
+
+  const trackX = canvasWidth - scrollbarWidth
+  const trackY = 0
+  const trackWidth = scrollbarWidth
+  const trackHeight = canvasHeight
+
+  // Calculate thumb height based on viewport/total ratio
+  const thumbHeight = Math.max(
+    20,
+    Math.floor((canvasHeight / totalHeight) * trackHeight)
+  )
+
+  // Calculate thumb position based on scroll position
+  const thumbY =
+    (scrollTop / maxScrollTop) * (trackHeight - thumbHeight) + trackY
+
+  // Draw track (blue)
+  ctx.fillStyle = TRACK_COLOR
+  ctx.fillRect(trackX, trackY, trackWidth, trackHeight)
+
+  // Draw thumb (red)
+  ctx.fillStyle = THUMB_COLOR
+  ctx.fillRect(trackX, thumbY, trackWidth, thumbHeight)
 }
 
 /**
@@ -620,4 +661,22 @@ export function drawHexCanvas(
       }
     }
   }
+
+  // Draw scrollbar on the right side
+  const maxScrollTop = Math.max(
+    0,
+    Math.floor(
+      rowsLength * layout.rowHeight +
+        layout.verticalPadding * 2 -
+        dimensions.height
+    )
+  )
+  drawScrollbar(
+    ctx,
+    displayWidth,
+    displayHeight,
+    scrollTop,
+    maxScrollTop,
+    rowsLength * layout.rowHeight + layout.verticalPadding * 2
+  )
 }

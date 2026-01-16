@@ -18,7 +18,9 @@ import {
 } from "./hooks/use-calculate-editor-layout"
 import { useDrawCanvas } from "./hooks/use-draw-canvas"
 import { useKeyboardNavigation } from "./hooks/use-keyboard-navigation"
+import { useScrollbar } from "./hooks/use-scrollbar"
 import { useSelection } from "./hooks/use-selection"
+import { useVirtualScrollTop } from "./hooks/use-virtual-scroll-top"
 import {
   calculateScrollPosition,
   calculateSelectionRange,
@@ -142,6 +144,30 @@ export const HexCanvas = forwardRef<HexCanvasRef, HexCanvasProps>(
         observer.disconnect()
       }
     }, [])
+
+    // Get scroll control from useVirtualScrollTop
+    const { setScrollTop, maxScrollTop } = useVirtualScrollTop(
+      canvasRef,
+      scrollTopRef,
+      dimensions.height,
+      totalHeight
+    )
+
+    // Use scrollbar hook for scrollbar interactions
+    const {
+      isDragging: isScrollbarDragging,
+      handleMouseDown: handleScrollbarMouseDown,
+      handleMouseMove: handleScrollbarMouseMove,
+      handleMouseUp: handleScrollbarMouseUp
+    } = useScrollbar({
+      canvasRef,
+      scrollTopRef,
+      viewportHeight: dimensions.height,
+      totalHeight,
+      canvasWidth: dimensions.width,
+      setScrollTop,
+      maxScrollTop
+    })
 
     // Compute colors from props and CSS variables
     const colors = useMemo(() => {
@@ -304,6 +330,12 @@ export const HexCanvas = forwardRef<HexCanvasRef, HexCanvasProps>(
     // Handle mouse move to detect hover and drag
     const handleMouseMove = useCallback(
       (event: React.MouseEvent<HTMLCanvasElement>) => {
+        // Handle scrollbar dragging first
+        if (isScrollbarDragging) {
+          handleScrollbarMouseMove(event)
+          return
+        }
+
         if (!layout || !canvasRef.current) {
           setHoveredRow(null)
           setHoveredOffset(null)
@@ -338,7 +370,9 @@ export const HexCanvas = forwardRef<HexCanvasRef, HexCanvasProps>(
         getOffsetFromPosition,
         isDragging,
         dragStartOffset,
-        onSelectedOffsetRangeChange
+        onSelectedOffsetRangeChange,
+        isScrollbarDragging,
+        handleScrollbarMouseMove
       ]
     )
 
@@ -352,6 +386,12 @@ export const HexCanvas = forwardRef<HexCanvasRef, HexCanvasProps>(
     const handleMouseDown = useCallback(
       (event: React.MouseEvent<HTMLCanvasElement>) => {
         if (!layout || !canvasRef.current) return
+
+        // Check if scrollbar was clicked first
+        const scrollbarClicked = handleScrollbarMouseDown(event)
+        if (scrollbarClicked) {
+          return
+        }
 
         const canvas = canvasRef.current
         const rect = canvas.getBoundingClientRect()
@@ -418,12 +458,16 @@ export const HexCanvas = forwardRef<HexCanvasRef, HexCanvasProps>(
         handleSelectionClick,
         onSelectedOffsetRangeChange,
         selectedRange,
-        selectedOffset
+        selectedOffset,
+        handleScrollbarMouseDown
       ]
     )
 
     // Handle mouse up to end drag selection
     const handleMouseUp = useCallback(() => {
+      // Handle scrollbar mouse up first
+      handleScrollbarMouseUp()
+
       if (isDragging) {
         // Check if we actually dragged (mouse moved) by comparing current selection
         // If selection range changed from initial single-byte selection, user dragged
@@ -454,12 +498,16 @@ export const HexCanvas = forwardRef<HexCanvasRef, HexCanvasProps>(
       dragStartOffset,
       selectedRange,
       onSelectedOffsetRangeChange,
-      handleSelectionClick
+      handleSelectionClick,
+      handleScrollbarMouseUp
     ])
 
     // Add global mouseup handler to handle dragging outside canvas
     useEffect(() => {
       const handleGlobalMouseUp = () => {
+        // Handle scrollbar mouse up
+        handleScrollbarMouseUp()
+
         if (isDragging) {
           // Check if we actually dragged (mouse moved) by comparing current selection
           const dragOccurred = didDragOccur(dragStartOffset, selectedRange)
@@ -486,7 +534,7 @@ export const HexCanvas = forwardRef<HexCanvasRef, HexCanvasProps>(
         }
       }
 
-      if (isDragging) {
+      if (isDragging || isScrollbarDragging) {
         window.addEventListener("mouseup", handleGlobalMouseUp)
         return () => {
           window.removeEventListener("mouseup", handleGlobalMouseUp)
@@ -497,7 +545,9 @@ export const HexCanvas = forwardRef<HexCanvasRef, HexCanvasProps>(
       dragStartOffset,
       selectedRange,
       onSelectedOffsetRangeChange,
-      handleSelectionClick
+      handleSelectionClick,
+      isScrollbarDragging,
+      handleScrollbarMouseUp
     ])
 
     // Handle click outside canvas to clear selection
