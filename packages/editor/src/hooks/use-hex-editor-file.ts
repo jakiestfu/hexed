@@ -9,9 +9,10 @@ import { useRecentFiles } from "./use-recent-files"
  * Encapsulates all file-related state and logic
  */
 export function useHexEditorFile(
-  handleId: string | null,
+  handleId: string | null | undefined,
   start?: number,
-  end?: number
+  end?: number,
+  preserveOffsets?: boolean
 ) {
   const { getFileHandleById, addRecentFile } = useRecentFiles({
     loadFiles: false
@@ -79,6 +80,8 @@ export function useHexEditorFile(
   // Read file data using the new hook
   const {
     data,
+    dataStartOffset,
+    dataEndOffset,
     loading: dataLoading,
     error: dataError
   } = useFileData(file, start, end)
@@ -94,9 +97,16 @@ export function useHexEditorFile(
     // No-op: file watching is not implemented yet
   }, [])
 
+  // Return dataStartOffset when preserveOffsets is true and we have offset metadata
+  const returnedDataStartOffset =
+    preserveOffsets && dataStartOffset !== undefined
+      ? dataStartOffset
+      : undefined
+
   return {
     snapshots: [],
     data,
+    dataStartOffset: returnedDataStartOffset,
     file,
     fileHandle,
     isConnected: false,

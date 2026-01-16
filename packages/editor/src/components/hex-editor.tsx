@@ -136,8 +136,16 @@ export const HexEditor: FunctionComponent<HexEditorProps> = ({
    * Layout Calculations
    */
   // Use hook to manage file loading and watching
-  const { data, file, fileHandle, isConnected, loading, error, restart } =
-    useHexEditorFile(handleId || null)
+  const {
+    data,
+    dataStartOffset,
+    file,
+    fileHandle,
+    isConnected,
+    loading,
+    error,
+    restart
+  } = useHexEditorFile(handleId)
 
   const hasFile = fileHandle != null
   const hasData = data !== null
@@ -151,7 +159,8 @@ export const HexEditor: FunctionComponent<HexEditorProps> = ({
     dimensions,
     showAscii,
     data || new Uint8Array(),
-    file?.size
+    file?.size,
+    dataStartOffset
   )
 
   // Diff is disabled since we don't have multiple snapshots

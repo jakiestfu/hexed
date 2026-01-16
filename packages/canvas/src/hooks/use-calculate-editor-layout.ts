@@ -14,6 +14,7 @@ import type { LayoutMetrics } from "../utils/coordinates"
  * @param data - The data to format into rows
  * @param totalSize - Optional total file size (for virtual scrolling)
  * @param containerRef - Reference to the scrollable container element
+ * @param dataStartOffset - Optional offset where the data starts in the original file (for preserving offsets)
  * @returns Layout metrics, formatted rows, row count, total height, and visible bytes
  */
 export function useCalculateEditorLayout(
@@ -22,7 +23,8 @@ export function useCalculateEditorLayout(
   dimensions: { width: number; height: number },
   showAscii: boolean,
   data: Uint8Array,
-  totalSize: number | undefined
+  totalSize: number | undefined,
+  dataStartOffset?: number
 ): {
   layout: LayoutMetrics | null
   rows: FormattedRow[]
@@ -44,8 +46,13 @@ export function useCalculateEditorLayout(
   // Format data into rows
   const rows = useMemo(() => {
     if (!layout) return []
-    return formatDataIntoRows(data, layout.bytesPerRow)
-  }, [data, layout])
+    return formatDataIntoRows(
+      data,
+      layout.bytesPerRow,
+      dataStartOffset,
+      totalSize
+    )
+  }, [data, layout, dataStartOffset, totalSize])
 
   // Calculate total number of rows based on totalSize or actual data
   const rowsLength = useMemo(() => {

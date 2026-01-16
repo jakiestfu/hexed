@@ -473,16 +473,18 @@ export function drawHexCanvas(
         )
       }
 
-      // Draw hex byte text (centered in cell)
-      ctx.textAlign = "center" // Center hex bytes in their cells
-      const textX = hexX + layout.cellWidth / 2
-      if (byteDiff) {
-        const diffColor = getDiffColor(byteDiff.type, colors)
-        ctx.fillStyle = diffColor.text
-      } else {
-        ctx.fillStyle = colors.byteText
+      // Draw hex byte text (centered in cell) - skip if empty
+      if (row.hexBytes[j] !== "") {
+        ctx.textAlign = "center" // Center hex bytes in their cells
+        const textX = hexX + layout.cellWidth / 2
+        if (byteDiff) {
+          const diffColor = getDiffColor(byteDiff.type, colors)
+          ctx.fillStyle = diffColor.text
+        } else {
+          ctx.fillStyle = colors.byteText
+        }
+        ctx.fillText(row.hexBytes[j], textX, y + layout.rowHeight / 2)
       }
-      ctx.fillText(row.hexBytes[j], textX, y + layout.rowHeight / 2)
       hexX += layout.cellWidth
     }
 
@@ -537,16 +539,19 @@ export function drawHexCanvas(
           )
         }
 
-        // Draw ASCII character text (centered within the cell)
-        ctx.textAlign = "center" // Center text within each cell
-        const textX = charX + layout.asciiCellWidth / 2
-        if (byteDiff) {
-          const diffColor = getDiffColor(byteDiff.type, colors)
-          ctx.fillStyle = diffColor.text
-        } else {
-          ctx.fillStyle = colors.asciiText
+        // Draw ASCII character text (centered within the cell) - skip if empty (space)
+        const asciiChar = row.ascii[j]
+        if (asciiChar !== " " && asciiChar !== "") {
+          ctx.textAlign = "center" // Center text within each cell
+          const textX = charX + layout.asciiCellWidth / 2
+          if (byteDiff) {
+            const diffColor = getDiffColor(byteDiff.type, colors)
+            ctx.fillStyle = diffColor.text
+          } else {
+            ctx.fillStyle = colors.asciiText
+          }
+          ctx.fillText(asciiChar, textX, y + layout.rowHeight / 2)
         }
-        ctx.fillText(row.ascii[j], textX, y + layout.rowHeight / 2)
       }
     }
   }

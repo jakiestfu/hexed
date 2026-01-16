@@ -2,6 +2,8 @@ import { useEffect, useState } from "react"
 
 type UseFileDataResult = {
   data: Uint8Array | null
+  dataStartOffset: number | undefined
+  dataEndOffset: number | undefined
   loading: boolean
   error: string | null
 }
@@ -17,6 +19,12 @@ export function useFileData(
   end?: number
 ): UseFileDataResult {
   const [data, setData] = useState<Uint8Array | null>(null)
+  const [dataStartOffset, setDataStartOffset] = useState<number | undefined>(
+    undefined
+  )
+  const [dataEndOffset, setDataEndOffset] = useState<number | undefined>(
+    undefined
+  )
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
@@ -24,6 +32,8 @@ export function useFileData(
     // Reset state when file is null
     if (!file) {
       setData(null)
+      setDataStartOffset(undefined)
+      setDataEndOffset(undefined)
       setLoading(false)
       setError(null)
       return
@@ -56,10 +66,20 @@ export function useFileData(
         // If reading entire file, use arrayBuffer() directly
         if (startPos === 0 && endPos === file.size) {
           arrayBuffer = await file.arrayBuffer()
+          // No offset metadata needed when reading entire file
+          if (!cancelled) {
+            setDataStartOffset(undefined)
+            setDataEndOffset(undefined)
+          }
         } else {
           // Otherwise, slice the file and read the blob
           const blob = file.slice(startPos, endPos)
           arrayBuffer = await blob.arrayBuffer()
+          // Store offset metadata when reading a range
+          if (!cancelled) {
+            setDataStartOffset(startPos)
+            setDataEndOffset(endPos)
+          }
         }
 
         if (!cancelled) {
@@ -72,6 +92,8 @@ export function useFileData(
             err instanceof Error ? err.message : "Failed to read file data"
           setError(errorMessage)
           setData(null)
+          setDataStartOffset(undefined)
+          setDataEndOffset(undefined)
           setLoading(false)
         }
       }
@@ -84,5 +106,5 @@ export function useFileData(
     }
   }, [file, start, end])
 
-  return { data, loading, error }
+  return { data, dataStartOffset, dataEndOffset, loading, error }
 }
