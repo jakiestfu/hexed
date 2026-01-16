@@ -23,7 +23,10 @@ export function useDrawCanvas(
   highlightedOffset: number | null,
   selectedRange: SelectionRange,
   hoveredRow: number | null,
-  hoveredOffset: number | null
+  hoveredOffset: number | null,
+  totalSize?: number,
+  windowStart?: number,
+  windowEnd?: number
 ): void {
   // Use refs to store latest values without causing re-renders
   const latestValuesRef = useRef({
@@ -36,7 +39,10 @@ export function useDrawCanvas(
     highlightedOffset,
     selectedRange,
     hoveredRow,
-    hoveredOffset
+    hoveredOffset,
+    totalSize,
+    windowStart,
+    windowEnd
   })
 
   // Update refs when dependencies change
@@ -51,7 +57,10 @@ export function useDrawCanvas(
       highlightedOffset,
       selectedRange,
       hoveredRow,
-      hoveredOffset
+      hoveredOffset,
+      totalSize,
+      windowStart,
+      windowEnd
     }
     // console.log("useDrawCanvas", latestValuesRef.current)
   }, [
@@ -64,7 +73,10 @@ export function useDrawCanvas(
     highlightedOffset,
     selectedRange,
     hoveredRow,
-    hoveredOffset
+    hoveredOffset,
+    totalSize,
+    windowStart,
+    windowEnd
   ])
 
   // Set up continuous animation loop
@@ -101,7 +113,10 @@ export function useDrawCanvas(
         values.highlightedOffset,
         values.selectedRange,
         values.hoveredRow,
-        values.hoveredOffset
+        values.hoveredOffset,
+        values.totalSize,
+        values.windowStart,
+        values.windowEnd
       )
 
       // Schedule next frame

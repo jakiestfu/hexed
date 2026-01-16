@@ -48,6 +48,8 @@ export interface HexCanvasProps {
   onSelectedOffsetRangeChange?: (range: SelectionRange) => void
   colors?: Partial<HexCanvasColors>
   totalSize?: number
+  windowStart?: number
+  windowEnd?: number
   dimensions: { width: number; height: number }
   onRequestScrollToOffset?: (offset: number, targetScrollTop: number) => void
   containerRef: React.RefObject<HTMLElement | null>
@@ -88,6 +90,8 @@ export const HexCanvas = forwardRef<HexCanvasRef, HexCanvasProps>(
       onSelectedOffsetRangeChange,
       colors: colorsProp,
       totalSize,
+      windowStart,
+      windowEnd,
       dimensions,
       onRequestScrollToOffset,
       containerRef,
@@ -253,10 +257,11 @@ export const HexCanvas = forwardRef<HexCanvasRef, HexCanvasProps>(
           layout,
           rows,
           showAscii,
-          getRowFromY
+          getRowFromY,
+          totalSize
         )
       },
-      [layout, rows, showAscii, getRowFromY]
+      [layout, rows, showAscii, getRowFromY, totalSize]
     )
 
     // Extract the earliest byte from the range for keyboard navigation
@@ -270,7 +275,7 @@ export const HexCanvas = forwardRef<HexCanvasRef, HexCanvasProps>(
     // Use keyboard navigation hook
     const { handleKeyDown } = useKeyboardNavigation({
       selectedOffset: keyboardSelectedOffset,
-      dataLength: data.length,
+      dataLength: totalSize ?? data.length,
       bytesPerRow: layout?.bytesPerRow ?? 16,
       viewportHeight: dimensions.height,
       rowHeight: layout?.rowHeight ?? 20,
@@ -516,7 +521,10 @@ export const HexCanvas = forwardRef<HexCanvasRef, HexCanvasProps>(
       highlightedOffset,
       selectedRange,
       hoveredRow,
-      hoveredOffset
+      hoveredOffset,
+      totalSize,
+      windowStart,
+      windowEnd
     )
 
     return (

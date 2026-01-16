@@ -55,20 +55,31 @@ export function getOffsetFromPosition(
   layout: LayoutMetrics,
   rows: FormattedRow[],
   showAscii: boolean,
-  getRowFromY: (y: number) => number | null
+  getRowFromY: (y: number) => number | null,
+  totalSize?: number
 ): number | null {
   const rowIndex = getRowFromY(mouseY);
   if (rowIndex === null) return null;
 
-  const row = rows[rowIndex];
-  if (!row) return null;
+  // Calculate virtual row's start offset from rowIndex
+  const virtualRowStartOffset = rowIndex * layout.bytesPerRow;
+  
+  // Check if this offset is within bounds
+  if (totalSize !== undefined && virtualRowStartOffset >= totalSize) {
+    return null;
+  }
 
   // Calculate hex column start position (matches rendering: layout.addressColumnWidth + 16)
   const hexColumnStartX = layout.addressColumnWidth + 16;
 
   // Check each hex byte individually to see if mouse is within its bounds
   // This matches the rendering: hexX starts at hexColumnStartX and increments by cellWidth
-  for (let j = 0; j < row.hexBytes.length; j++) {
+  for (let j = 0; j < layout.bytesPerRow; j++) {
+    const offset = virtualRowStartOffset + j;
+    
+    // Skip if outside totalSize bounds
+    if (totalSize !== undefined && offset >= totalSize) break;
+
     const hexX = hexColumnStartX + j * layout.cellWidth;
     // Use getCellBounds to match rendering exactly
     const bounds = getCellBounds(
@@ -79,7 +90,7 @@ export function getOffsetFromPosition(
     );
 
     if (mouseX >= bounds.x && mouseX < bounds.x + bounds.width) {
-      return row.startOffset + j;
+      return offset;
     }
   }
 
@@ -89,7 +100,12 @@ export function getOffsetFromPosition(
     const asciiStartX = getAsciiStartX(layout);
 
     // Check each ASCII character individually
-    for (let j = 0; j < row.ascii.length; j++) {
+    for (let j = 0; j < layout.bytesPerRow; j++) {
+      const offset = virtualRowStartOffset + j;
+      
+      // Skip if outside totalSize bounds
+      if (totalSize !== undefined && offset >= totalSize) break;
+
       const charX = asciiStartX + j * layout.asciiCellWidth;
       // Use getCellBounds to match rendering exactly
       const bounds = getCellBounds(
@@ -101,7 +117,7 @@ export function getOffsetFromPosition(
       );
 
       if (mouseX >= bounds.x && mouseX < bounds.x + bounds.width) {
-        return row.startOffset + j;
+        return offset;
       }
     }
   }

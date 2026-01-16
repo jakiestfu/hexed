@@ -84,75 +84,45 @@ export interface FormattedRow {
 
 /**
  * Format binary data into rows for display
+ * Only returns rows that contain actual data bytes (no empty rows/cells)
  * @param data - The data to format
  * @param bytesPerRow - Number of bytes per row (default: 16)
  * @param dataStartOffset - Optional offset where the data starts in the original file (for preserving offsets)
- * @param totalSize - Optional total file size (for creating empty rows/cells after data)
  */
 export function formatDataIntoRows(
   data: Uint8Array,
   bytesPerRow: number = 16,
-  dataStartOffset?: number,
-  totalSize?: number
+  dataStartOffset?: number
 ): FormattedRow[] {
   const rows: FormattedRow[] = []
-
-  // Determine the end offset for calculations
-  const effectiveTotalSize = totalSize ?? (dataStartOffset !== undefined ? dataStartOffset + data.length : data.length)
-  const dataEndOffset = dataStartOffset !== undefined ? dataStartOffset + data.length - 1 : data.length - 1
 
   // If dataStartOffset is provided, we need to preserve file offsets
   if (dataStartOffset !== undefined && dataStartOffset > 0) {
     // Calculate which row the data starts in
     const startRow = Math.floor(dataStartOffset / bytesPerRow)
     const startRowOffset = startRow * bytesPerRow
-    const offsetInStartRow = dataStartOffset - startRowOffset
 
-    // Create empty rows before the data starts
-    for (let rowIndex = 0; rowIndex < startRow; rowIndex++) {
-      const rowStartOffset = rowIndex * bytesPerRow
-      const rowEndOffset = rowStartOffset + bytesPerRow - 1
-      const emptyHexBytes = Array(bytesPerRow).fill("")
-      const emptyAscii = "".padEnd(bytesPerRow, " ")
+    // Process data row by row, only creating rows that contain actual data
+    let currentDataIndex = 0
 
-      rows.push({
-        address: formatAddress(rowStartOffset),
-        hexBytes: emptyHexBytes,
-        ascii: emptyAscii,
-        startOffset: rowStartOffset,
-        endOffset: rowEndOffset
-      })
-    }
+    while (currentDataIndex < data.length) {
+      const fileOffset = dataStartOffset + currentDataIndex
+      const rowStartOffset = Math.floor(fileOffset / bytesPerRow) * bytesPerRow
+      const offsetInRow = fileOffset - rowStartOffset
 
-    // Process data row by row, handling partial rows
-    let currentRowOffset = startRowOffset
-
-    while (currentRowOffset < effectiveTotalSize) {
-      const rowStartOffset = currentRowOffset
       const hexBytes: string[] = []
       const asciiChars: string[] = []
 
-      // Fill cells in this row
-      for (let cellIndex = 0; cellIndex < bytesPerRow; cellIndex++) {
-        const fileOffset = rowStartOffset + cellIndex
-
-        // Stop if we've reached totalSize
-        if (fileOffset >= effectiveTotalSize) {
-          break
-        }
-
-        // Check if this cell should contain data
-        const relativeDataIndex = fileOffset - dataStartOffset
-        if (relativeDataIndex >= 0 && relativeDataIndex < data.length) {
-          // This cell has data
-          const byte = data[relativeDataIndex]
-          hexBytes.push(byteToHex(byte))
-          asciiChars.push(byteToAscii(byte))
-        } else {
-          // This cell is empty
-          hexBytes.push("")
-          asciiChars.push(" ")
-        }
+      // Fill cells in this row starting from where data begins
+      for (
+        let cellIndex = offsetInRow;
+        cellIndex < bytesPerRow && currentDataIndex < data.length;
+        cellIndex++
+      ) {
+        const byte = data[currentDataIndex]
+        hexBytes.push(byteToHex(byte))
+        asciiChars.push(byteToAscii(byte))
+        currentDataIndex++
       }
 
       const rowEndOffset = rowStartOffset + hexBytes.length - 1
@@ -164,9 +134,6 @@ export function formatDataIntoRows(
         startOffset: rowStartOffset,
         endOffset: rowEndOffset
       })
-
-      // Move to next row
-      currentRowOffset += bytesPerRow
     }
 
     return rows
@@ -185,47 +152,6 @@ export function formatDataIntoRows(
       startOffset: i,
       endOffset: i + chunk.length - 1
     })
-  }
-
-  // If totalSize is provided and larger than data, add empty rows after
-  if (totalSize !== undefined && totalSize > data.length) {
-    const lastRow = rows[rows.length - 1]
-    const lastRowEndOffset = lastRow?.endOffset ?? data.length - 1
-
-    // Fill remaining cells in the last row if it's not full
-    if (lastRow && lastRow.hexBytes.length < bytesPerRow) {
-      const emptyCellsNeeded = bytesPerRow - lastRow.hexBytes.length
-      const emptyCellsToAdd = Math.min(
-        emptyCellsNeeded,
-        totalSize - lastRowEndOffset - 1
-      )
-      lastRow.hexBytes.push(...Array(emptyCellsToAdd).fill(""))
-      lastRow.ascii += "".padEnd(emptyCellsToAdd, " ")
-      lastRow.endOffset += emptyCellsToAdd
-    }
-
-    // Create additional empty rows if needed
-    const firstEmptyRowStart = (lastRow?.endOffset ?? data.length - 1) + 1
-    if (firstEmptyRowStart < totalSize) {
-      for (
-        let rowStart = firstEmptyRowStart;
-        rowStart < totalSize;
-        rowStart += bytesPerRow
-      ) {
-        const rowEndOffset = Math.min(rowStart + bytesPerRow - 1, totalSize - 1)
-        const emptyBytesCount = rowEndOffset - rowStart + 1
-        const emptyHexBytes = Array(emptyBytesCount).fill("")
-        const emptyAscii = "".padEnd(emptyBytesCount, " ")
-
-        rows.push({
-          address: formatAddress(rowStart),
-          hexBytes: emptyHexBytes,
-          ascii: emptyAscii,
-          startOffset: rowStart,
-          endOffset: rowEndOffset
-        })
-      }
-    }
   }
 
   return rows

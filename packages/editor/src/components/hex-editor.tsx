@@ -131,8 +131,7 @@ export const HexEditor: FunctionComponent<HexEditorProps> = ({
   const rows = useFormatData(
     data || new Uint8Array(),
     layout?.bytesPerRow ?? null,
-    dataStartOffset,
-    file?.size
+    dataStartOffset
   )
 
   // Diff is disabled since we don't have multiple snapshots
@@ -339,6 +338,8 @@ export const HexEditor: FunctionComponent<HexEditorProps> = ({
                       selectedOffsetRange={selectedOffsetRange}
                       onSelectedOffsetRangeChange={setSelectedOffsetRange}
                       totalSize={file?.size}
+                      windowStart={windowStart}
+                      windowEnd={windowEnd}
                       containerRef={containerRef}
                       dimensions={dimensions}
                       onRequestScrollToOffset={handleRequestScrollToOffset}

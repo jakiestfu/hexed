@@ -1,4 +1,5 @@
 import { getDiffAtOffset } from "@hexed/binary-utils/differ"
+import { formatAddress } from "@hexed/binary-utils/formatter"
 import type { FormattedRow } from "@hexed/binary-utils/formatter"
 import type { DiffResult } from "@hexed/types"
 
@@ -339,7 +340,10 @@ export function drawHexCanvas(
   highlightedOffset: number | null,
   selectedRange: SelectionRange,
   hoveredRow: number | null,
-  hoveredOffset: number | null
+  hoveredOffset: number | null,
+  totalSize?: number,
+  windowStart?: number,
+  windowEnd?: number
 ): void {
   // Handle high DPI displays
   const dpr = window.devicePixelRatio || 1
@@ -368,15 +372,32 @@ export function drawHexCanvas(
   ctx.fillStyle = colors.background
   ctx.fillRect(0, 0, displayWidth, displayHeight)
 
-  // If no rows, nothing to render
-  if (rows.length === 0) return
+  // Calculate total number of rows based on totalSize or actual data
+  const rowsLength =
+    totalSize !== undefined
+      ? Math.ceil(totalSize / layout.bytesPerRow)
+      : rows.length > 0
+        ? Math.max(
+            ...rows.map((r) => Math.floor(r.endOffset / layout.bytesPerRow))
+          ) + 1
+        : 0
+
+  // If no rows and no totalSize, nothing to render
+  if (rows.length === 0 && totalSize === undefined) return
+
+  // Create a map of rows by their row index for quick lookup
+  const rowsByIndex = new Map<number, FormattedRow>()
+  for (const row of rows) {
+    const rowIndex = Math.floor(row.startOffset / layout.bytesPerRow)
+    rowsByIndex.set(rowIndex, row)
+  }
 
   // Calculate visible rows based on scroll position (accounting for vertical padding)
   const { renderStartRow, renderEndRow } = calculateVisibleRows(
     scrollTop,
     layout,
     dimensions.height,
-    rows.length
+    rowsLength
   )
 
   // Calculate column positions
@@ -402,13 +423,37 @@ export function drawHexCanvas(
   }
 
   for (let i = renderStartRow; i <= renderEndRow; i++) {
-    const row = rows[i]
     // Calculate y position relative to canvas viewport (accounting for scroll and vertical padding)
     const absoluteY = i * layout.rowHeight + layout.verticalPadding
     const y = absoluteY - scrollTop // Transform to canvas coordinates
 
     // Only render if row is visible in viewport
     if (y + layout.rowHeight < 0 || y > displayHeight) continue
+
+    // Calculate virtual row's start offset
+    const virtualRowStartOffset = i * layout.bytesPerRow
+    const virtualRowEndOffset = Math.min(
+      virtualRowStartOffset + layout.bytesPerRow - 1,
+      totalSize !== undefined
+        ? totalSize - 1
+        : virtualRowStartOffset + layout.bytesPerRow - 1
+    )
+
+    // Check if this row has data or should be rendered as blank
+    const row = rowsByIndex.get(i)
+    const isVirtualRow = row === undefined
+
+    // Determine if we should render this virtual row
+    // Render if: row has data, OR (totalSize is set AND offset is within totalSize) OR (windowStart/windowEnd is set AND offset is within window)
+    const shouldRender =
+      !isVirtualRow ||
+      (totalSize !== undefined && virtualRowStartOffset < totalSize) ||
+      (windowStart !== undefined &&
+        windowEnd !== undefined &&
+        virtualRowStartOffset < windowEnd &&
+        virtualRowEndOffset >= windowStart)
+
+    if (!shouldRender) continue
 
     // Draw row hover background if row is hovered
     const isRowHovered = hoveredRow === i
@@ -420,16 +465,30 @@ export function drawHexCanvas(
     // Draw address
     ctx.textAlign = "left" // Address is left-aligned
     ctx.fillStyle = colors.addressText
+    const address = formatAddress(virtualRowStartOffset)
     ctx.fillText(
-      row.address,
+      address,
       layout.addressPadding,
       y + layout.rowHeight / 2 // Center vertically (textBaseline is "middle")
     )
 
     // Draw hex bytes with diff and highlight backgrounds
     let hexX = hexColumnStartX
-    for (let j = 0; j < row.hexBytes.length; j++) {
-      const offset = row.startOffset + j
+    const bytesToRender = isVirtualRow
+      ? Math.min(
+          layout.bytesPerRow,
+          totalSize !== undefined
+            ? totalSize - virtualRowStartOffset
+            : layout.bytesPerRow
+        )
+      : row.hexBytes.length
+
+    for (let j = 0; j < bytesToRender; j++) {
+      const offset = virtualRowStartOffset + j
+
+      // Skip if outside totalSize bounds
+      if (totalSize !== undefined && offset >= totalSize) break
+
       const byteDiff = diff ? getDiffAtOffset(diff, offset) : null
       const isHighlighted = highlightedOffset === offset
       const isSelected = isOffsetInRange(offset, selectedRange)
@@ -473,8 +532,8 @@ export function drawHexCanvas(
         )
       }
 
-      // Draw hex byte text (centered in cell) - skip if empty
-      if (row.hexBytes[j] !== "") {
+      // Draw hex byte text (centered in cell) - only if row has data
+      if (!isVirtualRow && row.hexBytes[j] !== "") {
         ctx.textAlign = "center" // Center hex bytes in their cells
         const textX = hexX + layout.cellWidth / 2
         if (byteDiff) {
@@ -492,8 +551,12 @@ export function drawHexCanvas(
     if (showAscii) {
       // Draw ASCII characters with diff and highlight backgrounds
       const asciiStartX = getAsciiStartX(layout)
-      for (let j = 0; j < row.ascii.length; j++) {
-        const offset = row.startOffset + j
+      for (let j = 0; j < bytesToRender; j++) {
+        const offset = virtualRowStartOffset + j
+
+        // Skip if outside totalSize bounds
+        if (totalSize !== undefined && offset >= totalSize) break
+
         const byteDiff = diff ? getDiffAtOffset(diff, offset) : null
         const isHighlighted = highlightedOffset === offset
         const isSelected = isOffsetInRange(offset, selectedRange)
@@ -539,18 +602,20 @@ export function drawHexCanvas(
           )
         }
 
-        // Draw ASCII character text (centered within the cell) - skip if empty (space)
-        const asciiChar = row.ascii[j]
-        if (asciiChar !== " " && asciiChar !== "") {
-          ctx.textAlign = "center" // Center text within each cell
-          const textX = charX + layout.asciiCellWidth / 2
-          if (byteDiff) {
-            const diffColor = getDiffColor(byteDiff.type, colors)
-            ctx.fillStyle = diffColor.text
-          } else {
-            ctx.fillStyle = colors.asciiText
+        // Draw ASCII character text (centered within the cell) - only if row has data
+        if (!isVirtualRow) {
+          const asciiChar = row.ascii[j]
+          if (asciiChar !== " " && asciiChar !== "") {
+            ctx.textAlign = "center" // Center text within each cell
+            const textX = charX + layout.asciiCellWidth / 2
+            if (byteDiff) {
+              const diffColor = getDiffColor(byteDiff.type, colors)
+              ctx.fillStyle = diffColor.text
+            } else {
+              ctx.fillStyle = colors.asciiText
+            }
+            ctx.fillText(asciiChar, textX, y + layout.rowHeight / 2)
           }
-          ctx.fillText(asciiChar, textX, y + layout.rowHeight / 2)
         }
       }
     }
