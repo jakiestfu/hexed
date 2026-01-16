@@ -4,7 +4,6 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react"
 import type { FunctionComponent } from "react"
 import { Loader2 } from "lucide-react"
 
-import { computeDiff } from "@hexed/binary-utils/differ"
 import {
   HexCanvas,
   useCalculateEditorLayout,
@@ -33,83 +32,16 @@ import {
   useHandleIdToFileHandle,
   useHexEditorFile
 } from "../hooks/use-hex-editor-file"
-import { useScrollTop } from "../hooks/use-scroll-top"
 import { useScrollWindow } from "../hooks/use-scroll-window"
 import { useSettings } from "../hooks/use-settings"
-import type { HexEditorProps, HexEditorViewProps } from "../types"
-import { createMinimalSnapshot } from "../utils"
+import type { HexEditorProps } from "../types"
 import { EmptyState } from "./empty-state"
 import { HexFooter } from "./hex-footer"
 import { HexSidebar } from "./hex-sidebar"
 import { HexToolbar } from "./hex-toolbar"
 import { HexToolbarDiff } from "./hex-toolbar-diff"
 import { HexToolbarSearch } from "./hex-toolbar-search"
-import { HexToolbarTabs } from "./hex-toolbar-tabs"
 import { Logo } from "./logo"
-
-const HexEditorView: FunctionComponent<HexEditorViewProps> = ({
-  rows,
-  layout,
-  hexCanvasRef,
-  canvasElementRef,
-  dimensions,
-  containerRef,
-  scrollToOffset: scrollToOffsetProp,
-  data,
-  showAscii,
-  diff,
-  selectedOffsetRange,
-  onSelectedOffsetRangeChange,
-  totalSize,
-  visibleDataLayout
-  // scrollTopRef
-}) => {
-  // Handle scroll to offset requests from HexCanvas
-  const handleRequestScrollToOffset = useCallback(
-    (offset: number, targetScrollTop: number) => {
-      if (containerRef.current) {
-        containerRef.current.scrollTo({
-          top: targetScrollTop,
-          behavior: "smooth"
-        })
-      }
-    },
-    []
-  )
-
-  // Expose scrollToOffset via ref for external use
-  useEffect(() => {
-    if (scrollToOffsetProp !== null) {
-      hexCanvasRef.current?.scrollToOffset(scrollToOffsetProp)
-    }
-  }, [scrollToOffsetProp])
-
-  return (
-    <>
-      <HexCanvas
-        rows={rows}
-        layout={layout}
-        visibleDataLayout={visibleDataLayout}
-        ref={hexCanvasRef}
-        canvasRef={canvasElementRef}
-        data={data}
-        showAscii={showAscii}
-        diff={diff}
-        selectedOffsetRange={selectedOffsetRange}
-        onSelectedOffsetRangeChange={onSelectedOffsetRangeChange}
-        totalSize={totalSize}
-        // scrollTopRef={scrollTopRef}
-        containerRef={containerRef}
-        dimensions={dimensions}
-        onRequestScrollToOffset={handleRequestScrollToOffset}
-      />
-      {/* Spacer to make container scrollable to total height */}
-      <div
-        style={{ height: `${visibleDataLayout.totalHeight}px`, width: "100%" }}
-      />
-    </>
-  )
-}
 
 export const HexEditor: FunctionComponent<HexEditorProps> = ({
   handleId,
@@ -167,7 +99,7 @@ export const HexEditor: FunctionComponent<HexEditorProps> = ({
     // windowSize, //Math.min(file?.size ?? 0, windowSize)
     file?.size
   )
-  const windowSizeFactor = 1
+  const windowSizeFactor = 1 //1.5
   const windowSize =
     visibleDataLayout.visibleRows *
     (layout?.bytesPerRow ?? 0) *
@@ -308,7 +240,26 @@ export const HexEditor: FunctionComponent<HexEditorProps> = ({
       end: offset + length - 1
     })
   }, [])
-  // return <p>wat</p>
+
+  const handleRequestScrollToOffset = useCallback(
+    (offset: number, targetScrollTop: number) => {
+      if (containerRef.current) {
+        containerRef.current.scrollTo({
+          top: targetScrollTop,
+          behavior: "smooth"
+        })
+      }
+    },
+    []
+  )
+
+  // Expose scrollToOffset via ref for external use
+  useEffect(() => {
+    if (scrollToOffset !== null) {
+      hexCanvasRef.current?.scrollToOffset(scrollToOffset)
+    }
+  }, [scrollToOffset])
+
   return (
     <Card
       className={`p-0 m-0 w-full h-full rounded-none border-none shadow-none ${className}`}
@@ -376,22 +327,28 @@ export const HexEditor: FunctionComponent<HexEditorProps> = ({
                     style={{ display: hasData ? "block" : "none" }}
                     className="h-full w-full overflow-auto relative"
                   >
-                    <HexEditorView
+                    <HexCanvas
                       rows={rows}
-                      scrollTopRef={scrollTopRef}
                       layout={layout}
-                      hexCanvasRef={hexCanvasRef}
-                      canvasElementRef={canvasElementRef}
-                      containerRef={containerRef}
-                      dimensions={dimensions}
-                      scrollToOffset={scrollToOffset}
+                      visibleDataLayout={visibleDataLayout}
+                      ref={hexCanvasRef}
+                      canvasRef={canvasElementRef}
                       data={data || new Uint8Array()}
                       showAscii={showAscii}
                       diff={diff}
                       selectedOffsetRange={selectedOffsetRange}
                       onSelectedOffsetRangeChange={setSelectedOffsetRange}
                       totalSize={file?.size}
-                      visibleDataLayout={visibleDataLayout}
+                      containerRef={containerRef}
+                      dimensions={dimensions}
+                      onRequestScrollToOffset={handleRequestScrollToOffset}
+                    />
+                    {/* Spacer to make container scrollable to total height */}
+                    <div
+                      style={{
+                        height: `${visibleDataLayout.totalHeight}px`,
+                        width: "100%"
+                      }}
                     />
                   </div>
 

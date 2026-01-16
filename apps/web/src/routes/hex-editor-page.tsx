@@ -3,11 +3,8 @@ import { useTheme } from "next-themes"
 import { useNavigate, useParams } from "react-router-dom"
 
 import { HexEditor } from "@hexed/editor"
-import { createLogger } from "@hexed/logger"
 
 import packageJson from "../../package.public.json"
-
-const logger = createLogger("HexEditorPage")
 
 export function HexEditorPage() {
   const { id: handleId } = useParams()
@@ -30,7 +27,6 @@ export function HexEditorPage() {
     [navigate]
   )
 
-  logger.log("Rendering HexEditorPage")
   return (
     <HexEditor
       handleId={handleId}
