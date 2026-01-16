@@ -1,5 +1,7 @@
 import { useEffect, useState } from "react"
 
+import { createLogger } from "@hexed/logger"
+
 type UseFileDataResult = {
   data: Uint8Array | null
   dataStartOffset: number | undefined
@@ -7,6 +9,8 @@ type UseFileDataResult = {
   loading: boolean
   error: string | null
 }
+
+const logger = createLogger("useFileData")
 
 /**
  * Hook to read data from a File object with optional range support
@@ -55,7 +59,9 @@ export function useFileData(
           throw new Error("Start position must be >= 0")
         }
         if (endPos > file.size) {
-          throw new Error(`End position (${endPos}) exceeds file size (${file.size})`)
+          throw new Error(
+            `End position (${endPos}) exceeds file size (${file.size})`
+          )
         }
         if (startPos > endPos) {
           throw new Error("Start position must be <= end position")
@@ -83,6 +89,7 @@ export function useFileData(
         }
 
         if (!cancelled) {
+          logger.log(`Read bytes [${startPos}-${endPos}]`)
           setData(new Uint8Array(arrayBuffer))
           setLoading(false)
         }
