@@ -25,6 +25,7 @@ import {
   Tabs,
   TabsContent
 } from "@hexed/ui"
+import { HexVirtual } from "@hexed/virtual"
 
 import { useGlobalKeyboard } from "../hooks/use-global-keyboard"
 import { useHandleToFile } from "../hooks/use-handle-to-file"
@@ -34,6 +35,7 @@ import {
 } from "../hooks/use-hex-editor-file"
 import { useScrollWindow } from "../hooks/use-scroll-window"
 import { useSettings } from "../hooks/use-settings"
+import { useSimpleWindowOffsets } from "../hooks/use-simple-window-offsets"
 import type { HexEditorProps } from "../types"
 import { EmptyState } from "./empty-state"
 import { HexFooter } from "./hex-footer"
@@ -101,7 +103,7 @@ export const HexEditor: FunctionComponent<HexEditorProps> = ({
   )
   // const windowSize = visibleDataLayout.visibleRows * (layout?.bytesPerRow ?? 0)
   const windowed = true
-  const windowSize = visibleDataLayout.visibleRows * (layout?.bytesPerRow ?? 0)
+  const windowSize = 1024 //visibleDataLayout.visibleRows * (layout?.bytesPerRow ?? 0)
 
   const nonEmptyRows = useCalculateNonEmptyRows(
     layout,
@@ -132,8 +134,8 @@ export const HexEditor: FunctionComponent<HexEditorProps> = ({
   const { data, dataStartOffset, isConnected, loading, error, restart } =
     useHexEditorFile(
       file,
-      windowed ? windowStart : undefined,
-      windowed ? windowEnd : undefined,
+      windowed ? 1024 : undefined,
+      windowed ? 1024 * 2 : undefined,
       windowed
     )
 
@@ -141,11 +143,7 @@ export const HexEditor: FunctionComponent<HexEditorProps> = ({
   const hasData = data !== null
 
   // Format data into rows
-  const rows = useFormatData(
-    data || new Uint8Array(),
-    layout?.bytesPerRow ?? null,
-    dataStartOffset
-  )
+  const rows = useFormatData(data || new Uint8Array(), 16, dataStartOffset)
 
   // Diff is disabled since we don't have multiple snapshots
   const diff = useMemo(() => {
@@ -272,6 +270,17 @@ export const HexEditor: FunctionComponent<HexEditorProps> = ({
     }
   }, [scrollToOffset])
 
+  const virtualContainerRef = useRef<HTMLDivElement>(null)
+
+  // useEffect(() => {}, [virtualContainerRef.current])
+  // const result = useSimpleWindowOffsets({
+  //   containerRef: virtualContainerRef,
+  //   totalSize: dimensions.height,
+  //   windowSize: windowSize
+  // })
+  // useEffect(() => {
+  //   console.log("result", { result })
+  // }, [result])
   return (
     <Card
       className={`p-0 m-0 w-full h-full rounded-none border-none shadow-none ${className}`}
@@ -339,7 +348,7 @@ export const HexEditor: FunctionComponent<HexEditorProps> = ({
                     style={{ display: hasData ? "block" : "none" }}
                     className="h-full w-full overflow-auto relative"
                   >
-                    <HexCanvas
+                    {/* <HexCanvas
                       scrollTopRef={scrollTopRef}
                       rows={rows}
                       layout={layout}
@@ -357,14 +366,19 @@ export const HexEditor: FunctionComponent<HexEditorProps> = ({
                       containerRef={containerRef}
                       dimensions={dimensions}
                       onRequestScrollToOffset={handleRequestScrollToOffset}
-                    />
-                    {/* Spacer to make container scrollable to total height */}
-                    {/* <div
-                      style={{
-                        height: `${visibleDataLayout.totalHeight}px`,
-                        width: "100%"
-                      }}
                     /> */}
+                    <HexVirtual
+                      containerRef={virtualContainerRef}
+                      // rows={rows}
+                      // data={data || new Uint8Array()}
+                      // showAscii={showAscii}
+                      // bytesPerRow={16}
+                      // rowHeight={24}
+                      // fileSize={file?.size}
+                      rowHeight={24}
+                      height={dimensions.height}
+                      file={file}
+                    />
                   </div>
 
                   {/* Loading overlay */}

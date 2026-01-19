@@ -1,5 +1,5 @@
 {
-  "name": "@hexed/editor",
+  "name": "@hexed/virtual",
   "version": "0.0.1",
   "private": true,
   "type": "module",
@@ -13,17 +13,9 @@
     "clean": "rm -rf dist node_modules"
   },
   "dependencies": {
-    "@hexed/binary-templates": "workspace:*",
     "@hexed/binary-utils": "workspace:*",
-    "@hexed/canvas": "workspace:*",
     "@hexed/types": "workspace:*",
-    "@hexed/ui": "workspace:*",
-    "@hexed/virtual": "workspace:*",
-    "@hexed/logger": "workspace:*",
-    "lucide-react": "^0.468.0",
-    "react-hotkeys-hook": "^4.5.1",
-    "react-markdown": "^9.0.1",
-    "recharts": "2.15.4"
+    "@tanstack/react-virtual": "^3.11.1"
   },
   "devDependencies": {
     "@hexed/eslint-config": "workspace:*",
@@ -31,14 +23,13 @@
     "@hexed/typescript-config": "workspace:*",
     "@types/react": "^19.2.3",
     "@types/react-dom": "^19.2.3",
-    "@types/wicg-file-system-access": "^2023.10.7",
     "react": "^19.2.3",
     "react-dom": "^19.2.3",
     "typescript": "^5.7.2"
   },
-  "prettier": "@hexed/prettier-config",
   "peerDependencies": {
     "react": "^19.2.3",
     "react-dom": "^19.2.3"
-  }
+  },
+  "prettier": "@hexed/prettier-config"
 }
