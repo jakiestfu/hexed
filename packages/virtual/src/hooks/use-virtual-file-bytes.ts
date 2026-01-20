@@ -25,6 +25,7 @@ export class FileByteCache {
   async ensureRange(range: ByteRange, opts?: { signal?: AbortSignal }): Promise<void> {
     const { start, end } = clampRange(range, this.file.size)
     if (end <= start) return
+    // console.log("ensureRange", { start, end })
 
     const firstChunk = Math.floor(start / this.chunkSize)
     const lastChunk = Math.floor((end - 1) / this.chunkSize)
@@ -41,6 +42,7 @@ export class FileByteCache {
 
   readBytes(range: ByteRange): Uint8Array {
     const { start, end } = clampRange(range, this.file.size)
+    // console.log("readBytes", { start, end })
     if (end <= start) return new Uint8Array(0)
 
     const out = new Uint8Array(end - start)
@@ -50,11 +52,11 @@ export class FileByteCache {
     while (cursor < end) {
       const chunkIndex = Math.floor(cursor / this.chunkSize)
       const chunk = this.chunks.get(chunkIndex)
+      // console.log("readBytes chunk", { chunkIndex, chunk })
       if (!chunk) {
         // Not loaded yet; caller should call ensureRange first
         break
       }
-
       const chunkStart = chunkIndex * this.chunkSize
       const within = cursor - chunkStart
       const take = Math.min(chunk.length - within, end - cursor)
@@ -69,7 +71,7 @@ export class FileByteCache {
     return writeOffset === out.length ? out : out.subarray(0, writeOffset)
   }
 
-  private async loadChunk(chunkIndex: number, signal?: AbortSignal): Promise<void> {
+  async loadChunk(chunkIndex: number, signal?: AbortSignal): Promise<void> {
     const start = chunkIndex * this.chunkSize
     const end = Math.min(start + this.chunkSize, this.file.size)
     console.log(`loadChunk ${chunkIndex}: [${start} - ${end}]`)
@@ -116,15 +118,15 @@ export function useVirtualFileBytes({
 
   const getRowBytes = useCallback(
     (rowIndex: number) => {
-      if (!cache) console.log("getRowBytes cache is null")
+      if (!cache) return new Uint8Array(0)
       const start = rowIndex * bytesPerRow
-      const end = Math.min(start + bytesPerRow, cache?.size)
+      const end = Math.min(start + bytesPerRow, cache.size)
       return cache?.readBytes({ start, end })
     },
     [cache, bytesPerRow, version] // version so consumer updates when new bytes cached
   )
 
-  const rowCount = Math.ceil(cache?.size / bytesPerRow)
+  const rowCount = cache ? Math.ceil(cache.size / bytesPerRow) : 0
 
-  return { rowCount, ensureRows, getRowBytes, fileSize: cache?.size }
+  return { rowCount, ensureRows, getRowBytes, fileSize: cache?.size, loadChunk: cache?.loadChunk }
 }

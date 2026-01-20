@@ -32,10 +32,12 @@ export function useDimensions<T extends HTMLElement = HTMLElement>(
 
     const updateDimensions = () => {
       const rect = element.getBoundingClientRect()
-      setDimensions({
+      const value = {
         width: rect.width,
         height: rect.height
-      })
+      }
+      console.log("[setDimensions]", value)
+      setDimensions(value)
     }
 
     // Initial dimensions

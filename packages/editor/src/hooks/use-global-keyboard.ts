@@ -57,19 +57,13 @@ export function useGlobalKeyboard({
     setSidebar
   } = useSettings()
 
-  // Ensure we're on the client side
-  const [isClient, setIsClient] = useState(false)
-
-  useEffect(() => {
-    setIsClient(true)
-  }, [])
 
   /**
    * Check if user is currently typing in an input field
    */
   const isTypingInInput = useCallback((): boolean => {
     // Check if we're in a browser environment (Next.js SSR)
-    if (!isClient || typeof document === "undefined") {
+    if (typeof document === "undefined") {
       return false
     }
 
@@ -81,7 +75,7 @@ export function useGlobalKeyboard({
       activeElement.getAttribute("contenteditable") === "true"
 
     return tagName === "INPUT" || tagName === "TEXTAREA" || isContentEditable
-  }, [isClient])
+  }, [])
 
   /**
    * Copy selected bytes to clipboard as hex string
@@ -158,10 +152,10 @@ export function useGlobalKeyboard({
       }
     },
     {
-      enabled: isClient && selectedOffsetRange !== null,
+      enabled:  selectedOffsetRange !== null,
       enableOnFormTags: false
     },
-    [isClient, selectedOffsetRange, handleCopyBytes, isTypingInInput]
+    [selectedOffsetRange, handleCopyBytes, isTypingInInput]
   )
 
   // Escape key: Cascading logic
@@ -176,12 +170,10 @@ export function useGlobalKeyboard({
     },
     {
       enabled:
-        isClient &&
         (showSearch || sidebar !== null || selectedOffsetRange !== null),
       enableOnFormTags: false
     },
     [
-      isClient,
       showSearch,
       sidebar,
       selectedOffsetRange,
@@ -201,10 +193,10 @@ export function useGlobalKeyboard({
       onToggleSearch()
     },
     {
-      enabled: isClient,
+      enabled: true,
       enableOnFormTags: false
     },
-    [isClient, onToggleSearch, isTypingInInput]
+    [onToggleSearch, isTypingInInput]
   )
 
   // Toggle ASCII: Ctrl+Shift+A or meta+Shift+A
@@ -217,10 +209,10 @@ export function useGlobalKeyboard({
       setShowAscii((prev) => !prev)
     },
     {
-      enabled: isClient,
+      enabled: true,
       enableOnFormTags: false
     },
-    [isClient, setShowAscii, isTypingInInput]
+    [setShowAscii, isTypingInInput]
   )
 
   // Toggle checksums: Ctrl+Shift+C or meta+Shift+C
@@ -233,10 +225,10 @@ export function useGlobalKeyboard({
       setShowChecksums((prev) => !prev)
     },
     {
-      enabled: isClient,
+      enabled: true,
       enableOnFormTags: false
     },
-    [isClient, setShowChecksums, isTypingInInput]
+    [setShowChecksums, isTypingInInput]
   )
 
   // Toggle histogram: Ctrl+Shift+H or meta+Shift+H
@@ -250,10 +242,10 @@ export function useGlobalKeyboard({
       onToggleHistogram()
     },
     {
-      enabled: isClient && !!onToggleHistogram,
+      enabled: true && !!onToggleHistogram,
       enableOnFormTags: false
     },
-    [isClient, onToggleHistogram, isTypingInInput]
+    [onToggleHistogram, isTypingInInput]
   )
 
   // Toggle interpreter: Ctrl+1 or meta+1
@@ -266,10 +258,10 @@ export function useGlobalKeyboard({
       setSidebar((prev) => (prev === "interpreter" ? null : "interpreter"))
     },
     {
-      enabled: isClient,
+      enabled: true,
       enableOnFormTags: false
     },
-    [isClient, setSidebar, isTypingInInput]
+    [setSidebar, isTypingInInput]
   )
 
   // Toggle templates: Ctrl+2 or meta+2
@@ -282,10 +274,10 @@ export function useGlobalKeyboard({
       setSidebar((prev) => (prev === "templates" ? null : "templates"))
     },
     {
-      enabled: isClient,
+      enabled: true,
       enableOnFormTags: false
     },
-    [isClient, setSidebar, isTypingInInput]
+    [setSidebar, isTypingInInput]
   )
 
   // Toggle strings: Ctrl+3 or meta+3
@@ -298,10 +290,10 @@ export function useGlobalKeyboard({
       setSidebar((prev) => (prev === "strings" ? null : "strings"))
     },
     {
-      enabled: isClient,
+      enabled: true,
       enableOnFormTags: false
     },
-    [isClient, setSidebar, isTypingInInput]
+    [setSidebar, isTypingInInput]
   )
 
   // Toggle sidebar position: Ctrl+Shift+P or meta+Shift+P
@@ -314,9 +306,9 @@ export function useGlobalKeyboard({
       toggleSidebarPosition()
     },
     {
-      enabled: isClient,
+      enabled: true,
       enableOnFormTags: false
     },
-    [isClient, toggleSidebarPosition, isTypingInInput]
+    [toggleSidebarPosition, isTypingInInput]
   )
 }

@@ -27,6 +27,7 @@ export function useHandleIdToFileHandle(handleId: string | null | undefined) {
           throw new Error("File handle not found or permission denied")
         }
 
+        console.log("setFileHandle", handleData)
         setFileHandle(handleData.handle)
       } catch (loadError) {
         console.error("Failed to load handle metadata:", loadError)

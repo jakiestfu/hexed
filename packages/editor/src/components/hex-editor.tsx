@@ -2,15 +2,9 @@
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react"
 import type { FunctionComponent } from "react"
-import { Loader2 } from "lucide-react"
 
 import {
-  HexCanvas,
-  useCalculateEditorLayout,
-  useCalculateNonEmptyRows,
-  useCalculateVisibleData,
   useDimensions,
-  useFormatData,
   type HexCanvasRef
 } from "@hexed/canvas"
 import type { DiffViewMode } from "@hexed/types"
@@ -31,11 +25,8 @@ import { useGlobalKeyboard } from "../hooks/use-global-keyboard"
 import { useHandleToFile } from "../hooks/use-handle-to-file"
 import {
   useHandleIdToFileHandle,
-  useHexEditorFile
 } from "../hooks/use-hex-editor-file"
-import { useScrollWindow } from "../hooks/use-scroll-window"
 import { useSettings } from "../hooks/use-settings"
-import { useSimpleWindowOffsets } from "../hooks/use-simple-window-offsets"
 import type { HexEditorProps } from "../types"
 import { EmptyState } from "./empty-state"
 import { HexFooter } from "./hex-footer"
@@ -44,6 +35,7 @@ import { HexToolbar } from "./hex-toolbar"
 import { HexToolbarDiff } from "./hex-toolbar-diff"
 import { HexToolbarSearch } from "./hex-toolbar-search"
 import { Logo } from "./logo"
+import { cellWidth } from "@hexed/virtual"
 
 export const HexEditor: FunctionComponent<HexEditorProps> = ({
   handleId,
@@ -55,13 +47,7 @@ export const HexEditor: FunctionComponent<HexEditorProps> = ({
   setTheme,
   packageInfo
 }) => {
-  /**
-   * Container Setup
-   */
   const containerRef = useRef<HTMLDivElement | null>(null)
-  const scrollTopRef = useRef<number>(0)
-  // const scrollTop = useScrollTop(containerElement, scrollTopRef)
-  // console.log("scrollTop", scrollTop)
   const [activeTab, setActiveTab] = useState<string>("0")
   const { showAscii, sidebar, sidebarPosition } = useSettings()
 
@@ -75,75 +61,15 @@ export const HexEditor: FunctionComponent<HexEditorProps> = ({
    */
 
   const hexCanvasRef = useRef<HexCanvasRef | null>(null)
-  const canvasElementRef = useRef<HTMLCanvasElement | null>(null)
   const dimensions = useDimensions(containerRef)
 
-  // const [fileSize, setFileSize] = useState<number>(0)
 
-  const { fileHandle, error: loadError } = useHandleIdToFileHandle(handleId)
+  // console.log("byteRowWidth", byteRowWidth, bytesPerRow)
 
-  const {
-    file,
-    loading: fileLoading,
-    error: fileError
-  } = useHandleToFile(fileHandle)
+  const { fileHandle } = useHandleIdToFileHandle(handleId)
+  const { file } = useHandleToFile(fileHandle)
 
-  const layout = useCalculateEditorLayout(
-    canvasElementRef,
-    dimensions,
-    showAscii
-  )
-  // console.log("layout", layout)
-
-  const visibleDataLayout = useCalculateVisibleData(
-    layout,
-    dimensions,
-    // windowSize, //Math.min(file?.size ?? 0, windowSize)
-    file?.size
-  )
-  // const windowSize = visibleDataLayout.visibleRows * (layout?.bytesPerRow ?? 0)
-  const windowed = true
-  const windowSize = 1024 //visibleDataLayout.visibleRows * (layout?.bytesPerRow ?? 0)
-
-  const nonEmptyRows = useCalculateNonEmptyRows(
-    layout,
-    visibleDataLayout.visibleRows,
-    windowSize
-  )
-  // console.log("visibleDataLayout", visibleDataLayout, layout)
-  // Calculate dynamic window based on scroll position
-  // const { windowStart, windowEnd } = useScrollWindow({
-  //   containerRef,
-  //   windowSize,
-  //   layout,
-  //   visibleRows: nonEmptyRows,
-  //   totalSize: file?.size
-  // })
-  const { windowStart, windowEnd } = useScrollWindow({
-    canvasRef: canvasElementRef,
-    scrollTopRef,
-    elementHeight: dimensions.height,
-    totalHeight: visibleDataLayout.totalHeight,
-    windowSize,
-    layout,
-    visibleRows: nonEmptyRows,
-    totalSize: file?.size
-  })
-
-  // Use hook to manage file loading and watching
-  const { data, dataStartOffset, isConnected, loading, error, restart } =
-    useHexEditorFile(
-      file,
-      windowed ? 1024 : undefined,
-      windowed ? 1024 * 2 : undefined,
-      windowed
-    )
-
-  const hasFile = fileHandle != null
-  const hasData = data !== null
-
-  // Format data into rows
-  const rows = useFormatData(data || new Uint8Array(), 16, dataStartOffset)
+  console.log("hex editor render")
 
   // Diff is disabled since we don't have multiple snapshots
   const diff = useMemo(() => {
@@ -219,7 +145,7 @@ export const HexEditor: FunctionComponent<HexEditorProps> = ({
   // Global keyboard shortcuts
   useGlobalKeyboard({
     selectedOffsetRange,
-    data: data || new Uint8Array(),
+    data: new Uint8Array(),
     showSearch,
     onToggleSearch: handleToggleSearch,
     onCloseSearch: handleCloseSearch,
@@ -251,18 +177,6 @@ export const HexEditor: FunctionComponent<HexEditorProps> = ({
     })
   }, [])
 
-  const handleRequestScrollToOffset = useCallback(
-    (offset: number, targetScrollTop: number) => {
-      if (containerRef.current) {
-        containerRef.current.scrollTo({
-          top: targetScrollTop,
-          behavior: "smooth"
-        })
-      }
-    },
-    []
-  )
-
   // Expose scrollToOffset via ref for external use
   useEffect(() => {
     if (scrollToOffset !== null) {
@@ -272,15 +186,7 @@ export const HexEditor: FunctionComponent<HexEditorProps> = ({
 
   const virtualContainerRef = useRef<HTMLDivElement>(null)
 
-  // useEffect(() => {}, [virtualContainerRef.current])
-  // const result = useSimpleWindowOffsets({
-  //   containerRef: virtualContainerRef,
-  //   totalSize: dimensions.height,
-  //   windowSize: windowSize
-  // })
-  // useEffect(() => {
-  //   console.log("result", { result })
-  // }, [result])
+  // return <p>wat</p>
   return (
     <Card
       className={`p-0 m-0 w-full h-full rounded-none border-none shadow-none ${className}`}
@@ -305,16 +211,16 @@ export const HexEditor: FunctionComponent<HexEditorProps> = ({
             }
             filePath={fileHandle?.name}
             fileSource={fileSource}
-            isConnected={isConnected}
-            error={error}
-            onRestartWatching={restart}
+            isConnected={fileHandle !== null}
+            error={null}
+            onRestartWatching={() => {}}
             onClose={onClose}
           />
           <HexToolbarSearch
-            data={data || undefined}
+            data={undefined}
             showSearch={showSearch}
-            hasFile={hasFile}
-            hasSnapshots={hasData}
+            hasFile={fileHandle !== null}
+            hasSnapshots={false}
             inputRef={searchInputRef}
             syncRangeToFindInput={showSearch ? rangeToSyncToFindInput : null}
             onMatchFound={handleMatchFound}
@@ -327,7 +233,7 @@ export const HexEditor: FunctionComponent<HexEditorProps> = ({
           />
         </CardHeader>
         <CardContent className="p-0 grow overflow-auto">
-          {!hasFile ? <EmptyState onHandleIdChange={onHandleIdChange} /> : null}
+          {!handleId ? <EmptyState onHandleIdChange={onHandleIdChange} /> : null}
 
           {(() => {
             // Calculate default sizes based on visible panels
@@ -345,74 +251,28 @@ export const HexEditor: FunctionComponent<HexEditorProps> = ({
                 >
                   {/* Always render HexEditorView, control visibility with CSS */}
                   <div
-                    style={{ display: hasData ? "block" : "none" }}
+                    style={{ display: file !== null ? "block" : "none" }}
                     className="h-full w-full overflow-auto relative"
                   >
-                    {/* <HexCanvas
-                      scrollTopRef={scrollTopRef}
-                      rows={rows}
-                      layout={layout}
-                      visibleDataLayout={visibleDataLayout}
-                      ref={hexCanvasRef}
-                      canvasRef={canvasElementRef}
-                      data={data || new Uint8Array()}
-                      showAscii={showAscii}
-                      diff={diff}
-                      selectedOffsetRange={selectedOffsetRange}
-                      onSelectedOffsetRangeChange={setSelectedOffsetRange}
-                      totalSize={file?.size}
-                      windowStart={windowStart}
-                      windowEnd={windowEnd}
-                      containerRef={containerRef}
-                      dimensions={dimensions}
-                      onRequestScrollToOffset={handleRequestScrollToOffset}
-                    /> */}
                     <HexVirtual
+                      dimensions={dimensions}
                       containerRef={virtualContainerRef}
-                      // rows={rows}
-                      // data={data || new Uint8Array()}
-                      // showAscii={showAscii}
-                      // bytesPerRow={16}
                       // rowHeight={24}
-                      // fileSize={file?.size}
-                      rowHeight={24}
-                      height={dimensions.height}
+                      // height={dimensions.height}
                       file={file}
                     />
                   </div>
-
-                  {/* Loading overlay */}
-                  {loading || (hasFile && !hasData) ? (
-                    <div className="absolute inset-0 flex flex-col items-center justify-center gap-4 text-center bg-background/80 z-10">
-                      <Loader2 className="h-8 w-8 animate-spin text-primary" />
-                      <div>
-                        <h3 className="font-semibold">Loading file...</h3>
-                        <p className="text-sm text-muted-foreground mt-1">
-                          {fileHandle?.name
-                            ? `Reading ${fileHandle.name}`
-                            : "Loading..."}
-                        </p>
-                      </div>
-                    </div>
-                  ) : null}
-
-                  {/* No data overlay */}
-                  {/* {!hasData && !loading ? (
-                    <div className="absolute inset-0 flex items-center justify-center text-muted-foreground bg-background/80 z-10">
-                      No data available
-                    </div>
-                  ) : null} */}
                 </div>
               </ResizablePanel>
             )
 
             // Sidebar component - only render when we have data
             const sidebarPanel =
-              hasSidebars && hasData ? (
+              hasSidebars && fileHandle ? (
                 <HexSidebar
                   defaultSize={30}
                   minSize={30}
-                  data={data}
+                  data={new Uint8Array()}
                   selectedOffset={selectedOffset}
                   endianness={endianness as "le" | "be"}
                   numberFormat={numberFormat as "dec" | "hex"}
@@ -450,7 +310,7 @@ export const HexEditor: FunctionComponent<HexEditorProps> = ({
             )
           })()}
         </CardContent>
-        {hasFile ? (
+        {fileHandle ? (
           <CardFooter className="p-0">
             <HexFooter
               dataType={dataType}
@@ -460,7 +320,7 @@ export const HexEditor: FunctionComponent<HexEditorProps> = ({
               numberFormat={numberFormat}
               setNumberFormat={setNumberFormat}
               totalSize={file?.size}
-              hasSnapshots={hasData}
+              hasSnapshots={false}
               selectedOffset={selectedOffset}
               paneToggleValue={paneToggleValue}
               onShowHistogram={handleToggleHistogram}
