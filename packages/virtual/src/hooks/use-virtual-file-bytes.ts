@@ -22,10 +22,10 @@ export class FileByteCache {
   }
 
   // Fetch the minimal set of chunks needed for [start,end)
-  async ensureRange(range: ByteRange, opts?: { signal?: AbortSignal }): Promise<void> {
+  // Returns true if new chunks were loaded, false if all chunks were already cached
+  async ensureRange(range: ByteRange, opts?: { signal?: AbortSignal }): Promise<boolean> {
     const { start, end } = clampRange(range, this.file.size)
-    if (end <= start) return
-    // console.log("ensureRange", { start, end })
+    if (end <= start) return false
 
     const firstChunk = Math.floor(start / this.chunkSize)
     const lastChunk = Math.floor((end - 1) / this.chunkSize)
@@ -36,8 +36,12 @@ export class FileByteCache {
       tasks.push(this.loadChunk(ci, opts?.signal))
     }
 
+    // If no tasks, all chunks were already cached
+    if (tasks.length === 0) return false
+
     // Let abort cancel outstanding loads
     await Promise.all(tasks)
+    return true
   }
 
   readBytes(range: ByteRange): Uint8Array {
@@ -108,12 +112,16 @@ export function useVirtualFileBytes({
 
   const ensureRows = useCallback(
     async (rowStart: number, rowEndInclusive: number, signal?: AbortSignal) => {
+      if (!cache) return
       const byteStart = rowStart * bytesPerRow
       const byteEnd = (rowEndInclusive + 1) * bytesPerRow
-      await cache?.ensureRange({ start: byteStart, end: byteEnd }, { signal })
-      bump()
+      const chunksLoaded = await cache.ensureRange({ start: byteStart, end: byteEnd }, { signal })
+      // Only bump version if new chunks were actually loaded
+      if (chunksLoaded) {
+        bump()
+      }
     },
-    [cache, bytesPerRow]
+    [cache, bytesPerRow, bump]
   )
 
   const getRowBytes = useCallback(

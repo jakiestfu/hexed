@@ -5,8 +5,8 @@ type UseRecenteredVirtualRowsParams = {
   containerRef: React.RefObject<HTMLElement | null>
   totalRows: number
   rowHeight: number
-  windowRows?: number
-  overscan?: number
+  windowRows: number
+  overscan: number
   viewHeight: number
 }
 
@@ -14,8 +14,8 @@ export const useRecenteredVirtualRows = ({
   containerRef,
   totalRows,
   rowHeight,
-  windowRows = 50_000,
-  overscan = 20,
+  windowRows,
+  overscan,
   viewHeight,
 }: UseRecenteredVirtualRowsParams) => {
   // const parentRef = useRef<HTMLDivElement | null>(null)
@@ -34,19 +34,31 @@ export const useRecenteredVirtualRows = ({
   })
 
   // Keep scrollTop near the middle; shift baseRow when near edges
+  const hasInitializedScroll = React.useRef(false)
+  const prevTotalRows = React.useRef(totalRows)
+  
   React.useEffect(() => {
     const el = containerRef.current
     if (!el) return
     const totalHeight = Math.min(windowRows, totalRows) * rowHeight
 
-    // Put the scroll position near the middle initially (if possible)
-    const mid = Math.max(0, Math.floor(totalHeight / 2 - viewHeight / 2))
-    if (el.scrollTop === 0 && totalHeight > viewHeight) {
-      el.scrollTop = mid
+    // Reset scroll position when a new file loads (totalRows goes from 0 to >0)
+    const fileChanged = prevTotalRows.current === 0 && totalRows > 0
+    if (fileChanged) {
+      hasInitializedScroll.current = false
+      setBaseRow(0) // Reset baseRow as well
+    }
+    prevTotalRows.current = totalRows
+
+    // Only set initial scroll position once, and start at top (0) instead of middle
+    if (!hasInitializedScroll.current && totalRows > 0) {
+      hasInitializedScroll.current = true
+      el.scrollTop = 0
     }
 
     const topThreshold = Math.floor(viewHeight * 0.25)
     const botThreshold = Math.floor(totalHeight - viewHeight * 1.25)
+    const mid = Math.max(0, Math.floor(totalHeight / 2 - viewHeight / 2))
 
     let raf = 0
     const onScroll = () => {
@@ -84,7 +96,7 @@ export const useRecenteredVirtualRows = ({
       cancelAnimationFrame(raf)
       el.removeEventListener("scroll", onScroll)
     }
-  }, [rowHeight, windowRows, totalRows, clampedBaseRow, maxBaseRow])
+  }, [rowHeight, windowRows, totalRows, clampedBaseRow, maxBaseRow, viewHeight])
 
   const toFileRow = React.useCallback(
     (virtualIndex: number) => clampedBaseRow + virtualIndex,
