@@ -1,63 +1,86 @@
-import * as React from "react"
-import { useVirtualizer } from "@tanstack/react-virtual"
+import { FixedSizeList, type FixedSizeList as FixedSizeListType } from "react-window"
 import { useVirtualFileBytes } from "./hooks/use-virtual-file-bytes"
-import { useRecenteredVirtualRows } from "./hooks/use-recentered-virtual-rows"
-import { cellWidth, rowHeight } from "./constants"
-import { useMemo, useLayoutEffect, useState, useRef } from "react"
+import { useCalculateRowLayout } from "./hooks/use-calculate-row-layout"
+import {
+  cellWidth,
+  rowHeight,
+  asciiCharWidth,
+  addressColumnWidth,
+  addressHexBorderWidth,
+  asciiBorderWidth,
+} from "./constants"
+import { useMemo, useState, useRef, RefObject, CSSProperties, FunctionComponent, useCallback, useEffect } from "react"
+import { byteToAscii, byteToHex, formatAddress } from "@hexed/binary-utils"
 
 type HexViewerProps = {
-  containerRef: React.RefObject<HTMLDivElement | null>
+  containerRef: RefObject<HTMLDivElement | null>
   file: File | null
-  // height?: number
-  // rowHeight?: number
   dimensions: { width: number; height: number }
+  showAscii: boolean
 }
 
-const toHex2 = (b: number) => b.toString(16).padStart(2, "0").toUpperCase()
+const cellWidthStyle = { width: `${cellWidth}px` }
+const asciiCharWidthStyle = { width: `${asciiCharWidth}px` }
+const rowHeightStyle = { height: `${rowHeight}px` }
+const addressColumnWidthStyle = { width: `${addressColumnWidth}px` }
+const addressHexBorderWidthStyle = { width: `${addressHexBorderWidth}px` }
+const asciiBorderWidthStyle = { width: `${asciiBorderWidth}px` }
 
-export function HexVirtual({ containerRef, file, dimensions }: HexViewerProps) {
-  // Use state and ResizeObserver for byteRowWidth to avoid blocking render
-  const [byteRowWidth, setByteRowWidth] = useState(0)
-  const bytesElementRef = useRef<HTMLDivElement | null>(null)
+const mockBytes = new Uint8Array([])
 
-  // Set up ResizeObserver for byteRowWidth calculation
-  useLayoutEffect(() => {
-    const element = bytesElementRef.current
-    if (!element) return
+const ByteRow: FunctionComponent<{
+  preview?: boolean
+  style: CSSProperties
+  addr: string
+  bytesPerRow: number
+  bytes: Uint8Array
+  showAscii: boolean
+}> = ({ preview, style, addr, bytesPerRow, bytes, showAscii }) => (
+  <div className="flex items-center px-4 whitespace-pre hover:bg-muted" style={style}>
+    <div className="text-muted-foreground flex items-center h-full justify-center" style={addressColumnWidthStyle}>
+      {addr}
+    </div>
+    <div className={`flex justify-center h-full ${!preview ? 'opacity-0' : ''}`} style={addressHexBorderWidthStyle}>
+      <div className="border-r h-full w-px" />
+    </div>
+    <div data-bytes className="grow flex justify-between items-center" style={rowHeightStyle}>
+      {Array.from({ length: bytesPerRow }, (_, i) => {
+        const byte = bytes[i]
 
-    const updateWidth = () => {
-      const rect = element.getBoundingClientRect()
-      if (rect.width > 0) {
-        setByteRowWidth(Math.floor(rect.width))
-      }
-    }
+        return (
+          <div key={i} className={`text-center hover:bg-chart-4/30 flex items-center justify-center h-full`} style={cellWidthStyle}>
+            {!preview ? byteToHex(byte) : null}
+          </div>
+        )
+      })}
+    </div>
+    {showAscii && (
+      <>
+        <div className={`flex justify-center h-full ${!preview ? 'opacity-0' : ''}`} style={asciiBorderWidthStyle}>
+          <div className="border-r h-full w-px" />
+        </div>
+        <div data-ascii className="flex items-center h-full" style={rowHeightStyle}>
+          {Array.from({ length: bytesPerRow }, (_, i) => {
+            const byte = bytes[i]
 
-    // Initial measurement - use requestAnimationFrame to ensure DOM is ready
-    requestAnimationFrame(() => {
-      updateWidth()
-    })
+            return (
+              <div key={i} className={`text-center hover:bg-chart-4/30 flex items-center justify-center h-full`} style={asciiCharWidthStyle}>
+                {!preview ? byteToAscii(byte) : null}
+              </div>
+            )
+          })}
+        </div>
+      </>
+    )}
+  </div>
+)
 
-    // Observe resize changes
-    const resizeObserver = new ResizeObserver(updateWidth)
-    resizeObserver.observe(element)
-
-    return () => {
-      resizeObserver.disconnect()
-    }
-  }, [dimensions])
-  
-  const bytesPerRow = useMemo(() => {
-    if (byteRowWidth > 0) {
-      return Math.floor(byteRowWidth / cellWidth)
-    }
-    // Fallback: estimate from container width if available
-    if (dimensions.width > 0) {
-      // Estimate: address (80px) + padding (32px) + gap (8px) = ~120px for address column
-      const estimatedBytesWidth = dimensions.width - 120
-      return Math.max(16, Math.floor(estimatedBytesWidth / cellWidth))
-    }
-    return 16 // Final fallback
-  }, [byteRowWidth, dimensions.width])
+export function HexVirtual({ containerRef, file, dimensions, showAscii }: HexViewerProps) {
+  // Use layout calculation hook
+  const { bytesPerRow } = useCalculateRowLayout({
+    showAscii,
+    dimensions,
+  })
 
   const { rowCount, ensureRows, getRowBytes } = useVirtualFileBytes({
     file,
@@ -65,36 +88,45 @@ export function HexVirtual({ containerRef, file, dimensions }: HexViewerProps) {
     chunkSize: 128 * 1024, // Load chunks of 128KB at a time
   })
 
-  const { virtualizer, toFileRow } = useRecenteredVirtualRows({
-    containerRef,
-    totalRows: rowCount,
-    rowHeight,
-    windowRows: 1000, // Every 300 rows, we reset the scroll
-    overscan: 100,
-    viewHeight: dimensions.height,
-  })
+  const listRef = useRef<FixedSizeListType | null>(null)
+  const overscanCount = 100
 
-  // Get virtual items - don't memoize as virtualizer internally manages updates
-  const items = virtualizer.getVirtualItems()
+  // Create a callback ref to sync outerRef with containerRef
+  const handleOuterRef = useCallback(
+    (element: HTMLDivElement | null) => {
+      containerRef.current = element
+    },
+    [containerRef]
+  )
 
-  // Trigger virtualizer measurement after mount and when dimensions/byteRowWidth change
-  // useLayoutEffect(() => {
-  //   if (dimensions.height > 0 && dimensions.width > 0 && containerRef.current) {
-  //     // Use requestAnimationFrame to ensure DOM is fully laid out
-  //     requestAnimationFrame(() => {
-  //       virtualizer.measure()
-  //     })
-  //   }
-  // }, [virtualizer, dimensions.height, dimensions.width, byteRowWidth, containerRef])
+  // Track visible range for data fetching
+  const [visibleRange, setVisibleRange] = useState<{
+    startIndex: number
+    stopIndex: number
+  } | null>(null)
+
+  const handleItemsRendered = useCallback(
+    ({
+      visibleStartIndex,
+      visibleStopIndex,
+    }: {
+      overscanStartIndex: number
+      overscanStopIndex: number
+      visibleStartIndex: number
+      visibleStopIndex: number
+    }) => {
+      setVisibleRange({ startIndex: visibleStartIndex, stopIndex: visibleStopIndex })
+    },
+    []
+  )
 
   // Prefetch bytes for visible+overscan rows
-  React.useEffect(() => {
+  useEffect(() => {
     if (!file || rowCount === 0) return
 
-    if (items.length === 0) {
-      // If no items yet but we have rows, try to fetch initial visible range
-      // This ensures data loads even if virtualizer hasn't measured yet
-      const estimatedVisibleRows = Math.ceil(dimensions.height / rowHeight) + 50 // overscan
+    if (visibleRange === null) {
+      // If no visible range yet but we have rows, try to fetch initial visible range
+      const estimatedVisibleRows = Math.ceil(dimensions.height / rowHeight) + overscanCount
       const initialStart = 0
       const initialEnd = Math.min(estimatedVisibleRows - 1, rowCount - 1)
       const ac = new AbortController()
@@ -104,56 +136,54 @@ export function HexVirtual({ containerRef, file, dimensions }: HexViewerProps) {
       return () => ac.abort()
     }
 
-    // Fetch data for visible items
-    const vStart = items[0]!.index
-    const vEnd = items[items.length - 1]!.index
-
-    const fileStart = toFileRow(vStart)
-    const fileEnd = toFileRow(vEnd)
-
+    // Fetch data for visible items - indices directly map to file rows
     const ac = new AbortController()
-    ensureRows(fileStart, fileEnd, ac.signal).catch((err) => {
+    ensureRows(visibleRange.startIndex, visibleRange.stopIndex, ac.signal).catch((err) => {
       if (err?.name !== "AbortError") console.error(err)
     })
     return () => ac.abort()
-  }, [file, toFileRow, ensureRows, items, rowCount, dimensions.height, rowHeight])
+  }, [file, ensureRows, visibleRange, rowCount, dimensions.height, rowHeight, overscanCount])
 
-  // console.log("Rerender?")
-  // return <div style={{height: '1000px'}}><p>wat</p></div>
+  const Row = useCallback(
+    ({ index, style }: { index: number; style: CSSProperties }) => {
+      // Index directly corresponds to file row
+      if (index >= rowCount) return null
+
+      const bytes = getRowBytes(index)
+      const addr = formatAddress(index * bytesPerRow)// (index * bytesPerRow).toString(16).padStart(8, "0").toUpperCase()
+
+      return (
+        <ByteRow
+          style={style}
+          addr={addr}
+          bytesPerRow={bytesPerRow}
+          bytes={bytes}
+          showAscii={showAscii}
+        />
+      )
+    },
+    [rowCount, getRowBytes, bytesPerRow, rowHeight, showAscii]
+  )
+
+  const containerStyle = useMemo(() => ({ height: dimensions.height, fontFamily: "monospace", fontSize: 12 }), [dimensions.height])
+
   return (
-    <div ref={containerRef} style={{ height: dimensions.height, overflow: "auto", fontFamily: "monospace", fontSize: 12 }}>
-      <div style={{ height: virtualizer.getTotalSize(), position: "relative" }}>
-        <div className="flex w-full gap-2 px-4 sr-only opacity-0 pointer-events-none" aria-hidden>
-          <span>00000000</span>
-          <div ref={bytesElementRef} data-bytes className="grow" />
-        </div>
+    <div style={containerStyle} className="relative">
+      <FixedSizeList
+        ref={listRef}
+        outerRef={handleOuterRef}
+        height={dimensions.height}
+        width={dimensions.width}
+        itemCount={rowCount}
+        itemSize={rowHeight}
+        overscanCount={overscanCount}
+        onItemsRendered={handleItemsRendered}
+      >
+        {Row}
+      </FixedSizeList>
 
-        {items.map((v) => {
-          const fileRow = toFileRow(v.index)
-          if (fileRow >= rowCount) return null
-
-          const bytes = getRowBytes(fileRow)
-          const addr = (fileRow * bytesPerRow).toString(16).padStart(8, "0").toUpperCase()
-          // console.log("bytes", bytes)
-          return (
-            <div
-              key={v.key}
-              className="absolute w-full top-0 left-0 flex items-center gap-2 px-4 whitespace-pre"
-              style={{ transform: `translateY(${v.start}px)`, height: v.size }}
-            >
-              <span style={{ opacity: 0.7 }}>{addr}</span>
-
-                <div className="grow flex justify-between items-center" style={{ height: `${rowHeight}px` }}>
-                {Array.from({ length: bytesPerRow }, (_, i) => {
-                  const b = bytes[i]
-                  return (
-                      <div className="text-center" style={{ width: cellWidth }}>{(b == null ? "" : b.toString(16).padStart(2, "0").toUpperCase()) }</div>
-                    )
-                  })}
-              </div>
-            </div>
-          )
-        })}
+      <div className="absolute top-0 left-0 w-full h-full pointer-events-none">
+        <ByteRow preview style={{ height: dimensions.height }} addr={""} bytesPerRow={bytesPerRow} bytes={mockBytes} showAscii={showAscii} />
       </div>
     </div>
   )

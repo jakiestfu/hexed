@@ -15,7 +15,7 @@
   "dependencies": {
     "@hexed/binary-utils": "workspace:*",
     "@hexed/types": "workspace:*",
-    "@tanstack/react-virtual": "^3.11.1"
+    "react-window": "^1.8.10"
   },
   "devDependencies": {
     "@hexed/eslint-config": "workspace:*",
@@ -23,6 +23,7 @@
     "@hexed/typescript-config": "workspace:*",
     "@types/react": "^19.2.3",
     "@types/react-dom": "^19.2.3",
+    "@types/react-window": "^1.8.8",
     "react": "^19.2.3",
     "react-dom": "^19.2.3",
     "typescript": "^5.7.2"

@@ -213,7 +213,7 @@ export const HexEditor: FunctionComponent<HexEditorProps> = ({
             fileSource={fileSource}
             isConnected={fileHandle !== null}
             error={null}
-            onRestartWatching={() => {}}
+            onRestartWatching={() => { }}
             onClose={onClose}
           />
           <HexToolbarSearch
@@ -260,6 +260,7 @@ export const HexEditor: FunctionComponent<HexEditorProps> = ({
                       // rowHeight={24}
                       // height={dimensions.height}
                       file={file}
+                      showAscii={showAscii}
                     />
                   </div>
                 </div>
