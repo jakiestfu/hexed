@@ -1,7 +1,7 @@
-import { useCallback, useState, useRef, useEffect } from "react"
-import type { FunctionComponent, CSSProperties } from "react"
-import { FixedSizeList } from "react-window"
+import { useCallback, useEffect, useRef, useState } from "react"
+import type { CSSProperties, FunctionComponent } from "react"
 import { ArrowLeftRight, Search, Type, X } from "lucide-react"
+import { FixedSizeList } from "react-window"
 
 import { formatAddress } from "@hexed/binary-utils/formatter"
 import type { StringEncoding, StringMatch } from "@hexed/binary-utils/strings"
@@ -110,7 +110,11 @@ export const Strings: FunctionComponent<StringsProps> = ({
       const progressHeight = isSearching ? 60 : 0 // Approximate progress bar height
 
       const calculatedHeight =
-        containerHeight - controlsHeight - headerHeight - padding - progressHeight
+        containerHeight -
+        controlsHeight -
+        headerHeight -
+        padding -
+        progressHeight
 
       setAvailableHeight(Math.max(0, calculatedHeight))
     }
@@ -141,9 +145,7 @@ export const Strings: FunctionComponent<StringsProps> = ({
       const hexOffset = formatAddress(match.offset)
       const decimalOffset = match.offset.toLocaleString()
       const displayText =
-        match.text.length > 100
-          ? `${match.text.slice(0, 100)}...`
-          : match.text
+        match.text.length > 100 ? `${match.text.slice(0, 100)}...` : match.text
 
       return (
         <div
@@ -151,7 +153,7 @@ export const Strings: FunctionComponent<StringsProps> = ({
           className="h-13 border-b hover:bg-muted/50 transition-colors grid grid-cols-[120px_80px_1fr] items-center"
         >
           <div className="font-mono text-xs pl-4">
-            {(onScrollToOffset || onSelectedOffsetRangeChange) ? (
+            {onScrollToOffset || onSelectedOffsetRangeChange ? (
               <button
                 onClick={() => {
                   const range = {
@@ -173,26 +175,18 @@ export const Strings: FunctionComponent<StringsProps> = ({
               >
                 {hexOffset}
                 <br />
-                <span className="text-muted-foreground">
-                  {decimalOffset}
-                </span>
+                <span className="text-muted-foreground">{decimalOffset}</span>
               </button>
             ) : (
               <>
                 {hexOffset}
                 <br />
-                <span className="text-muted-foreground">
-                  {decimalOffset}
-                </span>
+                <span className="text-muted-foreground">{decimalOffset}</span>
               </>
             )}
           </div>
-          <div className="font-mono text-xs">
-            {match.length}
-          </div>
-          <div className="font-mono text-xs break-all pr-4">
-            {displayText}
-          </div>
+          <div className="font-mono text-xs">{match.length}</div>
+          <div className="font-mono text-xs break-all pr-4">{displayText}</div>
         </div>
       )
     },
@@ -249,9 +243,11 @@ export const Strings: FunctionComponent<StringsProps> = ({
             className="flex flex-col h-full space-y-4 overflow-hidden"
           >
             {/* Controls - Always visible */}
-            <div ref={controlsRef} className="flex flex-col gap-4 shrink-0 p-4 border-b m-0">
+            <div
+              ref={controlsRef}
+              className="flex flex-col gap-4 shrink-0 p-4 border-b m-0"
+            >
               <div className="flex items-end gap-4">
-
                 <div className="flex flex-col gap-1.5 grow">
                   <label className="text-xs text-muted-foreground font-medium">
                     Min Length
@@ -266,7 +262,10 @@ export const Strings: FunctionComponent<StringsProps> = ({
                     </SelectTrigger>
                     <SelectContent className="w-full">
                       {minLengthOptions.map((length) => (
-                        <SelectItem key={length} value={length.toString()}>
+                        <SelectItem
+                          key={length}
+                          value={length.toString()}
+                        >
                           {length} characters
                         </SelectItem>
                       ))}
@@ -280,7 +279,9 @@ export const Strings: FunctionComponent<StringsProps> = ({
                   </label>
                   <Select
                     value={encoding}
-                    onValueChange={(value) => setEncoding(value as StringEncoding)}
+                    onValueChange={(value) =>
+                      setEncoding(value as StringEncoding)
+                    }
                     disabled={isSearching}
                   >
                     <SelectTrigger className="w-full">
@@ -299,14 +300,13 @@ export const Strings: FunctionComponent<StringsProps> = ({
 
                 <Button
                   onClick={handleSearch}
-                  disabled={isSearching || !fileId || !workerClient || !fileHandle}
+                  disabled={
+                    isSearching || !fileId || !workerClient || !fileHandle
+                  }
                   // className="h-9"
                   size="icon"
                 >
-                  {isSearching ? (
-                    <Spinner />
-                  ) : <Search />}
-
+                  {isSearching ? <Spinner /> : <Search />}
                 </Button>
               </div>
 
@@ -322,7 +322,10 @@ export const Strings: FunctionComponent<StringsProps> = ({
             {isSearching && (
               <div className="flex p-4 h-full justify-center items-center">
                 <div className="space-y-2 w-4/5">
-                  <Progress value={searchProgress} className="h-2" />
+                  <Progress
+                    value={searchProgress}
+                    className="h-2"
+                  />
                   <div className="flex items-center justify-between text-xs text-muted-foreground">
                     <span>Extracting strings...</span>
                     <span>{searchProgress}%</span>

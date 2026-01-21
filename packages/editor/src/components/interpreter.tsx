@@ -1,10 +1,6 @@
 import { useEffect, useMemo } from "react"
 import type { FunctionComponent } from "react"
-import {
-  ArrowLeftRight,
-  MousePointerClick,
-  X
-} from "lucide-react"
+import { ArrowLeftRight, MousePointerClick, X } from "lucide-react"
 
 import { formatAddress } from "@hexed/binary-utils/formatter"
 import {

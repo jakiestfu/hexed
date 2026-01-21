@@ -124,7 +124,13 @@ export const FindInput: FunctionComponent<FindInputProps> = ({
       currentSearchRequestIdRef.current = null
     }
 
-    if (!searchQuery.trim() || !fileId || !fileHandle || !workerClient || bytes.length === 0) {
+    if (
+      !searchQuery.trim() ||
+      !fileId ||
+      !fileHandle ||
+      !workerClient ||
+      bytes.length === 0
+    ) {
       setMatches([])
       setCurrentMatchIndex(0)
       setIsSearching(false)
@@ -186,8 +192,14 @@ export const FindInput: FunctionComponent<FindInputProps> = ({
             setMatches([...accumulatedMatches])
 
             // Highlight first match if this is the first batch
-            if (accumulatedMatches.length === streamedMatches.length && streamedMatches.length > 0) {
-              onMatchFoundRef.current?.(streamedMatches[0].offset, streamedMatches[0].length)
+            if (
+              accumulatedMatches.length === streamedMatches.length &&
+              streamedMatches.length > 0
+            ) {
+              onMatchFoundRef.current?.(
+                streamedMatches[0].offset,
+                streamedMatches[0].length
+              )
             }
           }
         )
@@ -356,9 +368,13 @@ export const FindInput: FunctionComponent<FindInputProps> = ({
               </>
             ) : searchQuery.trim() ? (
               isSearching ? (
-                <span className="text-xs text-muted-foreground">Searching...</span>
+                <span className="text-xs text-muted-foreground">
+                  Searching...
+                </span>
               ) : (
-                <span className="text-xs text-muted-foreground">No results</span>
+                <span className="text-xs text-muted-foreground">
+                  No results
+                </span>
               )
             ) : null}
           </div>

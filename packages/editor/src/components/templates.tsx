@@ -1,11 +1,6 @@
 import { useEffect, useState } from "react"
 import type { FunctionComponent } from "react"
-import {
-  AlertCircle,
-  ArrowLeftRight,
-  FileCode,
-  X
-} from "lucide-react"
+import { AlertCircle, ArrowLeftRight, FileCode, X } from "lucide-react"
 
 import { KsySchema, manifest, parse } from "@hexed/binary-templates"
 import {
@@ -29,9 +24,9 @@ import {
 } from "@hexed/ui"
 
 import { useSettings } from "../hooks/use-settings"
+import type { TemplatesProps } from "../types"
 import { ObjectTree } from "./object-tree"
 import { TemplatesCombobox } from "./templates-combobox"
-import type { TemplatesProps } from "../types"
 
 type TemplateEntry = {
   name: string

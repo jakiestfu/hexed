@@ -1,10 +1,10 @@
-import { useRef, useReducer, useCallback } from "react";
+import { useCallback, useReducer, useRef } from "react"
 
 type ByteRange = { start: number; end: number } // [start, end)
 
 const clampRange = (r: ByteRange, size: number): ByteRange => ({
   start: Math.max(0, Math.min(r.start, size)),
-  end: Math.max(0, Math.min(r.end, size)),
+  end: Math.max(0, Math.min(r.end, size))
 })
 
 export class FileByteCache {
@@ -23,7 +23,10 @@ export class FileByteCache {
 
   // Fetch the minimal set of chunks needed for [start,end)
   // Returns true if new chunks were loaded, false if all chunks were already cached
-  async ensureRange(range: ByteRange, opts?: { signal?: AbortSignal }): Promise<boolean> {
+  async ensureRange(
+    range: ByteRange,
+    opts?: { signal?: AbortSignal }
+  ): Promise<boolean> {
     const { start, end } = clampRange(range, this.file.size)
     if (end <= start) return false
 
@@ -79,7 +82,7 @@ export class FileByteCache {
     const start = chunkIndex * this.chunkSize
     const end = Math.min(start + this.chunkSize, this.file.size)
     console.log(`loadChunk ${chunkIndex}: [${start} - ${end}]`)
-    
+
     const blob = this.file.slice(start, end)
     // Abort: Blob.arrayBuffer doesn't directly accept a signal, so we check signal before/after.
     if (signal?.aborted) throw new DOMException("Aborted", "AbortError")
@@ -93,13 +96,13 @@ export class FileByteCache {
 type UseVirtualFileBytesParams = {
   file: File | null
   bytesPerRow?: number // 16
-  chunkSize?: number   // cache chunk size
+  chunkSize?: number // cache chunk size
 }
 
 export function useVirtualFileBytes({
   file,
   bytesPerRow = 16,
-  chunkSize = 64 * 1024,
+  chunkSize = 64 * 1024
 }: UseVirtualFileBytesParams) {
   const cacheRef = useRef<FileByteCache | null>(null)
   if (file && (!cacheRef.current || cacheRef.current["file"] !== file)) {
@@ -115,7 +118,10 @@ export function useVirtualFileBytes({
       if (!cache) return
       const byteStart = rowStart * bytesPerRow
       const byteEnd = (rowEndInclusive + 1) * bytesPerRow
-      const chunksLoaded = await cache.ensureRange({ start: byteStart, end: byteEnd }, { signal })
+      const chunksLoaded = await cache.ensureRange(
+        { start: byteStart, end: byteEnd },
+        { signal }
+      )
       // Only bump version if new chunks were actually loaded
       if (chunksLoaded) {
         bump()
@@ -136,5 +142,11 @@ export function useVirtualFileBytes({
 
   const rowCount = cache ? Math.ceil(cache.size / bytesPerRow) : 0
 
-  return { rowCount, ensureRows, getRowBytes, fileSize: cache?.size, loadChunk: cache?.loadChunk }
+  return {
+    rowCount,
+    ensureRows,
+    getRowBytes,
+    fileSize: cache?.size,
+    loadChunk: cache?.loadChunk
+  }
 }

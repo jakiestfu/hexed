@@ -1,4 +1,5 @@
 import type { FunctionComponent } from "react"
+
 import type { BinarySnapshot } from "@hexed/types"
 import { TabsList, TabsTrigger } from "@hexed/ui"
 
@@ -22,7 +23,10 @@ export const HexToolbarTabs: FunctionComponent<HexToolbarTabsProps> = ({
       <div className="p-4">
         <TabsList>
           {snapshots.map((snapshot, index) => (
-            <TabsTrigger key={snapshot.id} value={index.toString()}>
+            <TabsTrigger
+              key={snapshot.id}
+              value={index.toString()}
+            >
               {snapshot.label}
               {showChecksums && (
                 <span className="text-xs text-muted-foreground font-mono">

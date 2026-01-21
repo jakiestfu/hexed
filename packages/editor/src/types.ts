@@ -12,7 +12,6 @@ export function getFileSourceDisplayName(source: FileSource): string {
   return "File System"
 }
 
-
 export type SelectionRange = { start: number; end: number } | null
 
 export type InterpreterProps = {

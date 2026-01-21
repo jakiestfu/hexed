@@ -57,7 +57,6 @@ export function useGlobalKeyboard({
     setSidebar
   } = useSettings()
 
-
   /**
    * Check if user is currently typing in an input field
    */
@@ -152,7 +151,7 @@ export function useGlobalKeyboard({
       }
     },
     {
-      enabled:  selectedOffsetRange !== null,
+      enabled: selectedOffsetRange !== null,
       enableOnFormTags: false
     },
     [selectedOffsetRange, handleCopyBytes, isTypingInInput]
@@ -169,17 +168,10 @@ export function useGlobalKeyboard({
       handleEscape()
     },
     {
-      enabled:
-        (showSearch || sidebar !== null || selectedOffsetRange !== null),
+      enabled: showSearch || sidebar !== null || selectedOffsetRange !== null,
       enableOnFormTags: false
     },
-    [
-      showSearch,
-      sidebar,
-      selectedOffsetRange,
-      handleEscape,
-      isTypingInInput
-    ]
+    [showSearch, sidebar, selectedOffsetRange, handleEscape, isTypingInInput]
   )
 
   // Toggle search: Ctrl+F or meta+F

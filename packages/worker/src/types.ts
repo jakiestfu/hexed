@@ -2,7 +2,7 @@
  * Message protocol for worker communication
  */
 
-import type { StringEncoding, StringMatch } from "@hexed/binary-utils/strings";
+import type { StringEncoding, StringMatch } from "@hexed/binary-utils/strings"
 
 export type MessageType =
   | "OPEN_FILE"
@@ -18,14 +18,14 @@ export type MessageType =
   | "PROGRESS_EVENT"
   | "SEARCH_MATCH_EVENT"
   | "ERROR"
-  | "CONNECTED";
+  | "CONNECTED"
 
 /**
  * Base message interface
  */
 export interface BaseMessage {
-  id: string;
-  type: MessageType;
+  id: string
+  type: MessageType
 }
 
 /**
@@ -33,24 +33,24 @@ export interface BaseMessage {
  */
 
 export interface OpenFileRequest extends BaseMessage {
-  type: "OPEN_FILE";
-  fileId: string;
-  handle: FileSystemFileHandle;
+  type: "OPEN_FILE"
+  fileId: string
+  handle: FileSystemFileHandle
 }
 
 export interface GetFileSizeRequest extends BaseMessage {
-  type: "GET_FILE_SIZE";
-  fileId: string;
+  type: "GET_FILE_SIZE"
+  fileId: string
 }
 
 export interface CloseFileRequest extends BaseMessage {
-  type: "CLOSE_FILE";
-  fileId: string;
+  type: "CLOSE_FILE"
+  fileId: string
 }
 
 export interface StreamFileRequest extends BaseMessage {
-  type: "STREAM_FILE_REQUEST";
-  fileId: string;
+  type: "STREAM_FILE_REQUEST"
+  fileId: string
 }
 
 /**
@@ -58,24 +58,24 @@ export interface StreamFileRequest extends BaseMessage {
  */
 
 export interface FileSizeResponse extends BaseMessage {
-  type: "FILE_SIZE_RESPONSE";
-  fileId: string;
-  size: number;
+  type: "FILE_SIZE_RESPONSE"
+  fileId: string
+  size: number
 }
 
 export interface StreamFileResponse extends BaseMessage {
-  type: "STREAM_FILE_RESPONSE";
-  fileId: string;
+  type: "STREAM_FILE_RESPONSE"
+  fileId: string
 }
 
 export interface ErrorResponse extends BaseMessage {
-  type: "ERROR";
-  error: string;
-  originalMessageId?: string;
+  type: "ERROR"
+  error: string
+  originalMessageId?: string
 }
 
 export interface ConnectedResponse extends BaseMessage {
-  type: "CONNECTED";
+  type: "CONNECTED"
 }
 
 /**
@@ -83,17 +83,17 @@ export interface ConnectedResponse extends BaseMessage {
  */
 
 export interface SearchRequest extends BaseMessage {
-  type: "SEARCH_REQUEST";
-  fileId: string;
-  pattern: Uint8Array;
-  startOffset?: number;
-  endOffset?: number;
+  type: "SEARCH_REQUEST"
+  fileId: string
+  pattern: Uint8Array
+  startOffset?: number
+  endOffset?: number
 }
 
 export interface SearchResponse extends BaseMessage {
-  type: "SEARCH_RESPONSE";
-  fileId: string;
-  matches: Array<{ offset: number; length: number }>;
+  type: "SEARCH_RESPONSE"
+  fileId: string
+  matches: Array<{ offset: number; length: number }>
 }
 
 /**
@@ -101,38 +101,38 @@ export interface SearchResponse extends BaseMessage {
  */
 
 export interface StringsRequest extends BaseMessage {
-  type: "STRINGS_REQUEST";
-  fileId: string;
-  minLength: number;
-  encoding: StringEncoding;
-  startOffset?: number;
-  endOffset?: number;
+  type: "STRINGS_REQUEST"
+  fileId: string
+  minLength: number
+  encoding: StringEncoding
+  startOffset?: number
+  endOffset?: number
 }
 
 export interface StringsResponse extends BaseMessage {
-  type: "STRINGS_RESPONSE";
-  fileId: string;
-  matches: StringMatch[];
+  type: "STRINGS_RESPONSE"
+  fileId: string
+  matches: StringMatch[]
 }
 
 /**
  * Progress Event (not a response, but an event)
  */
 export interface ProgressEvent extends BaseMessage {
-  type: "PROGRESS_EVENT";
-  requestId: string;
-  progress: number; // 0-100
-  bytesRead: number;
-  totalBytes: number;
+  type: "PROGRESS_EVENT"
+  requestId: string
+  progress: number // 0-100
+  bytesRead: number
+  totalBytes: number
 }
 
 /**
  * Search Match Event - streams matches as they're found
  */
 export interface SearchMatchEvent extends BaseMessage {
-  type: "SEARCH_MATCH_EVENT";
-  requestId: string;
-  matches: Array<{ offset: number; length: number }>;
+  type: "SEARCH_MATCH_EVENT"
+  requestId: string
+  matches: Array<{ offset: number; length: number }>
 }
 
 /**
@@ -144,7 +144,7 @@ export type RequestMessage =
   | CloseFileRequest
   | StreamFileRequest
   | SearchRequest
-  | StringsRequest;
+  | StringsRequest
 
 /**
  * Union type of all response messages
@@ -155,9 +155,13 @@ export type ResponseMessage =
   | SearchResponse
   | StringsResponse
   | ErrorResponse
-  | ConnectedResponse;
+  | ConnectedResponse
 
 /**
  * Union type of all messages (including events)
  */
-export type WorkerMessage = RequestMessage | ResponseMessage | ProgressEvent | SearchMatchEvent;
+export type WorkerMessage =
+  | RequestMessage
+  | ResponseMessage
+  | ProgressEvent
+  | SearchMatchEvent

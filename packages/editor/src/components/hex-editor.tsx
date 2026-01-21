@@ -3,7 +3,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react"
 import type { FunctionComponent } from "react"
 
-import { useDimensions } from "@hexed/virtual"
 import type { DiffViewMode } from "@hexed/types"
 import {
   Card,
@@ -17,13 +16,11 @@ import {
   Tabs,
   TabsContent
 } from "@hexed/ui"
-import { HexVirtual } from "@hexed/virtual"
+import { HexVirtual, useDimensions } from "@hexed/virtual"
 
 import { useGlobalKeyboard } from "../hooks/use-global-keyboard"
 import { useHandleToFile } from "../hooks/use-handle-to-file"
-import {
-  useHandleIdToFileHandle,
-} from "../hooks/use-hex-editor-file"
+import { useHandleIdToFileHandle } from "../hooks/use-hex-editor-file"
 import { useSettings } from "../hooks/use-settings"
 import { useWorkerClient } from "../providers/worker-provider"
 import type { HexEditorProps } from "../types"
@@ -60,7 +57,6 @@ export const HexEditor: FunctionComponent<HexEditorProps> = ({
    */
 
   const dimensions = useDimensions(containerRef)
-
 
   // console.log("byteRowWidth", byteRowWidth, bytesPerRow)
 
@@ -209,7 +205,7 @@ export const HexEditor: FunctionComponent<HexEditorProps> = ({
       </div>
     </ResizablePanel>
   )
-
+  console.log("hex editor render", { selectedOffset, selectedOffsetRange })
   // Sidebar component - only render when we have data
   const sidebarPanel =
     hasSidebars && fileHandle ? (
@@ -255,7 +251,7 @@ export const HexEditor: FunctionComponent<HexEditorProps> = ({
             fileSource={fileSource}
             isConnected={fileHandle !== null}
             error={null}
-            onRestartWatching={() => { }}
+            onRestartWatching={() => {}}
             onClose={onClose}
           />
           <HexToolbarSearch
@@ -276,7 +272,9 @@ export const HexEditor: FunctionComponent<HexEditorProps> = ({
         </CardHeader>
 
         <CardContent className="grow min-h-0 overflow-auto p-0">
-          {!handleId ? <EmptyState onHandleIdChange={onHandleIdChange} /> : null}
+          {!handleId ? (
+            <EmptyState onHandleIdChange={onHandleIdChange} />
+          ) : null}
 
           <TabsContent
             value="0"
@@ -303,7 +301,12 @@ export const HexEditor: FunctionComponent<HexEditorProps> = ({
           </TabsContent>
         </CardContent>
 
-        <CardFooter className={cn("p-0", fileHandle ? "opacity-100" : "opacity-0 pointer-events-none")}>
+        <CardFooter
+          className={cn(
+            "p-0",
+            fileHandle ? "opacity-100" : "opacity-0 pointer-events-none"
+          )}
+        >
           <HexFooter
             dataType={dataType}
             setDataType={setDataType}

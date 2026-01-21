@@ -1,11 +1,12 @@
 import { useMemo } from "react"
+
 import {
-  cellWidth,
-  asciiCharWidth,
   addressColumnWidth,
   addressHexBorderWidth,
   asciiBorderWidth,
-  rowPadding,
+  asciiCharWidth,
+  cellWidth,
+  rowPadding
 } from "../constants"
 
 type UseCalculateRowLayoutParams = {
@@ -19,7 +20,7 @@ export const useCalculateRowLayout = ({
   showAscii,
   dimensions,
   minBytesPerRow = 1,
-  safetyMarginPx = 2,
+  safetyMarginPx = 2
 }: UseCalculateRowLayoutParams) => {
   const bytesPerRow = useMemo(() => {
     if (dimensions.width <= 0) {
@@ -32,21 +33,14 @@ export const useCalculateRowLayout = ({
       addressHexBorderWidth +
       (showAscii ? asciiBorderWidth : 0)
 
-    const perByteWidth =
-      cellWidth + (showAscii ? asciiCharWidth : 0)
+    const perByteWidth = cellWidth + (showAscii ? asciiCharWidth : 0)
 
-    const available =
-      dimensions.width - fixedWidth - safetyMarginPx
+    const available = dimensions.width - fixedWidth - safetyMarginPx
 
     const computed = Math.floor(available / perByteWidth)
 
     return Math.max(minBytesPerRow, computed)
-  }, [
-    dimensions.width,
-    showAscii,
-    minBytesPerRow,
-    safetyMarginPx,
-  ])
+  }, [dimensions.width, showAscii, minBytesPerRow, safetyMarginPx])
 
   return { bytesPerRow }
 }
