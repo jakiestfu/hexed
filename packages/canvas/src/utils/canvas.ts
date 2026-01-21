@@ -3,7 +3,7 @@ import { formatAddress } from "@hexed/binary-utils/formatter"
 import type { FormattedRow } from "@hexed/binary-utils/formatter"
 import type { DiffResult } from "@hexed/types"
 
-import type { HexCanvasColors } from "../hex-canvas"
+import type { HexCanvasColors } from "./colors"
 import {
   addressHexGap,
   addressPadding,
@@ -330,6 +330,7 @@ export function getAddressHexBorderX(layout: LayoutMetrics): number {
  */
 export function drawScrollbar(
   ctx: CanvasRenderingContext2D,
+  colors: HexCanvasColors,
   canvasWidth: number,
   canvasHeight: number,
   scrollTop: number,
@@ -337,9 +338,6 @@ export function drawScrollbar(
   totalHeight: number
 ): void {
   if (maxScrollTop <= 0) return
-
-  const TRACK_COLOR = "#0000FF" // Blue
-  const THUMB_COLOR = "#FF0000" // Red
 
   const trackX = canvasWidth - scrollbarWidth
   const trackY = 0
@@ -356,12 +354,18 @@ export function drawScrollbar(
   const thumbY =
     (scrollTop / maxScrollTop) * (trackHeight - thumbHeight) + trackY
 
-  // Draw track (blue)
-  ctx.fillStyle = TRACK_COLOR
+  ctx.fillStyle = colors.scrollbarTrack
   ctx.fillRect(trackX, trackY, trackWidth, trackHeight)
 
-  // Draw thumb (red)
-  ctx.fillStyle = THUMB_COLOR
+  // Draw left border
+  ctx.strokeStyle = colors.border
+  ctx.lineWidth = borderWidth
+  ctx.beginPath()
+  ctx.moveTo(trackX, trackY)
+  ctx.lineTo(trackX, trackY + trackHeight)
+  ctx.stroke()
+
+  ctx.fillStyle = colors.scrollbarThumb
   ctx.fillRect(trackX, thumbY, trackWidth, thumbHeight)
 }
 
@@ -673,6 +677,7 @@ export function drawHexCanvas(
   )
   drawScrollbar(
     ctx,
+    colors,
     displayWidth,
     displayHeight,
     scrollTop,

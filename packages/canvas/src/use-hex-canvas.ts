@@ -7,6 +7,10 @@ import { HexCanvas, type HexCanvasOptions } from "./hex-canvas"
 import type { HexCanvasColors } from "./utils/colors"
 import type { SelectionRange } from "./utils/canvas"
 
+type ToOnHandlers<T> = Partial<{
+  [K in keyof T as `on${Capitalize<string & K>}`]: (payload: T[K]) => void
+}>
+
 /**
  * Type map for HexCanvas events and their payload types
  */
@@ -18,30 +22,25 @@ export type HexCanvasEventMap = {
   byteClick: { offset: number }
 }
 
-export interface UseHexCanvasOptions {
+export type HexCanvasEventCallbacks = ToOnHandlers<HexCanvasEventMap>
+
+export type UseHexCanvasOptions = {
   file: File | null
   showAscii?: boolean
   colors?: Partial<HexCanvasColors>
   diff?: DiffResult | null
   windowSize?: number
   selectedOffsetRange?: SelectionRange
-  onSelectedOffsetRangeChange?: (payload: HexCanvasEventMap["selectionChange"]) => void
-  onScroll?: (payload: HexCanvasEventMap["scroll"]) => void
-  onOffsetHighlight?: (payload: HexCanvasEventMap["offsetHighlight"]) => void
-  onByteClick?: (payload: HexCanvasEventMap["byteClick"]) => void
-  onByteSelect?: (payload: HexCanvasEventMap["byteSelect"]) => void
 }
 
-export interface HexCanvasHandle {
+export type HexCanvasHandle = {
   scrollToOffset: (offset: number) => void
   getSelectedRange: () => SelectionRange
   getScrollTop: () => number
   setSelectedRange: (range: SelectionRange) => void
 }
 
-export interface UseHexCanvasReturn {
-  canvasRef: RefObject<HexCanvas | null>
-}
+export type UseHexCanvasReturn = ReturnType<typeof useHexCanvas>
 
 /**
  * Type-safe hook for subscribing to HexCanvas events
@@ -100,7 +99,7 @@ export function useHexCanvas(
   containerRef: RefObject<HTMLDivElement | null>,
   options: UseHexCanvasOptions,
   ref?: Ref<HexCanvasHandle>
-): UseHexCanvasReturn {
+) {
   const {
     file,
     showAscii = true,
@@ -108,11 +107,6 @@ export function useHexCanvas(
     diff = null,
     windowSize = 128 * 1024,
     selectedOffsetRange,
-    onSelectedOffsetRangeChange,
-    onScroll,
-    onOffsetHighlight,
-    onByteClick,
-    onByteSelect
   } = options
 
   const canvasInstanceRef = useRef<HexCanvas | null>(null)
@@ -133,61 +127,6 @@ export function useHexCanvas(
       file,
       canvasOptions
     )
-
-    // Subscribe to events
-    const handleSelectionChange = (event: Event) => {
-      const customEvent = event as CustomEvent<HexCanvasEventMap["selectionChange"]>
-      if (onSelectedOffsetRangeChange) {
-        onSelectedOffsetRangeChange(customEvent.detail)
-      }
-    }
-
-    const handleScroll = (event: Event) => {
-      const customEvent = event as CustomEvent<HexCanvasEventMap["scroll"]>
-      if (onScroll) {
-        onScroll(customEvent.detail)
-      }
-    }
-
-    const handleOffsetHighlight = (event: Event) => {
-      const customEvent = event as CustomEvent<HexCanvasEventMap["offsetHighlight"]>
-      if (onOffsetHighlight) {
-        onOffsetHighlight(customEvent.detail)
-      }
-    }
-
-    const handleByteClick = (event: Event) => {
-      const customEvent = event as CustomEvent<HexCanvasEventMap["byteClick"]>
-      if (onByteClick) {
-        onByteClick(customEvent.detail)
-      }
-    }
-
-    const handleByteSelect = (event: Event) => {
-      const customEvent = event as CustomEvent<HexCanvasEventMap["byteSelect"]>
-      if (onByteSelect) {
-        onByteSelect(customEvent.detail)
-      }
-    }
-
-    const instance = canvasInstanceRef.current
-    instance.addEventListener("selectionChange", handleSelectionChange)
-    instance.addEventListener("scroll", handleScroll)
-    instance.addEventListener("offsetHighlight", handleOffsetHighlight)
-    instance.addEventListener("byteClick", handleByteClick)
-    instance.addEventListener("byteSelect", handleByteSelect)
-
-    return () => {
-      if (instance) {
-        instance.removeEventListener("selectionChange", handleSelectionChange)
-        instance.removeEventListener("scroll", handleScroll)
-        instance.removeEventListener("offsetHighlight", handleOffsetHighlight)
-        instance.removeEventListener("byteClick", handleByteClick)
-        instance.removeEventListener("byteSelect", handleByteSelect)
-        instance.destroy()
-        canvasInstanceRef.current = null
-      }
-    }
   }, []) // Only run once on mount
 
   // Update file when it changes
@@ -243,7 +182,5 @@ export function useHexCanvas(
     []
   )
 
-  return {
-    canvasRef: canvasInstanceRef
-  }
+  return canvasInstanceRef
 }

@@ -212,18 +212,13 @@ export const HexEditor: FunctionComponent<HexEditorProps> = ({
         className="h-full w-full"
       >
         <HexCanvasReact
-          ref={canvasRef}
           file={file}
           showAscii={showAscii}
           diff={diff}
           windowSize={windowSize}
           selectedOffsetRange={selectedOffsetRange}
-          onSelectedOffsetRangeChange={(payload) => {
+          onSelectionChange={(payload) => {
             setSelectedOffsetRange(payload.range)
-          }}
-          onScroll={(payload) => {
-            // Handle scroll events if needed
-            // payload.scrollTop available if needed
           }}
         />
       </div>
@@ -275,7 +270,7 @@ export const HexEditor: FunctionComponent<HexEditorProps> = ({
             fileSource={fileSource}
             isConnected={fileHandle !== null}
             error={null}
-            onRestartWatching={() => {}}
+            onRestartWatching={() => { }}
             onClose={onClose}
           />
           <HexToolbarSearch

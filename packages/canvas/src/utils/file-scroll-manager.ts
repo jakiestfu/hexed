@@ -1,4 +1,4 @@
-import { FileByteCache } from "@hexed/virtual"
+import { FileByteCache } from "./file-byte-cache"
 
 import type { LayoutMetrics } from "./coordinates"
 

@@ -20,7 +20,6 @@
     "@hexed/canvas": "workspace:*",
     "@hexed/types": "workspace:*",
     "@hexed/ui": "workspace:*",
-    "@hexed/virtual": "workspace:*",
     "@hexed/logger": "workspace:*",
     "@hexed/worker": "workspace:*",
     "lucide-react": "^0.468.0",

@@ -1,7 +1,7 @@
 import { formatDataIntoRows } from "@hexed/binary-utils/formatter"
 import type { FormattedRow } from "@hexed/binary-utils/formatter"
 import type { DiffResult } from "@hexed/types"
-import { FileByteCache } from "@hexed/virtual"
+import { FileByteCache } from "./utils/file-byte-cache"
 
 import {
   calculateLayout,

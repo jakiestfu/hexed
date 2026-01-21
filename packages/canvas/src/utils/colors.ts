@@ -34,23 +34,10 @@ export function addOpacity(color: string, opacity: number): string {
   return color;
 }
 
-export interface HexCanvasColors {
-  background: string
-  addressText: string
-  byteText: string
-  asciiText: string
-  border: string
-  diffAdded: { bg: string; text: string }
-  diffRemoved: { bg: string; text: string }
-  diffModified: { bg: string; text: string }
-  highlight: { bg: string; border: string }
-  rowHover: string
-  byteHover: { bg: string; border: string }
-  selection: { bg: string; border: string }
-}
+export type HexCanvasColors = ReturnType<typeof getDefaultColors>
 
 // Create default colors from CSS variables
-export function getDefaultColors(container: HTMLElement): HexCanvasColors {
+export function getDefaultColors(container: HTMLElement) {
   const background = getCSSVariable(container, "--background");
   const foreground = getCSSVariable(container, "--foreground");
   const mutedForeground = getCSSVariable(container, "--muted-foreground");
@@ -62,36 +49,37 @@ export function getDefaultColors(container: HTMLElement): HexCanvasColors {
   const destructive = getCSSVariable(container, "--destructive");
 
   // Try to get chart colors for diff, fallback to defaults
-  const chart1 =
-    getCSSVariable(container, "--chart-1") || "oklch(0.646 0.222 41.116)";
-  const chart4 =
-    getCSSVariable(container, "--chart-4") || "oklch(0.828 0.189 84.429)";
+  const chart1 = getCSSVariable(container, "--chart-1");
+  const chart4 = getCSSVariable(container, "--chart-4");
 
   const diffModified = {
     bg: addOpacity(chart4, 0.2),
     text: chart4,
   };
 
+  const scrollbarThumb = mutedForeground;
+  const scrollbarTrack = muted;
+
   return {
-    background: background || "oklch(1 0 0)",
-    addressText: mutedForeground || foreground || "oklch(0.556 0 0)",
-    byteText: foreground || "oklch(0.145 0 0)",
-    asciiText: mutedForeground || foreground || "oklch(0.556 0 0)",
-    border: border || "oklch(0.922 0 0)",
+    background,
+    addressText: mutedForeground,
+    byteText: foreground,
+    asciiText: mutedForeground,
+    border: border ,
     diffAdded: {
       bg: addOpacity(chart1, 0.2),
       text: chart1,
     },
     diffRemoved: {
-      bg: addOpacity(destructive || "oklch(0.577 0.245 27.325)", 0.2),
-      text: destructive || "oklch(0.577 0.245 27.325)",
+      bg: addOpacity(destructive, 0.2),
+      text: destructive,
     },
     diffModified,
     highlight: {
-      bg: addOpacity(primary || ring || "oklch(0.708 0 0)", 0.2),
-      border: primary || ring || "oklch(0.708 0 0)",
+      bg: addOpacity(primary, 0.2),
+      border: primary,
     },
-    rowHover: addOpacity(muted || "oklch(0.97 0 0)", 0.5),
+    rowHover: addOpacity(muted, 0.5),
     byteHover: {
       bg: diffModified.bg,
       border: diffModified.bg,
@@ -100,5 +88,7 @@ export function getDefaultColors(container: HTMLElement): HexCanvasColors {
       bg: diffModified.bg,
       border: diffModified.text,
     },
+    scrollbarThumb,
+    scrollbarTrack,
   };
 }

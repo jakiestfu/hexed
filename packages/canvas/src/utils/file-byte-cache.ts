@@ -1,6 +1,4 @@
-import { useCallback, useReducer, useRef } from "react"
-
-type ByteRange = { start: number; end: number } // [start, end)
+export type ByteRange = { start: number; end: number } // [start, end)
 
 const clampRange = (r: ByteRange, size: number): ByteRange => ({
   start: Math.max(0, Math.min(r.start, size)),
@@ -125,63 +123,5 @@ export class FileByteCache {
     this.chunks.set(chunkIndex, new Uint8Array(buf))
     // Clear row cache when chunks are loaded to ensure rows reflect updated chunk data
     this.rowCache.clear()
-  }
-}
-
-type UseVirtualFileBytesParams = {
-  file: File | null
-  bytesPerRow?: number // 16
-  chunkSize?: number // cache chunk size
-}
-
-export function useVirtualFileBytes({
-  file,
-  bytesPerRow = 16,
-  chunkSize = 64 * 1024
-}: UseVirtualFileBytesParams) {
-  const cacheRef = useRef<FileByteCache | null>(null)
-  if (file && (!cacheRef.current || cacheRef.current["file"] !== file)) {
-    cacheRef.current = new FileByteCache(file, chunkSize)
-  }
-  const cache = cacheRef.current
-
-  // A tiny “version” bump to trigger rerenders when new bytes arrive.
-  const [version, bump] = useReducer((n) => n + 1, 0)
-
-  const ensureRows = useCallback(
-    async (rowStart: number, rowEndInclusive: number, signal?: AbortSignal) => {
-      if (!cache) return
-      const byteStart = rowStart * bytesPerRow
-      const byteEnd = (rowEndInclusive + 1) * bytesPerRow
-
-      const chunksLoaded = await cache.ensureRange(
-        { start: byteStart, end: byteEnd },
-        { signal }
-      )
-
-      // Only bump version if new chunks were actually loaded
-      if (chunksLoaded) {
-        bump()
-      }
-    },
-    [cache, bytesPerRow, bump]
-  )
-
-  const getRowBytes = useCallback(
-    (rowIndex: number) => {
-      if (!cache) return new Uint8Array(0)
-      return cache.getRowBytes(rowIndex, bytesPerRow)
-    },
-    [cache, bytesPerRow, version] // version triggers re-render when chunks load, cache handles memoization
-  )
-
-  const rowCount = cache ? Math.ceil(cache.size / bytesPerRow) : 0
-
-  return {
-    rowCount,
-    ensureRows,
-    getRowBytes,
-    fileSize: cache?.size,
-    loadChunk: cache?.loadChunk
   }
 }

@@ -14,8 +14,7 @@
   },
   "dependencies": {
     "@hexed/binary-utils": "workspace:*",
-    "@hexed/types": "workspace:*",
-    "@hexed/virtual": "workspace:*"
+    "@hexed/types": "workspace:*"
   },
   "devDependencies": {
     "@hexed/eslint-config": "workspace:*",
