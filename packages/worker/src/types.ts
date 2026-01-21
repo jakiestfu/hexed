@@ -16,6 +16,7 @@ export type MessageType =
   | "SEARCH_RESPONSE"
   | "STRINGS_RESPONSE"
   | "PROGRESS_EVENT"
+  | "SEARCH_MATCH_EVENT"
   | "ERROR"
   | "CONNECTED";
 
@@ -126,6 +127,15 @@ export interface ProgressEvent extends BaseMessage {
 }
 
 /**
+ * Search Match Event - streams matches as they're found
+ */
+export interface SearchMatchEvent extends BaseMessage {
+  type: "SEARCH_MATCH_EVENT";
+  requestId: string;
+  matches: Array<{ offset: number; length: number }>;
+}
+
+/**
  * Union type of all request messages
  */
 export type RequestMessage =
@@ -150,4 +160,4 @@ export type ResponseMessage =
 /**
  * Union type of all messages (including events)
  */
-export type WorkerMessage = RequestMessage | ResponseMessage | ProgressEvent;
+export type WorkerMessage = RequestMessage | ResponseMessage | ProgressEvent | SearchMatchEvent;

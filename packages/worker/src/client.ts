@@ -20,6 +20,7 @@ import type {
   ErrorResponse,
   ConnectedResponse,
   ProgressEvent,
+  SearchMatchEvent,
 } from "./types";
 
 const logger = createLogger("worker-client");
@@ -46,6 +47,7 @@ export interface WorkerClient {
     fileId: string,
     pattern: Uint8Array,
     onProgress?: (progress: number) => void,
+    onMatch?: (matches: Array<{ offset: number; length: number }>) => void,
     startOffset?: number,
     endOffset?: number
   ): Promise<Array<{ offset: number; length: number }>>;
@@ -80,6 +82,9 @@ export function createWorkerClient(
 
   // Progress callbacks mapped by request ID
   const progressCallbacks = new Map<string, (progress: number) => void>();
+  
+  // Match callbacks mapped by request ID
+  const matchCallbacks = new Map<string, (matches: Array<{ offset: number; length: number }>) => void>();
 
   /**
    * Initialize the Worker connection
@@ -93,7 +98,7 @@ export function createWorkerClient(
       worker = new WorkerConstructor();
 
       // Handle messages from worker
-      worker.onmessage = (event: MessageEvent<ResponseMessage | ProgressEvent>) => {
+      worker.onmessage = (event: MessageEvent<ResponseMessage | ProgressEvent | SearchMatchEvent>) => {
         const message = event.data;
 
         // Handle progress events separately
@@ -106,13 +111,24 @@ export function createWorkerClient(
           return;
         }
 
+        // Handle search match events separately
+        if (message.type === "SEARCH_MATCH_EVENT") {
+          const matchEvent = message as SearchMatchEvent;
+          const callback = matchCallbacks.get(matchEvent.requestId);
+          if (callback) {
+            callback(matchEvent.matches);
+          }
+          return;
+        }
+
         const pending = pendingRequests.get(message.id);
 
         if (pending) {
           clearTimeout(pending.timeout);
           pendingRequests.delete(message.id);
-          // Clean up progress callback when request completes
+          // Clean up progress and match callbacks when request completes
           progressCallbacks.delete(message.id);
+          matchCallbacks.delete(message.id);
 
           if (message.type === "ERROR") {
             const errorMsg = (message as ErrorResponse).error;
@@ -139,6 +155,7 @@ export function createWorkerClient(
         }
         pendingRequests.clear();
         progressCallbacks.clear();
+        matchCallbacks.clear();
       };
 
       return worker;
@@ -263,6 +280,7 @@ export function createWorkerClient(
       fileId: string,
       pattern: Uint8Array,
       onProgress?: (progress: number) => void,
+      onMatch?: (matches: Array<{ offset: number; length: number }>) => void,
       startOffset?: number,
       endOffset?: number
     ): Promise<Array<{ offset: number; length: number }>> {
@@ -281,6 +299,11 @@ export function createWorkerClient(
         progressCallbacks.set(request.id, onProgress);
       }
 
+      // Register match callback if provided
+      if (onMatch) {
+        matchCallbacks.set(request.id, onMatch);
+      }
+
       try {
         const response = await sendRequest<SearchResponse>(request);
         logger.log(
@@ -288,8 +311,9 @@ export function createWorkerClient(
         );
         return response.matches;
       } finally {
-        // Clean up progress callback
+        // Clean up callbacks
         progressCallbacks.delete(request.id);
+        matchCallbacks.delete(request.id);
       }
     },
 
@@ -337,6 +361,7 @@ export function createWorkerClient(
       }
       pendingRequests.clear();
       progressCallbacks.clear();
+      matchCallbacks.clear();
 
       if (worker) {
         worker.terminate();

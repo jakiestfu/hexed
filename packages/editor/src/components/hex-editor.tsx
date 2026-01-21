@@ -201,6 +201,7 @@ export const HexEditor: FunctionComponent<HexEditorProps> = ({
             showAscii={showAscii}
             chunkSize={128 * 1024}
             overscanCount={100}
+            selectedOffsetRange={selectedOffsetRange}
           />
           {/* <div style={{ height: '2000px' }} className="bg-red-300">wat</div> */}
         </div>
@@ -257,7 +258,7 @@ export const HexEditor: FunctionComponent<HexEditorProps> = ({
             onClose={onClose}
           />
           <HexToolbarSearch
-            data={undefined}
+            handleId={handleId}
             showSearch={showSearch}
             hasFile={fileHandle !== null}
             hasSnapshots={false}

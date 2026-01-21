@@ -29,7 +29,19 @@ const ByteRow: FunctionComponent<{
   bytesPerRow: number
   bytes: Uint8Array
   showAscii: boolean
-}> = ({ preview, style, addr, bytesPerRow, bytes, showAscii }) => (
+  selectedOffsetRange?: { start: number; end: number } | null
+  rowStartOffset: number
+}> = ({ preview, style, addr, bytesPerRow, bytes, showAscii, selectedOffsetRange, rowStartOffset }) => {
+  // Helper function to check if a byte offset is selected
+  const isByteSelected = (byteOffset: number): boolean => {
+    if (!selectedOffsetRange) return false
+    const { start, end } = selectedOffsetRange
+    const minOffset = Math.min(start, end)
+    const maxOffset = Math.max(start, end)
+    return byteOffset >= minOffset && byteOffset <= maxOffset
+  }
+
+  return (
   <div className="flex items-center px-4 whitespace-pre hover:bg-muted" style={style}>
     <div className="text-muted-foreground flex items-center h-full justify-center" style={addressColumnWidthStyle}>
       {addr}
@@ -40,9 +52,11 @@ const ByteRow: FunctionComponent<{
     <div data-bytes className="grow flex justify-between items-center" style={rowHeightStyle}>
       {Array.from({ length: bytesPerRow }, (_, i) => {
         const byte = bytes[i]
+        const byteOffset = rowStartOffset + i
+        const isSelected = isByteSelected(byteOffset)
 
         return (
-          <div key={i} className={`text-center hover:bg-chart-4/30 flex items-center justify-center h-full`} style={cellWidthStyle}>
+          <div key={i} className={`text-center ${isSelected ? 'bg-chart-4/30' : ''} hover:bg-chart-4/30 flex items-center justify-center h-full`} style={cellWidthStyle}>
             {!preview ? byteToHex(byte) : null}
           </div>
         )
@@ -56,9 +70,11 @@ const ByteRow: FunctionComponent<{
         <div data-ascii className="flex items-center h-full" style={rowHeightStyle}>
           {Array.from({ length: bytesPerRow }, (_, i) => {
             const byte = bytes[i]
+            const byteOffset = rowStartOffset + i
+            const isSelected = isByteSelected(byteOffset)
 
             return (
-              <div key={i} className={`text-center hover:bg-chart-4/30 flex items-center justify-center h-full`} style={asciiCharWidthStyle}>
+              <div key={i} className={`text-center ${isSelected ? 'bg-chart-4/30' : ''} hover:bg-chart-4/30 flex items-center justify-center h-full`} style={asciiCharWidthStyle}>
                 {!preview ? byteToAscii(byte) : null}
               </div>
             )
@@ -67,7 +83,8 @@ const ByteRow: FunctionComponent<{
       </>
     )}
   </div>
-)
+  )
+}
 
 export const HexVirtual: FunctionComponent<{
   containerRef: RefObject<HTMLDivElement | null>
@@ -76,7 +93,8 @@ export const HexVirtual: FunctionComponent<{
   showAscii: boolean
   chunkSize: number;
   overscanCount: number;
-}> = ({ containerRef, file, dimensions, showAscii, chunkSize, overscanCount }) => {
+  selectedOffsetRange?: { start: number; end: number } | null;
+}> = ({ containerRef, file, dimensions, showAscii, chunkSize, overscanCount, selectedOffsetRange }) => {
   // Use layout calculation hook
   const { bytesPerRow } = useCalculateRowLayout({
     showAscii,
@@ -151,7 +169,8 @@ export const HexVirtual: FunctionComponent<{
       if (index >= rowCount) return null
 
       const bytes = getRowBytes(index)
-      const addr = formatAddress(index * bytesPerRow)// (index * bytesPerRow).toString(16).padStart(8, "0").toUpperCase()
+      const rowStartOffset = index * bytesPerRow
+      const addr = formatAddress(rowStartOffset)// (index * bytesPerRow).toString(16).padStart(8, "0").toUpperCase()
 
       return (
         <ByteRow
@@ -160,10 +179,12 @@ export const HexVirtual: FunctionComponent<{
           bytesPerRow={bytesPerRow}
           bytes={bytes}
           showAscii={showAscii}
+          selectedOffsetRange={selectedOffsetRange}
+          rowStartOffset={rowStartOffset}
         />
       )
     },
-    [rowCount, getRowBytes, bytesPerRow, rowHeight, showAscii]
+    [rowCount, getRowBytes, bytesPerRow, rowHeight, showAscii, selectedOffsetRange]
   )
 
   const containerStyle = useMemo(() => ({ height: dimensions.height, fontFamily: "monospace", fontSize: 12 }), [dimensions.height])
@@ -184,7 +205,7 @@ export const HexVirtual: FunctionComponent<{
       </FixedSizeList>
 
       <div className="absolute top-0 left-0 w-full h-full pointer-events-none">
-        <ByteRow preview style={{ height: dimensions.height }} addr={""} bytesPerRow={bytesPerRow} bytes={mockBytes} showAscii={showAscii} />
+        <ByteRow preview style={{ height: dimensions.height }} addr={""} bytesPerRow={bytesPerRow} bytes={mockBytes} showAscii={showAscii} selectedOffsetRange={null} rowStartOffset={0} />
       </div>
     </div>
   )

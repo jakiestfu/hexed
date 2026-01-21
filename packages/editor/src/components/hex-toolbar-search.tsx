@@ -3,11 +3,12 @@ import type { FunctionComponent, RefObject } from "react"
 
 import { cn } from "@hexed/ui"
 
+import { useHandleIdToFileHandle } from "../hooks/use-hex-editor-file"
 import { FindInput } from "./find-input"
 import type { SelectionRange } from "../types"
 
 export type HexToolbarSearchProps = {
-  data?: Uint8Array
+  handleId: string | null | undefined
   showSearch: boolean
   hasFile: boolean
   hasSnapshots: boolean
@@ -18,7 +19,7 @@ export type HexToolbarSearchProps = {
 }
 
 export const HexToolbarSearch: FunctionComponent<HexToolbarSearchProps> = ({
-  data,
+  handleId,
   showSearch,
   hasFile,
   hasSnapshots,
@@ -27,6 +28,8 @@ export const HexToolbarSearch: FunctionComponent<HexToolbarSearchProps> = ({
   onMatchFound,
   onClose
 }) => {
+  const { fileHandle } = useHandleIdToFileHandle(handleId)
+
   const handleMatchFound = useCallback(
     (offset: number, length: number) => {
       onMatchFound(offset, length)
@@ -38,7 +41,7 @@ export const HexToolbarSearch: FunctionComponent<HexToolbarSearchProps> = ({
     onClose()
   }, [onClose])
 
-  if (!hasFile || !showSearch || !hasSnapshots || !data) {
+  if (!hasFile || !showSearch) {
     return null
   }
 
@@ -46,7 +49,8 @@ export const HexToolbarSearch: FunctionComponent<HexToolbarSearchProps> = ({
     <div className="border-b">
       <div className="p-4">
         <FindInput
-          data={data}
+          fileId={handleId}
+          fileHandle={fileHandle}
           inputRef={inputRef}
           syncRangeToFindInput={syncRangeToFindInput}
           onMatchFound={handleMatchFound}

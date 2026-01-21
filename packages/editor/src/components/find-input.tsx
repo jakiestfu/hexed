@@ -1,9 +1,8 @@
-import { useEffect, useRef, useState } from "react"
+import { useCallback, useEffect, useRef, useState } from "react"
 import type { FunctionComponent, RefObject } from "react"
 import { ChevronLeft, ChevronRight, Search, X } from "lucide-react"
 
 import { toAsciiString, toHexString } from "@hexed/binary-utils/formatter"
-import { searchHexAll, searchTextAll } from "@hexed/binary-utils/search"
 import {
   Button,
   cn,
@@ -15,9 +14,11 @@ import {
 
 import { useHexInput } from "../hooks/use-hex-input"
 import { useLocalStorage } from "../hooks/use-local-storage"
+import { useWorkerClient } from "../providers/worker-provider"
 
 export type FindInputProps = {
-  data: Uint8Array
+  fileId: string | null | undefined
+  fileHandle: FileSystemFileHandle | null
   onMatchFound?: (offset: number, length: number) => void
   onClose?: () => void
   inputRef?: RefObject<HTMLInputElement | null>
@@ -25,12 +26,14 @@ export type FindInputProps = {
 }
 
 export const FindInput: FunctionComponent<FindInputProps> = ({
-  data,
+  fileId,
+  fileHandle,
   onMatchFound,
   onClose,
   inputRef: externalInputRef,
   syncRangeToFindInput
 }) => {
+  const workerClient = useWorkerClient()
   const [searchMode, setSearchMode] = useLocalStorage<"hex" | "text">(
     "hexed:find-input-mode",
     "text"
@@ -39,9 +42,12 @@ export const FindInput: FunctionComponent<FindInputProps> = ({
     Array<{ offset: number; length: number }>
   >([])
   const [currentMatchIndex, setCurrentMatchIndex] = useState(0)
+  const [isSearching, setIsSearching] = useState(false)
   const internalInputRef = useRef<HTMLInputElement>(null)
   const inputRef = externalInputRef || internalInputRef
   const onMatchFoundRef = useRef(onMatchFound)
+  const currentSearchRequestIdRef = useRef<string | null>(null)
+  const cancelledRequestIdsRef = useRef<Set<string>>(new Set())
 
   // Use the hex input hook for formatted input
   const {
@@ -69,8 +75,11 @@ export const FindInput: FunctionComponent<FindInputProps> = ({
   const lastSyncedRangeRef = useRef<{ start: number; end: number } | null>(null)
 
   // Sync with syncRangeToFindInput when it changes (from link clicks)
+  // Note: This requires reading bytes from the file, which we'll skip for now
+  // since we're using worker-based search. The sync feature can be enhanced later
+  // to read bytes from the worker when needed.
   useEffect(() => {
-    if (!syncRangeToFindInput || data.length === 0) {
+    if (!syncRangeToFindInput) {
       lastSyncedRangeRef.current = null
       return
     }
@@ -87,78 +96,145 @@ export const FindInput: FunctionComponent<FindInputProps> = ({
       return
     }
 
-    // Ensure indices are within bounds
-    const clampedStart = Math.max(0, Math.min(start, data.length - 1))
-    const clampedEnd = Math.max(0, Math.min(end, data.length - 1))
-
-    if (clampedStart > clampedEnd) return
-
-    // Extract bytes from the selected range
-    const selectedBytes = data.slice(clampedStart, clampedEnd + 1)
-    if (selectedBytes.length === 0) return
-
-    // Format based on current search mode
-    let formattedValue: string
-    if (searchMode === "hex") {
-      formattedValue = toHexString(selectedBytes, " ")
-    } else {
-      // For text mode, try UTF-8 decoding first, fallback to ASCII
-      try {
-        const decoder = new TextDecoder("utf-8", { fatal: false })
-        formattedValue = decoder.decode(selectedBytes)
-        // If UTF-8 decoding produces replacement characters, fall back to ASCII
-        if (formattedValue.includes("\uFFFD")) {
-          formattedValue = toAsciiString(selectedBytes)
-        }
-      } catch {
-        formattedValue = toAsciiString(selectedBytes)
-      }
-    }
-
     // Check if any current match already covers this range (meaning search already found it)
     const rangeAlreadyMatches = matches.some((match) => {
       const matchStart = match.offset
       const matchEnd = match.offset + match.length - 1
-      return matchStart === clampedStart && matchEnd === clampedEnd
+      return matchStart === start && matchEnd === end
     })
 
-    // Update the ref to track this range, even if we don't update the value
-    lastSyncedRangeRef.current = { start: clampedStart, end: clampedEnd }
+    // Update the ref to track this range
+    lastSyncedRangeRef.current = { start, end }
 
-    // Only update the input value if:
-    // 1. The range doesn't already match current search results (to avoid loops)
-    // 2. The formatted value is different from current search query
-    if (!rangeAlreadyMatches && formattedValue !== searchQuery) {
-      setValue(formattedValue)
-    }
-  }, [syncRangeToFindInput, data, searchMode, searchQuery, setValue, matches])
-
-  // Find all matches when query or mode changes
-  useEffect(() => {
-    if (!searchQuery.trim() || data.length === 0 || bytes.length === 0) {
-      setMatches([])
-      setCurrentMatchIndex(0)
+    // If the range matches a current search result, we don't need to update the input
+    // This prevents loops when clicking on search results
+    if (rangeAlreadyMatches) {
       return
     }
 
-    let allMatches: Array<{ offset: number; length: number }> = []
+    // For now, we'll skip syncing the input value from the range
+    // This can be enhanced later to read bytes from the worker
+  }, [syncRangeToFindInput, searchMode, searchQuery, matches])
 
-    if (searchMode === "hex") {
-      // Use the formatted hex string from the hook
-      allMatches = searchHexAll(data, searchQuery)
-    } else {
-      // For text mode, use the hook's value directly (already converted to text)
-      allMatches = searchTextAll(data, searchQuery)
+  // Find all matches when query or mode changes using worker
+  useEffect(() => {
+    // Cancel previous search if it exists
+    if (currentSearchRequestIdRef.current) {
+      cancelledRequestIdsRef.current.add(currentSearchRequestIdRef.current)
+      currentSearchRequestIdRef.current = null
     }
 
-    setMatches(allMatches)
+    if (!searchQuery.trim() || !fileId || !fileHandle || !workerClient || bytes.length === 0) {
+      setMatches([])
+      setCurrentMatchIndex(0)
+      setIsSearching(false)
+      return
+    }
+
+    // Generate a unique request ID for this search
+    const requestId = `${Date.now()}-${Math.random().toString(36).substr(2, 9)}`
+    currentSearchRequestIdRef.current = requestId
+
+    setIsSearching(true)
+    setMatches([])
     setCurrentMatchIndex(0)
 
-    // Highlight first match if available
-    if (allMatches.length > 0) {
-      onMatchFoundRef.current?.(allMatches[0].offset, allMatches[0].length)
+    const performSearch = async () => {
+      try {
+        // Ensure file is open in worker
+        try {
+          await workerClient.openFile(fileId, fileHandle)
+        } catch (error) {
+          // File might already be open, which is fine
+          console.log("File may already be open:", error)
+        }
+
+        // Convert search query to pattern bytes
+        let pattern: Uint8Array
+        if (searchMode === "hex") {
+          // For hex mode, use the bytes from the hook
+          pattern = bytes
+        } else {
+          // For text mode, convert text to UTF-8 bytes
+          const encoder = new TextEncoder()
+          pattern = encoder.encode(searchQuery)
+        }
+
+        if (pattern.length === 0) {
+          setMatches([])
+          setCurrentMatchIndex(0)
+          setIsSearching(false)
+          return
+        }
+
+        // Accumulate matches as they stream in
+        const accumulatedMatches: Array<{ offset: number; length: number }> = []
+
+        // Perform search with streaming matches
+        await workerClient.search(
+          fileId,
+          pattern,
+          undefined, // onProgress - not needed for now
+          (streamedMatches) => {
+            // Check if this search was cancelled
+            if (cancelledRequestIdsRef.current.has(requestId)) {
+              return
+            }
+
+            // Add new matches to accumulated list
+            accumulatedMatches.push(...streamedMatches)
+            setMatches([...accumulatedMatches])
+
+            // Highlight first match if this is the first batch
+            if (accumulatedMatches.length === streamedMatches.length && streamedMatches.length > 0) {
+              onMatchFoundRef.current?.(streamedMatches[0].offset, streamedMatches[0].length)
+            }
+          }
+        )
+
+        // Check if search was cancelled before updating state
+        if (cancelledRequestIdsRef.current.has(requestId)) {
+          setIsSearching(false)
+          return
+        }
+
+        // Search completed - final matches are already in state from streaming
+        setIsSearching(false)
+      } catch (error) {
+        // Check if search was cancelled
+        if (cancelledRequestIdsRef.current.has(requestId)) {
+          setIsSearching(false)
+          return
+        }
+
+        console.error("Search failed:", error)
+        setMatches([])
+        setCurrentMatchIndex(0)
+        setIsSearching(false)
+      } finally {
+        // Clean up cancelled request tracking
+        cancelledRequestIdsRef.current.delete(requestId)
+        // Ensure isSearching is false if this was the current search
+        if (currentSearchRequestIdRef.current === requestId) {
+          currentSearchRequestIdRef.current = null
+          // Only set isSearching to false if this is still the active search
+          // (not cancelled by a newer search)
+          setIsSearching(false)
+        }
+      }
     }
-  }, [searchQuery, searchMode, data, bytes])
+
+    performSearch()
+
+    // Cleanup: cancel search if component unmounts or query changes
+    return () => {
+      if (currentSearchRequestIdRef.current === requestId) {
+        cancelledRequestIdsRef.current.add(requestId)
+        currentSearchRequestIdRef.current = null
+        setIsSearching(false)
+      }
+    }
+  }, [searchQuery, searchMode, fileId, fileHandle, workerClient, bytes])
 
   // Navigate to match at current index
   useEffect(() => {
@@ -279,7 +355,11 @@ export const FindInput: FunctionComponent<FindInputProps> = ({
                 </Button>
               </>
             ) : searchQuery.trim() ? (
-              <span className="text-xs text-muted-foreground">No results</span>
+              isSearching ? (
+                <span className="text-xs text-muted-foreground">Searching...</span>
+              ) : (
+                <span className="text-xs text-muted-foreground">No results</span>
+              )
             ) : null}
           </div>
         </InputGroupAddon>

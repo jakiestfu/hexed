@@ -22,6 +22,7 @@ import type {
   ErrorResponse,
   ConnectedResponse,
   ProgressEvent,
+  SearchMatchEvent,
 } from "./types";
 
 const logger = createLogger("worker");
@@ -67,6 +68,17 @@ function sendProgress(event: ProgressEvent): void {
     self.postMessage(event);
   } catch (error) {
     console.error("Error sending progress event:", error);
+  }
+}
+
+/**
+ * Send a search match event
+ */
+function sendSearchMatch(event: SearchMatchEvent): void {
+  try {
+    self.postMessage(event);
+  } catch (error) {
+    console.error("Error sending search match event:", error);
   }
 }
 
@@ -204,6 +216,9 @@ async function handleSearch(request: SearchRequest): Promise<void> {
         chunkEnd
       );
 
+      // Track matches found in this chunk
+      const chunkMatches: Array<{ offset: number; length: number }> = [];
+
       // Search for pattern in chunk
       for (let i = 0; i <= chunk.length - pattern.length; i++) {
         let match = true;
@@ -214,11 +229,24 @@ async function handleSearch(request: SearchRequest): Promise<void> {
           }
         }
         if (match) {
-          matches.push({
+          const matchData = {
             offset: currentOffset + i,
             length: pattern.length,
-          });
+          };
+          matches.push(matchData);
+          chunkMatches.push(matchData);
         }
+      }
+
+      // Send matches found in this chunk immediately
+      if (chunkMatches.length > 0) {
+        const matchEvent: SearchMatchEvent = {
+          id: generateMessageId(),
+          type: "SEARCH_MATCH_EVENT",
+          requestId: request.id,
+          matches: chunkMatches,
+        };
+        sendSearchMatch(matchEvent);
       }
 
       bytesSearched = Math.min(chunkEnd - startOffset, searchRange);
@@ -511,7 +539,8 @@ if (typeof self !== "undefined") {
     if (
       message.type === "CONNECTED" ||
       message.type.startsWith("RESPONSE") ||
-      message.type === "PROGRESS_EVENT"
+      message.type === "PROGRESS_EVENT" ||
+      message.type === "SEARCH_MATCH_EVENT"
     ) {
       return;
     }
