@@ -29,23 +29,16 @@ export function HexEditorPage() {
   )
 
   return (
-    <div className="flex flex-col h-full">
-      {/* {handleId && (
-        <div className="p-2 border-b">
-          <StreamFileTest />
-        </div>
-      )} */}
-      <div className="flex-1">
-        <HexEditor
-          handleId={handleId}
-          onClose={handleId ? handleClose : undefined}
-          fileSource="file-system"
-          onHandleIdChange={handleHandleReady}
-          theme={theme}
-          setTheme={setTheme}
-          packageInfo={packageJson}
-        />
-      </div>
+    <div className="flex flex-col h-screen">
+      <HexEditor
+        handleId={handleId}
+        onClose={handleId ? handleClose : undefined}
+        fileSource="file-system"
+        onHandleIdChange={handleHandleReady}
+        theme={theme}
+        setTheme={setTheme}
+        packageInfo={packageJson}
+      />
     </div>
   )
 }

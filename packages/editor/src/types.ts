@@ -12,25 +12,6 @@ export function getFileSourceDisplayName(source: FileSource): string {
   return "File System"
 }
 
-export type HexEditorProps = {
-  handleId?: string | null
-  onClose?: () => void
-  className?: string
-  fileSource?: FileSource
-  onAddSnapshot?: (snapshot: BinarySnapshot) => void
-  // Data picker callbacks (for empty state)
-  onHandleIdChange?: (handleId: string | null) => void
-  theme?: string
-  setTheme?: (theme: string) => void
-  packageInfo?: {
-    name: string
-    description: string
-    version: string
-    repository: {
-      url: string
-    }
-  }
-}
 
 export type SelectionRange = { start: number; end: number } | null
 
@@ -54,8 +35,28 @@ export type TemplatesProps = {
   onTemplateNameChange?: (name: string) => void
 }
 
+export type HexEditorProps = {
+  handleId?: string | null
+  onClose?: () => void
+  className?: string
+  fileSource?: FileSource
+  onAddSnapshot?: (snapshot: BinarySnapshot) => void
+  // Data picker callbacks (for empty state)
+  onHandleIdChange?: (handleId: string | null) => void
+  theme?: string
+  setTheme?: (theme: string) => void
+  packageInfo?: {
+    name: string
+    description: string
+    version: string
+    repository: {
+      url: string
+    }
+  }
+}
+
 export type StringsProps = {
-  data: Uint8Array
+  fileId?: string
   onClose?: () => void
   onScrollToOffset?: (offset: number) => void
   onSelectedOffsetRangeChange?: (range: SelectionRange) => void

@@ -3,6 +3,7 @@
  */
 
 import { createLogger } from "@hexed/logger";
+import type { StringEncoding, StringMatch } from "@hexed/binary-utils/strings";
 import type {
   RequestMessage,
   ResponseMessage,
@@ -11,9 +12,11 @@ import type {
   CloseFileRequest,
   StreamFileRequest,
   SearchRequest,
+  StringsRequest,
   FileSizeResponse,
   StreamFileResponse,
   SearchResponse,
+  StringsResponse,
   ErrorResponse,
   ConnectedResponse,
   ProgressEvent,
@@ -46,6 +49,13 @@ export interface WorkerClient {
     startOffset?: number,
     endOffset?: number
   ): Promise<Array<{ offset: number; length: number }>>;
+  strings(
+    fileId: string,
+    options: { minLength: number; encoding: StringEncoding },
+    onProgress?: (progress: number) => void,
+    startOffset?: number,
+    endOffset?: number
+  ): Promise<StringMatch[]>;
   disconnect(): void;
 }
 
@@ -275,6 +285,41 @@ export function createWorkerClient(
         const response = await sendRequest<SearchResponse>(request);
         logger.log(
           `Search completed: ${fileId}, found ${response.matches.length} matches`
+        );
+        return response.matches;
+      } finally {
+        // Clean up progress callback
+        progressCallbacks.delete(request.id);
+      }
+    },
+
+    async strings(
+      fileId: string,
+      options: { minLength: number; encoding: StringEncoding },
+      onProgress?: (progress: number) => void,
+      startOffset?: number,
+      endOffset?: number
+    ): Promise<StringMatch[]> {
+      logger.log(`Extracting strings from file: ${fileId}`);
+      const request: StringsRequest = {
+        id: generateMessageId(),
+        type: "STRINGS_REQUEST",
+        fileId,
+        minLength: options.minLength,
+        encoding: options.encoding,
+        startOffset,
+        endOffset,
+      };
+
+      // Register progress callback if provided
+      if (onProgress) {
+        progressCallbacks.set(request.id, onProgress);
+      }
+
+      try {
+        const response = await sendRequest<StringsResponse>(request);
+        logger.log(
+          `Strings extraction completed: ${fileId}, found ${response.matches.length} matches`
         );
         return response.matches;
       } finally {

@@ -2,15 +2,19 @@
  * Message protocol for worker communication
  */
 
+import type { StringEncoding, StringMatch } from "@hexed/binary-utils/strings";
+
 export type MessageType =
   | "OPEN_FILE"
   | "GET_FILE_SIZE"
   | "CLOSE_FILE"
   | "STREAM_FILE_REQUEST"
   | "SEARCH_REQUEST"
+  | "STRINGS_REQUEST"
   | "FILE_SIZE_RESPONSE"
   | "STREAM_FILE_RESPONSE"
   | "SEARCH_RESPONSE"
+  | "STRINGS_RESPONSE"
   | "PROGRESS_EVENT"
   | "ERROR"
   | "CONNECTED";
@@ -92,6 +96,25 @@ export interface SearchResponse extends BaseMessage {
 }
 
 /**
+ * Strings Messages
+ */
+
+export interface StringsRequest extends BaseMessage {
+  type: "STRINGS_REQUEST";
+  fileId: string;
+  minLength: number;
+  encoding: StringEncoding;
+  startOffset?: number;
+  endOffset?: number;
+}
+
+export interface StringsResponse extends BaseMessage {
+  type: "STRINGS_RESPONSE";
+  fileId: string;
+  matches: StringMatch[];
+}
+
+/**
  * Progress Event (not a response, but an event)
  */
 export interface ProgressEvent extends BaseMessage {
@@ -110,7 +133,8 @@ export type RequestMessage =
   | GetFileSizeRequest
   | CloseFileRequest
   | StreamFileRequest
-  | SearchRequest;
+  | SearchRequest
+  | StringsRequest;
 
 /**
  * Union type of all response messages
@@ -119,6 +143,7 @@ export type ResponseMessage =
   | FileSizeResponse
   | StreamFileResponse
   | SearchResponse
+  | StringsResponse
   | ErrorResponse
   | ConnectedResponse;
 

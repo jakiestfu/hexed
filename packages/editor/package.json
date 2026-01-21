@@ -15,14 +15,15 @@
   "dependencies": {
     "@hexed/binary-templates": "workspace:*",
     "@hexed/binary-utils": "workspace:*",
-    "@hexed/canvas": "workspace:*",
     "@hexed/types": "workspace:*",
     "@hexed/ui": "workspace:*",
     "@hexed/virtual": "workspace:*",
     "@hexed/logger": "workspace:*",
+    "@hexed/worker": "workspace:*",
     "lucide-react": "^0.468.0",
     "react-hotkeys-hook": "^4.5.1",
     "react-markdown": "^9.0.1",
+    "react-window": "^1.8.10",
     "recharts": "2.15.4"
   },
   "devDependencies": {
@@ -31,6 +32,7 @@
     "@hexed/typescript-config": "workspace:*",
     "@types/react": "^19.2.3",
     "@types/react-dom": "^19.2.3",
+    "@types/react-window": "^1.8.8",
     "@types/wicg-file-system-access": "^2023.10.7",
     "react": "^19.2.3",
     "react-dom": "^19.2.3",

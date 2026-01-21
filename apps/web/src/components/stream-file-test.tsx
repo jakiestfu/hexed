@@ -1,9 +1,8 @@
 import * as React from "react"
 import { useParams } from "react-router-dom"
 
-import { useHandleIdToFileHandle } from "@hexed/editor"
+import { useHandleIdToFileHandle, useWorkerClient } from "@hexed/editor"
 import { Button, Progress } from "@hexed/ui"
-import { useWorkerClient } from "~/providers/worker-provider"
 
 export function StreamFileTest() {
   const { id: handleId } = useParams()

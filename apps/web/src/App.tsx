@@ -1,9 +1,8 @@
 import { ThemeProvider } from "next-themes"
 import { createHashRouter, RouterProvider } from "react-router-dom"
 
-import { DragDropProvider } from "@hexed/editor"
+import { DragDropProvider, WorkerProvider } from "@hexed/editor"
 
-import { WorkerProvider } from "~/providers/worker-provider"
 import { HexEditorPage } from "~/routes/hex-editor-page"
 
 const editor = <HexEditorPage />

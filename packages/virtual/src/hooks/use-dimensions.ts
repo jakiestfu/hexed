@@ -36,8 +36,13 @@ export function useDimensions<T extends HTMLElement = HTMLElement>(
         width: Math.round(rect.width),
         height: Math.round(rect.height)
       }
-      console.log("[setDimensions]", value)
-      setDimensions(value)
+      setDimensions((prev) => {
+        if (prev.width === value.width && prev.height === value.height) {
+          return prev
+        }
+        console.log("[setDimensions]", value)
+        return value
+      })
     }
 
     // Initial dimensions

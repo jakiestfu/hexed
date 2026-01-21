@@ -1,13 +1,10 @@
-import { useEffect, useMemo, useState } from "react"
-import type { FunctionComponent } from "react"
-import { ArrowLeftRight, Type, X } from "lucide-react"
+import { useCallback, useState, useRef, useEffect } from "react"
+import type { FunctionComponent, CSSProperties } from "react"
+import { FixedSizeList } from "react-window"
+import { ArrowLeftRight, Search, Type, X } from "lucide-react"
 
 import { formatAddress } from "@hexed/binary-utils/formatter"
-import {
-  extractStrings,
-  type StringEncoding,
-  type StringMatch
-} from "@hexed/binary-utils/strings"
+import type { StringEncoding, StringMatch } from "@hexed/binary-utils/strings"
 import {
   Button,
   Card,
@@ -19,15 +16,14 @@ import {
   EmptyHeader,
   EmptyMedia,
   EmptyTitle,
-  Input,
-  Label,
+  Progress,
   Select,
   SelectContent,
   SelectItem,
   SelectTrigger,
   SelectValue,
+  Spinner,
   Table,
-  TableBody,
   TableCell,
   TableHead,
   TableHeader,
@@ -37,42 +33,176 @@ import {
   TooltipTrigger
 } from "@hexed/ui"
 
+import { useHandleIdToFileHandle } from "../hooks/use-hex-editor-file"
 import { useSettings } from "../hooks/use-settings"
+import { useWorkerClient } from "../providers/worker-provider"
 import type { StringsProps } from "../types"
 
 export const Strings: FunctionComponent<StringsProps> = ({
-  data,
+  fileId,
   onClose,
   onScrollToOffset,
   onSelectedOffsetRangeChange,
   onRangeSelectedForSearch
 }) => {
   const { toggleSidebarPosition } = useSettings()
+  const { fileHandle } = useHandleIdToFileHandle(fileId ?? null)
+  const workerClient = useWorkerClient()
   const [minLength, setMinLength] = useState<number>(4)
   const [encoding, setEncoding] = useState<StringEncoding>("ascii")
+  const [isSearching, setIsSearching] = useState<boolean>(false)
+  const [extractedStrings, setExtractedStrings] = useState<StringMatch[]>([])
+  const [searchProgress, setSearchProgress] = useState<number>(0)
+  const containerRef = useRef<HTMLDivElement>(null)
+  const controlsRef = useRef<HTMLDivElement>(null)
+  const [availableHeight, setAvailableHeight] = useState<number>(0)
 
-  const extractedStrings = useMemo<StringMatch[]>(() => {
-    if (!data || data.length === 0) {
-      return []
+  const minLengthOptions: readonly number[] = [4, 8, 10, 12, 24, 36]
+
+  const handleSearch = useCallback(async () => {
+    if (!workerClient || !fileId || !fileHandle) {
+      return
     }
+
+    setIsSearching(true)
+    setSearchProgress(0)
+    setExtractedStrings([])
 
     try {
-      return extractStrings(data, {
-        minLength,
-        encoding
-      })
+      // Open file in worker if not already open
+      try {
+        await workerClient.openFile(fileId, fileHandle)
+      } catch (error) {
+        // File might already be open, which is fine
+        console.log("File may already be open:", error)
+      }
+      console.log("getStrings", { fileId, minLength, encoding })
+      const matches = await workerClient.strings(
+        fileId,
+        {
+          minLength,
+          encoding
+        },
+        (progress: number) => {
+          setSearchProgress(progress)
+        }
+      )
+      console.log("getStrings Done", matches.length)
+      setExtractedStrings(matches)
     } catch (error) {
       console.error("Failed to extract strings:", error)
-      return []
+      setExtractedStrings([])
+    } finally {
+      setIsSearching(false)
+      setSearchProgress(0)
     }
-  }, [data, minLength, encoding])
+  }, [workerClient, fileId, fileHandle, minLength, encoding])
 
-  const handleMinLengthChange = (value: string) => {
-    const num = parseInt(value, 10)
-    if (!isNaN(num) && num > 0) {
-      setMinLength(num)
+  // Calculate available height for the virtualized list
+  useEffect(() => {
+    const updateHeight = () => {
+      if (!containerRef.current || !controlsRef.current) return
+
+      const containerHeight = containerRef.current.clientHeight
+      const controlsHeight = controlsRef.current.offsetHeight
+      const headerHeight = 52 // h-13 = 52px
+      const padding = 16 // space-y-4 = 1rem = 16px
+      const progressHeight = isSearching ? 60 : 0 // Approximate progress bar height
+
+      const calculatedHeight =
+        containerHeight - controlsHeight - headerHeight - padding - progressHeight
+
+      setAvailableHeight(Math.max(0, calculatedHeight))
     }
-  }
+
+    updateHeight()
+    const resizeObserver = new ResizeObserver(updateHeight)
+    if (containerRef.current) {
+      resizeObserver.observe(containerRef.current)
+    }
+    if (controlsRef.current) {
+      resizeObserver.observe(controlsRef.current)
+    }
+
+    return () => {
+      resizeObserver.disconnect()
+    }
+  }, [isSearching, extractedStrings.length])
+
+  // Row height constant (h-13 = 52px)
+  const ROW_HEIGHT = 52
+
+  // Virtualized row component - renders as div styled like table row
+  const Row = useCallback(
+    ({ index, style }: { index: number; style: CSSProperties }) => {
+      const match = extractedStrings[index]
+      if (!match) return null
+
+      const hexOffset = formatAddress(match.offset)
+      const decimalOffset = match.offset.toLocaleString()
+      const displayText =
+        match.text.length > 100
+          ? `${match.text.slice(0, 100)}...`
+          : match.text
+
+      return (
+        <div
+          style={style}
+          className="h-13 border-b hover:bg-muted/50 transition-colors grid grid-cols-[120px_80px_1fr] items-center"
+        >
+          <div className="font-mono text-xs pl-4">
+            {(onScrollToOffset || onSelectedOffsetRangeChange) ? (
+              <button
+                onClick={() => {
+                  const range = {
+                    start: match.offset,
+                    end: match.offset + match.length - 1
+                  }
+                  if (onScrollToOffset) {
+                    onScrollToOffset(match.offset)
+                  }
+                  if (onSelectedOffsetRangeChange) {
+                    onSelectedOffsetRangeChange(range)
+                  }
+                  if (onRangeSelectedForSearch) {
+                    onRangeSelectedForSearch(range)
+                  }
+                }}
+                className="hover:text-foreground hover:underline transition-colors cursor-pointer text-left"
+                aria-label={`Scroll to offset ${hexOffset}`}
+              >
+                {hexOffset}
+                <br />
+                <span className="text-muted-foreground">
+                  {decimalOffset}
+                </span>
+              </button>
+            ) : (
+              <>
+                {hexOffset}
+                <br />
+                <span className="text-muted-foreground">
+                  {decimalOffset}
+                </span>
+              </>
+            )}
+          </div>
+          <div className="font-mono text-xs">
+            {match.length}
+          </div>
+          <div className="font-mono text-xs break-all pr-4">
+            {displayText}
+          </div>
+        </div>
+      )
+    },
+    [
+      extractedStrings,
+      onScrollToOffset,
+      onSelectedOffsetRangeChange,
+      onRangeSelectedForSearch
+    ]
+  )
 
   return (
     <div className="h-full">
@@ -113,59 +243,50 @@ export const Strings: FunctionComponent<StringsProps> = ({
             </div>
           </div>
         </CardHeader>
-        <CardContent className="p-4 flex-1 overflow-y-auto">
-          {!data || data.length === 0 ? (
-            <Empty className="h-full">
-              <EmptyHeader>
-                <EmptyMedia variant="icon">
-                  <Type className="h-6 w-6" />
-                </EmptyMedia>
-                <EmptyTitle>No data available</EmptyTitle>
-                <EmptyDescription>
-                  Load a file to extract strings from binary data
-                </EmptyDescription>
-              </EmptyHeader>
-            </Empty>
-          ) : (
-            <div className="space-y-4">
-              {/* Controls */}
-              <div className="flex items-end gap-4 flex-wrap">
-                <div className="flex flex-col gap-2 min-w-[120px]">
-                  <Label
-                    htmlFor="min-length"
-                    className="text-xs"
-                  >
+        <CardContent className="p-0 flex-1 overflow-hidden">
+          <div
+            ref={containerRef}
+            className="flex flex-col h-full space-y-4 overflow-hidden"
+          >
+            {/* Controls - Always visible */}
+            <div ref={controlsRef} className="flex flex-col gap-4 shrink-0 p-4 border-b m-0">
+              <div className="flex items-end gap-4">
+
+                <div className="flex flex-col gap-1.5 grow">
+                  <label className="text-xs text-muted-foreground font-medium">
                     Min Length
-                  </Label>
-                  <Input
-                    id="min-length"
-                    type="number"
-                    min="1"
-                    value={minLength}
-                    onChange={(e) => handleMinLengthChange(e.target.value)}
-                    className="h-8"
-                  />
-                </div>
-                <div className="flex flex-col gap-2 min-w-[160px]">
-                  <Label
-                    htmlFor="encoding"
-                    className="text-xs"
+                  </label>
+                  <Select
+                    value={minLength.toString()}
+                    onValueChange={(value) => setMinLength(parseInt(value, 10))}
+                    disabled={isSearching}
                   >
+                    <SelectTrigger className="w-full">
+                      <SelectValue placeholder="Min Length" />
+                    </SelectTrigger>
+                    <SelectContent className="w-full">
+                      {minLengthOptions.map((length) => (
+                        <SelectItem key={length} value={length.toString()}>
+                          {length} characters
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                <div className="flex flex-col gap-1.5 grow">
+                  <label className="text-xs text-muted-foreground font-medium">
                     Encoding
-                  </Label>
+                  </label>
                   <Select
                     value={encoding}
-                    onValueChange={(value) =>
-                      setEncoding(value as StringEncoding)
-                    }
+                    onValueChange={(value) => setEncoding(value as StringEncoding)}
+                    disabled={isSearching}
                   >
-                    <SelectTrigger
-                      id="encoding"
-                      className="h-8"
-                    >
-                      <SelectValue />
+                    <SelectTrigger className="w-full">
+                      <SelectValue placeholder="Encoding" />
                     </SelectTrigger>
-                    <SelectContent>
+                    <SelectContent className="w-full">
                       <SelectItem value="ascii">ASCII</SelectItem>
                       <SelectItem value="utf8">UTF-8</SelectItem>
                       <SelectItem value="utf16le">UTF-16 LE</SelectItem>
@@ -175,103 +296,84 @@ export const Strings: FunctionComponent<StringsProps> = ({
                     </SelectContent>
                   </Select>
                 </div>
-                <div className="flex items-center text-xs text-muted-foreground ml-auto">
-                  {extractedStrings.length} string
-                  {extractedStrings.length !== 1 ? "s" : ""} found
-                </div>
+
+                <Button
+                  onClick={handleSearch}
+                  disabled={isSearching || !fileId || !workerClient || !fileHandle}
+                  // className="h-9"
+                  size="icon"
+                >
+                  {isSearching ? (
+                    <Spinner />
+                  ) : <Search />}
+
+                </Button>
               </div>
 
-              {/* Strings Table */}
-              {extractedStrings.length === 0 ? (
-                <Empty className="h-full">
-                  <EmptyHeader>
-                    <EmptyMedia variant="icon">
-                      <Type className="h-6 w-6" />
-                    </EmptyMedia>
-                    <EmptyTitle>No strings found</EmptyTitle>
-                    <EmptyDescription>
-                      Try adjusting the minimum length or encoding settings
-                    </EmptyDescription>
-                  </EmptyHeader>
-                </Empty>
-              ) : (
-                <div className="overflow-hidden -mx-4">
+              {!isSearching && extractedStrings.length > 0 && (
+                <div className="text-xs text-muted-foreground whitespace-nowrap">
+                  {extractedStrings.length.toLocaleString()} string
+                  {extractedStrings.length !== 1 ? "s" : ""} found
+                </div>
+              )}
+            </div>
+
+            {/* Progress */}
+            {isSearching && (
+              <div className="flex p-4 h-full justify-center items-center">
+                <div className="space-y-2 w-4/5">
+                  <Progress value={searchProgress} className="h-2" />
+                  <div className="flex items-center justify-between text-xs text-muted-foreground">
+                    <span>Extracting strings...</span>
+                    <span>{searchProgress}%</span>
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {/* Empty State or Results */}
+            {!isSearching && extractedStrings.length === 0 ? (
+              <Empty className="h-full">
+                <EmptyHeader>
+                  <EmptyMedia variant="icon">
+                    <Type className="h-6 w-6" />
+                  </EmptyMedia>
+                  <EmptyTitle>No strings found</EmptyTitle>
+                  <EmptyDescription>
+                    Try adjusting the minimum length or encoding settings
+                  </EmptyDescription>
+                </EmptyHeader>
+              </Empty>
+            ) : extractedStrings.length > 0 ? (
+              <div className="flex-1 overflow-hidden flex flex-col min-h-0">
+                <div className="relative w-full overflow-x-auto shrink-0">
                   <Table>
                     <TableHeader>
-                      <TableRow>
+                      <TableRow className="h-13">
                         <TableHead className="w-[120px] pl-4">Offset</TableHead>
                         <TableHead className="w-[80px]">Length</TableHead>
                         {/* <TableHead className="w-[100px]">Encoding</TableHead> */}
                         <TableHead className="pr-4">String</TableHead>
                       </TableRow>
                     </TableHeader>
-                    <TableBody>
-                      {extractedStrings.map((match, index) => {
-                        const hexOffset = formatAddress(match.offset)
-                        const decimalOffset = match.offset.toLocaleString()
-                        const displayText =
-                          match.text.length > 100
-                            ? `${match.text.slice(0, 100)}...`
-                            : match.text
-
-                        return (
-                          <TableRow key={`${match.offset}-${index}`}>
-                            <TableCell className="font-mono text-xs pl-4">
-                              {(onScrollToOffset ||
-                                onSelectedOffsetRangeChange) ? (
-                                <button
-                                  onClick={() => {
-                                    const range = {
-                                      start: match.offset,
-                                      end: match.offset + match.length - 1
-                                    }
-                                    if (onScrollToOffset) {
-                                      onScrollToOffset(match.offset)
-                                    }
-                                    if (onSelectedOffsetRangeChange) {
-                                      onSelectedOffsetRangeChange(range)
-                                    }
-                                    if (onRangeSelectedForSearch) {
-                                      onRangeSelectedForSearch(range)
-                                    }
-                                  }}
-                                  className="hover:text-foreground hover:underline transition-colors cursor-pointer text-left"
-                                  aria-label={`Scroll to offset ${hexOffset}`}
-                                >
-                                  {hexOffset}
-                                  <br />
-                                  <span className="text-muted-foreground">
-                                    {decimalOffset}
-                                  </span>
-                                </button>
-                              ) : (
-                                <>
-                                  {hexOffset}
-                                  <br />
-                                  <span className="text-muted-foreground">
-                                    {decimalOffset}
-                                  </span>
-                                </>
-                              )}
-                            </TableCell>
-                            <TableCell className="font-mono text-xs">
-                              {match.length}
-                            </TableCell>
-                            {/* <TableCell className="text-xs">
-                              {match.encoding.toUpperCase()}
-                            </TableCell> */}
-                            <TableCell className="font-mono text-xs break-all pr-4">
-                              {displayText}
-                            </TableCell>
-                          </TableRow>
-                        )
-                      })}
-                    </TableBody>
                   </Table>
                 </div>
-              )}
-            </div>
-          )}
+                {availableHeight > 0 && (
+                  <div className="flex-1 min-h-0 overflow-x-auto">
+                    <FixedSizeList
+                      height={availableHeight}
+                      width="100%"
+                      itemCount={extractedStrings.length}
+                      itemSize={ROW_HEIGHT}
+                      overscanCount={5}
+                    >
+                      {Row}
+                    </FixedSizeList>
+                  </div>
+                )}
+              </div>
+            ) : null}
+          </div>
         </CardContent>
       </Card>
     </div>

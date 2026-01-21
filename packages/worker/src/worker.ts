@@ -3,6 +3,7 @@
  */
 
 import { createLogger } from "@hexed/logger";
+import { extractStrings } from "@hexed/binary-utils/strings";
 import { FileHandleManager } from "./file-handle-manager";
 import type {
   WorkerMessage,
@@ -13,9 +14,11 @@ import type {
   CloseFileRequest,
   StreamFileRequest,
   SearchRequest,
+  StringsRequest,
   FileSizeResponse,
   StreamFileResponse,
   SearchResponse,
+  StringsResponse,
   ErrorResponse,
   ConnectedResponse,
   ProgressEvent,
@@ -261,6 +264,104 @@ async function handleSearch(request: SearchRequest): Promise<void> {
 }
 
 /**
+ * Handle STRINGS_REQUEST - Extract strings from file with progress updates
+ */
+async function handleStrings(request: StringsRequest): Promise<void> {
+  logger.log(`Extracting strings from file: ${request.fileId} (request: ${request.id})`);
+  try {
+    if (!context.handleManager.hasFile(request.fileId)) {
+      sendError(`File ${request.fileId} is not open`, request.id);
+      return;
+    }
+
+    const fileSize = await context.handleManager.getFileSize(request.fileId);
+    const startOffset = request.startOffset ?? 0;
+    const endOffset = request.endOffset ?? fileSize;
+    const searchRange = endOffset - startOffset;
+
+    // Read the file in chunks for progress reporting
+    let bytesRead = 0;
+    const chunks: Uint8Array[] = [];
+    console.log("A")
+    while (bytesRead < searchRange) {
+      const chunkStart = startOffset + bytesRead;
+      const chunkEnd = Math.min(
+        chunkStart + STREAM_CHUNK_SIZE,
+        startOffset + searchRange
+      );
+
+      // Read chunk
+      const chunk = await context.handleManager.readByteRange(
+        request.fileId,
+        chunkStart,
+        chunkEnd
+      );
+      chunks.push(chunk);
+
+      const chunkSize = chunkEnd - chunkStart;
+      bytesRead += chunkSize;
+
+      // Calculate progress percentage
+      const progress = Math.min(
+        100,
+        Math.round((bytesRead / searchRange) * 100)
+      );
+
+      // Send progress event
+      const progressEvent: ProgressEvent = {
+        id: generateMessageId(),
+        type: "PROGRESS_EVENT",
+        requestId: request.id,
+        progress,
+        bytesRead: bytesRead,
+        totalBytes: searchRange,
+      };
+      sendProgress(progressEvent);
+
+      // Yield to event loop to keep UI responsive
+      await new Promise((resolve) => setTimeout(resolve, 0));
+    }
+    console.log("B")
+    // Combine all chunks into a single Uint8Array
+    const totalLength = chunks.reduce((sum, chunk) => sum + chunk.length, 0);
+    const combinedData = new Uint8Array(totalLength);
+    let offset = 0;
+    for (const chunk of chunks) {
+      combinedData.set(chunk, offset);
+      offset += chunk.length;
+    }
+    console.log("C", combinedData.length)
+    // Extract strings from the combined data
+    const matches = extractStrings(combinedData, {
+      minLength: request.minLength,
+      encoding: request.encoding,
+    });
+    console.log("D")
+    // Adjust offsets to account for startOffset
+    const adjustedMatches = matches.map((match) => ({
+      ...match,
+      offset: match.offset + startOffset,
+    }));
+    console.log("E")
+    logger.log(
+      `Strings extraction completed: ${request.fileId}, found ${adjustedMatches.length} matches`
+    );
+    const response: StringsResponse = {
+      id: request.id,
+      type: "STRINGS_RESPONSE",
+      fileId: request.fileId,
+      matches: adjustedMatches,
+    };
+    sendResponse(response);
+  } catch (error) {
+    sendError(
+      error instanceof Error ? error.message : "Failed to extract strings",
+      request.id
+    );
+  }
+}
+
+/**
  * Handle GET_FILE_SIZE request
  */
 async function handleGetFileSize(request: GetFileSizeRequest): Promise<void> {
@@ -323,6 +424,9 @@ async function handleRequest(message: RequestMessage): Promise<void> {
       break;
     case "SEARCH_REQUEST":
       await handleSearch(message);
+      break;
+    case "STRINGS_REQUEST":
+      await handleStrings(message);
       break;
     default:
       const unknownMessage = message as { type: string; id: string };

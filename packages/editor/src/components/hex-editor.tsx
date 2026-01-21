@@ -25,6 +25,7 @@ import {
   useHandleIdToFileHandle,
 } from "../hooks/use-hex-editor-file"
 import { useSettings } from "../hooks/use-settings"
+import { useWorkerClient } from "../providers/worker-provider"
 import type { HexEditorProps } from "../types"
 import { EmptyState } from "./empty-state"
 import { HexFooter } from "./hex-footer"
@@ -47,6 +48,7 @@ export const HexEditor: FunctionComponent<HexEditorProps> = ({
   const containerRef = useRef<HTMLDivElement | null>(null)
   const [activeTab, setActiveTab] = useState<string>("0")
   const { showAscii, sidebar, sidebarPosition } = useSettings()
+  const workerClient = useWorkerClient()
 
   const [diffMode, setDiffMode] = useState<DiffViewMode>("inline")
   const [dataType, setDataType] = useState<string>("Signed Int")
@@ -200,6 +202,7 @@ export const HexEditor: FunctionComponent<HexEditorProps> = ({
             chunkSize={128 * 1024}
             overscanCount={100}
           />
+          {/* <div style={{ height: '2000px' }} className="bg-red-300">wat</div> */}
         </div>
       </div>
     </ResizablePanel>
@@ -216,9 +219,11 @@ export const HexEditor: FunctionComponent<HexEditorProps> = ({
         endianness={endianness as "le" | "be"}
         numberFormat={numberFormat as "dec" | "hex"}
         filePath={fileHandle?.name}
+        fileId={handleId ?? undefined}
         onScrollToOffset={handleScrollToOffset}
         onSelectedOffsetRangeChange={setSelectedOffsetRange}
         onRangeSelectedForSearch={handleRangeSelectedForSearch}
+        dimensions={dimensions}
       />
     ) : null
 
@@ -267,7 +272,8 @@ export const HexEditor: FunctionComponent<HexEditorProps> = ({
             onScrollToOffset={handleScrollToOffset}
           />
         </CardHeader>
-        <CardContent className="p-0 grow overflow-auto">
+
+        <CardContent className="grow min-h-0 overflow-auto p-0">
           {!handleId ? <EmptyState onHandleIdChange={onHandleIdChange} /> : null}
 
           <TabsContent
@@ -294,6 +300,7 @@ export const HexEditor: FunctionComponent<HexEditorProps> = ({
             </ResizablePanelGroup>
           </TabsContent>
         </CardContent>
+
         <CardFooter className={cn("p-0", fileHandle ? "opacity-100" : "opacity-0 pointer-events-none")}>
           <HexFooter
             dataType={dataType}

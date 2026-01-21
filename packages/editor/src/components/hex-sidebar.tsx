@@ -6,6 +6,7 @@ import type { Endianness, NumberFormat } from "@hexed/binary-utils/interpreter"
 import { ResizablePanel } from "@hexed/ui"
 
 import { useSettings } from "../hooks/use-settings"
+import { useWorkerClient } from "../providers/worker-provider"
 import type { SelectionRange } from "../types"
 import { Interpreter } from "./interpreter"
 import { Strings } from "./strings"
@@ -19,9 +20,14 @@ export type HexSidebarProps = {
   endianness: Endianness
   numberFormat: NumberFormat
   filePath?: string
+  fileId?: string
   onScrollToOffset: (offset: number) => void
   onSelectedOffsetRangeChange: (range: SelectionRange) => void
   onRangeSelectedForSearch?: (range: SelectionRange) => void
+  dimensions: {
+    width: number
+    height: number
+  }
 }
 
 export const HexSidebar: FunctionComponent<HexSidebarProps> = ({
@@ -32,11 +38,14 @@ export const HexSidebar: FunctionComponent<HexSidebarProps> = ({
   endianness,
   numberFormat,
   filePath,
+  fileId,
   onScrollToOffset,
   onSelectedOffsetRangeChange,
-  onRangeSelectedForSearch
+  onRangeSelectedForSearch,
+  dimensions
 }) => {
   const { sidebar, sidebarPosition, setSidebar } = useSettings()
+  const workerClient = useWorkerClient()
 
   // Return null if no sidebar is selected
   if (sidebar === null) {
@@ -52,7 +61,7 @@ export const HexSidebar: FunctionComponent<HexSidebarProps> = ({
       minSize={minSize}
       collapsible
     >
-      <div className={`h-full`}>
+      <div className="h-full overflow-auto">
         {sidebar === "interpreter" && (
           <Interpreter
             data={data}
@@ -74,7 +83,7 @@ export const HexSidebar: FunctionComponent<HexSidebarProps> = ({
         )}
         {sidebar === "strings" && (
           <Strings
-            data={data}
+            fileId={fileId}
             onClose={() => setSidebar(null)}
             onScrollToOffset={onScrollToOffset}
             onSelectedOffsetRangeChange={onSelectedOffsetRangeChange}
