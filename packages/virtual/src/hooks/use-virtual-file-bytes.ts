@@ -111,12 +111,15 @@ export class FileByteCache {
   async loadChunk(chunkIndex: number, signal?: AbortSignal): Promise<void> {
     const start = chunkIndex * this.chunkSize
     const end = Math.min(start + this.chunkSize, this.file.size)
-    console.log(`loadChunk ${chunkIndex}: [${start} - ${end}]`)
-
+    
+    const t0 = performance.now()
     const blob = this.file.slice(start, end)
     // Abort: Blob.arrayBuffer doesn't directly accept a signal, so we check signal before/after.
     if (signal?.aborted) throw new DOMException("Aborted", "AbortError")
-    const buf = await blob.arrayBuffer()
+      console.log(`loadChunk ${chunkIndex}: [${start} - ${end}]`)
+      const buf = await blob.arrayBuffer()
+    const t1 = performance.now()
+    console.log(`slice ${chunkIndex}: ${t1 - t0}ms`, {start, end, blob, buf})
     if (signal?.aborted) throw new DOMException("Aborted", "AbortError")
 
     this.chunks.set(chunkIndex, new Uint8Array(buf))
@@ -150,10 +153,12 @@ export function useVirtualFileBytes({
       if (!cache) return
       const byteStart = rowStart * bytesPerRow
       const byteEnd = (rowEndInclusive + 1) * bytesPerRow
+
       const chunksLoaded = await cache.ensureRange(
         { start: byteStart, end: byteEnd },
         { signal }
       )
+
       // Only bump version if new chunks were actually loaded
       if (chunksLoaded) {
         bump()
@@ -171,7 +176,7 @@ export function useVirtualFileBytes({
   )
 
   const rowCount = cache ? Math.ceil(cache.size / bytesPerRow) : 0
-
+  
   return {
     rowCount,
     ensureRows,

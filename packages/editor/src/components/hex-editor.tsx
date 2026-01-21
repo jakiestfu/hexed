@@ -195,8 +195,8 @@ export const HexEditor: FunctionComponent<HexEditorProps> = ({
             containerRef={virtualContainerRef}
             file={file}
             showAscii={showAscii}
-            chunkSize={128 * 1024}
-            overscanCount={200}
+            chunkSize={1024 * 128}
+            overscanCount={0}
             selectedOffsetRange={selectedOffsetRange}
             onSelectedOffsetRangeChange={setSelectedOffsetRange}
           />
