@@ -33,15 +33,15 @@ export function useDimensions<T extends HTMLElement = HTMLElement>(
     const updateDimensions = () => {
       const rect = element.getBoundingClientRect()
       const value = {
-        width: rect.width,
-        height: rect.height
+        width: Math.round(rect.width),
+        height: Math.round(rect.height)
       }
       console.log("[setDimensions]", value)
       setDimensions(value)
     }
 
     // Initial dimensions
-    updateDimensions()
+    // updateDimensions()
 
     // Use ResizeObserver to track dimension changes
     const resizeObserver = new ResizeObserver(updateDimensions)

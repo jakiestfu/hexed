@@ -4,18 +4,16 @@
 
 export type MessageType =
   | "OPEN_FILE"
-  | "READ_BYTE_RANGE"
   | "GET_FILE_SIZE"
   | "CLOSE_FILE"
-  | "SET_WINDOW_SIZE"
-  | "BYTE_RANGE_RESPONSE"
-  | "FILE_SIZE_RESPONSE"
-  | "ERROR"
-  | "CONNECTED"
+  | "STREAM_FILE_REQUEST"
   | "SEARCH_REQUEST"
+  | "FILE_SIZE_RESPONSE"
+  | "STREAM_FILE_RESPONSE"
   | "SEARCH_RESPONSE"
-  | "CHECKSUM_REQUEST"
-  | "CHECKSUM_RESPONSE";
+  | "PROGRESS_EVENT"
+  | "ERROR"
+  | "CONNECTED";
 
 /**
  * Base message interface
@@ -35,13 +33,6 @@ export interface OpenFileRequest extends BaseMessage {
   handle: FileSystemFileHandle;
 }
 
-export interface ReadByteRangeRequest extends BaseMessage {
-  type: "READ_BYTE_RANGE";
-  fileId: string;
-  start: number;
-  end: number;
-}
-
 export interface GetFileSizeRequest extends BaseMessage {
   type: "GET_FILE_SIZE";
   fileId: string;
@@ -52,28 +43,24 @@ export interface CloseFileRequest extends BaseMessage {
   fileId: string;
 }
 
-export interface SetWindowSizeRequest extends BaseMessage {
-  type: "SET_WINDOW_SIZE";
+export interface StreamFileRequest extends BaseMessage {
+  type: "STREAM_FILE_REQUEST";
   fileId: string;
-  windowSize: number;
 }
 
 /**
  * Response Messages
  */
 
-export interface ByteRangeResponse extends BaseMessage {
-  type: "BYTE_RANGE_RESPONSE";
-  fileId: string;
-  start: number;
-  end: number;
-  data: Uint8Array;
-}
-
 export interface FileSizeResponse extends BaseMessage {
   type: "FILE_SIZE_RESPONSE";
   fileId: string;
   size: number;
+}
+
+export interface StreamFileResponse extends BaseMessage {
+  type: "STREAM_FILE_RESPONSE";
+  fileId: string;
 }
 
 export interface ErrorResponse extends BaseMessage {
@@ -87,7 +74,7 @@ export interface ConnectedResponse extends BaseMessage {
 }
 
 /**
- * Future Message Types (anticipate, don't implement)
+ * Search Messages
  */
 
 export interface SearchRequest extends BaseMessage {
@@ -104,17 +91,15 @@ export interface SearchResponse extends BaseMessage {
   matches: Array<{ offset: number; length: number }>;
 }
 
-export interface ChecksumRequest extends BaseMessage {
-  type: "CHECKSUM_REQUEST";
-  fileId: string;
-  algorithm?: "md5" | "sha256";
-}
-
-export interface ChecksumResponse extends BaseMessage {
-  type: "CHECKSUM_RESPONSE";
-  fileId: string;
-  checksum: string;
-  algorithm: "md5" | "sha256";
+/**
+ * Progress Event (not a response, but an event)
+ */
+export interface ProgressEvent extends BaseMessage {
+  type: "PROGRESS_EVENT";
+  requestId: string;
+  progress: number; // 0-100
+  bytesRead: number;
+  totalBytes: number;
 }
 
 /**
@@ -122,43 +107,22 @@ export interface ChecksumResponse extends BaseMessage {
  */
 export type RequestMessage =
   | OpenFileRequest
-  | ReadByteRangeRequest
   | GetFileSizeRequest
   | CloseFileRequest
-  | SetWindowSizeRequest
-  | SearchRequest
-  | ChecksumRequest;
+  | StreamFileRequest
+  | SearchRequest;
 
 /**
  * Union type of all response messages
  */
 export type ResponseMessage =
-  | ByteRangeResponse
   | FileSizeResponse
-  | ErrorResponse
-  | ConnectedResponse
+  | StreamFileResponse
   | SearchResponse
-  | ChecksumResponse;
+  | ErrorResponse
+  | ConnectedResponse;
 
 /**
- * Union type of all messages
+ * Union type of all messages (including events)
  */
-export type WorkerMessage = RequestMessage | ResponseMessage;
-
-/**
- * Window configuration
- */
-export interface WindowConfig {
-  size: number;
-  overlap: number;
-  maxCacheSize: number;
-}
-
-/**
- * Default window configuration
- */
-export const DEFAULT_WINDOW_CONFIG: WindowConfig = {
-  size: 256 * 1024, // 256KB
-  overlap: 4 * 1024, // 4KB overlap
-  maxCacheSize: 10, // Maximum number of cached windows
-};
+export type WorkerMessage = RequestMessage | ResponseMessage | ProgressEvent;

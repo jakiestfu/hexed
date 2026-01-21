@@ -3,6 +3,7 @@ import { createHashRouter, RouterProvider } from "react-router-dom"
 
 import { DragDropProvider } from "@hexed/editor"
 
+import { WorkerProvider } from "~/providers/worker-provider"
 import { HexEditorPage } from "~/routes/hex-editor-page"
 
 const editor = <HexEditorPage />
@@ -25,8 +26,10 @@ export const App = () => (
     enableSystem
     disableTransitionOnChange
   >
-    <DragDropProvider>
-      <RouterProvider router={router} />
-    </DragDropProvider>
+    <WorkerProvider>
+      <DragDropProvider>
+        <RouterProvider router={router} />
+      </DragDropProvider>
+    </WorkerProvider>
   </ThemeProvider>
 )

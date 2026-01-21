@@ -32,7 +32,6 @@ export function useRecentFiles(
     const loadRecentFiles = async () => {
       try {
         const handles = await getAllFileHandles()
-        console.log("setRecentFiles", handles)
         setRecentFiles(handles.slice(0, MAX_RECENT_FILES))
       } catch (error) {
         console.error("Failed to load recent files from IndexedDB:", error)

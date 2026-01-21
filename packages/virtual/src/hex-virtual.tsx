@@ -12,12 +12,6 @@ import {
 import { useMemo, useState, useRef, RefObject, CSSProperties, FunctionComponent, useCallback, useEffect } from "react"
 import { byteToAscii, byteToHex, formatAddress } from "@hexed/binary-utils"
 
-type HexViewerProps = {
-  containerRef: RefObject<HTMLDivElement | null>
-  file: File | null
-  dimensions: { width: number; height: number }
-  showAscii: boolean
-}
 
 const cellWidthStyle = { width: `${cellWidth}px` }
 const asciiCharWidthStyle = { width: `${asciiCharWidth}px` }
@@ -75,7 +69,14 @@ const ByteRow: FunctionComponent<{
   </div>
 )
 
-export function HexVirtual({ containerRef, file, dimensions, showAscii }: HexViewerProps) {
+export const HexVirtual: FunctionComponent<{
+  containerRef: RefObject<HTMLDivElement | null>
+  file: File | null
+  dimensions: { width: number; height: number }
+  showAscii: boolean
+  chunkSize: number;
+  overscanCount: number;
+}> = ({ containerRef, file, dimensions, showAscii, chunkSize, overscanCount }) => {
   // Use layout calculation hook
   const { bytesPerRow } = useCalculateRowLayout({
     showAscii,
@@ -85,11 +86,11 @@ export function HexVirtual({ containerRef, file, dimensions, showAscii }: HexVie
   const { rowCount, ensureRows, getRowBytes } = useVirtualFileBytes({
     file,
     bytesPerRow,
-    chunkSize: 128 * 1024, // Load chunks of 128KB at a time
+    chunkSize, // Load chunks of 128KB at a time
   })
 
   const listRef = useRef<FixedSizeListType | null>(null)
-  const overscanCount = 100
+  // const overscanCount = 100
 
   // Create a callback ref to sync outerRef with containerRef
   const handleOuterRef = useCallback(

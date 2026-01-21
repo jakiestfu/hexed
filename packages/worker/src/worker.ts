@@ -4,20 +4,21 @@
 
 import { createLogger } from "@hexed/logger";
 import { FileHandleManager } from "./file-handle-manager";
-import { WindowManager } from "./window-manager";
 import type {
   WorkerMessage,
   RequestMessage,
   ResponseMessage,
   OpenFileRequest,
-  ReadByteRangeRequest,
   GetFileSizeRequest,
   CloseFileRequest,
-  SetWindowSizeRequest,
-  ByteRangeResponse,
+  StreamFileRequest,
+  SearchRequest,
   FileSizeResponse,
+  StreamFileResponse,
+  SearchResponse,
   ErrorResponse,
   ConnectedResponse,
+  ProgressEvent,
 } from "./types";
 
 const logger = createLogger("worker");
@@ -27,14 +28,15 @@ const logger = createLogger("worker");
  */
 interface WorkerContext {
   handleManager: FileHandleManager;
-  windowManager: WindowManager;
 }
 
 // Global context for this worker instance
 const context: WorkerContext = {
   handleManager: new FileHandleManager(),
-  windowManager: new WindowManager(),
 };
+
+// Chunk size for streaming (1MB)
+const STREAM_CHUNK_SIZE = 1024 * 1024;
 
 /**
  * Generate a unique message ID
@@ -48,14 +50,20 @@ function generateMessageId(): string {
  */
 function sendResponse(message: ResponseMessage): void {
   try {
-    // Transfer Uint8Array as Transferable for performance
-    if (message.type === "BYTE_RANGE_RESPONSE") {
-      self.postMessage(message, [message.data.buffer]);
-    } else {
-      self.postMessage(message);
-    }
+    self.postMessage(message);
   } catch (error) {
     console.error("Error sending response:", error);
+  }
+}
+
+/**
+ * Send a progress event
+ */
+function sendProgress(event: ProgressEvent): void {
+  try {
+    self.postMessage(event);
+  } catch (error) {
+    console.error("Error sending progress event:", error);
   }
 }
 
@@ -99,43 +107,154 @@ async function handleOpenFile(request: OpenFileRequest): Promise<void> {
 }
 
 /**
- * Handle READ_BYTE_RANGE request
+ * Handle STREAM_FILE_REQUEST - Stream through entire file with progress updates
  */
-async function handleReadByteRange(
-  request: ReadByteRangeRequest
-): Promise<void> {
-  logger.log(
-    `Reading byte range: ${request.fileId} [${request.start}-${request.end}] (request: ${request.id})`
-  );
+async function handleStreamFile(request: StreamFileRequest): Promise<void> {
+  logger.log(`Streaming file: ${request.fileId} (request: ${request.id})`);
   try {
     if (!context.handleManager.hasFile(request.fileId)) {
       sendError(`File ${request.fileId} is not open`, request.id);
       return;
     }
 
-    const data = await context.windowManager.getWindow(
-      request.fileId,
-      request.start,
-      request.end,
-      (start, end) =>
-        context.handleManager.readByteRange(request.fileId, start, end)
-    );
+    const fileSize = await context.handleManager.getFileSize(request.fileId);
+    let bytesRead = 0;
 
-    logger.log(
-      `Byte range read successfully: ${request.fileId} [${request.start}-${request.end}], ${data.length} bytes`
-    );
-    const response: ByteRangeResponse = {
+    // Stream through the file in chunks
+    while (bytesRead < fileSize) {
+      const chunkEnd = Math.min(bytesRead + STREAM_CHUNK_SIZE, fileSize);
+      
+      // Read chunk (we don't need to store it, just read through)
+      await context.handleManager.readByteRange(
+        request.fileId,
+        bytesRead,
+        chunkEnd
+      );
+
+      bytesRead = chunkEnd;
+
+      // Calculate progress percentage
+      const progress = Math.min(100, Math.round((bytesRead / fileSize) * 100));
+
+      // Send progress event
+      const progressEvent: ProgressEvent = {
+        id: generateMessageId(),
+        type: "PROGRESS_EVENT",
+        requestId: request.id,
+        progress,
+        bytesRead,
+        totalBytes: fileSize,
+      };
+      sendProgress(progressEvent);
+
+      // Yield to event loop to keep UI responsive
+      await new Promise((resolve) => setTimeout(resolve, 0));
+    }
+
+    logger.log(`File streamed successfully: ${request.fileId}, ${bytesRead} bytes`);
+    const response: StreamFileResponse = {
       id: request.id,
-      type: "BYTE_RANGE_RESPONSE",
+      type: "STREAM_FILE_RESPONSE",
       fileId: request.fileId,
-      start: request.start,
-      end: request.end,
-      data,
     };
     sendResponse(response);
   } catch (error) {
     sendError(
-      error instanceof Error ? error.message : "Failed to read byte range",
+      error instanceof Error ? error.message : "Failed to stream file",
+      request.id
+    );
+  }
+}
+
+/**
+ * Handle SEARCH_REQUEST - Search for pattern in file with progress updates
+ */
+async function handleSearch(request: SearchRequest): Promise<void> {
+  logger.log(`Searching file: ${request.fileId} (request: ${request.id})`);
+  try {
+    if (!context.handleManager.hasFile(request.fileId)) {
+      sendError(`File ${request.fileId} is not open`, request.id);
+      return;
+    }
+
+    const fileSize = await context.handleManager.getFileSize(request.fileId);
+    const startOffset = request.startOffset ?? 0;
+    const endOffset = request.endOffset ?? fileSize;
+    const searchRange = endOffset - startOffset;
+    const pattern = request.pattern;
+    const matches: Array<{ offset: number; length: number }> = [];
+
+    // Search through file in chunks
+    let currentOffset = startOffset;
+    let bytesSearched = 0;
+
+    while (currentOffset < endOffset) {
+      const chunkEnd = Math.min(
+        currentOffset + STREAM_CHUNK_SIZE + pattern.length - 1,
+        endOffset
+      );
+
+      // Read chunk for searching
+      const chunk = await context.handleManager.readByteRange(
+        request.fileId,
+        currentOffset,
+        chunkEnd
+      );
+
+      // Search for pattern in chunk
+      for (let i = 0; i <= chunk.length - pattern.length; i++) {
+        let match = true;
+        for (let j = 0; j < pattern.length; j++) {
+          if (chunk[i + j] !== pattern[j]) {
+            match = false;
+            break;
+          }
+        }
+        if (match) {
+          matches.push({
+            offset: currentOffset + i,
+            length: pattern.length,
+          });
+        }
+      }
+
+      bytesSearched = Math.min(chunkEnd - startOffset, searchRange);
+      currentOffset = chunkEnd - pattern.length + 1; // Overlap to catch matches at boundaries
+
+      // Calculate progress percentage
+      const progress = Math.min(
+        100,
+        Math.round((bytesSearched / searchRange) * 100)
+      );
+
+      // Send progress event
+      const progressEvent: ProgressEvent = {
+        id: generateMessageId(),
+        type: "PROGRESS_EVENT",
+        requestId: request.id,
+        progress,
+        bytesRead: bytesSearched,
+        totalBytes: searchRange,
+      };
+      sendProgress(progressEvent);
+
+      // Yield to event loop to keep UI responsive
+      await new Promise((resolve) => setTimeout(resolve, 0));
+    }
+
+    logger.log(
+      `Search completed: ${request.fileId}, found ${matches.length} matches`
+    );
+    const response: SearchResponse = {
+      id: request.id,
+      type: "SEARCH_RESPONSE",
+      fileId: request.fileId,
+      matches,
+    };
+    sendResponse(response);
+  } catch (error) {
+    sendError(
+      error instanceof Error ? error.message : "Failed to search file",
       request.id
     );
   }
@@ -171,7 +290,6 @@ function handleCloseFile(request: CloseFileRequest): void {
   logger.log(`Closing file: ${request.fileId} (request: ${request.id})`);
   try {
     context.handleManager.closeFile(request.fileId);
-    context.windowManager.clearCache(request.fileId);
     logger.log(`File closed successfully: ${request.fileId}`);
     const response: ConnectedResponse = {
       id: request.id,
@@ -187,28 +305,6 @@ function handleCloseFile(request: CloseFileRequest): void {
 }
 
 /**
- * Handle SET_WINDOW_SIZE request
- */
-function handleSetWindowSize(request: SetWindowSizeRequest): void {
-  logger.log(
-    `Setting window size: ${request.fileId} = ${request.windowSize} bytes (request: ${request.id})`
-  );
-  try {
-    context.windowManager.setWindowSize(request.fileId, request.windowSize);
-    const response: ConnectedResponse = {
-      id: request.id,
-      type: "CONNECTED",
-    };
-    sendResponse(response);
-  } catch (error) {
-    sendError(
-      error instanceof Error ? error.message : "Failed to set window size",
-      request.id
-    );
-  }
-}
-
-/**
  * Route a request message to the appropriate handler
  */
 async function handleRequest(message: RequestMessage): Promise<void> {
@@ -216,22 +312,17 @@ async function handleRequest(message: RequestMessage): Promise<void> {
     case "OPEN_FILE":
       await handleOpenFile(message);
       break;
-    case "READ_BYTE_RANGE":
-      await handleReadByteRange(message);
-      break;
     case "GET_FILE_SIZE":
       await handleGetFileSize(message);
       break;
     case "CLOSE_FILE":
       handleCloseFile(message);
       break;
-    case "SET_WINDOW_SIZE":
-      handleSetWindowSize(message);
+    case "STREAM_FILE_REQUEST":
+      await handleStreamFile(message);
       break;
     case "SEARCH_REQUEST":
-    case "CHECKSUM_REQUEST":
-      // Future operations - not implemented yet
-      sendError(`Operation ${message.type} not yet implemented`, message.id);
+      await handleSearch(message);
       break;
     default:
       const unknownMessage = message as { type: string; id: string };
@@ -257,8 +348,12 @@ if (typeof self !== "undefined") {
   // Handle messages from client
   self.onmessage = (event: MessageEvent<WorkerMessage>) => {
     const message = event.data;
-    if (message.type === "CONNECTED" || message.type.startsWith("RESPONSE")) {
-      // Ignore response messages (they come from worker, not client)
+    // Ignore response messages and progress events (they come from worker, not client)
+    if (
+      message.type === "CONNECTED" ||
+      message.type.startsWith("RESPONSE") ||
+      message.type === "PROGRESS_EVENT"
+    ) {
       return;
     }
     logger.log(`Received request: ${message.type} (id: ${message.id})`);

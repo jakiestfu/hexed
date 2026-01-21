@@ -4,6 +4,7 @@ import { useNavigate, useParams } from "react-router-dom"
 
 import { HexEditor } from "@hexed/editor"
 
+// import { StreamFileTest } from "~/components/stream-file-test"
 import packageJson from "../../package.public.json"
 
 export function HexEditorPage() {
@@ -28,14 +29,23 @@ export function HexEditorPage() {
   )
 
   return (
-    <HexEditor
-      handleId={handleId}
-      onClose={handleId ? handleClose : undefined}
-      fileSource="file-system"
-      onHandleIdChange={handleHandleReady}
-      theme={theme}
-      setTheme={setTheme}
-      packageInfo={packageJson}
-    />
+    <div className="flex flex-col h-full">
+      {/* {handleId && (
+        <div className="p-2 border-b">
+          <StreamFileTest />
+        </div>
+      )} */}
+      <div className="flex-1">
+        <HexEditor
+          handleId={handleId}
+          onClose={handleId ? handleClose : undefined}
+          fileSource="file-system"
+          onHandleIdChange={handleHandleReady}
+          theme={theme}
+          setTheme={setTheme}
+          packageInfo={packageJson}
+        />
+      </div>
+    </div>
   )
 }

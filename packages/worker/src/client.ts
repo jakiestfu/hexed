@@ -7,14 +7,16 @@ import type {
   RequestMessage,
   ResponseMessage,
   OpenFileRequest,
-  ReadByteRangeRequest,
   GetFileSizeRequest,
   CloseFileRequest,
-  SetWindowSizeRequest,
-  ByteRangeResponse,
+  StreamFileRequest,
+  SearchRequest,
   FileSizeResponse,
+  StreamFileResponse,
+  SearchResponse,
   ErrorResponse,
   ConnectedResponse,
+  ProgressEvent,
 } from "./types";
 
 const logger = createLogger("worker-client");
@@ -31,14 +33,19 @@ function generateMessageId(): string {
  */
 export interface WorkerClient {
   openFile(fileId: string, handle: FileSystemFileHandle): Promise<void>;
-  readByteRange(
-    fileId: string,
-    start: number,
-    end: number
-  ): Promise<Uint8Array>;
   getFileSize(fileId: string): Promise<number>;
-  setWindowSize(fileId: string, size: number): Promise<void>;
   closeFile(fileId: string): Promise<void>;
+  streamFile(
+    fileId: string,
+    onProgress?: (progress: number) => void
+  ): Promise<void>;
+  search(
+    fileId: string,
+    pattern: Uint8Array,
+    onProgress?: (progress: number) => void,
+    startOffset?: number,
+    endOffset?: number
+  ): Promise<Array<{ offset: number; length: number }>>;
   disconnect(): void;
 }
 
@@ -61,6 +68,9 @@ export function createWorkerClient(
   const pendingRequests = new Map<string, PendingRequest>();
   const REQUEST_TIMEOUT = 30000; // 30 seconds
 
+  // Progress callbacks mapped by request ID
+  const progressCallbacks = new Map<string, (progress: number) => void>();
+
   /**
    * Initialize the Worker connection
    */
@@ -73,13 +83,26 @@ export function createWorkerClient(
       worker = new WorkerConstructor();
 
       // Handle messages from worker
-      worker.onmessage = (event: MessageEvent<ResponseMessage>) => {
+      worker.onmessage = (event: MessageEvent<ResponseMessage | ProgressEvent>) => {
         const message = event.data;
+
+        // Handle progress events separately
+        if (message.type === "PROGRESS_EVENT") {
+          const progressEvent = message as ProgressEvent;
+          const callback = progressCallbacks.get(progressEvent.requestId);
+          if (callback) {
+            callback(progressEvent.progress);
+          }
+          return;
+        }
+
         const pending = pendingRequests.get(message.id);
 
         if (pending) {
           clearTimeout(pending.timeout);
           pendingRequests.delete(message.id);
+          // Clean up progress callback when request completes
+          progressCallbacks.delete(message.id);
 
           if (message.type === "ERROR") {
             const errorMsg = (message as ErrorResponse).error;
@@ -105,6 +128,7 @@ export function createWorkerClient(
           pending.reject(new Error("Worker connection error"));
         }
         pendingRequests.clear();
+        progressCallbacks.clear();
       };
 
       return worker;
@@ -177,24 +201,6 @@ export function createWorkerClient(
       logger.log(`File opened: ${fileId}`);
     },
 
-    async readByteRange(
-      fileId: string,
-      start: number,
-      end: number
-    ): Promise<Uint8Array> {
-      logger.log(`Reading byte range: ${fileId} [${start}-${end}]`);
-      const request: ReadByteRangeRequest = {
-        id: generateMessageId(),
-        type: "READ_BYTE_RANGE",
-        fileId,
-        start,
-        end,
-      };
-      const response = await sendRequest<ByteRangeResponse>(request);
-      logger.log(`Byte range read: ${fileId} [${start}-${end}], ${response.data.length} bytes`);
-      return response.data;
-    },
-
     async getFileSize(fileId: string): Promise<number> {
       logger.log(`Getting file size: ${fileId}`);
       const request: GetFileSizeRequest = {
@@ -205,17 +211,6 @@ export function createWorkerClient(
       const response = await sendRequest<FileSizeResponse>(request);
       logger.log(`File size: ${fileId} = ${response.size} bytes`);
       return response.size;
-    },
-
-    async setWindowSize(fileId: string, size: number): Promise<void> {
-      logger.log(`Setting window size: ${fileId} = ${size} bytes`);
-      const request: SetWindowSizeRequest = {
-        id: generateMessageId(),
-        type: "SET_WINDOW_SIZE",
-        fileId,
-        windowSize: size,
-      };
-      await sendRequest<ConnectedResponse>(request);
     },
 
     async closeFile(fileId: string): Promise<void> {
@@ -229,6 +224,65 @@ export function createWorkerClient(
       logger.log(`File closed: ${fileId}`);
     },
 
+    async streamFile(
+      fileId: string,
+      onProgress?: (progress: number) => void
+    ): Promise<void> {
+      logger.log(`Streaming file: ${fileId}`);
+      const request: StreamFileRequest = {
+        id: generateMessageId(),
+        type: "STREAM_FILE_REQUEST",
+        fileId,
+      };
+
+      // Register progress callback if provided
+      if (onProgress) {
+        progressCallbacks.set(request.id, onProgress);
+      }
+
+      try {
+        await sendRequest<StreamFileResponse>(request);
+        logger.log(`File streamed: ${fileId}`);
+      } finally {
+        // Clean up progress callback
+        progressCallbacks.delete(request.id);
+      }
+    },
+
+    async search(
+      fileId: string,
+      pattern: Uint8Array,
+      onProgress?: (progress: number) => void,
+      startOffset?: number,
+      endOffset?: number
+    ): Promise<Array<{ offset: number; length: number }>> {
+      logger.log(`Searching file: ${fileId}`);
+      const request: SearchRequest = {
+        id: generateMessageId(),
+        type: "SEARCH_REQUEST",
+        fileId,
+        pattern,
+        startOffset,
+        endOffset,
+      };
+
+      // Register progress callback if provided
+      if (onProgress) {
+        progressCallbacks.set(request.id, onProgress);
+      }
+
+      try {
+        const response = await sendRequest<SearchResponse>(request);
+        logger.log(
+          `Search completed: ${fileId}, found ${response.matches.length} matches`
+        );
+        return response.matches;
+      } finally {
+        // Clean up progress callback
+        progressCallbacks.delete(request.id);
+      }
+    },
+
     disconnect(): void {
       logger.log("Disconnecting worker client");
       // Reject all pending requests
@@ -237,6 +291,7 @@ export function createWorkerClient(
         pending.reject(new Error("Worker disconnected"));
       }
       pendingRequests.clear();
+      progressCallbacks.clear();
 
       if (worker) {
         worker.terminate();

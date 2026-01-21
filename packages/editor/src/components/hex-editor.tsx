@@ -3,16 +3,14 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react"
 import type { FunctionComponent } from "react"
 
-import {
-  useDimensions,
-  type HexCanvasRef
-} from "@hexed/canvas"
+import { useDimensions } from "@hexed/virtual"
 import type { DiffViewMode } from "@hexed/types"
 import {
   Card,
   CardContent,
   CardFooter,
   CardHeader,
+  cn,
   ResizableHandle,
   ResizablePanel,
   ResizablePanelGroup,
@@ -35,7 +33,6 @@ import { HexToolbar } from "./hex-toolbar"
 import { HexToolbarDiff } from "./hex-toolbar-diff"
 import { HexToolbarSearch } from "./hex-toolbar-search"
 import { Logo } from "./logo"
-import { cellWidth } from "@hexed/virtual"
 
 export const HexEditor: FunctionComponent<HexEditorProps> = ({
   handleId,
@@ -60,7 +57,6 @@ export const HexEditor: FunctionComponent<HexEditorProps> = ({
    * Layout Calculations
    */
 
-  const hexCanvasRef = useRef<HexCanvasRef | null>(null)
   const dimensions = useDimensions(containerRef)
 
 
@@ -177,16 +173,55 @@ export const HexEditor: FunctionComponent<HexEditorProps> = ({
     })
   }, [])
 
-  // Expose scrollToOffset via ref for external use
-  useEffect(() => {
-    if (scrollToOffset !== null) {
-      hexCanvasRef.current?.scrollToOffset(scrollToOffset)
-    }
-  }, [scrollToOffset])
-
   const virtualContainerRef = useRef<HTMLDivElement>(null)
 
-  // return <p>wat</p>
+  const hasSidebars = sidebar !== null
+
+  const hexCanvasPanel = (
+    <ResizablePanel
+      id="hex-canvas"
+      defaultSize={70}
+      minSize={20}
+    >
+      <div
+        ref={containerRef}
+        className="h-full w-full overflow-auto relative"
+      >
+        {/* Always render HexEditorView, control visibility with CSS */}
+        <div
+          style={{ display: file !== null ? "block" : "none" }}
+          className="h-full w-full overflow-auto relative"
+        >
+          <HexVirtual
+            dimensions={dimensions}
+            containerRef={virtualContainerRef}
+            file={file}
+            showAscii={showAscii}
+            chunkSize={128 * 1024}
+            overscanCount={100}
+          />
+        </div>
+      </div>
+    </ResizablePanel>
+  )
+
+  // Sidebar component - only render when we have data
+  const sidebarPanel =
+    hasSidebars && fileHandle ? (
+      <HexSidebar
+        defaultSize={30}
+        minSize={30}
+        data={new Uint8Array()}
+        selectedOffset={selectedOffset}
+        endianness={endianness as "le" | "be"}
+        numberFormat={numberFormat as "dec" | "hex"}
+        filePath={fileHandle?.name}
+        onScrollToOffset={handleScrollToOffset}
+        onSelectedOffsetRangeChange={setSelectedOffsetRange}
+        onRangeSelectedForSearch={handleRangeSelectedForSearch}
+      />
+    ) : null
+
   return (
     <Card
       className={`p-0 m-0 w-full h-full rounded-none border-none shadow-none ${className}`}
@@ -235,99 +270,45 @@ export const HexEditor: FunctionComponent<HexEditorProps> = ({
         <CardContent className="p-0 grow overflow-auto">
           {!handleId ? <EmptyState onHandleIdChange={onHandleIdChange} /> : null}
 
-          {(() => {
-            // Calculate default sizes based on visible panels
-            const hasSidebars = sidebar !== null
-
-            const hexCanvasPanel = (
-              <ResizablePanel
-                id="hex-canvas"
-                defaultSize={70}
-                minSize={20}
-              >
-                <div
-                  ref={containerRef}
-                  className="h-full w-full overflow-auto relative"
-                >
-                  {/* Always render HexEditorView, control visibility with CSS */}
-                  <div
-                    style={{ display: file !== null ? "block" : "none" }}
-                    className="h-full w-full overflow-auto relative"
-                  >
-                    <HexVirtual
-                      dimensions={dimensions}
-                      containerRef={virtualContainerRef}
-                      // rowHeight={24}
-                      // height={dimensions.height}
-                      file={file}
-                      showAscii={showAscii}
-                    />
-                  </div>
-                </div>
-              </ResizablePanel>
-            )
-
-            // Sidebar component - only render when we have data
-            const sidebarPanel =
-              hasSidebars && fileHandle ? (
-                <HexSidebar
-                  defaultSize={30}
-                  minSize={30}
-                  data={new Uint8Array()}
-                  selectedOffset={selectedOffset}
-                  endianness={endianness as "le" | "be"}
-                  numberFormat={numberFormat as "dec" | "hex"}
-                  filePath={fileHandle?.name}
-                  onScrollToOffset={handleScrollToOffset}
-                  onSelectedOffsetRangeChange={setSelectedOffsetRange}
-                  onRangeSelectedForSearch={handleRangeSelectedForSearch}
-                />
-              ) : null
-
-            return (
-              <TabsContent
-                value="0"
-                className="h-full"
-              >
-                <ResizablePanelGroup
-                  direction="horizontal"
-                  className="h-full"
-                >
-                  {sidebarPosition === "left" ? (
-                    <>
-                      {sidebarPanel}
-                      {hasSidebars && <ResizableHandle withHandle />}
-                      {hexCanvasPanel}
-                    </>
-                  ) : (
-                    <>
-                      {hexCanvasPanel}
-                      {hasSidebars && <ResizableHandle withHandle />}
-                      {sidebarPanel}
-                    </>
-                  )}
-                </ResizablePanelGroup>
-              </TabsContent>
-            )
-          })()}
+          <TabsContent
+            value="0"
+            className="h-full"
+          >
+            <ResizablePanelGroup
+              direction="horizontal"
+              className="h-full"
+            >
+              {sidebarPosition === "left" ? (
+                <>
+                  {sidebarPanel}
+                  {hasSidebars && <ResizableHandle withHandle />}
+                  {hexCanvasPanel}
+                </>
+              ) : (
+                <>
+                  {hexCanvasPanel}
+                  {hasSidebars && <ResizableHandle withHandle />}
+                  {sidebarPanel}
+                </>
+              )}
+            </ResizablePanelGroup>
+          </TabsContent>
         </CardContent>
-        {fileHandle ? (
-          <CardFooter className="p-0">
-            <HexFooter
-              dataType={dataType}
-              setDataType={setDataType}
-              endianness={endianness}
-              setEndianness={setEndianness}
-              numberFormat={numberFormat}
-              setNumberFormat={setNumberFormat}
-              totalSize={file?.size}
-              hasSnapshots={false}
-              selectedOffset={selectedOffset}
-              paneToggleValue={paneToggleValue}
-              onShowHistogram={handleToggleHistogram}
-            />
-          </CardFooter>
-        ) : null}
+        <CardFooter className={cn("p-0", fileHandle ? "opacity-100" : "opacity-0 pointer-events-none")}>
+          <HexFooter
+            dataType={dataType}
+            setDataType={setDataType}
+            endianness={endianness}
+            setEndianness={setEndianness}
+            numberFormat={numberFormat}
+            setNumberFormat={setNumberFormat}
+            totalSize={file?.size}
+            hasSnapshots={false}
+            selectedOffset={selectedOffset}
+            paneToggleValue={paneToggleValue}
+            onShowHistogram={handleToggleHistogram}
+          />
+        </CardFooter>
       </Tabs>
     </Card>
   )
