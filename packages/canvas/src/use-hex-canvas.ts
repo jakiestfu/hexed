@@ -4,8 +4,8 @@ import type { Ref, RefObject } from "react"
 import type { DiffResult } from "@hexed/types"
 
 import { HexCanvas, type HexCanvasOptions } from "./hex-canvas"
-import type { HexCanvasColors } from "./utils/colors"
 import type { SelectionRange } from "./utils/canvas"
+import type { HexCanvasColors } from "./utils/colors"
 
 type ToOnHandlers<T> = Partial<{
   [K in keyof T as `on${Capitalize<string & K>}`]: (payload: T[K]) => void
@@ -56,7 +56,9 @@ export function useHexCanvasEvent<K extends keyof HexCanvasEventMap>(
   useEffect(() => {
     // Extract canvas instance from ref if needed
     const canvasInstance =
-      canvas && "current" in canvas ? canvas.current : (canvas as HexCanvas | null)
+      canvas && "current" in canvas
+        ? canvas.current
+        : (canvas as HexCanvas | null)
 
     // If no callback provided, do nothing
     if (!callback || !canvasInstance) {
@@ -106,7 +108,7 @@ export function useHexCanvas(
     colors,
     diff = null,
     windowSize = 128 * 1024,
-    selectedOffsetRange,
+    selectedOffsetRange
   } = options
 
   const canvasInstanceRef = useRef<HexCanvas | null>(null)

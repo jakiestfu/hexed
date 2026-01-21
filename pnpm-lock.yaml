@@ -185,12 +185,6 @@ importers:
       '@hexed/types':
         specifier: workspace:*
         version: link:../types
-      react:
-        specifier: 19.2.3
-        version: 19.2.3
-      react-dom:
-        specifier: 19.2.3
-        version: 19.2.3(react@19.2.3)
     devDependencies:
       '@hexed/eslint-config':
         specifier: workspace:*
@@ -207,6 +201,12 @@ importers:
       '@types/react-dom':
         specifier: ^19.2.3
         version: 19.2.3(@types/react@19.2.7)
+      react:
+        specifier: 19.2.3
+        version: 19.2.3
+      react-dom:
+        specifier: 19.2.3
+        version: 19.2.3(react@19.2.3)
       typescript:
         specifier: ^5.7.2
         version: 5.9.3

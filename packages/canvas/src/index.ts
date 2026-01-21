@@ -2,10 +2,7 @@
 export { HexCanvas, type HexCanvasOptions } from "./hex-canvas"
 
 // React integration (optional - for React users)
-export {
-  HexCanvasReact,
-  type HexCanvasReactRef
-} from "./hex-canvas-react"
+export { HexCanvasReact, type HexCanvasReactRef } from "./hex-canvas-react"
 export {
   useHexCanvas,
   useHexCanvasEvent,

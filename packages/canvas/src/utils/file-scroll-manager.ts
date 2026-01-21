@@ -1,6 +1,5 @@
-import { FileByteCache } from "./file-byte-cache"
-
 import type { LayoutMetrics } from "./coordinates"
+import { FileByteCache } from "./file-byte-cache"
 
 type ByteRange = { start: number; end: number }
 
@@ -11,7 +10,10 @@ export class FileScrollManager {
   private cache: FileByteCache | null = null
   private scrollTopRef: ScrollTopRef
   private layout: LayoutMetrics | null = null
-  private dimensions: { width: number; height: number } = { width: 0, height: 0 }
+  private dimensions: { width: number; height: number } = {
+    width: 0,
+    height: 0
+  }
   private bytesPerRow: number = 16
   private chunkSize: number = 64 * 1024
 
@@ -121,7 +123,8 @@ export class FileScrollManager {
     if (!this.layout) return
 
     const rowIndex = Math.floor(offset / this.layout.bytesPerRow)
-    const rowTop = rowIndex * this.layout.rowHeight + this.layout.verticalPadding
+    const rowTop =
+      rowIndex * this.layout.rowHeight + this.layout.verticalPadding
     const targetScrollTop =
       rowTop + this.layout.rowHeight / 2 - this.dimensions.height / 2
     const clampedScrollTop = Math.max(0, targetScrollTop)

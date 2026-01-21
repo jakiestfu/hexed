@@ -270,7 +270,7 @@ export const HexEditor: FunctionComponent<HexEditorProps> = ({
             fileSource={fileSource}
             isConnected={fileHandle !== null}
             error={null}
-            onRestartWatching={() => { }}
+            onRestartWatching={() => {}}
             onClose={onClose}
           />
           <HexToolbarSearch

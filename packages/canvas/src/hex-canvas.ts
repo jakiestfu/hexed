@@ -1,7 +1,6 @@
 import { formatDataIntoRows } from "@hexed/binary-utils/formatter"
 import type { FormattedRow } from "@hexed/binary-utils/formatter"
 import type { DiffResult } from "@hexed/types"
-import { FileByteCache } from "./utils/file-byte-cache"
 
 import {
   calculateLayout,
@@ -19,6 +18,7 @@ import {
   getRowFromY as getRowFromYUtil,
   type LayoutMetrics
 } from "./utils/coordinates"
+import { FileByteCache } from "./utils/file-byte-cache"
 
 export type HexCanvasOptions = {
   windowSize?: number // bytes (default: 128KB)
@@ -51,7 +51,10 @@ export class HexCanvas extends EventTarget {
   }
 
   // Dimensions
-  private dimensions: { width: number; height: number } = { width: 0, height: 0 }
+  private dimensions: { width: number; height: number } = {
+    width: 0,
+    height: 0
+  }
   private resizeObserver: ResizeObserver | null = null
 
   // Layout
@@ -97,7 +100,11 @@ export class HexCanvas extends EventTarget {
   private rafId: number | null = null
   private fileRafId: number | null = null
 
-  constructor(container: HTMLElement, file: File | null, options: HexCanvasOptions = {}) {
+  constructor(
+    container: HTMLElement,
+    file: File | null,
+    options: HexCanvasOptions = {}
+  ) {
     super()
 
     this.container = container
@@ -195,7 +202,10 @@ export class HexCanvas extends EventTarget {
       this.layout,
       this.dimensions.height
     )
-    this.maxScrollTop = Math.max(0, Math.floor(this.totalHeight - this.dimensions.height))
+    this.maxScrollTop = Math.max(
+      0,
+      Math.floor(this.totalHeight - this.dimensions.height)
+    )
     this.scrollTop = Math.min(this.scrollTop, this.maxScrollTop)
   }
 
@@ -345,7 +355,10 @@ export class HexCanvas extends EventTarget {
     this.handleScrollbarMouseUp()
 
     if (this.isDragging) {
-      const dragOccurred = didDragOccur(this.dragStartOffset, this.selectedOffsetRange)
+      const dragOccurred = didDragOccur(
+        this.dragStartOffset,
+        this.selectedOffsetRange
+      )
 
       this.isDragging = false
       this.dragStartOffset = null
@@ -367,7 +380,10 @@ export class HexCanvas extends EventTarget {
     this.handleScrollbarMouseUp()
 
     if (this.isDragging) {
-      const dragOccurred = didDragOccur(this.dragStartOffset, this.selectedOffsetRange)
+      const dragOccurred = didDragOccur(
+        this.dragStartOffset,
+        this.selectedOffsetRange
+      )
 
       this.isDragging = false
       this.dragStartOffset = null
@@ -438,11 +454,14 @@ export class HexCanvas extends EventTarget {
         const column = keyboardSelectedOffset % bytesPerRow
         if (column === 0) {
           if (currentRow === 0) {
-            const lastRowStart = Math.floor((dataLength - 1) / bytesPerRow) * bytesPerRow
+            const lastRowStart =
+              Math.floor((dataLength - 1) / bytesPerRow) * bytesPerRow
             const lastRowLength = dataLength - lastRowStart
             newOffset = clampOffset(lastRowStart + lastRowLength - 1)
           } else {
-            newOffset = clampOffset((currentRow - 1) * bytesPerRow + bytesPerRow - 1)
+            newOffset = clampOffset(
+              (currentRow - 1) * bytesPerRow + bytesPerRow - 1
+            )
           }
         } else {
           newOffset = clampOffset(keyboardSelectedOffset - 1)
@@ -474,12 +493,16 @@ export class HexCanvas extends EventTarget {
       case "PageUp":
         event.preventDefault()
         const rowsPerPageUp = Math.floor(viewportHeight / rowHeight)
-        newOffset = clampOffset(keyboardSelectedOffset - rowsPerPageUp * bytesPerRow)
+        newOffset = clampOffset(
+          keyboardSelectedOffset - rowsPerPageUp * bytesPerRow
+        )
         break
       case "PageDown":
         event.preventDefault()
         const rowsPerPageDown = Math.floor(viewportHeight / rowHeight)
-        newOffset = clampOffset(keyboardSelectedOffset + rowsPerPageDown * bytesPerRow)
+        newOffset = clampOffset(
+          keyboardSelectedOffset + rowsPerPageDown * bytesPerRow
+        )
         break
       default:
         return
@@ -518,10 +541,13 @@ export class HexCanvas extends EventTarget {
 
   private getFormattedRows(): FormattedRow[] {
     if (!this.cache || this.loadedBytes.length === 0) return []
+
+    // Use the start offset from the loaded range (includes overscan), otherwise fall back to visibleByteRange
+    const rangeToUse = this.lastLoadedRange || this.visibleByteRange
     return formatDataIntoRows(
       this.loadedBytes,
       this.layout?.bytesPerRow ?? 16,
-      this.visibleByteRange.start
+      rangeToUse.start
     )
   }
 
@@ -570,9 +596,7 @@ export class HexCanvas extends EventTarget {
 
   private setSelectionRange(range: SelectionRange): void {
     this.selectedOffsetRange = range
-    this.selectedOffset = range
-      ? Math.min(range.start, range.end)
-      : null
+    this.selectedOffset = range ? Math.min(range.start, range.end) : null
 
     this.dispatchEvent(
       new CustomEvent("selectionChange", { detail: { range } })
@@ -580,7 +604,9 @@ export class HexCanvas extends EventTarget {
 
     if (range) {
       this.dispatchEvent(
-        new CustomEvent("byteSelect", { detail: { offset: this.selectedOffset } })
+        new CustomEvent("byteSelect", {
+          detail: { offset: this.selectedOffset }
+        })
       )
     }
   }
@@ -609,7 +635,8 @@ export class HexCanvas extends EventTarget {
     )
 
     const thumbY =
-      (this.scrollTop / this.maxScrollTop) * (trackHeight - thumbHeight) + trackY
+      (this.scrollTop / this.maxScrollTop) * (trackHeight - thumbHeight) +
+      trackY
 
     return {
       trackX,
@@ -800,7 +827,9 @@ export class HexCanvas extends EventTarget {
       return
     }
 
-    const { start, end } = this.visibleByteRange
+    // Use lastLoadedRange if available (includes overscan), otherwise fall back to visibleByteRange
+    const rangeToUse = this.lastLoadedRange || this.visibleByteRange
+    const { start, end } = rangeToUse
     const startRow = Math.floor(start / this.layout.bytesPerRow)
     const endRow = Math.ceil(end / this.layout.bytesPerRow)
 
@@ -824,7 +853,12 @@ export class HexCanvas extends EventTarget {
   // Rendering
   private startRenderLoop(): void {
     const draw = () => {
-      if (!this.canvas || !this.ctx || !this.layout || this.dimensions.height === 0) {
+      if (
+        !this.canvas ||
+        !this.ctx ||
+        !this.layout ||
+        this.dimensions.height === 0
+      ) {
         this.rafId = requestAnimationFrame(draw)
         return
       }
@@ -863,8 +897,14 @@ export class HexCanvas extends EventTarget {
       ...defaults,
       ...this.options.colors,
       diffAdded: { ...defaults.diffAdded, ...this.options.colors?.diffAdded },
-      diffRemoved: { ...defaults.diffRemoved, ...this.options.colors?.diffRemoved },
-      diffModified: { ...defaults.diffModified, ...this.options.colors?.diffModified },
+      diffRemoved: {
+        ...defaults.diffRemoved,
+        ...this.options.colors?.diffRemoved
+      },
+      diffModified: {
+        ...defaults.diffModified,
+        ...this.options.colors?.diffModified
+      },
       highlight: { ...defaults.highlight, ...this.options.colors?.highlight },
       byteHover: { ...defaults.byteHover, ...this.options.colors?.byteHover },
       selection: { ...defaults.selection, ...this.options.colors?.selection }

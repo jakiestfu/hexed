@@ -6,7 +6,7 @@
   "scripts": {
     "dev": "pnpm --filter @hexed/web dev",
     "preview": "pnpm --filter @hexed/web preview",
-    "build": "pnpm --filter @hexed/web build",
+    "build": "pnpm -r build",
     "dev:desktop": "pnpm --filter desktop dev",
     "build:desktop": "pnpm --filter desktop build",
     "release": "node scripts/deploy.mjs",
