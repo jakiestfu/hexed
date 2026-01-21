@@ -16,7 +16,7 @@ import {
   Tabs,
   TabsContent
 } from "@hexed/ui"
-import { HexVirtual, useDimensions } from "@hexed/virtual"
+import { HexCanvasReact } from "@hexed/canvas"
 
 import { useGlobalKeyboard } from "../hooks/use-global-keyboard"
 import { useHandleToFile } from "../hooks/use-handle-to-file"
@@ -42,7 +42,6 @@ export const HexEditor: FunctionComponent<HexEditorProps> = ({
   setTheme,
   packageInfo
 }) => {
-  const containerRef = useRef<HTMLDivElement | null>(null)
   const [activeTab, setActiveTab] = useState<string>("0")
   const { showAscii, sidebar, sidebarPosition } = useSettings()
   const workerClient = useWorkerClient()
@@ -51,14 +50,6 @@ export const HexEditor: FunctionComponent<HexEditorProps> = ({
   const [dataType, setDataType] = useState<string>("Signed Int")
   const [endianness, setEndianness] = useState<string>("le")
   const [numberFormat, setNumberFormat] = useState<string>("dec")
-
-  /**
-   * Layout Calculations
-   */
-
-  const dimensions = useDimensions(containerRef)
-
-  // console.log("byteRowWidth", byteRowWidth, bytesPerRow)
 
   const { fileHandle } = useHandleIdToFileHandle(handleId)
   const { file } = useHandleToFile(fileHandle)
@@ -157,9 +148,45 @@ export const HexEditor: FunctionComponent<HexEditorProps> = ({
   // Derived value for toggle group
   const paneToggleValue = sidebar || ""
 
+  // Window size for chunked file loading
+  const windowSize = 1024 * 128
+
+  // Container ref for dimensions tracking (for sidebar)
+  const containerRef = useRef<HTMLDivElement | null>(null)
+  const [dimensions, setDimensions] = useState({ width: 0, height: 0 })
+
+  // Track container dimensions for sidebar
+  useEffect(() => {
+    if (!containerRef.current) return
+
+    const updateDimensions = () => {
+      if (containerRef.current) {
+        const rect = containerRef.current.getBoundingClientRect()
+        setDimensions({ width: rect.width, height: rect.height })
+      }
+    }
+
+    updateDimensions()
+    const resizeObserver = new ResizeObserver(updateDimensions)
+    resizeObserver.observe(containerRef.current)
+
+    return () => {
+      resizeObserver.disconnect()
+    }
+  }, [])
+
+  // Canvas ref for imperative API
+  const canvasRef = useRef<{
+    scrollToOffset: (offset: number) => void
+    getSelectedRange: () => { start: number; end: number } | null
+    getScrollTop: () => number
+    setSelectedRange: (range: { start: number; end: number } | null) => void
+  } | null>(null)
+
   // Stable callback for scroll to offset
   const handleScrollToOffset = useCallback((offset: number) => {
     setScrollToOffset(offset)
+    canvasRef.current?.scrollToOffset(offset)
   }, [])
 
   // Stable callback for match found
@@ -169,9 +196,8 @@ export const HexEditor: FunctionComponent<HexEditorProps> = ({
       start: offset,
       end: offset + length - 1
     })
+    canvasRef.current?.scrollToOffset(offset)
   }, [])
-
-  const virtualContainerRef = useRef<HTMLDivElement>(null)
 
   const hasSidebars = sidebar !== null
 
@@ -183,25 +209,20 @@ export const HexEditor: FunctionComponent<HexEditorProps> = ({
     >
       <div
         ref={containerRef}
-        className="h-full w-full overflow-auto relative"
+        className="h-full w-full"
       >
-        {/* Always render HexEditorView, control visibility with CSS */}
-        <div
-          style={{ display: file !== null ? "block" : "none" }}
-          className="h-full w-full overflow-auto relative"
-        >
-          <HexVirtual
-            dimensions={dimensions}
-            containerRef={virtualContainerRef}
-            file={file}
-            showAscii={showAscii}
-            chunkSize={1024 * 128}
-            overscanCount={0}
-            selectedOffsetRange={selectedOffsetRange}
-            onSelectedOffsetRangeChange={setSelectedOffsetRange}
-          />
-          {/* <div style={{ height: '2000px' }} className="bg-red-300">wat</div> */}
-        </div>
+        <HexCanvasReact
+          ref={canvasRef}
+          file={file}
+          showAscii={showAscii}
+          diff={diff}
+          windowSize={windowSize}
+          selectedOffsetRange={selectedOffsetRange}
+          onSelectedOffsetRangeChange={setSelectedOffsetRange}
+          onScroll={(scrollTop) => {
+            // Handle scroll events if needed
+          }}
+        />
       </div>
     </ResizablePanel>
   )

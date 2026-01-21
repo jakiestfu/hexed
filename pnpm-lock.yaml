@@ -47,6 +47,9 @@ importers:
 
   apps/web:
     dependencies:
+      '@hexed/canvas':
+        specifier: workspace:*
+        version: link:../../packages/canvas
       '@hexed/editor':
         specifier: workspace:*
         version: link:../../packages/editor
@@ -174,6 +177,49 @@ importers:
         specifier: ^5.7.2
         version: 5.9.3
 
+  packages/canvas:
+    dependencies:
+      '@hexed/binary-utils':
+        specifier: workspace:*
+        version: link:../binary-utils
+      '@hexed/types':
+        specifier: workspace:*
+        version: link:../types
+      '@hexed/ui':
+        specifier: workspace:*
+        version: link:../ui
+      '@hexed/virtual':
+        specifier: workspace:*
+        version: link:../virtual
+      usehooks-ts:
+        specifier: ^3.0.0
+        version: 3.1.1(react@19.2.3)
+    devDependencies:
+      '@hexed/eslint-config':
+        specifier: workspace:*
+        version: link:../../tooling/eslint-config
+      '@hexed/prettier-config':
+        specifier: workspace:*
+        version: link:../../tooling/prettier-config
+      '@hexed/typescript-config':
+        specifier: workspace:*
+        version: link:../../tooling/typescript-config
+      '@types/react':
+        specifier: ^19.2.3
+        version: 19.2.7
+      '@types/react-dom':
+        specifier: ^19.2.3
+        version: 19.2.3(@types/react@19.2.7)
+      react:
+        specifier: 19.2.3
+        version: 19.2.3
+      react-dom:
+        specifier: 19.2.3
+        version: 19.2.3(react@19.2.3)
+      typescript:
+        specifier: ^5.7.2
+        version: 5.9.3
+
   packages/editor:
     dependencies:
       '@hexed/binary-templates':
@@ -182,6 +228,9 @@ importers:
       '@hexed/binary-utils':
         specifier: workspace:*
         version: link:../binary-utils
+      '@hexed/canvas':
+        specifier: workspace:*
+        version: link:../canvas
       '@hexed/logger':
         specifier: workspace:*
         version: link:../logger
@@ -3608,6 +3657,9 @@ packages:
     resolution: {integrity: sha512-iPZK6eYjbxRu3uB4/WZ3EsEIMJFMqAoopl3R+zuq0UjcAm/MO6KCweDgPfP3elTztoKP3KtnVHxTn2NHBSDVUw==}
     engines: {node: '>=10'}
 
+  lodash.debounce@4.0.8:
+    resolution: {integrity: sha512-FT1yDzDYEoYWhnSGnpE/4Kj1fLZkDFyqRb7fNt6FdYOSxlUWAtp42Eh6Wb0rGIv/m9Bgo7x4GhQbm5Ys4SG5ow==}
+
   lodash.merge@4.6.2:
     resolution: {integrity: sha512-0KpjqXRVvrYyCsX1swR/XTK0va6VQkQM6MNo7PqW77ByjAhoARA8EfrP1N4+KlKj8YS0ZUCtRT/YUuhyYDujIQ==}
 
@@ -4685,6 +4737,12 @@ packages:
 
   use-sync-external-store@1.6.0:
     resolution: {integrity: sha512-Pp6GSwGP/NrPIrxVFAIkOQeyw8lFenOHijQWkUTrDvrF4ALqylP2C/KCkeS9dpUM3KvYRQhna5vt7IL95+ZQ9w==}
+    peerDependencies:
+      react: 19.2.3
+
+  usehooks-ts@3.1.1:
+    resolution: {integrity: sha512-I4diPp9Cq6ieSUH2wu+fDAVQO43xwtulo+fKEidHUwZPnYImbtkTjzIJYcDcJqxgmX31GVqNFURodvcgHcW0pA==}
+    engines: {node: '>=16.15.0'}
     peerDependencies:
       react: 19.2.3
 
@@ -7988,6 +8046,8 @@ snapshots:
     dependencies:
       p-locate: 5.0.0
 
+  lodash.debounce@4.0.8: {}
+
   lodash.merge@4.6.2: {}
 
   lodash@4.17.21: {}
@@ -9216,6 +9276,11 @@ snapshots:
 
   use-sync-external-store@1.6.0(react@19.2.3):
     dependencies:
+      react: 19.2.3
+
+  usehooks-ts@3.1.1(react@19.2.3):
+    dependencies:
+      lodash.debounce: 4.0.8
       react: 19.2.3
 
   validate-npm-package-name@6.0.2: {}
