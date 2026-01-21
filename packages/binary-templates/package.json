@@ -202,7 +202,7 @@
     "generate:schema-types": "node scripts/generate-ksy-schema-types.js",
     "sync:ksy": "node scripts/sync-ksy.js",
     "typecheck": "tsc --noEmit",
-    "clean": "rm -rf node_modules",
+    "clean": "rm -rf node_modules src/generated",
     "postinstall": "./scripts/install-kaitai.sh"
   },
   "dependencies": {
