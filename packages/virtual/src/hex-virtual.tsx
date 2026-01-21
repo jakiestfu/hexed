@@ -1,6 +1,7 @@
 import {
   CSSProperties,
   FunctionComponent,
+  memo,
   RefObject,
   useCallback,
   useEffect,
@@ -25,6 +26,7 @@ import {
 } from "./constants"
 import { useCalculateRowLayout } from "./hooks/use-calculate-row-layout"
 import { useVirtualFileBytes } from "./hooks/use-virtual-file-bytes"
+import { cn } from "@hexed/ui"
 
 const cellWidthStyle = { width: `${cellWidth}px` }
 const asciiCharWidthStyle = { width: `${asciiCharWidth}px` }
@@ -35,9 +37,133 @@ const asciiBorderWidthStyle = { width: `${asciiBorderWidth}px` }
 
 const mockBytes = new Uint8Array([])
 
-const ByteRow: FunctionComponent<{
+const highlight = "bg-chart-4/30 dark:bg-chart-4/20"
+const highlightClasses = highlight.split(" ")
+
+// Helper functions for DOM-based selection updates during drag
+const updateSelectionStyles = (
+  container: HTMLElement,
+  range: { start: number; end: number } | null,
+  rowStartOffset: number,
+  bytesPerRow: number,
+  fileSize?: number
+) => {
+  if (!range) {
+    // Clear all selections
+    container
+      .querySelectorAll(".byte-cell.selected, .ascii-cell.selected")
+      .forEach((el) => {
+        el.classList.remove("selected", ...highlightClasses)
+      })
+    return
+  }
+
+  const minOffset = Math.min(range.start, range.end)
+  const maxOffset = Math.max(range.start, range.end)
+
+  // Update byte cells
+  container.querySelectorAll(".byte-cell").forEach((el) => {
+    const dataIndex = el.getAttribute("data-index")
+    if (dataIndex === null) return
+    const byteOffset = rowStartOffset + parseInt(dataIndex, 10)
+    const isInRange =
+      fileSize !== undefined &&
+      byteOffset < fileSize &&
+      byteOffset >= minOffset &&
+      byteOffset <= maxOffset
+
+    if (isInRange) {
+      el.classList.add("selected", ...highlightClasses)
+    } else {
+      el.classList.remove("selected", ...highlightClasses)
+    }
+  })
+
+  // Update ascii cells
+  container.querySelectorAll(".ascii-cell").forEach((el) => {
+    const dataIndex = el.getAttribute("data-index")
+    if (dataIndex === null) return
+    const byteOffset = rowStartOffset + parseInt(dataIndex, 10)
+    const isInRange =
+      fileSize !== undefined &&
+      byteOffset < fileSize &&
+      byteOffset >= minOffset &&
+      byteOffset <= maxOffset
+
+    if (isInRange) {
+      el.classList.add("selected", ...highlightClasses)
+    } else {
+      el.classList.remove("selected", ...highlightClasses)
+    }
+  })
+}
+
+// Update all rows in a container for a given selection range
+const updateAllRowsSelection = (
+  container: HTMLElement,
+  range: { start: number; end: number } | null,
+  bytesPerRow: number,
+  fileSize?: number
+) => {
+  if (!range) {
+    // Clear all selections
+    container
+      .querySelectorAll(".byte-cell.selected, .ascii-cell.selected")
+      .forEach((el) => {
+        el.classList.remove("selected", ...highlightClasses)
+      })
+    return
+  }
+
+  const minOffset = Math.min(range.start, range.end)
+  const maxOffset = Math.max(range.start, range.end)
+
+  // Update all rows
+  container.querySelectorAll(".byte-row").forEach((rowEl) => {
+    const rowStartOffsetAttr = rowEl.getAttribute("data-row-start-offset")
+    if (rowStartOffsetAttr === null) return
+    const rowStartOffset = parseInt(rowStartOffsetAttr, 10)
+
+    // Update byte cells in this row
+    rowEl.querySelectorAll(".byte-cell").forEach((el) => {
+      const dataIndex = el.getAttribute("data-index")
+      if (dataIndex === null) return
+      const byteOffset = rowStartOffset + parseInt(dataIndex, 10)
+      const isInRange =
+        fileSize !== undefined &&
+        byteOffset < fileSize &&
+        byteOffset >= minOffset &&
+        byteOffset <= maxOffset
+
+      if (isInRange) {
+        el.classList.add("selected", ...highlightClasses)
+      } else {
+        el.classList.remove("selected", ...highlightClasses)
+      }
+    })
+
+    // Update ascii cells in this row
+    rowEl.querySelectorAll(".ascii-cell").forEach((el) => {
+      const dataIndex = el.getAttribute("data-index")
+      if (dataIndex === null) return
+      const byteOffset = rowStartOffset + parseInt(dataIndex, 10)
+      const isInRange =
+        fileSize !== undefined &&
+        byteOffset < fileSize &&
+        byteOffset >= minOffset &&
+        byteOffset <= maxOffset
+
+      if (isInRange) {
+        el.classList.add("selected", ...highlightClasses)
+      } else {
+        el.classList.remove("selected", ...highlightClasses)
+      }
+    })
+  })
+}
+
+const ByteRowContentBase: FunctionComponent<{
   preview?: boolean
-  style: CSSProperties
   addr: string
   bytesPerRow: number
   bytes: Uint8Array
@@ -52,14 +178,16 @@ const ByteRow: FunctionComponent<{
     initialOffset: number
     wasShiftPressed: boolean
   } | null
+  dragSelectionRef?: React.MutableRefObject<{
+    start: number
+    end: number
+  } | null>
+  containerElement?: HTMLElement | null
   onDragStart?: (offset: number, shiftKey: boolean) => void
   onDragEnd?: () => void
-  hoveredOffset?: number | null
-  onHoveredOffsetChange?: (offset: number | null) => void
   fileSize?: number
 }> = ({
-  preview,
-  style,
+  preview = false,
   addr,
   bytesPerRow,
   bytes,
@@ -68,12 +196,55 @@ const ByteRow: FunctionComponent<{
   rowStartOffset,
   onSelectedOffsetRangeChange,
   dragState,
+  dragSelectionRef,
+  containerElement,
   onDragStart,
   onDragEnd,
-  hoveredOffset,
-  onHoveredOffsetChange,
   fileSize
 }) => {
+    const rowRef = useRef<HTMLDivElement | null>(null)
+
+    const clearPairHover = useCallback(() => {
+      const row = rowRef.current
+      if (!row) return
+      row.querySelectorAll(".pair-hover").forEach((el) => {
+        el.classList.remove("pair-hover")
+      })
+    }, [])
+
+    const setPairHover = useCallback(
+      (i: number | null) => {
+        const row = rowRef.current
+        if (!row) return
+
+        // clear previous
+        row.querySelectorAll(".pair-hover").forEach((el) => {
+          el.classList.remove("pair-hover")
+        })
+
+        if (i == null) return
+
+        // add to BOTH the byte + ascii cells that share the same data-index
+        row
+          .querySelectorAll<HTMLElement>(`[data-index="${i}"]`)
+          .forEach((el) => el.classList.add("pair-hover"))
+      },
+      []
+    )
+
+    // Sync DOM with React state when selection changes (not during drag)
+    useEffect(() => {
+      if (preview || dragState?.isDragging || !rowRef.current) return
+      const range = selectedOffsetRange ?? null
+      updateSelectionStyles(
+        rowRef.current,
+        range,
+        rowStartOffset,
+        bytesPerRow,
+        fileSize
+      )
+    }, [selectedOffsetRange, rowStartOffset, bytesPerRow, fileSize, preview, dragState])
+
     // Helper function to check if a byte offset is selected
     const isByteSelected = (byteOffset: number): boolean => {
       if (!selectedOffsetRange) return false
@@ -81,11 +252,6 @@ const ByteRow: FunctionComponent<{
       const minOffset = Math.min(start, end)
       const maxOffset = Math.max(start, end)
       return byteOffset >= minOffset && byteOffset <= maxOffset
-    }
-
-    // Helper function to check if a byte offset is hovered
-    const isByteHovered = (byteOffset: number): boolean => {
-      return hoveredOffset === byteOffset
     }
 
     // Handle byte cell mouse down
@@ -152,10 +318,10 @@ const ByteRow: FunctionComponent<{
 
     // Handle byte cell mouse enter (for drag selection)
     const handleByteMouseEnter = (byteOffset: number) => {
-      if (preview || !onSelectedOffsetRangeChange || !dragState?.isDragging)
-        return
+      if (preview || !dragState?.isDragging) return
 
       const { initialOffset, wasShiftPressed } = dragState
+      let newRange: { start: number; end: number }
 
       if (wasShiftPressed && selectedOffsetRange) {
         // Shift+drag: extend from existing selection
@@ -171,24 +337,43 @@ const ByteRow: FunctionComponent<{
           Math.abs(initialOffset - maxOffset)
         ) {
           // Anchor is closer to start, so extend from end
-          onSelectedOffsetRangeChange({ start: minOffset, end: byteOffset })
+          newRange = { start: minOffset, end: byteOffset }
         } else {
           // Anchor is closer to end, so extend from start
-          onSelectedOffsetRangeChange({ start: byteOffset, end: maxOffset })
+          newRange = { start: byteOffset, end: maxOffset }
         }
       } else {
         // Normal drag: select from initial offset to current offset
-        onSelectedOffsetRangeChange({ start: initialOffset, end: byteOffset })
+        newRange = { start: initialOffset, end: byteOffset }
+      }
+
+      // Update ref for drag selection (no rerender)
+      if (dragSelectionRef) {
+        dragSelectionRef.current = newRange
+      }
+
+      // Update DOM directly for visual feedback (no rerender)
+      // Update all rows in the selection range, not just the current row
+      if (containerElement) {
+        updateAllRowsSelection(containerElement, newRange, bytesPerRow, fileSize)
+      } else if (rowRef.current) {
+        // Fallback to just updating current row if container not available
+        updateSelectionStyles(
+          rowRef.current,
+          newRange,
+          rowStartOffset,
+          bytesPerRow,
+          fileSize
+        )
       }
     }
 
     return (
       <div
-        className="flex items-center px-4 whitespace-pre hover:bg-muted"
-        style={style}
-        onMouseLeave={() => {
-          onHoveredOffsetChange?.(null)
-        }}
+        style={!preview ? rowHeightStyle : undefined}
+        ref={rowRef}
+        data-row-start-offset={rowStartOffset}
+        className={cn("byte-row flex items-center px-4 whitespace-pre hover:bg-muted", preview ? "h-full" : "")}
       >
         <div
           className="text-muted-foreground flex items-center h-full justify-center"
@@ -204,20 +389,24 @@ const ByteRow: FunctionComponent<{
         </div>
         <div
           data-bytes
-          className="grow flex justify-between items-center"
-          style={rowHeightStyle}
+          className="grow flex items-center h-full"
         >
           {Array.from({ length: bytesPerRow }, (_, i) => {
             const byteOffset = rowStartOffset + i
             const byteExists = fileSize !== undefined && byteOffset < fileSize
             const byte = byteExists ? bytes[i] : undefined
             const isSelected = byteExists ? isByteSelected(byteOffset) : false
-            const isHovered = byteExists ? isByteHovered(byteOffset) : false
 
             return (
               <div
                 key={i}
-                className={`text-center ${isSelected ? "bg-chart-4/30" : ""} ${isHovered ? "bg-chart-4/30" : ""} flex items-center justify-center h-full select-none`}
+                data-index={i}
+                className={cn(
+                  "byte-cell text-center flex flex-1 items-center justify-center h-full select-none",
+                  "hover:bg-chart-4/30 dark:hover:bg-chart-4/20",
+                  "[&.pair-hover]:bg-chart-4/30 dark:[&.pair-hover]:bg-chart-4/20",
+                  isSelected ? highlight : ""
+                )}
                 style={cellWidthStyle}
                 onMouseDown={
                   byteExists
@@ -230,18 +419,12 @@ const ByteRow: FunctionComponent<{
                 onMouseEnter={
                   byteExists
                     ? () => {
-                      onHoveredOffsetChange?.(byteOffset)
+                      setPairHover(i)
                       handleByteMouseEnter(byteOffset)
                     }
                     : undefined
                 }
-                onMouseLeave={
-                  byteExists
-                    ? () => {
-                      onHoveredOffsetChange?.(null)
-                    }
-                    : undefined
-                }
+                onMouseLeave={() => clearPairHover()}
               >
                 {!preview && byteExists ? byteToHex(byte!) : null}
               </div>
@@ -266,13 +449,17 @@ const ByteRow: FunctionComponent<{
                 const byteExists = fileSize !== undefined && byteOffset < fileSize
                 const byte = byteExists ? bytes[i] : undefined
                 const isSelected = byteExists ? isByteSelected(byteOffset) : false
-                const isHovered = byteExists ? isByteHovered(byteOffset) : false
 
                 return (
                   <div
                     key={i}
-                    className={`text-center ${isSelected ? "bg-chart-4/30" : ""} ${isHovered ? "bg-chart-4/30" : ""} flex items-center justify-center h-full select-none`}
-                    style={asciiCharWidthStyle}
+                    data-index={i}
+                    className={cn(
+                      "ascii-cell text-center flex items-center justify-center h-full select-none",
+                      "hover:bg-chart-4/30 dark:hover:bg-chart-4/20",
+                      "[&.pair-hover]:bg-chart-4/30 dark:[&.pair-hover]:bg-chart-4/20",
+                      isSelected ? highlight : ""
+                    )}
                     onMouseDown={
                       byteExists
                         ? (e) => {
@@ -284,20 +471,16 @@ const ByteRow: FunctionComponent<{
                     onMouseEnter={
                       byteExists
                         ? () => {
-                          onHoveredOffsetChange?.(byteOffset)
+                          setPairHover(i)
                           handleByteMouseEnter(byteOffset)
                         }
                         : undefined
                     }
-                    onMouseLeave={
-                      byteExists
-                        ? () => {
-                          onHoveredOffsetChange?.(null)
-                        }
-                        : undefined
-                    }
+                    onMouseLeave={() => clearPairHover()}
                   >
-                    {!preview && byteExists ? byteToAscii(byte!) : null}
+                    <div style={asciiCharWidthStyle}>
+                      {!preview && byteExists ? byteToAscii(byte!) : null}
+                    </div>
                   </div>
                 )
               })}
@@ -307,6 +490,70 @@ const ByteRow: FunctionComponent<{
       </div>
     )
   }
+
+// Custom comparison function for ByteRowContent memoization
+// Only rerender if props change AND the row's byte range intersects with selection changes
+const arePropsEqual = (
+  prevProps: React.ComponentProps<typeof ByteRowContentBase>,
+  nextProps: React.ComponentProps<typeof ByteRowContentBase>
+) => {
+  // Check if non-selection props changed
+  if (
+    prevProps.preview !== nextProps.preview ||
+    prevProps.addr !== nextProps.addr ||
+    prevProps.bytesPerRow !== nextProps.bytesPerRow ||
+    prevProps.bytes !== nextProps.bytes ||
+    prevProps.showAscii !== nextProps.showAscii ||
+    prevProps.rowStartOffset !== nextProps.rowStartOffset ||
+    prevProps.fileSize !== nextProps.fileSize ||
+    prevProps.dragState !== nextProps.dragState ||
+    prevProps.dragSelectionRef !== nextProps.dragSelectionRef ||
+    prevProps.onSelectedOffsetRangeChange !== nextProps.onSelectedOffsetRangeChange ||
+    prevProps.onDragStart !== nextProps.onDragStart ||
+    prevProps.onDragEnd !== nextProps.onDragEnd
+  ) {
+    return false
+  }
+
+  // Check if selection changed in a way that affects this row
+  const prevRange = prevProps.selectedOffsetRange
+  const nextRange = nextProps.selectedOffsetRange
+
+  // If both are null, no change
+  if (!prevRange && !nextRange) return true
+
+  // If one is null and the other isn't, check if row intersects with selection
+  if (!prevRange || !nextRange) {
+    const range = prevRange || nextRange
+    if (!range) return true
+    const minOffset = Math.min(range.start, range.end)
+    const maxOffset = Math.max(range.start, range.end)
+    const rowStart = prevProps.rowStartOffset
+    const rowEnd = rowStart + prevProps.bytesPerRow - 1
+    // Row intersects if it overlaps with selection range
+    return !(rowEnd >= minOffset && rowStart <= maxOffset)
+  }
+
+  // Both ranges exist - check if they're different AND affect this row
+  const prevMin = Math.min(prevRange.start, prevRange.end)
+  const prevMax = Math.max(prevRange.start, prevRange.end)
+  const nextMin = Math.min(nextRange.start, nextRange.end)
+  const nextMax = Math.max(nextRange.start, nextRange.end)
+
+  // If ranges are the same, no change
+  if (prevMin === nextMin && prevMax === nextMax) return true
+
+  // Check if row intersects with either range
+  const rowStart = prevProps.rowStartOffset
+  const rowEnd = rowStart + prevProps.bytesPerRow - 1
+  const intersectsPrev = rowEnd >= prevMin && rowStart <= prevMax
+  const intersectsNext = rowEnd >= nextMin && rowStart <= nextMax
+
+  // Only rerender if intersection status changed
+  return intersectsPrev === intersectsNext
+}
+
+const ByteRowContent = memo(ByteRowContentBase, arePropsEqual)
 
 export const HexVirtual: FunctionComponent<{
   containerRef: RefObject<HTMLDivElement | null>
@@ -344,9 +591,6 @@ export const HexVirtual: FunctionComponent<{
     const listRef = useRef<FixedSizeListType | null>(null)
     // const overscanCount = 100
 
-    // Track hover state for byte highlighting
-    const [hoveredOffset, setHoveredOffset] = useState<number | null>(null)
-
     // Track drag state for byte selection
     const [dragState, setDragState] = useState<{
       isDragging: boolean
@@ -354,24 +598,38 @@ export const HexVirtual: FunctionComponent<{
       wasShiftPressed: boolean
     } | null>(null)
 
+    // Track selection during drag using ref (avoids rerenders)
+    const dragSelectionRef = useRef<{ start: number; end: number } | null>(null)
+
     // Handle drag start
-    const handleDragStart = useCallback((offset: number, shiftKey: boolean) => {
-      setDragState({
-        isDragging: true,
-        initialOffset: offset,
-        wasShiftPressed: shiftKey
-      })
-    }, [])
+    const handleDragStart = useCallback(
+      (offset: number, shiftKey: boolean) => {
+        setDragState({
+          isDragging: true,
+          initialOffset: offset,
+          wasShiftPressed: shiftKey
+        })
+        // Initialize drag selection ref with current selection or single byte
+        if (shiftKey && selectedOffsetRange) {
+          // Will be updated in handleByteMouseEnter
+          dragSelectionRef.current = selectedOffsetRange
+        } else {
+          dragSelectionRef.current = { start: offset, end: offset }
+        }
+      },
+      [selectedOffsetRange]
+    )
 
-    // Handle drag end
+    // Handle drag end - commit ref to state
     const handleDragEnd = useCallback(() => {
+      // Commit drag selection to state (single rerender)
+      if (dragSelectionRef.current && onSelectedOffsetRangeChange) {
+        onSelectedOffsetRangeChange(dragSelectionRef.current)
+      }
+      // Clear drag state
       setDragState(null)
-    }, [])
-
-    // Handle hover state change
-    const handleHoveredOffsetChange = useCallback((offset: number | null) => {
-      setHoveredOffset(offset)
-    }, [])
+      dragSelectionRef.current = null
+    }, [onSelectedOffsetRangeChange])
 
     // Set up document-level mouse up handler to end drag
     useEffect(() => {
@@ -395,11 +653,13 @@ export const HexVirtual: FunctionComponent<{
       [containerRef]
     )
 
-    // Track visible range for data fetching
-    const [visibleRange, setVisibleRange] = useState<{
+    // Track last fetched range to avoid redundant calls
+    const lastFetchedRangeRef = useRef<{
       startIndex: number
       stopIndex: number
     } | null>(null)
+    const initialFetchDoneRef = useRef(false)
+    const abortControllerRef = useRef<AbortController | null>(null)
 
     const handleItemsRendered = useCallback(
       ({
@@ -411,50 +671,100 @@ export const HexVirtual: FunctionComponent<{
         visibleStartIndex: number
         visibleStopIndex: number
       }) => {
-        setVisibleRange({
+        if (!file || rowCount === 0) return
+
+        // Check if range has changed to avoid redundant fetches
+        const lastRange = lastFetchedRangeRef.current
+        if (
+          lastRange &&
+          lastRange.startIndex === visibleStartIndex &&
+          lastRange.stopIndex === visibleStopIndex
+        ) {
+          return
+        }
+
+        // Abort previous fetch if still pending
+        if (abortControllerRef.current) {
+          abortControllerRef.current.abort()
+        }
+
+        // Update refs
+        lastFetchedRangeRef.current = {
           startIndex: visibleStartIndex,
           stopIndex: visibleStopIndex
-        })
+        }
+        initialFetchDoneRef.current = true
+
+        // Fetch data for visible items - indices directly map to file rows
+        const ac = new AbortController()
+        abortControllerRef.current = ac
+        ensureRows(visibleStartIndex, visibleStopIndex, ac.signal).catch(
+          (err) => {
+            if (err?.name !== "AbortError") console.error(err)
+          }
+        )
       },
-      []
+      [file, rowCount, ensureRows]
     )
 
-    // Prefetch bytes for visible+overscan rows
+    // Reset fetch tracking when file changes
     useEffect(() => {
-      if (!file || rowCount === 0) return
+      lastFetchedRangeRef.current = null
+      initialFetchDoneRef.current = false
+      if (abortControllerRef.current) {
+        abortControllerRef.current.abort()
+        abortControllerRef.current = null
+      }
+    }, [file])
 
-      if (visibleRange === null) {
-        // If no visible range yet but we have rows, try to fetch initial visible range
-        const estimatedVisibleRows =
-          Math.ceil(dimensions.height / rowHeight) + overscanCount
-        const initialStart = 0
-        const initialEnd = Math.min(estimatedVisibleRows - 1, rowCount - 1)
-        const ac = new AbortController()
-        ensureRows(initialStart, initialEnd, ac.signal).catch((err) => {
-          if (err?.name !== "AbortError") console.error(err)
-        })
-        return () => ac.abort()
+    // Handle initial fetch if handleItemsRendered hasn't been called yet
+    useEffect(() => {
+      if (!file || rowCount === 0 || initialFetchDoneRef.current) return
+
+      // If no visible range yet but we have rows, try to fetch initial visible range
+      const estimatedVisibleRows =
+        Math.ceil(dimensions.height / rowHeight) + overscanCount
+      const initialStart = 0
+      const initialEnd = Math.min(estimatedVisibleRows - 1, rowCount - 1)
+
+      // Abort previous fetch if still pending
+      if (abortControllerRef.current) {
+        abortControllerRef.current.abort()
       }
 
-      // Fetch data for visible items - indices directly map to file rows
       const ac = new AbortController()
-      ensureRows(
-        visibleRange.startIndex,
-        visibleRange.stopIndex,
-        ac.signal
-      ).catch((err) => {
+      abortControllerRef.current = ac
+      ensureRows(initialStart, initialEnd, ac.signal).catch((err) => {
         if (err?.name !== "AbortError") console.error(err)
       })
-      return () => ac.abort()
+
+      lastFetchedRangeRef.current = {
+        startIndex: initialStart,
+        stopIndex: initialEnd
+      }
+      initialFetchDoneRef.current = true
+
+      return () => {
+        ac.abort()
+      }
     }, [
       file,
       ensureRows,
-      visibleRange,
       rowCount,
       dimensions.height,
       rowHeight,
       overscanCount
     ])
+
+    // Cleanup abort controller on unmount
+    useEffect(() => {
+      return () => {
+        if (abortControllerRef.current) {
+          abortControllerRef.current.abort()
+        }
+      }
+    }, [])
+    console.log("HexVirtual Render")
 
     const Row = useCallback(
       ({ index, style }: { index: number; style: CSSProperties }) => {
@@ -466,22 +776,28 @@ export const HexVirtual: FunctionComponent<{
         const addr = formatAddress(rowStartOffset) // (index * bytesPerRow).toString(16).padStart(8, "0").toUpperCase()
 
         return (
-          <ByteRow
-            style={style}
-            addr={addr}
-            bytesPerRow={bytesPerRow}
-            bytes={bytes}
-            showAscii={showAscii}
-            selectedOffsetRange={selectedOffsetRange}
-            rowStartOffset={rowStartOffset}
-            onSelectedOffsetRangeChange={onSelectedOffsetRangeChange}
-            dragState={dragState}
-            onDragStart={handleDragStart}
-            onDragEnd={handleDragEnd}
-            hoveredOffset={hoveredOffset}
-            onHoveredOffsetChange={handleHoveredOffsetChange}
-            fileSize={fileSize}
-          />
+          <div style={{
+            position: "absolute",
+            transform: `translateY(${style.top}px)`,
+            width: "100%",
+          }}>
+            <ByteRowContent
+              // style={style}
+              addr={addr}
+              bytesPerRow={bytesPerRow}
+              bytes={bytes}
+              showAscii={showAscii}
+              selectedOffsetRange={selectedOffsetRange}
+              rowStartOffset={rowStartOffset}
+              onSelectedOffsetRangeChange={onSelectedOffsetRangeChange}
+              dragState={dragState}
+              dragSelectionRef={dragSelectionRef}
+              containerElement={containerRef.current}
+              onDragStart={handleDragStart}
+              onDragEnd={handleDragEnd}
+              fileSize={fileSize}
+            />
+          </div>
         )
       },
       [
@@ -494,9 +810,7 @@ export const HexVirtual: FunctionComponent<{
         onSelectedOffsetRangeChange,
         dragState,
         handleDragStart,
-        handleDragEnd,
-        hoveredOffset,
-        handleHoveredOffsetChange
+        handleDragEnd
       ]
     )
 
@@ -528,9 +842,9 @@ export const HexVirtual: FunctionComponent<{
         </FixedSizeList>
 
         <div className="absolute top-0 left-0 w-full h-full pointer-events-none">
-          <ByteRow
+          <ByteRowContent
             preview
-            style={{ height: dimensions.height }}
+            // style={{ height: dimensions.height }}
             addr={""}
             bytesPerRow={bytesPerRow}
             bytes={mockBytes}
@@ -539,10 +853,9 @@ export const HexVirtual: FunctionComponent<{
             rowStartOffset={0}
             onSelectedOffsetRangeChange={undefined}
             dragState={null}
+            dragSelectionRef={undefined}
             onDragStart={undefined}
             onDragEnd={undefined}
-            hoveredOffset={null}
-            onHoveredOffsetChange={undefined}
             fileSize={fileSize}
           />
         </div>

@@ -11,6 +11,8 @@ export class FileByteCache {
   private file: File
   private chunkSize: number
   private chunks = new Map<number, Uint8Array>() // chunkIndex -> bytes
+  private rowCache = new Map<number, Uint8Array>() // rowIndex -> bytes
+  private maxRowCacheSize = 200 // Maximum number of rows to cache
 
   constructor(file: File, chunkSize = 64 * 1024) {
     this.file = file
@@ -78,6 +80,34 @@ export class FileByteCache {
     return writeOffset === out.length ? out : out.subarray(0, writeOffset)
   }
 
+  getRowBytes(rowIndex: number, bytesPerRow: number): Uint8Array {
+    // Check if row is cached
+    if (this.rowCache.has(rowIndex)) {
+      // Move to end (most recently used) by deleting and re-inserting
+      const cached = this.rowCache.get(rowIndex)!
+      this.rowCache.delete(rowIndex)
+      this.rowCache.set(rowIndex, cached)
+      return cached
+    }
+
+    // Not cached, read bytes
+    const start = rowIndex * bytesPerRow
+    const end = Math.min(start + bytesPerRow, this.size)
+    const bytes = this.readBytes({ start, end })
+
+    // Cache with LRU eviction
+    if (this.rowCache.size >= this.maxRowCacheSize) {
+      // Remove least recently used (first entry in Map)
+      const firstKey = this.rowCache.keys().next().value
+      if (firstKey !== undefined) {
+        this.rowCache.delete(firstKey)
+      }
+    }
+    this.rowCache.set(rowIndex, bytes)
+
+    return bytes
+  }
+
   async loadChunk(chunkIndex: number, signal?: AbortSignal): Promise<void> {
     const start = chunkIndex * this.chunkSize
     const end = Math.min(start + this.chunkSize, this.file.size)
@@ -90,6 +120,8 @@ export class FileByteCache {
     if (signal?.aborted) throw new DOMException("Aborted", "AbortError")
 
     this.chunks.set(chunkIndex, new Uint8Array(buf))
+    // Clear row cache when chunks are loaded to ensure rows reflect updated chunk data
+    this.rowCache.clear()
   }
 }
 
@@ -133,11 +165,9 @@ export function useVirtualFileBytes({
   const getRowBytes = useCallback(
     (rowIndex: number) => {
       if (!cache) return new Uint8Array(0)
-      const start = rowIndex * bytesPerRow
-      const end = Math.min(start + bytesPerRow, cache.size)
-      return cache?.readBytes({ start, end })
+      return cache.getRowBytes(rowIndex, bytesPerRow)
     },
-    [cache, bytesPerRow, version] // version so consumer updates when new bytes cached
+    [cache, bytesPerRow, version] // version triggers re-render when chunks load, cache handles memoization
   )
 
   const rowCount = cache ? Math.ceil(cache.size / bytesPerRow) : 0

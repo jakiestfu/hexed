@@ -454,9 +454,9 @@ importers:
       '@hexed/binary-utils':
         specifier: workspace:*
         version: link:../binary-utils
-      '@hexed/types':
+      '@hexed/ui':
         specifier: workspace:*
-        version: link:../types
+        version: link:../ui
       react-window:
         specifier: ^1.8.10
         version: 1.8.11(react-dom@19.2.3(react@19.2.3))(react@19.2.3)
@@ -467,6 +467,9 @@ importers:
       '@hexed/prettier-config':
         specifier: workspace:*
         version: link:../../tooling/prettier-config
+      '@hexed/types':
+        specifier: workspace:*
+        version: link:../types
       '@hexed/typescript-config':
         specifier: workspace:*
         version: link:../../tooling/typescript-config

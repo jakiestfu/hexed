@@ -196,7 +196,7 @@ export const HexEditor: FunctionComponent<HexEditorProps> = ({
             file={file}
             showAscii={showAscii}
             chunkSize={128 * 1024}
-            overscanCount={100}
+            overscanCount={200}
             selectedOffsetRange={selectedOffsetRange}
             onSelectedOffsetRangeChange={setSelectedOffsetRange}
           />
@@ -251,7 +251,7 @@ export const HexEditor: FunctionComponent<HexEditorProps> = ({
             fileSource={fileSource}
             isConnected={fileHandle !== null}
             error={null}
-            onRestartWatching={() => {}}
+            onRestartWatching={() => { }}
             onClose={onClose}
           />
           <HexToolbarSearch

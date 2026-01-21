@@ -16,10 +16,11 @@
   },
   "dependencies": {
     "@hexed/binary-utils": "workspace:*",
-    "@hexed/types": "workspace:*",
+    "@hexed/ui": "workspace:*",
     "react-window": "^1.8.10"
   },
   "devDependencies": {
+    "@hexed/types": "workspace:*",
     "@hexed/eslint-config": "workspace:*",
     "@hexed/prettier-config": "workspace:*",
     "@hexed/typescript-config": "workspace:*",
