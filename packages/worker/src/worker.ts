@@ -3,7 +3,7 @@
  */
 
 import { createLogger } from "@hexed/logger";
-import { extractStrings } from "@hexed/binary-utils/strings";
+import { extractStrings, type StringEncoding } from "@hexed/binary-utils/strings";
 import { FileHandleManager } from "./file-handle-manager";
 import type {
   WorkerMessage,
@@ -264,6 +264,26 @@ async function handleSearch(request: SearchRequest): Promise<void> {
 }
 
 /**
+ * Get the overlap buffer size needed for a given encoding
+ */
+function getOverlapSize(encoding: string): number {
+  switch (encoding) {
+    case "ascii":
+      return 0; // No multi-byte sequences
+    case "utf8":
+      return 3; // Max UTF-8 sequence is 4 bytes, need 3 to detect incomplete sequences
+    case "utf16le":
+    case "utf16be":
+      return 1; // 2-byte units, need 1 byte to detect incomplete unit
+    case "utf32le":
+    case "utf32be":
+      return 3; // 4-byte units, need 3 bytes to detect incomplete unit
+    default:
+      return 3; // Default to safe value for unknown encodings
+  }
+}
+
+/**
  * Handle STRINGS_REQUEST - Extract strings from file with progress updates
  */
 async function handleStrings(request: StringsRequest): Promise<void> {
@@ -278,11 +298,22 @@ async function handleStrings(request: StringsRequest): Promise<void> {
     const startOffset = request.startOffset ?? 0;
     const endOffset = request.endOffset ?? fileSize;
     const searchRange = endOffset - startOffset;
+    const encoding = request.encoding ?? "ascii";
+    const overlapSize = getOverlapSize(encoding);
 
-    // Read the file in chunks for progress reporting
+    // Accumulate matches as we process chunks
+    const allMatches: Array<{
+      offset: number;
+      length: number;
+      encoding: StringEncoding;
+      text: string;
+    }> = [];
+
+    // Overlap buffer from previous chunk
+    let overlapBuffer = new Uint8Array(0);
+
+    // Read and process the file in chunks
     let bytesRead = 0;
-    const chunks: Uint8Array[] = [];
-    console.log("A")
     while (bytesRead < searchRange) {
       const chunkStart = startOffset + bytesRead;
       const chunkEnd = Math.min(
@@ -296,7 +327,52 @@ async function handleStrings(request: StringsRequest): Promise<void> {
         chunkStart,
         chunkEnd
       );
-      chunks.push(chunk);
+
+      // Combine overlap buffer with current chunk
+      const combinedLength = overlapBuffer.length + chunk.length;
+      const combinedData = new Uint8Array(combinedLength);
+      combinedData.set(overlapBuffer, 0);
+      combinedData.set(chunk, overlapBuffer.length);
+
+      // Extract strings from combined data
+      const chunkMatches = extractStrings(combinedData, {
+        minLength: request.minLength,
+        encoding: request.encoding,
+      });
+
+      // Adjust offsets and filter out matches in overlap region
+      for (const match of chunkMatches) {
+        // Filter out matches that are entirely within the overlap region
+        if (match.offset < overlapBuffer.length) {
+          // Check if match extends beyond overlap region
+          const matchEnd = match.offset + match.length;
+          if (matchEnd <= overlapBuffer.length) {
+            // Match is entirely in overlap, skip (already processed in previous chunk)
+            continue;
+          }
+          // Match spans overlap boundary - it starts in overlap but extends into current chunk
+          // The match was already reported in the previous chunk, so skip it
+          continue;
+        } else {
+          // Match is entirely in current chunk (or starts at overlap boundary)
+          // Adjust offset: subtract overlap length to get position relative to chunk start,
+          // then add absolute chunk start position
+          const adjustedOffset = chunkStart + (match.offset - overlapBuffer.length);
+          allMatches.push({
+            ...match,
+            offset: adjustedOffset,
+          });
+        }
+      }
+
+      // Save last few bytes as overlap for next chunk
+      // Take last overlapSize bytes from combined buffer (or all if combined is smaller)
+      const overlapLength = Math.min(overlapSize, combinedData.length);
+      if (overlapLength > 0) {
+        overlapBuffer = combinedData.slice(combinedData.length - overlapLength);
+      } else {
+        overlapBuffer = new Uint8Array(0);
+      }
 
       const chunkSize = chunkEnd - chunkStart;
       bytesRead += chunkSize;
@@ -321,36 +397,15 @@ async function handleStrings(request: StringsRequest): Promise<void> {
       // Yield to event loop to keep UI responsive
       await new Promise((resolve) => setTimeout(resolve, 0));
     }
-    console.log("B")
-    // Combine all chunks into a single Uint8Array
-    const totalLength = chunks.reduce((sum, chunk) => sum + chunk.length, 0);
-    const combinedData = new Uint8Array(totalLength);
-    let offset = 0;
-    for (const chunk of chunks) {
-      combinedData.set(chunk, offset);
-      offset += chunk.length;
-    }
-    console.log("C", combinedData.length)
-    // Extract strings from the combined data
-    const matches = extractStrings(combinedData, {
-      minLength: request.minLength,
-      encoding: request.encoding,
-    });
-    console.log("D")
-    // Adjust offsets to account for startOffset
-    const adjustedMatches = matches.map((match) => ({
-      ...match,
-      offset: match.offset + startOffset,
-    }));
-    console.log("E")
+
     logger.log(
-      `Strings extraction completed: ${request.fileId}, found ${adjustedMatches.length} matches`
+      `Strings extraction completed: ${request.fileId}, found ${allMatches.length} matches`
     );
     const response: StringsResponse = {
       id: request.id,
       type: "STRINGS_RESPONSE",
       fileId: request.fileId,
-      matches: adjustedMatches,
+      matches: allMatches,
     };
     sendResponse(response);
   } catch (error) {
