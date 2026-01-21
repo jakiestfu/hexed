@@ -41,6 +41,6 @@ export const useCalculateRowLayout = ({
 
     return Math.max(minBytesPerRow, computed)
   }, [dimensions.width, showAscii, minBytesPerRow, safetyMarginPx])
-  
+
   return { bytesPerRow }
 }

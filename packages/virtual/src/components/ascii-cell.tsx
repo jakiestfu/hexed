@@ -1,7 +1,9 @@
 import { FunctionComponent } from "react"
+
 import { byteToAscii } from "@hexed/binary-utils"
-import { asciiCharWidth, rowHeight } from "../constants"
 import { cn } from "@hexed/ui"
+
+import { asciiCharWidth, rowHeight } from "../constants"
 import { highlight } from "../utils/selection-dom"
 
 const asciiCharWidthStyle = { width: `${asciiCharWidth}px` }
@@ -46,7 +48,9 @@ export const AsciiCell: FunctionComponent<AsciiCellProps> = ({
       onMouseLeave={onMouseLeave}
     >
       <div style={asciiCharWidthStyle}>
-        {!preview && byteExists && byte !== undefined ? byteToAscii(byte) : null}
+        {!preview && byteExists && byte !== undefined
+          ? byteToAscii(byte)
+          : null}
       </div>
     </div>
   )

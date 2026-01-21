@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react"
 import type { FunctionComponent } from "react"
 
+import { HexCanvasReact } from "@hexed/canvas"
 import type { DiffViewMode } from "@hexed/types"
 import {
   Card,
@@ -16,7 +17,6 @@ import {
   Tabs,
   TabsContent
 } from "@hexed/ui"
-import { HexCanvasReact } from "@hexed/canvas"
 
 import { useGlobalKeyboard } from "../hooks/use-global-keyboard"
 import { useHandleToFile } from "../hooks/use-handle-to-file"
@@ -218,9 +218,12 @@ export const HexEditor: FunctionComponent<HexEditorProps> = ({
           diff={diff}
           windowSize={windowSize}
           selectedOffsetRange={selectedOffsetRange}
-          onSelectedOffsetRangeChange={setSelectedOffsetRange}
-          onScroll={(scrollTop) => {
+          onSelectedOffsetRangeChange={(payload) => {
+            setSelectedOffsetRange(payload.range)
+          }}
+          onScroll={(payload) => {
             // Handle scroll events if needed
+            // payload.scrollTop available if needed
           }}
         />
       </div>
@@ -272,7 +275,7 @@ export const HexEditor: FunctionComponent<HexEditorProps> = ({
             fileSource={fileSource}
             isConnected={fileHandle !== null}
             error={null}
-            onRestartWatching={() => { }}
+            onRestartWatching={() => {}}
             onClose={onClose}
           />
           <HexToolbarSearch

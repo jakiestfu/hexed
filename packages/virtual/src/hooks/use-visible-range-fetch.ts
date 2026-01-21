@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useRef } from "react"
+
 import { rowHeight } from "../constants"
 
 type EnsureRowsFn = (
@@ -114,13 +115,7 @@ export function useVisibleRangeFetch({
     return () => {
       ac.abort()
     }
-  }, [
-    file,
-    ensureRows,
-    rowCount,
-    dimensions.height,
-    overscanCount
-  ])
+  }, [file, ensureRows, rowCount, dimensions.height, overscanCount])
 
   // Cleanup abort controller on unmount
   useEffect(() => {

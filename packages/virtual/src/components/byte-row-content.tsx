@@ -6,20 +6,26 @@ import {
   useMemo,
   useRef
 } from "react"
+
 import { formatAddress } from "@hexed/binary-utils"
+import { cn } from "@hexed/ui"
+
 import {
   addressColumnWidth,
   addressHexBorderWidth,
   asciiBorderWidth,
   rowHeight
 } from "../constants"
-import { cn } from "@hexed/ui"
-import { isByteSelected, shouldCacheIfSelectionChanged, type SelectionRange } from "../utils/selection-helpers"
-import { updateSelectionStyles } from "../utils/selection-dom"
 import { useByteSelection } from "../hooks/use-byte-selection"
 import type { DragState } from "../hooks/use-drag-selection"
-import { ByteCell } from "./byte-cell"
+import { updateSelectionStyles } from "../utils/selection-dom"
+import {
+  isByteSelected,
+  shouldCacheIfSelectionChanged,
+  type SelectionRange
+} from "../utils/selection-helpers"
 import { AsciiCell } from "./ascii-cell"
+import { ByteCell } from "./byte-cell"
 
 const rowHeightStyle = { height: `${rowHeight}px` }
 const addressColumnWidthStyle = { width: `${addressColumnWidth}px` }
@@ -72,25 +78,22 @@ const ByteRowContentBase: FunctionComponent<ByteRowContentProps> = ({
     })
   }, [])
 
-  const setPairHover = useCallback(
-    (i: number | null) => {
-      const row = rowRef.current
-      if (!row) return
+  const setPairHover = useCallback((i: number | null) => {
+    const row = rowRef.current
+    if (!row) return
 
-      // clear previous
-      row.querySelectorAll(".pair-hover").forEach((el) => {
-        el.classList.remove("pair-hover")
-      })
+    // clear previous
+    row.querySelectorAll(".pair-hover").forEach((el) => {
+      el.classList.remove("pair-hover")
+    })
 
-      if (i == null) return
+    if (i == null) return
 
-      // add to BOTH the byte + ascii cells that share the same data-index
-      row
-        .querySelectorAll<HTMLElement>(`[data-index="${i}"]`)
-        .forEach((el) => el.classList.add("pair-hover"))
-    },
-    []
-  )
+    // add to BOTH the byte + ascii cells that share the same data-index
+    row
+      .querySelectorAll<HTMLElement>(`[data-index="${i}"]`)
+      .forEach((el) => el.classList.add("pair-hover"))
+  }, [])
 
   // Sync DOM with React state when selection changes (not during drag)
   useEffect(() => {
@@ -103,7 +106,14 @@ const ByteRowContentBase: FunctionComponent<ByteRowContentProps> = ({
       bytesPerRow,
       fileSize
     )
-  }, [selectedOffsetRange, rowStartOffset, bytesPerRow, fileSize, preview, dragState])
+  }, [
+    selectedOffsetRange,
+    rowStartOffset,
+    bytesPerRow,
+    fileSize,
+    preview,
+    dragState
+  ])
 
   const { handleByteMouseDown, handleByteMouseEnter } = useByteSelection({
     preview,
@@ -125,7 +135,7 @@ const ByteRowContentBase: FunctionComponent<ByteRowContentProps> = ({
   //     return byte !== undefined
   //   }).some(byteExists => byteExists)
   // }, [fileSize, rowStartOffset, bytesPerRow])
-  const rowHasBytes = true;
+  const rowHasBytes = true
 
   return (
     <div
@@ -138,7 +148,10 @@ const ByteRowContentBase: FunctionComponent<ByteRowContentProps> = ({
       )}
     >
       <div
-        className={cn("text-muted-foreground flex items-center h-full justify-center", rowHasBytes ? "opacity-100" : "opacity-0")}
+        className={cn(
+          "text-muted-foreground flex items-center h-full justify-center",
+          rowHasBytes ? "opacity-100" : "opacity-0"
+        )}
         style={addressColumnWidthStyle}
       >
         {addr}
@@ -149,7 +162,10 @@ const ByteRowContentBase: FunctionComponent<ByteRowContentProps> = ({
       >
         <div className="border-r h-full w-px" />
       </div>
-      <div data-bytes className="grow flex items-center h-full">
+      <div
+        data-bytes
+        className="grow flex items-center h-full"
+      >
         {Array.from({ length: bytesPerRow }, (_, i) => {
           const byteOffset = rowStartOffset + i
           const byteExists = fileSize !== undefined && byteOffset < fileSize
@@ -169,17 +185,17 @@ const ByteRowContentBase: FunctionComponent<ByteRowContentProps> = ({
               onMouseDown={
                 byteExists
                   ? (e) => {
-                    e.preventDefault()
-                    handleByteMouseDown(byteOffset, e.shiftKey, onDragStart)
-                  }
+                      e.preventDefault()
+                      handleByteMouseDown(byteOffset, e.shiftKey, onDragStart)
+                    }
                   : undefined
               }
               onMouseEnter={
                 byteExists
                   ? () => {
-                    setPairHover(i)
-                    handleByteMouseEnter(byteOffset)
-                  }
+                      setPairHover(i)
+                      handleByteMouseEnter(byteOffset)
+                    }
                   : undefined
               }
               onMouseLeave={clearPairHover}
@@ -195,7 +211,11 @@ const ByteRowContentBase: FunctionComponent<ByteRowContentProps> = ({
           >
             <div className="border-r h-full w-px" />
           </div>
-          <div data-ascii className="flex items-center h-full" style={rowHeightStyle}>
+          <div
+            data-ascii
+            className="flex items-center h-full"
+            style={rowHeightStyle}
+          >
             {Array.from({ length: bytesPerRow }, (_, i) => {
               const byteOffset = rowStartOffset + i
               const byteExists = fileSize !== undefined && byteOffset < fileSize
@@ -216,17 +236,21 @@ const ByteRowContentBase: FunctionComponent<ByteRowContentProps> = ({
                   onMouseDown={
                     byteExists
                       ? (e) => {
-                        e.preventDefault()
-                        handleByteMouseDown(byteOffset, e.shiftKey, onDragStart)
-                      }
+                          e.preventDefault()
+                          handleByteMouseDown(
+                            byteOffset,
+                            e.shiftKey,
+                            onDragStart
+                          )
+                        }
                       : undefined
                   }
                   onMouseEnter={
                     byteExists
                       ? () => {
-                        setPairHover(i)
-                        handleByteMouseEnter(byteOffset)
-                      }
+                          setPairHover(i)
+                          handleByteMouseEnter(byteOffset)
+                        }
                       : undefined
                   }
                   onMouseLeave={clearPairHover}
@@ -241,9 +265,8 @@ const ByteRowContentBase: FunctionComponent<ByteRowContentProps> = ({
 }
 
 export const ByteRowContent = memo(ByteRowContentBase, (prev, next) => {
-
   if (prev.bytesPerRow !== next.bytesPerRow) {
-    return false;
+    return false
   }
 
   // console.log("ByteRowContent Memo Compare", prev, next)
@@ -254,5 +277,5 @@ export const ByteRowContent = memo(ByteRowContentBase, (prev, next) => {
   // } else {
   //   console.log("Should NOT Cache?")
   // }
-  return result;
+  return result
 })

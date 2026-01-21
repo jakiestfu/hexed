@@ -34,8 +34,7 @@ export const calculateSelectionRange = (
     // Determine which end is the anchor by checking which one matches initialOffset
     // The anchor should be one of the current selection boundaries
     if (
-      Math.abs(initialOffset - minOffset) <
-      Math.abs(initialOffset - maxOffset)
+      Math.abs(initialOffset - minOffset) < Math.abs(initialOffset - maxOffset)
     ) {
       // Anchor is closer to start, so extend from end
       return { start: minOffset, end: byteOffset }
@@ -51,7 +50,13 @@ export const calculateSelectionRange = (
 
 // Custom comparison function for ByteRowContent memoization
 // Only rerender if props change AND the row's byte range intersects with selection changes
-export const shouldCacheIfSelectionChanged = <T extends { selectedOffsetRange?: SelectionRange; rowStartOffset: number; bytesPerRow: number }>(
+export const shouldCacheIfSelectionChanged = <
+  T extends {
+    selectedOffsetRange?: SelectionRange
+    rowStartOffset: number
+    bytesPerRow: number
+  }
+>(
   prevProps: T,
   nextProps: T
 ): boolean => {
@@ -97,7 +102,7 @@ export const shouldCacheIfSelectionChanged = <T extends { selectedOffsetRange?: 
     // )
     return true
   }
-  
+
   // Check if row intersects with either range
   const intersectsPrev = rowEnd >= prevMin && rowStart <= prevMax
   const intersectsNext = rowEnd >= nextMin && rowStart <= nextMax

@@ -1,8 +1,10 @@
-import { FunctionComponent, CSSProperties } from "react"
+import { CSSProperties, FunctionComponent } from "react"
+
 import { formatAddress } from "@hexed/binary-utils"
-import { ByteRowContent, type ByteRowContentProps } from "./byte-row-content"
-import type { SelectionRange } from "../utils/selection-helpers"
+
 import type { DragState } from "../hooks/use-drag-selection"
+import type { SelectionRange } from "../utils/selection-helpers"
+import { ByteRowContent, type ByteRowContentProps } from "./byte-row-content"
 
 export type VirtualRowProps = {
   index: number

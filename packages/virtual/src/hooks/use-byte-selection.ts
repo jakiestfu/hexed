@@ -1,7 +1,11 @@
 import { useCallback } from "react"
+
+import {
+  updateAllRowsSelection,
+  updateSelectionStyles
+} from "../utils/selection-dom"
 import type { SelectionRange } from "../utils/selection-helpers"
 import { calculateSelectionRange } from "../utils/selection-helpers"
-import { updateAllRowsSelection, updateSelectionStyles } from "../utils/selection-dom"
 import type { DragState } from "./use-drag-selection"
 
 export function useByteSelection({
@@ -19,7 +23,10 @@ export function useByteSelection({
   selectedOffsetRange?: SelectionRange
   onSelectedOffsetRangeChange?: (range: SelectionRange) => void
   dragState?: DragState
-  dragSelectionRef?: React.MutableRefObject<{ start: number; end: number } | null>
+  dragSelectionRef?: React.MutableRefObject<{
+    start: number
+    end: number
+  } | null>
   containerElement?: HTMLElement | null
   rowStartOffset: number
   bytesPerRow: number
@@ -114,7 +121,12 @@ export function useByteSelection({
       // Update DOM directly for visual feedback (no rerender)
       // Update all rows in the selection range, not just the current row
       if (containerElement) {
-        updateAllRowsSelection(containerElement, newRange, bytesPerRow, fileSize)
+        updateAllRowsSelection(
+          containerElement,
+          newRange,
+          bytesPerRow,
+          fileSize
+        )
       } else {
         // Fallback: update via a ref callback would be needed
         // For now, this case shouldn't happen in normal usage

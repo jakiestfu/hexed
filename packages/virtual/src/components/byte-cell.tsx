@@ -1,7 +1,9 @@
 import { FunctionComponent } from "react"
+
 import { byteToHex } from "@hexed/binary-utils"
-import { cellWidth } from "../constants"
 import { cn } from "@hexed/ui"
+
+import { cellWidth } from "../constants"
 import { highlight } from "../utils/selection-dom"
 
 const cellWidthStyle = { width: `${cellWidth}px` }
