@@ -202,6 +202,7 @@ export const HexEditor: FunctionComponent<HexEditorProps> = ({
             chunkSize={128 * 1024}
             overscanCount={100}
             selectedOffsetRange={selectedOffsetRange}
+            onSelectedOffsetRangeChange={setSelectedOffsetRange}
           />
           {/* <div style={{ height: '2000px' }} className="bg-red-300">wat</div> */}
         </div>
