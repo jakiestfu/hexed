@@ -11,7 +11,7 @@ permissions:
   id-token: write
 
 concurrency:
-  group: "pages"
+  group: pages
   cancel-in-progress: true
 
 jobs:
@@ -21,16 +21,18 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
+      # 1️Install pnpm FIRST
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 9.12.0
+
+      # 2️Setup Node AFTER pnpm exists
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
           node-version-file: .nvmrc
           cache: pnpm
-
-      - name: Setup pnpm
-        uses: pnpm/action-setup@v4
-        with:
-          version: 9.12.0
 
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
