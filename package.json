@@ -29,7 +29,7 @@
     "lint:fix": "pnpm -r lint:fix && manypkg fix",
     "typecheck": "pnpm -r typecheck",
     "analyze": "pnpm -r analyze",
-    "version:patch": "pnpm version patch && pnpm",
+    "version:patch": "pnpm version patch && pnpm create-public-package"
   },
   "keywords": [
     "hex-editor",
