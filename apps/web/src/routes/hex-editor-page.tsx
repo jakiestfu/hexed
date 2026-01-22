@@ -30,7 +30,7 @@ export function HexEditorPage() {
   }
 
   return (
-    <div className="flex flex-col h-screen">
+    <div className="flex flex-col h-dvh">
       <HexedEditor
         input={input}
         fileSource="file-system"
