@@ -686,7 +686,8 @@ export class HexCanvas extends EventTarget {
     // Use pending scroll position if available for better UX during scrolling
     const scrollPositionForThumb = this.pendingScrollTop ?? this.scrollTop
     const thumbY =
-      (scrollPositionForThumb / this.maxScrollTop) * (trackHeight - thumbHeight) +
+      (scrollPositionForThumb / this.maxScrollTop) *
+        (trackHeight - thumbHeight) +
       trackY
 
     return {
@@ -788,9 +789,11 @@ export class HexCanvas extends EventTarget {
 
       // Check for pending scroll position first
       if (this.pendingScrollTop !== null) {
-        const requiredRange = this.calculateRequiredByteRange(this.pendingScrollTop)
+        const requiredRange = this.calculateRequiredByteRange(
+          this.pendingScrollTop
+        )
         const loaded = await this.loadChunksForRange(requiredRange)
-        
+
         if (loaded) {
           // Chunks are loaded, commit the scroll position
           this.commitScrollPosition(this.pendingScrollTop)
@@ -799,7 +802,8 @@ export class HexCanvas extends EventTarget {
 
       // Calculate visible range based on effective scroll position (not pending)
       const effectiveScrollTop = this.scrollTop
-      const newVisibleRange = this.calculateVisibleByteRangeForScroll(effectiveScrollTop)
+      const newVisibleRange =
+        this.calculateVisibleByteRangeForScroll(effectiveScrollTop)
 
       const rangeChanged =
         newVisibleRange.start !== this.visibleByteRange.start ||
@@ -808,7 +812,7 @@ export class HexCanvas extends EventTarget {
       if (rangeChanged) {
         // Load chunks for the visible range
         const loaded = await this.loadChunksForRange(newVisibleRange)
-        
+
         // Only update visible range if chunks are loaded
         if (loaded) {
           this.visibleByteRange = newVisibleRange

@@ -24,10 +24,11 @@ import {
   getBasename
 } from "../../utils"
 import type { FileHandleMetadata } from "../../utils/file-handle-storage"
+import { OnHexedInputChange } from "../../hooks/use-hexed-input"
 
 type DataPickerProps = {
   recentFiles: FileHandleMetadata[]
-  onHandleIdChange?: (handleId: string) => void
+  onChangeInput: OnHexedInputChange
 }
 
 // Recent Files Component
@@ -134,7 +135,7 @@ const RecentFilesDropdown: FunctionComponent<{
 
 export const DataPicker: FunctionComponent<DataPickerProps> = ({
   recentFiles,
-  onHandleIdChange
+  onChangeInput
 }) => {
   const { addRecentFile, getFileHandleById } = useRecentFiles()
   const [isLoading, setIsLoading] = useState(false)
@@ -153,10 +154,6 @@ export const DataPicker: FunctionComponent<DataPickerProps> = ({
   }, [])
 
   const handleRecentFileSelect = async (handleId: string) => {
-    if (!onHandleIdChange) {
-      console.warn("onHandleIdChange callback not provided")
-      return
-    }
 
     setIsLoading(true)
     try {
@@ -165,7 +162,7 @@ export const DataPicker: FunctionComponent<DataPickerProps> = ({
         throw new Error("File handle not found or permission denied")
       }
       // Call callback with handleId
-      onHandleIdChange(handleId)
+      onChangeInput(handleId)
     } catch (error) {
       console.error("Error reopening file handle:", error)
       alert("Could not reopen file. Please select it again.")
@@ -180,10 +177,6 @@ export const DataPicker: FunctionComponent<DataPickerProps> = ({
       return
     }
 
-    if (!onHandleIdChange) {
-      console.warn("onHandleIdChange callback not provided")
-      return
-    }
 
     setIsLoading(true)
     try {
@@ -201,25 +194,8 @@ export const DataPicker: FunctionComponent<DataPickerProps> = ({
         return
       }
 
-      // // Create snapshot using direct file reading
-      // const snapshot = await createSnapshotFromFile(handle)
-      // const snapshotKey = `hexed:pending-handle-${handleId}`
-      // try {
-      //   // Store snapshot data (convert Uint8Array to array for JSON)
-      //   const snapshotData = {
-      //     ...snapshot,
-      //     data: Array.from(snapshot.data)
-      //   }
-      //   sessionStorage.setItem(snapshotKey, JSON.stringify(snapshotData))
-      // } catch (storageError) {
-      //   console.warn(
-      //     "Failed to store snapshot in sessionStorage:",
-      //     storageError
-      //   )
-      // }
-
       // Call callback with handleId
-      onHandleIdChange(handleId)
+      onChangeInput(handleId)
     } catch (error) {
       // User cancelled or error occurred
       if (error instanceof DOMException && error.name !== "AbortError") {
@@ -233,9 +209,8 @@ export const DataPicker: FunctionComponent<DataPickerProps> = ({
 
   return (
     <Card
-      className={`w-full max-w-lg border-none h-[250px] transition-all duration-300 ${
-        isMounted ? "opacity-100" : "opacity-0"
-      }`}
+      className={`w-full max-w-lg border-none h-[250px] transition-all duration-300 ${isMounted ? "opacity-100" : "opacity-0"
+        }`}
     >
       <CardContent className="space-y-4">
         <div className="space-y-4 mt-4">
@@ -246,7 +221,7 @@ export const DataPicker: FunctionComponent<DataPickerProps> = ({
             <Button
               onClick={handleFileSystemAccessPicker}
               disabled={
-                isLoading || !supportsFileSystemAccess || !onHandleIdChange
+                isLoading || !supportsFileSystemAccess
               }
               className="flex-1"
             >
@@ -257,7 +232,7 @@ export const DataPicker: FunctionComponent<DataPickerProps> = ({
               )}
               {isLoading ? "Opening..." : "Choose File"}
             </Button>
-            {onHandleIdChange && (
+            {recentFiles.length > 0 && (
               <RecentFilesDropdown
                 recentFiles={recentFiles}
                 onSelect={handleRecentFileSelect}
@@ -280,7 +255,6 @@ export const DataPicker: FunctionComponent<DataPickerProps> = ({
               "File System Access API is not supported in this browser"
             )}
             {recentFiles.length > 0 &&
-              onHandleIdChange &&
               " or select from recent files"}
           </p>
         </div>

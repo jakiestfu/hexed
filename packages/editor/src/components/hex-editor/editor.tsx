@@ -1,7 +1,7 @@
 "use client"
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react"
-import type { FunctionComponent } from "react"
+import type { FunctionComponent, PropsWithChildren } from "react"
 
 import { HexCanvasReact } from "@hexed/canvas"
 import type { DiffViewMode } from "@hexed/types"
@@ -19,11 +19,8 @@ import {
 } from "@hexed/ui"
 
 import { useGlobalKeyboard } from "../../hooks/use-global-keyboard"
-import { useHandleToFile } from "../../hooks/use-handle-to-file"
-import { useHandleIdToFileHandle } from "../../hooks/use-hex-editor-file"
-import { useSettings } from "../../hooks/use-settings"
-import { useWorkerClient } from "../../providers/worker-provider"
-import type { HexEditorProps } from "../../types"
+
+import type { EditorProps } from "../../types"
 import { Logo } from "../common/logo"
 import { EmptyState } from "../file/empty-state"
 import { HexFooter } from "./hex-footer"
@@ -31,28 +28,37 @@ import { HexSidebar } from "./hex-sidebar"
 import { HexToolbar } from "./hex-toolbar"
 import { HexToolbarDiff } from "./hex-toolbar-diff"
 import { HexToolbarSearch } from "./hex-toolbar-search"
+import { HexedProviders } from "../../providers"
+import { useHexedSettingsContext } from "../../providers/hexed-settings-provider"
+import { useHexedInputContext } from "../../providers/hex-input-provider"
 
-export const HexEditor: FunctionComponent<HexEditorProps> = ({
-  handleId,
-  onClose,
+export const Editor: FunctionComponent<EditorProps> = ({
+  // input: { file, fileHandle, handleId },
+  // settings: {
+  //   showAscii,
+  //   sidebar,
+  //   sidebarPosition
+  // },
   className = "",
   fileSource = "file-system",
-  onHandleIdChange,
+  // onChangeInput,
   theme,
   setTheme,
   packageInfo
 }) => {
   const [activeTab, setActiveTab] = useState<string>("0")
-  const { showAscii, sidebar, sidebarPosition } = useSettings()
-  const workerClient = useWorkerClient()
+  const { input: { file, fileHandle, handleId }, onChangeInput } = useHexedInputContext();
+  const { showAscii, sidebar, sidebarPosition } = useHexedSettingsContext()
 
   const [diffMode, setDiffMode] = useState<DiffViewMode>("inline")
   const [dataType, setDataType] = useState<string>("Signed Int")
   const [endianness, setEndianness] = useState<string>("le")
   const [numberFormat, setNumberFormat] = useState<string>("dec")
 
-  const { fileHandle } = useHandleIdToFileHandle(handleId)
-  const { file } = useHandleToFile(fileHandle)
+  const canRender = Boolean(file)
+
+  // const { fileHandle } = useResolveHandle(handleId)
+  // const { file } = useResolveFile(fileHandle)
 
   console.log("hex editor render")
 
@@ -226,10 +232,10 @@ export const HexEditor: FunctionComponent<HexEditorProps> = ({
       </div>
     </ResizablePanel>
   )
-  console.log("hex editor render", { selectedOffset, selectedOffsetRange })
+
   // Sidebar component - only render when we have data
   const sidebarPanel =
-    hasSidebars && fileHandle ? (
+    hasSidebars && canRender ? (
       <HexSidebar
         defaultSize={30}
         minSize={30}
@@ -248,7 +254,7 @@ export const HexEditor: FunctionComponent<HexEditorProps> = ({
 
   return (
     <Card
-      className={`p-0 m-0 w-full h-full rounded-none border-none shadow-none ${className}`}
+      className={`p-0 m-0 w-full h-full rounded-none border-none shadow-none overflow-hidden ${className}`}
     >
       <Tabs
         value={activeTab}
@@ -262,18 +268,18 @@ export const HexEditor: FunctionComponent<HexEditorProps> = ({
                 // currentSnapshot={currentSnapshot}
                 showHistogram={showHistogram}
                 onShowHistogramChange={setShowHistogram}
-                onHandleIdChange={onHandleIdChange}
+                onChangeInput={onChangeInput}
                 theme={theme}
                 setTheme={setTheme}
                 packageInfo={packageInfo}
               />
             }
-            filePath={fileHandle?.name}
+            file={file}
             fileSource={fileSource}
-            isConnected={fileHandle !== null}
+            isConnected={Boolean(fileHandle)}
             error={null}
-            onRestartWatching={() => {}}
-            onClose={onClose}
+            onRestartWatching={() => { }}
+            onClose={() => onChangeInput(null)}
           />
           <HexToolbarSearch
             handleId={handleId}
@@ -293,13 +299,15 @@ export const HexEditor: FunctionComponent<HexEditorProps> = ({
         </CardHeader>
 
         <CardContent className="grow min-h-0 overflow-auto p-0">
-          {!handleId ? (
-            <EmptyState onHandleIdChange={onHandleIdChange} />
+          {!canRender ? (
+            <EmptyState onChangeInput={onChangeInput} />
           ) : null}
 
           <TabsContent
             value="0"
-            className="h-full"
+            className={
+              cn("h-full", !canRender && "hidden")
+            }
           >
             <ResizablePanelGroup
               direction="horizontal"
@@ -325,7 +333,7 @@ export const HexEditor: FunctionComponent<HexEditorProps> = ({
         <CardFooter
           className={cn(
             "p-0",
-            fileHandle ? "opacity-100" : "opacity-0 pointer-events-none"
+            canRender ? "opacity-100" : "opacity-0 transition-all duration-700 pointer-events-none"
           )}
         >
           <HexFooter

@@ -10,7 +10,7 @@ import { FileStatusPopover } from "../file/file-status-popover"
 
 export type HexToolbarProps = {
   left?: ReactNode
-  filePath?: string | null
+  file: File | null
   fileSource?: FileSource
   isConnected?: boolean
   error?: string | null
@@ -29,7 +29,7 @@ function isElectron(): boolean {
 
 export const HexToolbar: FunctionComponent<HexToolbarProps> = ({
   left,
-  filePath,
+  file,
   fileSource = "file-system",
   isConnected = false,
   error = null,
@@ -69,9 +69,7 @@ export const HexToolbar: FunctionComponent<HexToolbarProps> = ({
     }
   }, [isElectronProp])
 
-  const hasFile = filePath != null && filePath !== ""
-
-  const center = !hasFile ? (
+  const center = !file ? (
     <div className="flex items-center gap-2 min-w-0">
       <span className="font-mono text-sm text-muted-foreground">
         No file selected
@@ -80,7 +78,7 @@ export const HexToolbar: FunctionComponent<HexToolbarProps> = ({
   ) : (
     <FileStatusPopover
       fileSource={fileSource}
-      filePath={filePath || ""}
+      filePath={file.name || ""}
       isConnected={isConnected}
       error={error}
       onRestartWatching={onRestartWatching}
@@ -92,9 +90,9 @@ export const HexToolbar: FunctionComponent<HexToolbarProps> = ({
         />
         <span
           className="font-mono text-sm truncate group-hover:underline"
-          title={filePath}
+          title={file.name}
         >
-          {formatFilenameForDisplay(filePath!)}
+          {formatFilenameForDisplay(file.name!)}
         </span>
         <div
           className={`inline-flex h-2 w-2 rounded-full shrink-0 ${
@@ -104,11 +102,23 @@ export const HexToolbar: FunctionComponent<HexToolbarProps> = ({
       </div>
     </FileStatusPopover>
   )
-
-  const right = !hasFile ? (
-    <span />
-  ) : (
-    onClose && (
+  console.log("file", file)
+  // const right = !file ? (
+  //   <p>wat</p>
+  // ) : (
+  //   onClose && (
+  //     <Button
+  //       variant="outline"
+  //       size="sm"
+  //       onClick={onClose}
+  //       className="ml-2 shrink-0"
+  //     >
+  //       Done
+  //     </Button>
+  //   )
+  // )
+  const right =
+    file && onClose ? (
       <Button
         variant="outline"
         size="sm"
@@ -117,8 +127,9 @@ export const HexToolbar: FunctionComponent<HexToolbarProps> = ({
       >
         Done
       </Button>
+    ) : (
+      <span />
     )
-  )
 
   return (
     <div

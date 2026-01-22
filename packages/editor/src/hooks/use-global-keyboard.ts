@@ -3,8 +3,9 @@ import { useHotkeys } from "react-hotkeys-hook"
 
 import { toHexString } from "@hexed/binary-utils/formatter"
 
-import type { Sidebar } from "./use-settings"
-import { useSettings } from "./use-settings"
+import type { Sidebar } from "./use-hexed-settings"
+import { useHexedSettings } from "./use-hexed-settings"
+import { useHexedSettingsContext } from "../providers/hexed-settings-provider"
 
 export interface UseGlobalKeyboardOptions {
   /** Current selection range */
@@ -55,7 +56,7 @@ export function useGlobalKeyboard({
     toggleSidebarPosition,
     sidebar,
     setSidebar
-  } = useSettings()
+  } = useHexedSettingsContext()
 
   /**
    * Check if user is currently typing in an input field

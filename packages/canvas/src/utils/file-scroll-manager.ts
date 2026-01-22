@@ -316,9 +316,11 @@ export class FileScrollManager {
 
       // Check for pending scroll position first
       if (this.pendingScrollTop !== null) {
-        const requiredRange = this.calculateRequiredByteRange(this.pendingScrollTop)
+        const requiredRange = this.calculateRequiredByteRange(
+          this.pendingScrollTop
+        )
         const loaded = await this.loadChunksForRange(requiredRange)
-        
+
         if (loaded) {
           // Chunks are loaded, commit the scroll position
           if (this.scrollTopRef.current !== undefined) {
@@ -345,12 +347,15 @@ export class FileScrollManager {
       if (rangeChanged || scrollChanged) {
         // Load chunks for the visible range
         const loaded = await this.loadChunksForRange(newVisibleRange)
-        
+
         // Only update visible range if chunks are loaded
         if (loaded) {
           this.visibleByteRangeRef.current = newVisibleRange
           this.updateLoadedBytes()
-        } else if (!this.lastLoadedRange || this.loadedBytesRef.current.length === 0) {
+        } else if (
+          !this.lastLoadedRange ||
+          this.loadedBytesRef.current.length === 0
+        ) {
           // If loading failed but we have no data, update with what we have
           this.visibleByteRangeRef.current = newVisibleRange
           this.updateLoadedBytes()

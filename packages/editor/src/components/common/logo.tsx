@@ -5,6 +5,7 @@ import type { BinarySnapshot } from "@hexed/types"
 import { Button, cn, DropdownMenu, DropdownMenuTrigger } from "@hexed/ui"
 
 import { Menu, type MenuItem, type PackageInfo } from "./menu"
+import { OnHexedInputChange } from "../../hooks/use-hexed-input"
 
 export type { MenuItem } from "./menu"
 
@@ -18,23 +19,29 @@ export type LogoProps = {
   setTheme?: (theme: string) => void
   // Package info
   packageInfo?: PackageInfo
-  onHandleIdChange?: (handleId: string | null) => void
+  onChangeInput: OnHexedInputChange
 }
 
 export const Brand: FunctionComponent<{
   className?: string
   glitch?: boolean
-}> = ({ className, glitch }) => (
+  iconOnly?: boolean
+  size?: string
+}> = ({ className, glitch, iconOnly, size }) => (
   <div
     className={cn(
       "flex justify-center items-center gap-2 logo-container-inline",
       className
     )}
   >
-    <Ghost />
+    <Ghost className={cn(size)} />
 
     <div
-      className={cn("font-mono font-bold", glitch && "glitch layers")}
+      className={cn(
+        "font-mono font-bold",
+        glitch && "glitch layers",
+        iconOnly && "hidden"
+      )}
       data-text="hexed"
     >
       <span>hexed</span>
@@ -50,7 +57,7 @@ export const Logo: FunctionComponent<LogoProps> = ({
   theme,
   setTheme,
   packageInfo,
-  onHandleIdChange
+  onChangeInput
 }) => {
   const [internalShowHistogram, setInternalShowHistogram] = useState(false)
 
@@ -75,7 +82,7 @@ export const Logo: FunctionComponent<LogoProps> = ({
           // currentSnapshot={currentSnapshot}
           showHistogram={showHistogram}
           onShowHistogramChange={onShowHistogramChange}
-          onHandleIdChange={onHandleIdChange}
+          onChangeInput={onChangeInput}
           theme={theme}
           setTheme={setTheme}
           packageInfo={packageInfo}

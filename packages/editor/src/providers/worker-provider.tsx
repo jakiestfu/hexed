@@ -57,5 +57,8 @@ export function WorkerProvider({ children }: { children: React.ReactNode }) {
  */
 export function useWorkerClient(): WorkerClient | null {
   const client = React.useContext(WorkerContext)
+  if (!client) {
+    throw new Error("Worker client not found")
+  }
   return client
 }

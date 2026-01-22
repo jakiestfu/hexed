@@ -54,8 +54,9 @@ import {
   TooltipTrigger
 } from "@hexed/ui"
 
-import { useSettings } from "../../hooks/use-settings"
+import { useHexedSettings } from "../../hooks/use-hexed-settings"
 import type { InterpreterProps } from "../../types"
+import { useHexedSettingsContext } from "../../providers/hexed-settings-provider"
 
 interface InterpretedValue {
   type: string
@@ -281,7 +282,7 @@ export const Interpreter: FunctionComponent<InterpreterProps> = ({
     return results
   }, [data, selectedOffset, endianness, numberFormat])
 
-  const { toggleSidebarPosition } = useSettings()
+  const { toggleSidebarPosition } = useHexedSettingsContext()
 
   const hexAddress =
     selectedOffset !== null ? formatAddress(selectedOffset) : ""

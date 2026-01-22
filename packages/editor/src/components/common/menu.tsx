@@ -27,9 +27,10 @@ import {
   formatFilenameForDisplay,
   Histogram,
   Hotkeys,
+  OnHexedInputChange,
   Sidebar,
   useRecentFiles,
-  useSettings
+  useHexedSettingsContext
 } from "@hexed/editor"
 import type { BinarySnapshot } from "@hexed/types"
 import {
@@ -80,7 +81,7 @@ export type MenuProps = {
   setTheme?: (theme: string) => void
   // Package info
   packageInfo?: PackageInfo
-  onHandleIdChange?: (handleId: string | null) => void
+  onChangeInput: OnHexedInputChange
 }
 
 export const Menu: FunctionComponent<MenuProps> = ({
@@ -90,7 +91,7 @@ export const Menu: FunctionComponent<MenuProps> = ({
   theme,
   setTheme,
   packageInfo,
-  onHandleIdChange
+  onChangeInput
 }) => {
   const { recentFiles, clearRecentFiles, removeRecentFile } = useRecentFiles()
   const {
@@ -104,7 +105,7 @@ export const Menu: FunctionComponent<MenuProps> = ({
     setSidebarPosition,
     showMemoryProfiler,
     setShowMemoryProfiler
-  } = useSettings()
+  } = useHexedSettingsContext()
   const [showClientFileDialog, setShowClientFileDialog] = useState(false)
   const [clickedClientFileHandleId, setClickedClientFileHandleId] = useState<
     string | null
@@ -139,10 +140,8 @@ export const Menu: FunctionComponent<MenuProps> = ({
             href={`${window.location.origin + window.location.pathname}`}
             className="flex items-center gap-2 cursor-pointer"
             onClick={(e) => {
-              if (onHandleIdChange) {
-                e.preventDefault()
-                onHandleIdChange(null)
-              }
+              e.preventDefault()
+              onChangeInput(null)
             }}
           >
             <Home className="mr-2 h-4 w-4" />
@@ -188,10 +187,8 @@ export const Menu: FunctionComponent<MenuProps> = ({
                         href={editPath}
                         className="flex items-center gap-2 cursor-pointer"
                         onClick={(e) => {
-                          if (onHandleIdChange) {
-                            e.preventDefault()
-                            onHandleIdChange(file.id)
-                          }
+                          e.preventDefault()
+                          onChangeInput(file.id)
                         }}
                       >
                         <FileSourceIcon

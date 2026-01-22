@@ -3,7 +3,8 @@ import type { FunctionComponent } from "react"
 import type { BinarySnapshot } from "@hexed/types"
 import { TabsList, TabsTrigger } from "@hexed/ui"
 
-import { useSettings } from "../../hooks/use-settings"
+import { useHexedSettings } from "../../hooks/use-hexed-settings"
+import { useHexedSettingsContext } from "../../providers/hexed-settings-provider"
 
 export type HexToolbarTabsProps = {
   snapshots: BinarySnapshot[]
@@ -12,7 +13,7 @@ export type HexToolbarTabsProps = {
 export const HexToolbarTabs: FunctionComponent<HexToolbarTabsProps> = ({
   snapshots
 }) => {
-  const { showChecksums } = useSettings()
+  const { showChecksums } = useHexedSettingsContext()
 
   if (snapshots.length <= 1) {
     return null

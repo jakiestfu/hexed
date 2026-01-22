@@ -33,8 +33,9 @@ import {
   TooltipTrigger
 } from "@hexed/ui"
 
-import { useSettings, type Sidebar } from "../../hooks/use-settings"
+import { useHexedSettings, type Sidebar } from "../../hooks/use-hexed-settings"
 import { MemoryProfiler } from "../common/memory-profiler"
+import { useHexedSettingsContext } from "../../providers/hexed-settings-provider"
 
 export type HexFooterProps = {
   totalSize: number | undefined
@@ -64,7 +65,7 @@ export const HexFooter: FunctionComponent<HexFooterProps> = ({
   onShowHistogram
 }) => {
   const { showAscii, setShowAscii, showMemoryProfiler, setSidebar } =
-    useSettings()
+    useHexedSettingsContext()
 
   const bytesLabel = totalSize ? (
     <div className="flex items-center gap-2 font-mono">

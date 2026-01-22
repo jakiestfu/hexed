@@ -1,6 +1,9 @@
 import type { Endianness, NumberFormat } from "@hexed/binary-utils/interpreter"
 import type { BinarySnapshot } from "@hexed/types"
 
+import { useHexedFile } from "./hooks/use-hexed-file"
+import { UseHexedSettings } from "./hooks/use-hexed-settings"
+
 export type FileSource = "file-system"
 
 /**
@@ -34,14 +37,13 @@ export type TemplatesProps = {
   onTemplateNameChange?: (name: string) => void
 }
 
-export type HexEditorProps = {
-  handleId?: string | null
+export type EditorProps = {
   onClose?: () => void
   className?: string
   fileSource?: FileSource
   onAddSnapshot?: (snapshot: BinarySnapshot) => void
   // Data picker callbacks (for empty state)
-  onHandleIdChange?: (handleId: string | null) => void
+  // onChangeInput: (input: HexedFileInput) => void
   theme?: string
   setTheme?: (theme: string) => void
   packageInfo?: {
@@ -54,10 +56,10 @@ export type HexEditorProps = {
   }
 }
 
-export type StringsProps = {
-  fileId?: string
-  onClose?: () => void
-  onScrollToOffset?: (offset: number) => void
-  onSelectedOffsetRangeChange?: (range: SelectionRange) => void
-  onRangeSelectedForSearch?: (range: SelectionRange) => void
-}
+export type HexedFileInput =
+  | FileSystemFileHandle
+  | File
+  | ArrayBufferView<ArrayBuffer>
+  | string
+  | null
+  | undefined

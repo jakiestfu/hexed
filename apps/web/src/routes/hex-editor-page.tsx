@@ -2,38 +2,45 @@ import * as React from "react"
 import { useTheme } from "next-themes"
 import { useNavigate, useParams } from "react-router-dom"
 
-import { HexEditor } from "@hexed/editor"
+import { HexedFileInput, HexedEditor, useHexedInput, useHexedSettings } from "@hexed/editor"
 
 import packageJson from "../../package.public.json"
 
 export function HexEditorPage() {
-  const { id: handleId } = useParams()
+  const params = useParams()
   const navigate = useNavigate()
   const { theme, setTheme } = useTheme()
 
-  // Memoized callbacks
+  const [input, setInput] = useHexedInput(params.id)
+  const settings = useHexedSettings()
+
   const handleClose = React.useCallback(() => {
     navigate("/")
   }, [navigate])
 
-  const handleHandleReady = React.useCallback(
-    (handleId: string | null) => {
-      if (!handleId) {
+  const onChangeInput = React.useCallback(
+    (newInput: HexedFileInput) => {
+      if (newInput === null) {
         navigate("/")
         return
       }
-      navigate(`/edit/${handleId}`)
+      if (typeof newInput === "string") {
+        navigate(`/edit/${newInput}`)
+        return
+      }
+      setInput(newInput)
     },
     [navigate]
   )
 
+  console.log("input", input)
   return (
     <div className="flex flex-col h-screen">
-      <HexEditor
-        handleId={handleId}
-        onClose={handleId ? handleClose : undefined}
+      <HexedEditor
+        input={input}
         fileSource="file-system"
-        onHandleIdChange={handleHandleReady}
+        onChangeInput={onChangeInput}
+        settings={settings}
         theme={theme}
         setTheme={setTheme}
         packageInfo={packageJson}

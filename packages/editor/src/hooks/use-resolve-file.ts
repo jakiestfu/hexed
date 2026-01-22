@@ -1,24 +1,33 @@
 import { useEffect, useState } from "react"
 
-type UseHandleToFileResult = {
-  file: File | null
-  loading: boolean
-  error: string | null
-}
+import { HexedFileInput } from "../types"
 
 /**
  * Hook to convert a FileSystemFileHandle to a File object
  * Manages loading state and error handling
  */
-export function useHandleToFile(
-  fileHandle: FileSystemFileHandle | null
-): UseHandleToFileResult {
+export function useResolveFile(input: HexedFileInput) {
   const [file, setFile] = useState<File | null>(null)
   const [error, setError] = useState<string | null>(null)
 
   useEffect(() => {
+    if (input === null || input === undefined) {
+      setFile(null)
+      return
+    }
+
+    if (input instanceof File) {
+      setFile(input)
+      return
+    }
+
+    if (input && ArrayBuffer.isView(input)) {
+      setFile(new File(Array.isArray(input) ? input : [input], "unknown"))
+      return
+    }
+
     // Reset state when handle is null
-    if (!fileHandle) {
+    if (!(input instanceof FileSystemFileHandle)) {
       setFile(null)
       setError(null)
       return
@@ -28,7 +37,7 @@ export function useHandleToFile(
 
     const loadFile = async () => {
       try {
-        const fileObj = await fileHandle.getFile()
+        const fileObj = await input.getFile()
         if (!cancelled) {
           setFile(fileObj)
         }
@@ -47,7 +56,7 @@ export function useHandleToFile(
     return () => {
       cancelled = true
     }
-  }, [fileHandle])
+  }, [input])
 
-  return { file, loading: false, error }
+  return { file, error }
 }

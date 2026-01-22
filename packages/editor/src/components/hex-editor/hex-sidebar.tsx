@@ -5,12 +5,13 @@ import type { FunctionComponent } from "react"
 import type { Endianness, NumberFormat } from "@hexed/binary-utils/interpreter"
 import { ResizablePanel } from "@hexed/ui"
 
-import { useSettings } from "../../hooks/use-settings"
+import { useHexedSettings } from "../../hooks/use-hexed-settings"
 import { useWorkerClient } from "../../providers/worker-provider"
 import type { SelectionRange } from "../../types"
 import { Interpreter } from "../sidebars/interpreter"
 import { Strings } from "../sidebars/strings"
 import { Templates } from "../sidebars/templates"
+import { useHexedSettingsContext } from "../../providers/hexed-settings-provider"
 
 export type HexSidebarProps = {
   defaultSize: number
@@ -44,7 +45,7 @@ export const HexSidebar: FunctionComponent<HexSidebarProps> = ({
   onRangeSelectedForSearch,
   dimensions
 }) => {
-  const { sidebar, sidebarPosition, setSidebar } = useSettings()
+  const { sidebar, sidebarPosition, setSidebar } = useHexedSettingsContext()
   const workerClient = useWorkerClient()
 
   // Return null if no sidebar is selected
@@ -83,7 +84,6 @@ export const HexSidebar: FunctionComponent<HexSidebarProps> = ({
         )}
         {sidebar === "strings" && (
           <Strings
-            fileId={fileId}
             onClose={() => setSidebar(null)}
             onScrollToOffset={onScrollToOffset}
             onSelectedOffsetRangeChange={onSelectedOffsetRangeChange}

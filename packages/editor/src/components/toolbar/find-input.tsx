@@ -15,10 +15,9 @@ import {
 import { useHexInput } from "../../hooks/use-hex-input"
 import { useLocalStorage } from "../../hooks/use-local-storage"
 import { useWorkerClient } from "../../providers/worker-provider"
+import { useHexedInputContext } from "../../providers/hex-input-provider"
 
 export type FindInputProps = {
-  fileId: string | null | undefined
-  fileHandle: FileSystemFileHandle | null
   onMatchFound?: (offset: number, length: number) => void
   onClose?: () => void
   inputRef?: RefObject<HTMLInputElement | null>
@@ -26,13 +25,12 @@ export type FindInputProps = {
 }
 
 export const FindInput: FunctionComponent<FindInputProps> = ({
-  fileId,
-  fileHandle,
   onMatchFound,
   onClose,
   inputRef: externalInputRef,
   syncRangeToFindInput
 }) => {
+  const { input: { fileHandle, handleId } } = useHexedInputContext();
   const workerClient = useWorkerClient()
   const [searchMode, setSearchMode] = useLocalStorage<"hex" | "text">(
     "hexed:find-input-mode",
@@ -126,7 +124,7 @@ export const FindInput: FunctionComponent<FindInputProps> = ({
 
     if (
       !searchQuery.trim() ||
-      !fileId ||
+      !handleId ||
       !fileHandle ||
       !workerClient ||
       bytes.length === 0
@@ -149,7 +147,7 @@ export const FindInput: FunctionComponent<FindInputProps> = ({
       try {
         // Ensure file is open in worker
         try {
-          await workerClient.openFile(fileId, fileHandle)
+          await workerClient.openFile(handleId, fileHandle)
         } catch (error) {
           // File might already be open, which is fine
           console.log("File may already be open:", error)
@@ -178,7 +176,7 @@ export const FindInput: FunctionComponent<FindInputProps> = ({
 
         // Perform search with streaming matches
         await workerClient.search(
-          fileId,
+          handleId,
           pattern,
           undefined, // onProgress - not needed for now
           (streamedMatches) => {
@@ -246,7 +244,7 @@ export const FindInput: FunctionComponent<FindInputProps> = ({
         setIsSearching(false)
       }
     }
-  }, [searchQuery, searchMode, fileId, fileHandle, workerClient, bytes])
+  }, [searchQuery, searchMode, handleId, fileHandle, workerClient, bytes])
 
   // Navigate to match at current index
   useEffect(() => {

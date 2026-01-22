@@ -3,8 +3,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react"
 import type { BinarySnapshot } from "@hexed/types"
 
 import { calculateChecksum, createSnapshotFromArrayBuffer } from "../utils"
-import { useFileData } from "./use-file-data"
-import { useHandleToFile } from "./use-handle-to-file"
+import { useHexedInputContext } from "../providers/hex-input-provider"
 
 /**
  * Hook for watching FileSystemFileHandle files for changes
@@ -23,13 +22,12 @@ export function useFileHandleWatcher(
 
   // Convert handle to File using the new hook
   const {
-    file,
-    loading: fileLoading,
-    error: fileError
-  } = useHandleToFile(handle)
+    input: { file }
+  } = useHexedInputContext()
 
   // Read file data using the new hook
-  const { data, loading: dataLoading, error: dataError } = useFileData(file)
+  // const { data, loading: dataLoading, error: dataError } = useFileData(file)
+  const data = new Uint8Array()
 
   // Track previous handle to detect changes
   const previousHandleRef = useRef<FileSystemFileHandle | null>(null)

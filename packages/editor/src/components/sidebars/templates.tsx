@@ -23,10 +23,11 @@ import {
   TooltipTrigger
 } from "@hexed/ui"
 
-import { useSettings } from "../../hooks/use-settings"
+import { useHexedSettings } from "../../hooks/use-hexed-settings"
 import type { TemplatesProps } from "../../types"
 import { ObjectTree } from "./object-tree"
 import { TemplatesCombobox } from "./templates-combobox"
+import { useHexedSettingsContext } from "../../providers/hexed-settings-provider"
 
 type TemplateEntry = {
   name: string
@@ -100,7 +101,7 @@ export const Templates: FunctionComponent<TemplatesProps> = ({
   selectedTemplateName: controlledTemplateName,
   onTemplateNameChange: controlledOnTemplateNameChange
 }) => {
-  const { toggleSidebarPosition } = useSettings()
+  const { toggleSidebarPosition } = useHexedSettingsContext()
   const [commandOpen, setCommandOpen] = useState(false)
   // Use controlled state if provided, otherwise use internal state
   const [internalTemplateValue, setInternalTemplateValue] = useState("")
@@ -340,7 +341,7 @@ export const Templates: FunctionComponent<TemplatesProps> = ({
                                   </dt>
                                   <dd className="mt-1">
                                     {typeof selectedSpec.meta.endian ===
-                                    "string"
+                                      "string"
                                       ? selectedSpec.meta.endian.toUpperCase()
                                       : "Conditional"}
                                   </dd>
@@ -356,8 +357,8 @@ export const Templates: FunctionComponent<TemplatesProps> = ({
                                       selectedSpec.meta["file-extension"]
                                     )
                                       ? selectedSpec.meta[
-                                          "file-extension"
-                                        ].join(", ")
+                                        "file-extension"
+                                      ].join(", ")
                                       : selectedSpec.meta["file-extension"]}
                                   </dd>
                                 </div>

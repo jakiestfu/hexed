@@ -15,7 +15,7 @@ const router = createHashRouter([
   {
     path: "/edit/:id",
     element: editor
-  }
+  },
 ])
 
 export const App = () => (
@@ -25,10 +25,8 @@ export const App = () => (
     enableSystem
     disableTransitionOnChange
   >
-    <WorkerProvider>
-      <DragDropProvider>
-        <RouterProvider router={router} />
-      </DragDropProvider>
-    </WorkerProvider>
+
+    <RouterProvider router={router} />
+
   </ThemeProvider>
 )

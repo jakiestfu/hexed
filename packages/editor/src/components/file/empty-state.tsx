@@ -2,13 +2,14 @@ import type { FunctionComponent } from "react"
 
 import { useRecentFiles } from "../../hooks/use-recent-files"
 import { DataPicker } from "./data-picker"
+import { OnHexedInputChange } from "../../hooks/use-hexed-input"
 
 type EmptyStateProps = {
-  onHandleIdChange?: (handleId: string) => void
+  onChangeInput: OnHexedInputChange
 }
 
 export const EmptyState: FunctionComponent<EmptyStateProps> = ({
-  onHandleIdChange
+  onChangeInput
 }) => {
   const { recentFiles } = useRecentFiles()
 
@@ -16,7 +17,7 @@ export const EmptyState: FunctionComponent<EmptyStateProps> = ({
     <div className="flex flex-col items-center justify-center h-full gap-8">
       <DataPicker
         recentFiles={recentFiles}
-        onHandleIdChange={onHandleIdChange}
+        onChangeInput={onChangeInput}
       />
     </div>
   )

@@ -1,5 +1,6 @@
 // Main hex editor component
-export * from "./components/hex-editor/hex-editor"
+// export * from "./components/hex-editor/editor"
+export * from "./components/hex-editor/index"
 
 // Components
 export * from "./components/toolbar/diff-viewer"
@@ -28,14 +29,16 @@ export * from "./utils/file-handle-storage"
 
 // Hooks
 export * from "./hooks/use-global-keyboard"
-export * from "./hooks/use-settings"
+export * from "./hooks/use-hexed-settings"
 export * from "./hooks/use-local-storage"
 export * from "./hooks/use-hex-input"
 export * from "./hooks/use-performance-metrics"
 export * from "./hooks/use-recent-files"
-export * from "./hooks/use-hex-editor-file"
 export * from "./hooks/use-file-handle-watcher"
+export * from "./hooks/use-hexed-input"
 
 // Providers
 export * from "./providers/worker-provider"
 export * from "./providers/drag-drop-provider"
+export * from "./providers/hex-input-provider"
+export * from "./providers/hexed-settings-provider"
