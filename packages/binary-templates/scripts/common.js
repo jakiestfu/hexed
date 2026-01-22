@@ -123,7 +123,9 @@ export async function convertToESM(filePath, additionalCode = "") {
       [patchedCode, additionalCode].filter(Boolean).join("\n"),
       "utf-8"
     )
-    console.log(`  ↻ Converted to ESM`)
+    const dim = "\x1b[2m"
+    const reset = "\x1b[0m"
+    console.log(`${dim}  ↻ Converted to ESM${reset}`)
   } catch (error) {
     console.error(`  ✗ Failed to convert ${filePath} to ESM:`, error.message)
     throw error

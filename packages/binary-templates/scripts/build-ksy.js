@@ -39,16 +39,23 @@ async function buildKsyFiles() {
       return
     }
 
-    console.log(`Found ${formatEntries.length} format(s) to compile`)
+    // ANSI escape codes for styling
+    const dim = "\x1b[2m"
+    const reset = "\x1b[0m"
+
+    console.log(`🔨 Building ${formatEntries.length} KSY template(s)...`)
 
     // Ensure generated directory exists
     await mkdir(generatedDir, { recursive: true })
 
     // Track compiled templates for generating templates.ts
     const compiledTemplates = []
+    let compiledCount = 0
+    let skippedCount = 0
 
     // Compile each .ksy file from the manifest
-    for (const entry of formatEntries) {
+    for (let i = 0; i < formatEntries.length; i++) {
+      const entry = formatEntries[i]
       const inputPath = join(ksyDir, entry.path)
       const outputSubDir = dirname(entry.path)
       const outputDir =
@@ -65,7 +72,7 @@ async function buildKsyFiles() {
       try {
         await access(targetFile, constants.F_OK)
         // File exists, skip it
-        console.log(`⏭ Skipping ${entry.path} (already built)`)
+        skippedCount++
 
         // Still track it for templates.ts generation
         const className = pascalCaseFilename
@@ -80,7 +87,9 @@ async function buildKsyFiles() {
         // File doesn't exist, proceed with compilation
       }
 
-      console.log(`Compiling ${entry.path}...`)
+      compiledCount++
+      const progress = `[${compiledCount + skippedCount}/${formatEntries.length}]`
+      console.log(`${progress} ${entry.path}`)
 
       try {
         // Run kaitai-struct-compiler
@@ -90,7 +99,7 @@ async function buildKsyFiles() {
         // The compiler generates PascalCase filenames, which we keep
         execSync(
           `kaitai-struct-compiler --read-pos -t javascript --import-path "${ksyDir}" "${inputPath}" --outdir "${outputDir}"`,
-          { stdio: "inherit", cwd: packageRoot }
+          { stdio: "ignore", cwd: packageRoot }
         )
 
         // Convert CommonJS/UMD to ESM
@@ -109,20 +118,18 @@ async function buildKsyFiles() {
           className,
           importPath: `./generated/${jsPath}`
         })
-
-        console.log(`✓ Successfully compiled ${entry.format}`)
       } catch (error) {
         console.error(`✗ Failed to compile ${entry.format}:`, error.message)
         process.exit(1)
       }
     }
 
-    console.log("All .ksy files compiled successfully!")
+    console.log(`✓ Compiled ${compiledCount} template(s)${skippedCount > 0 ? `, skipped ${skippedCount}` : ""}`)
 
     // Generate templates.ts file
-    console.log("Generating templates.ts...")
+    console.log(`${dim}  Generating templates.ts...${reset}`)
     await generateTemplatesFile(compiledTemplates)
-    console.log("✓ Generated templates.ts")
+    console.log(`✓ Generated templates.ts`)
   } catch (error) {
     console.error("Error building .ksy files:", error)
     process.exit(1)

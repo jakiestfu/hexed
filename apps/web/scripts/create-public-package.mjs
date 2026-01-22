@@ -12,10 +12,14 @@ const __dirname = dirname(__filename)
 const packageJsonPath = join(__dirname, "..", "package.json")
 const publicPackageJsonPath = join(__dirname, "..", "package.public.json")
 
+// ANSI escape codes for styling
+const dim = "\x1b[2m"
+const reset = "\x1b[0m"
+
 try {
   // Check if package.json exists
   if (!existsSync(packageJsonPath)) {
-    console.error(`Error: package.json not found at ${packageJsonPath}`)
+    console.error(`✗ Error: package.json not found at ${packageJsonPath}`)
     process.exit(1)
   }
 
@@ -35,8 +39,8 @@ try {
   const publicPackageJsonContent = JSON.stringify(publicPackage, null, 2)
   writeFileSync(publicPackageJsonPath, publicPackageJsonContent + "\n", "utf-8")
 
-  console.log(`Created ${publicPackageJsonPath}`)
+  console.log(`${dim}✓ Created package.public.json${reset}`)
 } catch (error) {
-  console.error("Error creating public package.json:", error.message)
+  console.error("✗ Error creating public package.json:", error.message)
   process.exit(1)
 }

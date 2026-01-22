@@ -17,17 +17,22 @@ async function generateKsySchemaTypes() {
   const outputPath = join(ksyDir, outputFileName)
   let hadError = false
 
+  // ANSI escape codes for styling
+  const dim = "\x1b[2m"
+  const reset = "\x1b[0m"
+
   try {
-    console.log("Cloning ksy_schema repository...")
+    console.log("📝 Generating schema types...")
+    console.log(`${dim}  Cloning repository...${reset}`)
     execSync(`git clone --depth 1 ${repoUrl} "${clonedRepoDir}"`, {
-      stdio: "inherit"
+      stdio: "ignore"
     })
 
-    console.log(`Reading schema file: ${schemaFileName}...`)
+    console.log(`${dim}  Reading schema file...${reset}`)
     const schemaContent = await readFile(schemaFilePath, "utf-8")
     const schema = JSON.parse(schemaContent)
 
-    console.log("Converting JSON schema to TypeScript types...")
+    console.log(`${dim}  Converting to TypeScript types...${reset}`)
     const types = await compile(schema, "KsySchema", {
       bannerComment: `// @ts-nocheck
 /**
@@ -42,23 +47,21 @@ async function generateKsySchemaTypes() {
       }
     })
 
-    console.log("Ensuring output directory exists...")
     await mkdir(ksyDir, { recursive: true })
-
-    console.log(`Writing TypeScript types to ${outputPath}...`)
     await writeFile(outputPath, types, "utf-8")
 
-    console.log(`✓ Successfully generated TypeScript types`)
-    console.log(`✓ Types written to ${outputPath}`)
+    console.log(`✓ Generated TypeScript types`)
+    console.log(`✓ Written to ${outputPath}`)
   } catch (error) {
     console.error("Error generating KSY schema types:", error)
     hadError = true
   } finally {
     // Always clean up temp directory, even on failure
     try {
-      console.log("Cleaning up temporary files...")
+      const dim = "\x1b[2m"
+      const reset = "\x1b[0m"
+      console.log(`${dim}  Cleaning up...${reset}`)
       await rm(tempDir, { recursive: true, force: true })
-      console.log("✓ Cleanup complete")
     } catch (cleanupError) {
       // Ignore errors if directory doesn't exist (ENOENT)
       if (cleanupError.code !== "ENOENT") {
