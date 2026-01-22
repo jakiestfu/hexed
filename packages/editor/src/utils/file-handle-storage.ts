@@ -282,13 +282,18 @@ export async function updateFileHandleTimestamp(
 export async function verifyHandlePermission(
   handle: FileSystemFileHandle
 ): Promise<boolean> {
+  if (!handle.queryPermission) {
+    // If queryPermission is not available, assume permission is granted
+    return true
+  }
+
   const permission = await handle.queryPermission({ mode: "read" })
 
   if (permission === "granted") {
     return true
   }
 
-  if (permission === "prompt") {
+  if (permission === "prompt" && handle.requestPermission) {
     const newPermission = await handle.requestPermission({ mode: "read" })
     return newPermission === "granted"
   }

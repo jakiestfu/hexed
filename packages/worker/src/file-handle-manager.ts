@@ -101,23 +101,9 @@ export class FileHandleManager {
   }
 
   /**
-   * Close all file handles
-   */
-  closeAll(): void {
-    this.handles.clear()
-  }
-
-  /**
    * Get all open file IDs
    */
   getOpenFileIds(): string[] {
     return Array.from(this.handles.keys())
-  }
-
-  /**
-   * Get file info (for debugging)
-   */
-  getFileInfo(fileId: string): FileHandleInfo | undefined {
-    return this.handles.get(fileId)
   }
 }

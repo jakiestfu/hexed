@@ -6,7 +6,7 @@
  * Convert a byte to a 2-character hex string
  */
 export function byteToHex(byte: number | null | undefined) {
-  return byte?.toString(16).padStart(2, "0").toUpperCase()
+  return byte?.toString(16).padStart(2, "0").toUpperCase() ?? ""
 }
 
 /**

@@ -7,7 +7,6 @@ import {
   createTestData
 } from "./test-utils"
 import type {
-  ByteRangeResponse,
   ConnectedResponse,
   ErrorResponse,
   FileSizeResponse
@@ -121,40 +120,28 @@ describe("createWorkerClient", () => {
     })
   })
 
-  describe("readByteRange", () => {
-    it("should send READ_BYTE_RANGE request and return data", async () => {
-      const testData = createTestData(100)
-
-      const readPromise = client.readByteRange("file1", 0, 100)
+  describe("streamFile", () => {
+    it("should send STREAM_FILE_REQUEST", async () => {
+      const streamPromise = client.streamFile("file1")
 
       // Wait for message to be sent
       await new Promise((resolve) => setTimeout(resolve, 10))
 
       const request = mockWorker.messages[0]?.data
-      expect(request?.type).toBe("READ_BYTE_RANGE")
+      expect(request?.type).toBe("STREAM_FILE_REQUEST")
       expect(request?.fileId).toBe("file1")
-      expect(request?.start).toBe(0)
-      expect(request?.end).toBe(100)
 
-      const response: ByteRangeResponse = {
+      const response: ConnectedResponse = {
         id: request.id,
-        type: "BYTE_RANGE_RESPONSE",
-        fileId: "file1",
-        start: 0,
-        end: 100,
-        data: testData
+        type: "CONNECTED"
       }
       mockWorker.simulateMessage(response)
 
-      const data = await readPromise
-
-      expect(data).toBeInstanceOf(Uint8Array)
-      expect(data.length).toBe(100)
-      expect(Array.from(data)).toEqual(Array.from(testData))
+      await streamPromise
     })
 
     it("should handle error response", async () => {
-      const readPromise = client.readByteRange("file1", 0, 100)
+      const streamPromise = client.streamFile("file1")
 
       // Wait for message to be sent
       await new Promise((resolve) => setTimeout(resolve, 10))
@@ -167,7 +154,7 @@ describe("createWorkerClient", () => {
       }
       mockWorker.simulateMessage(errorResponse)
 
-      await expect(readPromise).rejects.toThrow("File not found")
+      await expect(streamPromise).rejects.toThrow("File not found")
     })
   })
 
@@ -197,29 +184,6 @@ describe("createWorkerClient", () => {
     })
   })
 
-  describe("setWindowSize", () => {
-    it("should send SET_WINDOW_SIZE request", async () => {
-      const windowSize = 512 * 1024
-
-      const setPromise = client.setWindowSize("file1", windowSize)
-
-      // Wait for message to be sent
-      await new Promise((resolve) => setTimeout(resolve, 10))
-
-      const request = mockWorker.messages[0]?.data
-      expect(request?.type).toBe("SET_WINDOW_SIZE")
-      expect(request?.fileId).toBe("file1")
-      expect(request?.windowSize).toBe(windowSize)
-
-      const response: ConnectedResponse = {
-        id: request.id,
-        type: "CONNECTED"
-      }
-      mockWorker.simulateMessage(response)
-
-      await setPromise
-    })
-  })
 
   describe("closeFile", () => {
     it("should send CLOSE_FILE request", async () => {
@@ -245,7 +209,7 @@ describe("createWorkerClient", () => {
   describe("disconnect", () => {
     it("should terminate worker and reject pending requests", async () => {
       // Start a request that won't complete
-      const readPromise = client.readByteRange("file1", 0, 100)
+      const readPromise = client.getFileSize("file1")
 
       // Disconnect before response
       client.disconnect()
@@ -266,7 +230,7 @@ describe("createWorkerClient", () => {
     it("should timeout if response not received", async () => {
       vi.useFakeTimers()
 
-      const readPromise = client.readByteRange("file1", 0, 100)
+      const readPromise = client.getFileSize("file1")
 
       // Advance time past timeout (30 seconds)
       vi.advanceTimersByTime(30000)
@@ -279,9 +243,9 @@ describe("createWorkerClient", () => {
 
   describe("multiple concurrent requests", () => {
     it("should handle multiple concurrent requests", async () => {
-      const promise1 = client.readByteRange("file1", 0, 100)
-      const promise2 = client.readByteRange("file1", 100, 200)
-      const promise3 = client.getFileSize("file1")
+      const promise1 = client.getFileSize("file1")
+      const promise2 = client.getFileSize("file2")
+      const promise3 = client.getFileSize("file3")
 
       // Wait for all messages to be sent
       await new Promise((resolve) => setTimeout(resolve, 10))
@@ -293,42 +257,38 @@ describe("createWorkerClient", () => {
       const response3: FileSizeResponse = {
         id: request3.id,
         type: "FILE_SIZE_RESPONSE",
-        fileId: "file1",
-        size: 1000
+        fileId: "file3",
+        size: 3000
       }
       mockWorker.simulateMessage(response3)
 
       const request1 = mockWorker.messages[0]?.data
-      const response1: ByteRangeResponse = {
+      const response1: FileSizeResponse = {
         id: request1.id,
-        type: "BYTE_RANGE_RESPONSE",
+        type: "FILE_SIZE_RESPONSE",
         fileId: "file1",
-        start: 0,
-        end: 100,
-        data: createTestData(100)
+        size: 1000
       }
       mockWorker.simulateMessage(response1)
 
       const request2 = mockWorker.messages[1]?.data
-      const response2: ByteRangeResponse = {
+      const response2: FileSizeResponse = {
         id: request2.id,
-        type: "BYTE_RANGE_RESPONSE",
-        fileId: "file1",
-        start: 100,
-        end: 200,
-        data: createTestData(100)
+        type: "FILE_SIZE_RESPONSE",
+        fileId: "file2",
+        size: 2000
       }
       mockWorker.simulateMessage(response2)
 
-      const [data1, data2, size] = await Promise.all([
+      const [size1, size2, size3] = await Promise.all([
         promise1,
         promise2,
         promise3
       ])
 
-      expect(data1.length).toBe(100)
-      expect(data2.length).toBe(100)
-      expect(size).toBe(1000)
+      expect(size1).toBe(1000)
+      expect(size2).toBe(2000)
+      expect(size3).toBe(3000)
     })
   })
 
