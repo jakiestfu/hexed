@@ -57,73 +57,6 @@ export function useHexEditorFile(
   end?: number,
   preserveOffsets?: boolean
 ) {
-  // const { getFileHandleById, addRecentFile } = useRecentFiles({
-  //   loadFiles: false
-  // })
-
-  // const [fileHandle, setFileHandle] =
-  //   React.useState<FileSystemFileHandle | null>(null)
-  // const [initialLoading, setInitialLoading] = React.useState(false)
-  // const [loadError, setLoadError] = React.useState<string | null>(null)
-  // const runIdRef = React.useRef(0)
-
-  // const { fileHandle, error: loadError } = useHandleIdToFileHandle(handleId)
-  // Load handle metadata when handleId changes
-  // React.useEffect(() => {
-  //   if (!handleId) {
-  //     setFileHandle(null)
-  //     setInitialLoading(false)
-  //     setLoadError(null)
-  //     return
-  //   }
-
-  //   const openFileHandler = async () => {
-  //     setInitialLoading(true)
-  //     setLoadError(null)
-
-  //     try {
-  //       // First check sessionStorage for cached snapshot (for initial fast load)
-  //       // const snapshotKey = `hexed:pending-handle-${handleId}`
-  //       // const cachedSnapshot = sessionStorage.getItem(snapshotKey)
-  //       // if (cachedSnapshot) {
-  //       //   try {
-  //       //     // Clean up sessionStorage
-  //       //     sessionStorage.removeItem(snapshotKey)
-  //       //   } catch (parseError) {
-  //       //     console.warn("Failed to parse cached snapshot:", parseError)
-  //       //   }
-  //       // }
-  //       // Load from IndexedDB handle
-  //       const handleData = await getFileHandleById(handleId)
-  //       if (!handleData) {
-  //         throw new Error("File handle not found or permission denied")
-  //       }
-
-  //       setFileHandle(handleData.handle)
-  //       setInitialLoading(false)
-  //     } catch (error) {
-  //       console.error("Failed to load handle metadata:", error)
-  //       const errorMessage =
-  //         error instanceof Error ? error.message : "Failed to load file"
-  //       setLoadError(errorMessage)
-  //       setFileHandle(null)
-  //       setInitialLoading(false)
-  //     }
-  //   }
-
-  //   openFileHandler()
-  // }, [handleId, getFileHandleById, addRecentFile])
-
-  // Convert handle to File using the new hook
-  // const {
-  //   file,
-  //   loading: fileLoading,
-  //   error: fileError
-  // } = useHandleToFile(fileHandle)
-  // const fileLoading = false
-  // const fileError = null
-  // const file = null
-
   // Read file data using the new hook
   const {
     data,
@@ -132,10 +65,6 @@ export function useHexEditorFile(
     loading: dataLoading,
     error: dataError
   } = useFileData(file, start, end)
-  // const dataLoading = false
-  // const dataStartOffset = undefined
-  // const dataError = null
-  // const data = null
 
   // Combine loading states
   const loading = dataLoading

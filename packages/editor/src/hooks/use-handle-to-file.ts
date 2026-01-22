@@ -14,14 +14,12 @@ export function useHandleToFile(
   fileHandle: FileSystemFileHandle | null
 ): UseHandleToFileResult {
   const [file, setFile] = useState<File | null>(null)
-  // const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
   useEffect(() => {
     // Reset state when handle is null
     if (!fileHandle) {
       setFile(null)
-      // setLoading(false)
       setError(null)
       return
     }
@@ -29,10 +27,6 @@ export function useHandleToFile(
     let cancelled = false
 
     const loadFile = async () => {
-      // setLoading(true)
-      // setError(null)
-      console.log("loadFile", fileHandle)
-
       try {
         const fileObj = await fileHandle.getFile()
         if (!cancelled) {
@@ -44,7 +38,6 @@ export function useHandleToFile(
             err instanceof Error ? err.message : "Failed to get file"
           setError(errorMessage)
           setFile(null)
-          // setLoading(false)
         }
       }
     }

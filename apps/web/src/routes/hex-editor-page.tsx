@@ -4,7 +4,6 @@ import { useNavigate, useParams } from "react-router-dom"
 
 import { HexEditor } from "@hexed/editor"
 
-// import { StreamFileTest } from "~/components/stream-file-test"
 import packageJson from "../../package.public.json"
 
 export function HexEditorPage() {

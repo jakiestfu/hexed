@@ -10,7 +10,6 @@
     "./differ": "./src/differ.ts",
     "./formatter": "./src/formatter.ts",
     "./interpreter": "./src/interpreter.ts",
-    "./parser": "./src/parser.ts",
     "./storage": "./src/storage.ts",
     "./strings": "./src/strings.ts",
     "./search": "./src/search.ts"
