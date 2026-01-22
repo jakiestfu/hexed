@@ -1,8 +1,13 @@
+import {
+  createContext,
+  FunctionComponent,
+  PropsWithChildren,
+  ReactNode,
+  useContext
+} from "react"
 
-import { createContext, FunctionComponent, PropsWithChildren, ReactNode, useContext } from "react"
-import { HexedFileInput } from "../types"
 import { HexedSettings, UseHexedSettings } from "../hooks/use-hexed-settings"
-
+import { HexedFileInput } from "../types"
 
 /**
  * Context for the worker client
@@ -13,10 +18,14 @@ const HexedSettingsContext = createContext<UseHexedSettings | null>(null)
  * Provider component that initializes and provides the worker client
  * The client is initialized once at the root and shared via context
  */
-export const HexedSettingsProvider: FunctionComponent<PropsWithChildren<{
-  value: UseHexedSettings
-}>> = ({ children, value }) => (
-  <HexedSettingsContext.Provider value={value}>{children}</HexedSettingsContext.Provider>
+export const HexedSettingsProvider: FunctionComponent<
+  PropsWithChildren<{
+    value: UseHexedSettings
+  }>
+> = ({ children, value }) => (
+  <HexedSettingsContext.Provider value={value}>
+    {children}
+  </HexedSettingsContext.Provider>
 )
 
 /**

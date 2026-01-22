@@ -34,8 +34,8 @@ import {
 } from "@hexed/ui"
 
 import { useHexedSettings, type Sidebar } from "../../hooks/use-hexed-settings"
-import { MemoryProfiler } from "../common/memory-profiler"
 import { useHexedSettingsContext } from "../../providers/hexed-settings-provider"
+import { MemoryProfiler } from "../common/memory-profiler"
 
 export type HexFooterProps = {
   totalSize: number | undefined

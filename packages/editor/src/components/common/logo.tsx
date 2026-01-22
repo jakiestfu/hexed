@@ -3,23 +3,10 @@ import { ChevronDown, Ghost } from "lucide-react"
 
 import { Button, cn, DropdownMenu, DropdownMenuTrigger } from "@hexed/ui"
 
-import { Menu, type PackageInfo } from "./menu"
 import { OnHexedInputChange } from "../../hooks/use-hexed-input"
+import { Menu } from "./menu"
 
 export type { MenuItem } from "./menu"
-
-export type LogoProps = {
-  inline?: boolean
-  // currentSnapshot?: BinarySnapshot | null
-  showHistogram?: boolean
-  onShowHistogramChange?: (show: boolean) => void
-  // Theme
-  theme?: string
-  setTheme?: (theme: string) => void
-  // Package info
-  packageInfo?: PackageInfo
-  onChangeInput: OnHexedInputChange
-}
 
 export const Brand: FunctionComponent<{
   className?: string
@@ -48,14 +35,21 @@ export const Brand: FunctionComponent<{
   </div>
 )
 
-export const Logo: FunctionComponent<LogoProps> = ({
+export const Logo: FunctionComponent<{
+  inline?: boolean
+  // currentSnapshot?: BinarySnapshot | null
+  showHistogram?: boolean
+  onShowHistogramChange?: (show: boolean) => void
+  // Theme
+  theme?: string
+  setTheme?: (theme: string) => void
+  onChangeInput: OnHexedInputChange
+}> = ({
   inline = false,
-  // currentSnapshot,
   showHistogram: controlledShowHistogram,
   onShowHistogramChange: controlledOnShowHistogramChange,
   theme,
   setTheme,
-  packageInfo,
   onChangeInput
 }) => {
   const [internalShowHistogram, setInternalShowHistogram] = useState(false)
@@ -84,7 +78,6 @@ export const Logo: FunctionComponent<LogoProps> = ({
           onChangeInput={onChangeInput}
           theme={theme}
           setTheme={setTheme}
-          packageInfo={packageInfo}
         />
       </DropdownMenu>
     </div>

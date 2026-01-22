@@ -2,8 +2,8 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react"
 
 import type { BinarySnapshot } from "@hexed/types"
 
-import { calculateChecksum, createSnapshotFromArrayBuffer } from "../utils"
 import { useHexedInputContext } from "../providers/hex-input-provider"
+import { calculateChecksum, createSnapshotFromArrayBuffer } from "../utils"
 
 /**
  * Hook for watching FileSystemFileHandle files for changes

@@ -1,7 +1,11 @@
+import {
+  createContext,
+  FunctionComponent,
+  PropsWithChildren,
+  useContext
+} from "react"
 
-import { createContext, FunctionComponent, PropsWithChildren, useContext } from "react"
 import { OnHexedInputChange, UseHexedInput } from "../hooks/use-hexed-input"
-
 
 /**
  * Context for the worker client
@@ -15,11 +19,15 @@ const HexedInputContext = createContext<{
  * Provider component that initializes and provides the worker client
  * The client is initialized once at the root and shared via context
  */
-export const HexedInputProvider: FunctionComponent<PropsWithChildren<{
-  input: UseHexedInput[0]
-  onChangeInput: OnHexedInputChange
-}>> = ({ children, input, onChangeInput }) => (
-  <HexedInputContext.Provider value={{ input, onChangeInput }}>{children}</HexedInputContext.Provider>
+export const HexedInputProvider: FunctionComponent<
+  PropsWithChildren<{
+    input: UseHexedInput[0]
+    onChangeInput: OnHexedInputChange
+  }>
+> = ({ children, input, onChangeInput }) => (
+  <HexedInputContext.Provider value={{ input, onChangeInput }}>
+    {children}
+  </HexedInputContext.Provider>
 )
 
 /**

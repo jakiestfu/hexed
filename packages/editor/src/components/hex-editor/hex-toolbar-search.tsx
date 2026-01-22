@@ -19,7 +19,6 @@ export const HexToolbarSearch: FunctionComponent<HexToolbarSearchProps> = ({
   onMatchFound,
   onClose
 }) => {
-
   const handleMatchFound = useCallback(
     (offset: number, length: number) => {
       onMatchFound(offset, length)

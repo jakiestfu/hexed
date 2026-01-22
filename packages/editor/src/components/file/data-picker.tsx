@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react"
+import { useEffect, useRef, useState } from "react"
 import type { FunctionComponent } from "react"
 import { Clock, FolderOpen, Loader2 } from "lucide-react"
 
@@ -7,23 +7,16 @@ import {
   Button,
   Card,
   CardContent,
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogHeader,
-  DialogTitle,
   Popover,
   PopoverContent,
   PopoverTrigger
 } from "@hexed/ui"
 
-import { useRecentFiles } from "../../hooks/use-recent-files"
-import {
-  formatTimestamp,
-  getBasename
-} from "../../utils"
-import type { FileHandleMetadata } from "../../utils/file-handle-storage"
 import { OnHexedInputChange } from "../../hooks/use-hexed-input"
+import { useRecentFiles } from "../../hooks/use-recent-files"
+import { formatTimestamp, getBasename } from "../../utils"
+import type { FileHandleMetadata } from "../../utils/file-handle-storage"
+import { AboutFileSystemAccessDialog } from "../dialogs/about-file-system-access-dialog"
 
 type DataPickerProps = {
   recentFiles: FileHandleMetadata[]
@@ -140,6 +133,9 @@ export const DataPicker: FunctionComponent<DataPickerProps> = ({
   const [isMounted, setIsMounted] = useState(false)
   const [showFileSystemInfoDialog, setShowFileSystemInfoDialog] =
     useState(false)
+
+  const fileInputRef = useRef<HTMLInputElement | null>(null)
+
   const supportsFileSystemAccess =
     typeof window !== "undefined" && "showOpenFilePicker" in window
 
@@ -152,7 +148,6 @@ export const DataPicker: FunctionComponent<DataPickerProps> = ({
   }, [])
 
   const handleRecentFileSelect = async (handleId: string) => {
-
     setIsLoading(true)
     try {
       const handleData = await getFileHandleById(handleId)
@@ -171,10 +166,10 @@ export const DataPicker: FunctionComponent<DataPickerProps> = ({
 
   const handleFileSystemAccessPicker = async () => {
     if (!supportsFileSystemAccess || !window.showOpenFilePicker) {
-      alert("File System Access API is not supported in this browser")
+      // Fallback: open a normal file input picker
+      fileInputRef.current?.click()
       return
     }
-
 
     setIsLoading(true)
     try {
@@ -205,22 +200,48 @@ export const DataPicker: FunctionComponent<DataPickerProps> = ({
     }
   }
 
+  const handleFallbackFilePicked: React.ChangeEventHandler<HTMLInputElement> = (
+    e
+  ) => {
+    const file = e.currentTarget.files?.[0]
+    // allow picking the same file twice in a row
+    e.currentTarget.value = ""
+
+    if (!file) return
+
+    setIsLoading(true)
+    try {
+      // Fallback path: pass the File object directly
+      onChangeInput(file)
+    } finally {
+      setIsLoading(false)
+    }
+  }
+
   return (
     <Card
-      className={`w-full max-w-lg border-none h-[250px] transition-all duration-300 ${isMounted ? "opacity-100" : "opacity-0"
-        }`}
+      className={`w-full max-w-lg border-none h-[250px] transition-all duration-300 ${
+        isMounted ? "opacity-100" : "opacity-0"
+      }`}
     >
       <CardContent className="space-y-4">
         <div className="space-y-4 mt-4">
           <label className="text-sm font-medium inline-block mb-2">
             Select a file
           </label>
+
+          {/* Hidden fallback input (used when File System Access API isn't available) */}
+          <input
+            ref={fileInputRef}
+            type="file"
+            className="hidden"
+            onChange={handleFallbackFilePicked}
+          />
+
           <div className="flex gap-2">
             <Button
               onClick={handleFileSystemAccessPicker}
-              disabled={
-                isLoading || !supportsFileSystemAccess
-              }
+              disabled={isLoading}
               className="flex-1"
             >
               {isLoading ? (
@@ -230,13 +251,15 @@ export const DataPicker: FunctionComponent<DataPickerProps> = ({
               )}
               {isLoading ? "Opening..." : "Choose File"}
             </Button>
-            {recentFiles.length > 0 && (
+
+            {supportsFileSystemAccess && recentFiles.length > 0 && (
               <RecentFilesDropdown
                 recentFiles={recentFiles}
                 onSelect={handleRecentFileSelect}
               />
             )}
           </div>
+
           <p className="text-xs text-muted-foreground">
             {supportsFileSystemAccess ? (
               <>
@@ -248,75 +271,18 @@ export const DataPicker: FunctionComponent<DataPickerProps> = ({
                 >
                   File System Access API
                 </button>
+                {recentFiles.length > 0 && " or select from recent files"}
               </>
             ) : (
-              "File System Access API is not supported in this browser"
+              "Choose a file from your device (your browser doesn’t support the File System Access API)."
             )}
-            {recentFiles.length > 0 &&
-              " or select from recent files"}
           </p>
         </div>
       </CardContent>
-      <Dialog
+      <AboutFileSystemAccessDialog
         open={showFileSystemInfoDialog}
         onOpenChange={setShowFileSystemInfoDialog}
-      >
-        <DialogContent className="max-w-lg">
-          <DialogHeader>
-            <DialogTitle>About File System Access API</DialogTitle>
-            <DialogDescription>
-              A local-first approach to file access. All data stays on your
-              device. No uploads, no cloud storage, no server communication.
-            </DialogDescription>
-          </DialogHeader>
-          <div className="space-y-4 py-4">
-            <div>
-              <h3 className="font-semibold text-sm mb-2">What is it?</h3>
-              <p className="text-sm text-muted-foreground">
-                The File System Access API is a web standard that allows web
-                applications to read and write files and directories on the
-                user's device with their explicit permission. It provides a
-                native-like file access experience directly in the browser.
-              </p>
-            </div>
-            <div>
-              <h3 className="font-semibold text-sm mb-2">Why is it used?</h3>
-              <p className="text-sm text-muted-foreground">
-                This API enables persistent file access with user permission.
-                Once granted, files can be reopened without re-prompting,
-                enabling local-first workflows. File handles are stored
-                client-side, allowing quick access to recently opened files and
-                change tracking without exposing data to external servers.
-              </p>
-            </div>
-            <div>
-              <h3 className="font-semibold text-sm mb-2">Storage</h3>
-              <p className="text-sm text-muted-foreground">
-                File handles are securely stored in IndexedDB (database name:
-                "hexed-file-handles"). You can inspect this data in your
-                browser's Developer Tools under Application → IndexedDB. The
-                handles are stored locally on your device and never sent to any
-                server.
-              </p>
-            </div>
-            <div className="pt-2">
-              <Button
-                variant="outline"
-                asChild
-                className="w-full sm:w-auto"
-              >
-                <a
-                  href="https://developer.mozilla.org/en-US/docs/Web/API/File_System_Access_API"
-                  target="_blank"
-                  rel="noopener noreferrer"
-                >
-                  Learn more on MDN
-                </a>
-              </Button>
-            </div>
-          </div>
-        </DialogContent>
-      </Dialog>
+      />
     </Card>
   )
 }

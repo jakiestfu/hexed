@@ -16,7 +16,10 @@ export type SidebarPosition = "left" | "right"
 export type Sidebar = "templates" | "strings" | "interpreter" | null
 
 export type UseHexedSettings = ReturnType<typeof useHexedSettings>
-export type HexedSettings = Omit<WithoutSetters<UseHexedSettings>, "toggleSidebarPosition">
+export type HexedSettings = Omit<
+  WithoutSetters<UseHexedSettings>,
+  "toggleSidebarPosition"
+>
 
 /**
  * Consolidated hook for managing all application settings in localStorage

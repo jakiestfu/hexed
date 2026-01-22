@@ -2,20 +2,26 @@
 
 import type { FunctionComponent, PropsWithChildren } from "react"
 
-import type { EditorProps } from "../../types"
-import { HexedProviders } from "../../providers"
-import { Editor } from "./editor"
-import { UseHexedSettings } from "../../hooks/use-hexed-settings"
 import { OnHexedInputChange, UseHexedInput } from "../../hooks/use-hexed-input"
+import { UseHexedSettings } from "../../hooks/use-hexed-settings"
+import { HexedProviders } from "../../providers"
+import type { EditorProps } from "../../types"
+import { Editor } from "./editor"
 
-type F = {
-  input: UseHexedInput[0]
-  onChangeInput: OnHexedInputChange
-  settings: UseHexedSettings;
-} & EditorProps
-
-export const HexedEditor: FunctionComponent<PropsWithChildren<F>> = ({ input, onChangeInput, settings, ...props }) => (
-  <HexedProviders input={input} onChangeInput={onChangeInput} settings={settings}>
+export const HexedEditor: FunctionComponent<
+  PropsWithChildren<
+    {
+      input: UseHexedInput[0]
+      onChangeInput: OnHexedInputChange
+      settings: UseHexedSettings
+    } & EditorProps
+  >
+> = ({ input, onChangeInput, settings, ...props }) => (
+  <HexedProviders
+    input={input}
+    onChangeInput={onChangeInput}
+    settings={settings}
+  >
     <Editor {...props} />
   </HexedProviders>
 )

@@ -1,7 +1,8 @@
 import { useEffect, useState } from "react"
+
+import { HexedFileInput } from "../types"
 import { useResolveFile } from "./use-resolve-file"
 import { useResolveHandle } from "./use-resolve-handle"
-import { HexedFileInput } from "../types"
 
 export type OnHexedInputChange = (input: HexedFileInput) => void
 

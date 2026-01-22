@@ -1,11 +1,12 @@
-
 import { useTheme } from "next-themes"
 import { useNavigate, useParams } from "react-router-dom"
 
-import { HexedFileInput, HexedEditor, useHexedInput, useHexedSettings } from "@hexed/editor"
-
-import packageJson from "../../package.public.json"
-import { useCallback } from "react"
+import {
+  HexedEditor,
+  HexedFileInput,
+  useHexedInput,
+  useHexedSettings
+} from "@hexed/editor"
 
 export function HexEditorPage() {
   const params = useParams()
@@ -15,22 +16,19 @@ export function HexEditorPage() {
   const [input, setInput] = useHexedInput(params.id)
   const settings = useHexedSettings()
 
-  const onChangeInput = useCallback(
-    (newInput: HexedFileInput) => {
-      if (newInput === null) {
-        navigate("/")
-        return
-      }
-      if (typeof newInput === "string") {
-        navigate(`/edit/${newInput}`)
-        return
-      }
-      setInput(newInput)
-    },
-    [navigate]
-  )
+  const onChangeInput = (newInput: HexedFileInput) => {
+    if (newInput === null) {
+      navigate("/")
+      setInput(null)
+      return
+    }
+    if (typeof newInput === "string") {
+      navigate(`/edit/${newInput}`)
+      return
+    }
+    setInput(newInput)
+  }
 
-  console.log("input", input)
   return (
     <div className="flex flex-col h-screen">
       <HexedEditor
@@ -40,7 +38,6 @@ export function HexEditorPage() {
         settings={settings}
         theme={theme}
         setTheme={setTheme}
-        packageInfo={packageJson}
       />
     </div>
   )

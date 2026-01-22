@@ -1,8 +1,8 @@
 import type { FunctionComponent } from "react"
 
+import { OnHexedInputChange } from "../../hooks/use-hexed-input"
 import { useRecentFiles } from "../../hooks/use-recent-files"
 import { DataPicker } from "./data-picker"
-import { OnHexedInputChange } from "../../hooks/use-hexed-input"
 
 type EmptyStateProps = {
   onChangeInput: OnHexedInputChange

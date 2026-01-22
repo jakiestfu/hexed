@@ -1,6 +1,6 @@
 {
-  "name": "@hexed/web",
-  "version": "0.1.0",
+  "name": "hexed",
+  "version": "0.2.0",
   "description": "A modern hex editor for inspecting and tracking binary file changes",
   "repository": {
     "type": "git",

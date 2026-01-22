@@ -19,7 +19,8 @@ import {
 } from "@hexed/ui"
 
 import { useGlobalKeyboard } from "../../hooks/use-global-keyboard"
-
+import { useHexedInputContext } from "../../providers/hex-input-provider"
+import { useHexedSettingsContext } from "../../providers/hexed-settings-provider"
 import type { EditorProps } from "../../types"
 import { Logo } from "../common/logo"
 import { EmptyState } from "../file/empty-state"
@@ -28,18 +29,18 @@ import { HexSidebar } from "./hex-sidebar"
 import { HexToolbar } from "./hex-toolbar"
 import { HexToolbarDiff } from "./hex-toolbar-diff"
 import { HexToolbarSearch } from "./hex-toolbar-search"
-import { useHexedSettingsContext } from "../../providers/hexed-settings-provider"
-import { useHexedInputContext } from "../../providers/hex-input-provider"
 
 export const Editor: FunctionComponent<EditorProps> = ({
   className = "",
   fileSource = "file-system",
   theme,
-  setTheme,
-  packageInfo
+  setTheme
 }) => {
   const [activeTab, setActiveTab] = useState<string>("0")
-  const { input: { file, fileHandle, handleId }, onChangeInput } = useHexedInputContext();
+  const {
+    input: { file, fileHandle, handleId },
+    onChangeInput
+  } = useHexedInputContext()
   const { showAscii, sidebar, sidebarPosition } = useHexedSettingsContext()
 
   const [diffMode] = useState<DiffViewMode>("inline")
@@ -260,14 +261,13 @@ export const Editor: FunctionComponent<EditorProps> = ({
                 onChangeInput={onChangeInput}
                 theme={theme}
                 setTheme={setTheme}
-                packageInfo={packageInfo}
               />
             }
             file={file}
             fileSource={fileSource}
             isConnected={Boolean(fileHandle)}
             error={null}
-            onRestartWatching={() => { }}
+            onRestartWatching={() => {}}
             onClose={() => onChangeInput(null)}
           />
           <HexToolbarSearch
@@ -285,15 +285,11 @@ export const Editor: FunctionComponent<EditorProps> = ({
         </CardHeader>
 
         <CardContent className="grow min-h-0 overflow-auto p-0">
-          {!canRender ? (
-            <EmptyState onChangeInput={onChangeInput} />
-          ) : null}
+          {!canRender ? <EmptyState onChangeInput={onChangeInput} /> : null}
 
           <TabsContent
             value="0"
-            className={
-              cn("h-full", !canRender && "hidden")
-            }
+            className={cn("h-full", !canRender && "hidden")}
           >
             <ResizablePanelGroup
               direction="horizontal"
@@ -319,7 +315,9 @@ export const Editor: FunctionComponent<EditorProps> = ({
         <CardFooter
           className={cn(
             "p-0",
-            canRender ? "opacity-100" : "opacity-0 transition-all duration-700 pointer-events-none"
+            canRender
+              ? "opacity-100"
+              : "opacity-0 transition-all duration-700 pointer-events-none"
           )}
         >
           <HexFooter

@@ -28,8 +28,8 @@ import {
   Hotkeys,
   OnHexedInputChange,
   Sidebar,
-  useRecentFiles,
-  useHexedSettingsContext
+  useHexedSettingsContext,
+  useRecentFiles
 } from "@hexed/editor"
 import {
   Button,
@@ -50,6 +50,7 @@ import {
   DropdownMenuSubTrigger
 } from "@hexed/ui"
 
+import packageJson from "../../../../../package.public.json"
 import { Brand } from "./logo" // logo is in same folder
 
 export type MenuItem = {
@@ -59,26 +60,12 @@ export type MenuItem = {
   href?: string
 }
 
-export type PackageInfo = {
-  name: string
-  description: string
-  version: string
-  repository: {
-    url: string
-  }
-}
-
 export type MenuProps = {
-  // currentSnapshot?: BinarySnapshot | null
   showHistogram: boolean
   onShowHistogramChange: (show: boolean) => void
-  // Navigation
   onNavigate?: (path: string) => void
-  // Theme
   theme?: string
   setTheme?: (theme: string) => void
-  // Package info
-  packageInfo?: PackageInfo
   onChangeInput: OnHexedInputChange
 }
 
@@ -88,7 +75,7 @@ export const Menu: FunctionComponent<MenuProps> = ({
   onShowHistogramChange,
   theme,
   setTheme,
-  packageInfo,
+  // packageJson,
   onChangeInput
 }) => {
   const { recentFiles, clearRecentFiles, removeRecentFile } = useRecentFiles()
@@ -111,11 +98,11 @@ export const Menu: FunctionComponent<MenuProps> = ({
   const [showAboutDialog, setShowAboutDialog] = useState(false)
 
   const handleShare = async () => {
-    if (navigator.share && packageInfo) {
+    if (navigator.share && packageJson) {
       try {
         await navigator.share({
           title: "Hexed",
-          text: packageInfo.description,
+          text: packageJson.description,
           url: window.location.href
         })
       } catch (error) {
@@ -450,7 +437,7 @@ export const Menu: FunctionComponent<MenuProps> = ({
           </div>
         </DialogContent>
       </Dialog>
-      {packageInfo && (
+      {packageJson && (
         <Dialog
           open={showAboutDialog}
           onOpenChange={setShowAboutDialog}
@@ -458,16 +445,16 @@ export const Menu: FunctionComponent<MenuProps> = ({
           <DialogContent className="text-center">
             <DialogHeader>
               <DialogTitle className="sr-only">
-                About {packageInfo.name}
+                About {packageJson.name}
               </DialogTitle>
             </DialogHeader>
             <div className="flex flex-col items-center gap-4 py-4">
               <Brand />
               <p className="text-muted-foreground max-w-xs">
-                {packageInfo.description}
+                {packageJson.description}
               </p>
               <p className="text-sm text-muted-foreground font-mono">
-                Version {packageInfo.version}
+                Version {packageJson.version}
               </p>
               <div className="flex flex-col sm:flex-row gap-2 mt-2 w-full sm:w-auto">
                 <Button
@@ -476,7 +463,7 @@ export const Menu: FunctionComponent<MenuProps> = ({
                   className="flex items-center gap-2"
                 >
                   <a
-                    href={packageInfo.repository.url.replace(".git", "")}
+                    href={packageJson.repository.url.replace(".git", "")}
                     target="_blank"
                     rel="noopener noreferrer"
                     className="flex items-center gap-2"

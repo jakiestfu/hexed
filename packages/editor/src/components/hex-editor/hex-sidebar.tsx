@@ -6,12 +6,12 @@ import type { Endianness, NumberFormat } from "@hexed/binary-utils/interpreter"
 import { ResizablePanel } from "@hexed/ui"
 
 import { useHexedSettings } from "../../hooks/use-hexed-settings"
+import { useHexedSettingsContext } from "../../providers/hexed-settings-provider"
 import { useWorkerClient } from "../../providers/worker-provider"
 import type { SelectionRange } from "../../types"
 import { Interpreter } from "../sidebars/interpreter"
 import { Strings } from "../sidebars/strings"
 import { Templates } from "../sidebars/templates"
-import { useHexedSettingsContext } from "../../providers/hexed-settings-provider"
 
 export type HexSidebarProps = {
   defaultSize: number

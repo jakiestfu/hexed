@@ -55,8 +55,8 @@ import {
 } from "@hexed/ui"
 
 import { useHexedSettings } from "../../hooks/use-hexed-settings"
-import type { InterpreterProps } from "../../types"
 import { useHexedSettingsContext } from "../../providers/hexed-settings-provider"
+import type { InterpreterProps } from "../../types"
 
 interface InterpretedValue {
   type: string

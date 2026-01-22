@@ -13,8 +13,8 @@ import {
 
 import { useHexInput } from "../../hooks/use-hex-input"
 import { useLocalStorage } from "../../hooks/use-local-storage"
-import { useWorkerClient } from "../../providers/worker-provider"
 import { useHexedInputContext } from "../../providers/hex-input-provider"
+import { useWorkerClient } from "../../providers/worker-provider"
 
 export type FindInputProps = {
   onMatchFound?: (offset: number, length: number) => void
@@ -29,7 +29,9 @@ export const FindInput: FunctionComponent<FindInputProps> = ({
   inputRef: externalInputRef,
   syncRangeToFindInput
 }) => {
-  const { input: { fileHandle, handleId } } = useHexedInputContext();
+  const {
+    input: { fileHandle, handleId }
+  } = useHexedInputContext()
   const workerClient = useWorkerClient()
   const [searchMode, setSearchMode] = useLocalStorage<"hex" | "text">(
     "hexed:find-input-mode",

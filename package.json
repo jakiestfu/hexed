@@ -1,9 +1,17 @@
 {
   "name": "hexed",
-  "version": "0.2.1",
+  "version": "0.2.0",
   "private": true,
-  "description": "A hex editor for inspecting and tracking binary file changes",
+  "description": "A modern hex editor for inspecting and tracking binary file changes",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/jakiestfu/hexed.git"
+  },
+  "homepage": "https://jakiestfu.github.io/hexed",
   "scripts": {
+    "predev": "node scripts/create-public-package.mjs",
+    "prebuild": "node scripts/create-public-package.mjs",
+    "postinstall": "node scripts/create-public-package.mjs",
     "dev": "pnpm --filter @hexed/web dev",
     "preview": "pnpm --filter @hexed/web preview",
     "build": "pnpm -r build",
@@ -19,8 +27,7 @@
     "lint": "pnpm -r lint && manypkg check",
     "lint:fix": "pnpm -r lint:fix && manypkg fix",
     "typecheck": "pnpm -r typecheck",
-    "analyze": "pnpm -r analyze",
-    "version:sync": "pnpm -r version $npm_package_version --no-git-tag-version"
+    "analyze": "pnpm -r analyze"
   },
   "keywords": [
     "hex-editor",
