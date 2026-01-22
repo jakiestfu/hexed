@@ -9,9 +9,10 @@
   },
   "homepage": "https://jakiestfu.github.io/hexed",
   "scripts": {
-    "predev": "node scripts/create-public-package.mjs",
-    "prebuild": "node scripts/create-public-package.mjs",
-    "postinstall": "node scripts/create-public-package.mjs",
+    "create-public-package": "node scripts/create-public-package.mjs",
+    "predev": "pnpm create-public-package",
+    "prebuild": "pnpm create-public-package",
+    "postinstall": "pnpm create-public-package",
     "dev": "pnpm --filter @hexed/web dev",
     "preview": "pnpm --filter @hexed/web preview",
     "build": "pnpm -r build",
@@ -27,7 +28,8 @@
     "lint": "pnpm -r lint && manypkg check",
     "lint:fix": "pnpm -r lint:fix && manypkg fix",
     "typecheck": "pnpm -r typecheck",
-    "analyze": "pnpm -r analyze"
+    "analyze": "pnpm -r analyze",
+    "version:patch": "pnpm version patch && pnpm",
   },
   "keywords": [
     "hex-editor",
