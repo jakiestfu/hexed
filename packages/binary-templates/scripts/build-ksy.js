@@ -85,10 +85,11 @@ async function buildKsyFiles() {
       try {
         // Run kaitai-struct-compiler
         // -t javascript: generate javascript
+        // --import-path: specify where to find imported ksy files
         // Output directory maintains folder structure
         // The compiler generates PascalCase filenames, which we keep
         execSync(
-          `kaitai-struct-compiler --read-pos -t javascript "${inputPath}" --outdir "${outputDir}"`,
+          `kaitai-struct-compiler --read-pos -t javascript --import-path "${ksyDir}" "${inputPath}" --outdir "${outputDir}"`,
           { stdio: "inherit", cwd: packageRoot }
         )
 
