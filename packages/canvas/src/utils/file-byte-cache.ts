@@ -168,4 +168,24 @@ export class FileByteCache {
     // Clear row cache when chunks are loaded to ensure rows reflect updated chunk data
     this.rowCache.clear()
   }
+
+  /**
+   * Check if a byte range is fully loaded in the cache
+   * Returns true if all chunks covering the range are present
+   */
+  isRangeLoaded(range: ByteRange): boolean {
+    const { start, end } = clampRange(range, this.file.size)
+    if (end <= start) return true
+
+    const firstChunk = Math.floor(start / this.chunkSize)
+    const lastChunk = Math.floor((end - 1) / this.chunkSize)
+
+    for (let ci = firstChunk; ci <= lastChunk; ci++) {
+      if (!this.chunks.has(ci)) {
+        return false
+      }
+    }
+
+    return true
+  }
 }

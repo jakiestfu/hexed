@@ -64,6 +64,8 @@ export class HexCanvas extends EventTarget {
   private scrollTop: number = 0
   private maxScrollTop: number = 0
   private totalHeight: number = 0
+  private pendingScrollTop: number | null = null
+  private isLoadingChunks: boolean = false
 
   // File reading state
   private visibleByteRange: ByteRange = { start: 0, end: 0 }
@@ -219,6 +221,8 @@ export class HexCanvas extends EventTarget {
     if (file) {
       this.cache = new FileByteCache(file, this.options.windowSize)
       this.lastLoadedRange = null
+      this.pendingScrollTop = null
+      this.isLoadingChunks = false
       this.updateScrollBounds()
       this.triggerFileUpdate()
     } else {
@@ -226,6 +230,8 @@ export class HexCanvas extends EventTarget {
       this.visibleByteRange = { start: 0, end: 0 }
       this.loadedBytes = new Uint8Array(0)
       this.lastLoadedRange = null
+      this.pendingScrollTop = null
+      this.isLoadingChunks = false
       this.updateScrollBounds()
     }
   }
@@ -555,12 +561,60 @@ export class HexCanvas extends EventTarget {
 
   private setScrollTop(value: number): void {
     const clamped = Math.min(this.maxScrollTop, Math.max(0, Math.floor(value)))
-    if (clamped === this.scrollTop) return
+    if (clamped === this.scrollTop && this.pendingScrollTop === null) return
 
-    this.scrollTop = clamped
+    // Set pending scroll position immediately for UI responsiveness
+    this.pendingScrollTop = clamped
+
+    // Check if chunks are already loaded for this scroll position
+    if (this.layout && this.cache) {
+      const requiredRange = this.calculateRequiredByteRange(clamped)
+      if (this.cache.isRangeLoaded(requiredRange)) {
+        // Chunks already loaded, update scroll position immediately
+        this.commitScrollPosition(clamped)
+      } else {
+        // Chunks not loaded, will be handled by file reading loop
+        // The scroll position will be committed after chunks load
+      }
+    } else {
+      // No layout or cache yet, commit immediately
+      this.commitScrollPosition(clamped)
+    }
+  }
+
+  private commitScrollPosition(value: number): void {
+    if (value === this.scrollTop && this.pendingScrollTop === null) return
+
+    this.scrollTop = value
+    this.pendingScrollTop = null
     this.dispatchEvent(
       new CustomEvent("scroll", { detail: { scrollTop: this.scrollTop } })
     )
+  }
+
+  private calculateRequiredByteRange(scrollTop: number): ByteRange {
+    if (!this.layout || !this.cache) {
+      return { start: 0, end: 0 }
+    }
+
+    const scrollTopAdjusted = Math.max(
+      0,
+      scrollTop - (this.layout.verticalPadding ?? 0)
+    )
+    const startRow = Math.floor(scrollTopAdjusted / this.layout.rowHeight)
+    const endRow = Math.ceil(
+      (scrollTopAdjusted + this.dimensions.height) / this.layout.rowHeight
+    )
+
+    // Add overscan for the required range
+    const overscan = this.layout.bytesPerRow * 5
+    const startByte = Math.max(0, startRow * this.layout.bytesPerRow - overscan)
+    const endByte = Math.min(
+      this.cache.size,
+      endRow * this.layout.bytesPerRow + overscan
+    )
+
+    return { start: startByte, end: endByte }
   }
 
   scrollToOffset(offset: number): void {
@@ -629,8 +683,10 @@ export class HexCanvas extends EventTarget {
       Math.floor((this.dimensions.height / this.totalHeight) * trackHeight)
     )
 
+    // Use pending scroll position if available for better UX during scrolling
+    const scrollPositionForThumb = this.pendingScrollTop ?? this.scrollTop
     const thumbY =
-      (this.scrollTop / this.maxScrollTop) * (trackHeight - thumbHeight) +
+      (scrollPositionForThumb / this.maxScrollTop) * (trackHeight - thumbHeight) +
       trackY
 
     return {
@@ -709,6 +765,7 @@ export class HexCanvas extends EventTarget {
     const scrollDelta = (deltaY / availableHeight) * this.maxScrollTop
     const newScrollTop = this.scrollbarDragStartScrollTop + scrollDelta
 
+    // Set pending scroll position during drag
     this.setScrollTop(newScrollTop)
   }
 
@@ -717,34 +774,51 @@ export class HexCanvas extends EventTarget {
       this.isScrollbarDragging = false
       this.scrollbarDragStartY = 0
       this.scrollbarDragStartScrollTop = 0
+      // Final scroll position will be committed when chunks load (handled by setScrollTop)
     }
   }
 
   // File reading and windowing
   private startFileReadingLoop(): void {
-    const update = () => {
+    const update = async () => {
       if (!this.layout || !this.cache || this.dimensions.height === 0) {
         this.fileRafId = requestAnimationFrame(update)
         return
       }
 
-      const newVisibleRange = this.calculateVisibleByteRange()
+      // Check for pending scroll position first
+      if (this.pendingScrollTop !== null) {
+        const requiredRange = this.calculateRequiredByteRange(this.pendingScrollTop)
+        const loaded = await this.loadChunksForRange(requiredRange)
+        
+        if (loaded) {
+          // Chunks are loaded, commit the scroll position
+          this.commitScrollPosition(this.pendingScrollTop)
+        }
+      }
+
+      // Calculate visible range based on effective scroll position (not pending)
+      const effectiveScrollTop = this.scrollTop
+      const newVisibleRange = this.calculateVisibleByteRangeForScroll(effectiveScrollTop)
 
       const rangeChanged =
         newVisibleRange.start !== this.visibleByteRange.start ||
         newVisibleRange.end !== this.visibleByteRange.end
 
       if (rangeChanged) {
-        this.visibleByteRange = newVisibleRange
-        // Load chunks and update bytes after loading completes
-        // Only update immediately if we don't have a loaded range yet (initial load)
-        this.loadChunksForRange(newVisibleRange).then(() => {
+        // Load chunks for the visible range
+        const loaded = await this.loadChunksForRange(newVisibleRange)
+        
+        // Only update visible range if chunks are loaded
+        if (loaded) {
+          this.visibleByteRange = newVisibleRange
           this.updateLoadedBytes()
-        })
-        // Update immediately only if we don't have loaded bytes yet (initial state)
-        if (!this.lastLoadedRange || this.loadedBytes.length === 0) {
+        } else if (!this.lastLoadedRange || this.loadedBytes.length === 0) {
+          // If loading failed but we have no data, update with what we have
+          this.visibleByteRange = newVisibleRange
           this.updateLoadedBytes()
         }
+        // Otherwise, keep the previous visible range until chunks load
       }
 
       this.fileRafId = requestAnimationFrame(update)
@@ -753,14 +827,14 @@ export class HexCanvas extends EventTarget {
     this.fileRafId = requestAnimationFrame(update)
   }
 
-  private calculateVisibleByteRange(): ByteRange {
+  private calculateVisibleByteRangeForScroll(scrollTop: number): ByteRange {
     if (!this.layout || !this.cache) {
       return { start: 0, end: 0 }
     }
 
     const scrollTopAdjusted = Math.max(
       0,
-      this.scrollTop - (this.layout.verticalPadding ?? 0)
+      scrollTop - (this.layout.verticalPadding ?? 0)
     )
     const startRow = Math.floor(scrollTopAdjusted / this.layout.rowHeight)
     const endRow = Math.ceil(
@@ -773,13 +847,25 @@ export class HexCanvas extends EventTarget {
     return { start: startByte, end: endByte }
   }
 
-  private async loadChunksForRange(range: ByteRange): Promise<void> {
-    if (!this.cache || !this.layout) return
+  private calculateVisibleByteRange(): ByteRange {
+    // Use effective scroll position (not pending) for visible range calculation
+    return this.calculateVisibleByteRangeForScroll(this.scrollTop)
+  }
+
+  private async loadChunksForRange(range: ByteRange): Promise<boolean> {
+    if (!this.cache || !this.layout) return false
 
     // Add overscan (5 rows)
     const overscan = this.layout.bytesPerRow * 5
     const startByte = Math.max(0, range.start - overscan)
     const endByte = Math.min(this.cache.size, range.end + overscan)
+
+    // Check if range is already loaded
+    if (this.cache.isRangeLoaded({ start: startByte, end: endByte })) {
+      // Update lastLoadedRange to reflect current state
+      this.lastLoadedRange = { start: startByte, end: endByte }
+      return true
+    }
 
     // Use sliding window: only reload if the new range extends beyond current loaded range
     // This prevents unnecessary reloads while allowing the window to slide
@@ -789,7 +875,7 @@ export class HexCanvas extends EventTarget {
       endByte > this.lastLoadedRange.end
 
     if (!needsLoad) {
-      return
+      return true
     }
 
     // Cancel previous load if still in progress
@@ -797,6 +883,7 @@ export class HexCanvas extends EventTarget {
       this.abortController.abort()
     }
     this.abortController = new AbortController()
+    this.isLoadingChunks = true
 
     try {
       await this.cache.ensureRange(
@@ -806,7 +893,10 @@ export class HexCanvas extends EventTarget {
       // Use sliding window: set to current range, not union
       // This prevents unbounded growth and allows chunks to be evicted
       this.lastLoadedRange = { start: startByte, end: endByte }
+      this.isLoadingChunks = false
+      return true
     } catch (err) {
+      this.isLoadingChunks = false
       if (
         err &&
         typeof err === "object" &&
@@ -815,6 +905,7 @@ export class HexCanvas extends EventTarget {
       ) {
         console.error("Failed to load chunks:", err)
       }
+      return false
     }
   }
 
@@ -861,9 +952,26 @@ export class HexCanvas extends EventTarget {
         return
       }
 
+      // Only render if we have loaded bytes for the visible range
+      // Check that lastLoadedRange covers the visible range
+      const canRender =
+        this.lastLoadedRange &&
+        this.lastLoadedRange.start <= this.visibleByteRange.start &&
+        this.lastLoadedRange.end >= this.visibleByteRange.end &&
+        this.loadedBytes.length > 0
+
+      // If we can't render yet, keep rendering the previous frame
+      // This prevents showing empty or incorrect data
+      if (!canRender && this.loadedBytes.length === 0) {
+        // No data at all, skip rendering
+        this.rafId = requestAnimationFrame(draw)
+        return
+      }
+
       const rows = this.getFormattedRows()
       const colors = this.getColors()
 
+      // Use effective scroll position (not pending) for rendering
       drawHexCanvas(
         this.canvas,
         this.ctx,
@@ -879,8 +987,8 @@ export class HexCanvas extends EventTarget {
         this.hoveredRow,
         this.hoveredOffset,
         this.cache?.size,
-        this.visibleByteRange.start,
-        this.visibleByteRange.end
+        this.lastLoadedRange?.start ?? this.visibleByteRange.start,
+        this.lastLoadedRange?.end ?? this.visibleByteRange.end
       )
 
       this.rafId = requestAnimationFrame(draw)

@@ -29,6 +29,8 @@ export class FileScrollManager {
   private rafId: number | null = null
   private abortController: AbortController | null = null
   private lastLoadedRange: ByteRange | null = null
+  private pendingScrollTop: number | null = null
+  private isLoadingChunks: boolean = false
 
   constructor(params: {
     file: File | null
@@ -51,6 +53,8 @@ export class FileScrollManager {
       this.cache = new FileByteCache(file, this.chunkSize)
       // Reset last loaded range so we reload chunks
       this.lastLoadedRange = null
+      this.pendingScrollTop = null
+      this.isLoadingChunks = false
       // Trigger update to load initial chunks
       this.triggerUpdate()
     } else {
@@ -58,6 +62,8 @@ export class FileScrollManager {
       this.visibleByteRangeRef.current = { start: 0, end: 0 }
       this.loadedBytesRef.current = new Uint8Array(0)
       this.lastLoadedRange = null
+      this.pendingScrollTop = null
+      this.isLoadingChunks = false
     }
   }
 
@@ -90,16 +96,24 @@ export class FileScrollManager {
 
     // Update if range changed or if we haven't loaded anything yet
     if (rangeChanged || this.loadedBytesRef.current.length === 0) {
-      this.visibleByteRangeRef.current = newVisibleRange
       // Only load chunks if we have a valid range
       if (newVisibleRange.end > newVisibleRange.start) {
-        // Load chunks asynchronously
-        this.loadChunksForRange(newVisibleRange).then(() => {
-          this.updateLoadedBytes()
+        // Load chunks asynchronously and only update visible range when loaded
+        this.loadChunksForRange(newVisibleRange).then((loaded) => {
+          if (loaded) {
+            this.visibleByteRangeRef.current = newVisibleRange
+            this.updateLoadedBytes()
+          } else if (this.loadedBytesRef.current.length === 0) {
+            // If loading failed but we have no data, update with what we have
+            this.visibleByteRangeRef.current = newVisibleRange
+            this.updateLoadedBytes()
+          }
         })
       }
-      // Update loaded bytes immediately with what we have
-      this.updateLoadedBytes()
+      // Update loaded bytes immediately with what we have (if any)
+      if (this.lastLoadedRange) {
+        this.updateLoadedBytes()
+      }
     }
   }
 
@@ -129,8 +143,26 @@ export class FileScrollManager {
       rowTop + this.layout.rowHeight / 2 - this.dimensions.height / 2
     const clampedScrollTop = Math.max(0, targetScrollTop)
 
-    if (this.scrollTopRef.current !== undefined) {
-      this.scrollTopRef.current = clampedScrollTop
+    // Set pending scroll position
+    this.pendingScrollTop = clampedScrollTop
+
+    // Check if chunks are already loaded for this scroll position
+    if (this.cache && this.layout) {
+      const requiredRange = this.calculateRequiredByteRange(clampedScrollTop)
+      if (this.cache.isRangeLoaded(requiredRange)) {
+        // Chunks already loaded, commit scroll position immediately
+        if (this.scrollTopRef.current !== undefined) {
+          this.scrollTopRef.current = clampedScrollTop
+        }
+        this.pendingScrollTop = null
+      }
+      // Otherwise, will be handled by RAF loop
+    } else {
+      // No cache or layout yet, commit immediately
+      if (this.scrollTopRef.current !== undefined) {
+        this.scrollTopRef.current = clampedScrollTop
+      }
+      this.pendingScrollTop = null
     }
   }
 
@@ -139,6 +171,8 @@ export class FileScrollManager {
       return { start: 0, end: 0 }
     }
 
+    // Use committed scroll position (not pending) for visible range calculation
+    // The visible range should reflect what's actually being rendered
     const scrollTop = this.scrollTopRef.current ?? 0
     const scrollTopAdjusted = Math.max(
       0,
@@ -155,13 +189,45 @@ export class FileScrollManager {
     return { start: startByte, end: endByte }
   }
 
-  private async loadChunksForRange(range: ByteRange): Promise<void> {
-    if (!this.cache || !this.layout) return
+  private calculateRequiredByteRange(scrollTop: number): ByteRange {
+    if (!this.layout || !this.cache) {
+      return { start: 0, end: 0 }
+    }
+
+    const scrollTopAdjusted = Math.max(
+      0,
+      scrollTop - (this.layout.verticalPadding ?? 0)
+    )
+    const startRow = Math.floor(scrollTopAdjusted / this.layout.rowHeight)
+    const endRow = Math.ceil(
+      (scrollTopAdjusted + this.dimensions.height) / this.layout.rowHeight
+    )
+
+    // Add overscan for the required range
+    const overscan = this.bytesPerRow * 5
+    const startByte = Math.max(0, startRow * this.bytesPerRow - overscan)
+    const endByte = Math.min(
+      this.cache.size,
+      endRow * this.bytesPerRow + overscan
+    )
+
+    return { start: startByte, end: endByte }
+  }
+
+  private async loadChunksForRange(range: ByteRange): Promise<boolean> {
+    if (!this.cache || !this.layout) return false
 
     // Add overscan (5 rows)
     const overscan = this.bytesPerRow * 5
     const startByte = Math.max(0, range.start - overscan)
     const endByte = Math.min(this.cache.size, range.end + overscan)
+
+    // Check if range is already loaded
+    if (this.cache.isRangeLoaded({ start: startByte, end: endByte })) {
+      // Update lastLoadedRange to reflect current state
+      this.lastLoadedRange = { start: startByte, end: endByte }
+      return true
+    }
 
     // Use sliding window: only reload if the new range extends beyond current loaded range
     // This prevents unnecessary reloads while allowing the window to slide
@@ -171,7 +237,7 @@ export class FileScrollManager {
       endByte > this.lastLoadedRange.end
 
     if (!needsLoad) {
-      return
+      return true
     }
 
     // Cancel previous load if still in progress
@@ -179,6 +245,7 @@ export class FileScrollManager {
       this.abortController.abort()
     }
     this.abortController = new AbortController()
+    this.isLoadingChunks = true
 
     try {
       await this.cache.ensureRange(
@@ -188,7 +255,10 @@ export class FileScrollManager {
       // Use sliding window: set to current range, not union
       // This prevents unbounded growth and allows chunks to be evicted
       this.lastLoadedRange = { start: startByte, end: endByte }
+      this.isLoadingChunks = false
+      return true
     } catch (err) {
+      this.isLoadingChunks = false
       if (
         err &&
         typeof err === "object" &&
@@ -197,6 +267,7 @@ export class FileScrollManager {
       ) {
         console.error("Failed to load chunks:", err)
       }
+      return false
     }
   }
 
@@ -235,7 +306,7 @@ export class FileScrollManager {
   private startRafLoop(): void {
     let lastScrollTop = this.scrollTopRef.current ?? 0
 
-    const update = () => {
+    const update = async () => {
       // Only update if we have layout, cache, and valid dimensions
       if (!this.layout || !this.cache || this.dimensions.height === 0) {
         // Continue the loop even if not ready
@@ -243,12 +314,26 @@ export class FileScrollManager {
         return
       }
 
-      // Read current scroll position
+      // Check for pending scroll position first
+      if (this.pendingScrollTop !== null) {
+        const requiredRange = this.calculateRequiredByteRange(this.pendingScrollTop)
+        const loaded = await this.loadChunksForRange(requiredRange)
+        
+        if (loaded) {
+          // Chunks are loaded, commit the scroll position
+          if (this.scrollTopRef.current !== undefined) {
+            this.scrollTopRef.current = this.pendingScrollTop
+          }
+          this.pendingScrollTop = null
+        }
+      }
+
+      // Read current scroll position (committed, not pending)
       const currentScrollTop = this.scrollTopRef.current ?? 0
       const scrollChanged = currentScrollTop !== lastScrollTop
       lastScrollTop = currentScrollTop
 
-      // Calculate new visible range
+      // Calculate new visible range based on effective scroll position
       const newVisibleRange = this.calculateVisibleByteRange()
 
       // Check if visible range changed
@@ -258,17 +343,19 @@ export class FileScrollManager {
 
       // Update if range changed or scroll position changed (to ensure we're in sync)
       if (rangeChanged || scrollChanged) {
-        this.visibleByteRangeRef.current = newVisibleRange
-        // Load chunks and update bytes after loading completes
-        // Only update immediately if we don't have a loaded range yet (initial load)
-        this.loadChunksForRange(newVisibleRange).then(() => {
-          // Update loaded bytes after chunks are loaded
+        // Load chunks for the visible range
+        const loaded = await this.loadChunksForRange(newVisibleRange)
+        
+        // Only update visible range if chunks are loaded
+        if (loaded) {
+          this.visibleByteRangeRef.current = newVisibleRange
           this.updateLoadedBytes()
-        })
-        // Update immediately only if we don't have loaded bytes yet (initial state)
-        if (!this.lastLoadedRange || this.loadedBytesRef.current.length === 0) {
+        } else if (!this.lastLoadedRange || this.loadedBytesRef.current.length === 0) {
+          // If loading failed but we have no data, update with what we have
+          this.visibleByteRangeRef.current = newVisibleRange
           this.updateLoadedBytes()
         }
+        // Otherwise, keep the previous visible range until chunks load
       }
 
       // Continue the loop

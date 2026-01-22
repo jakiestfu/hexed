@@ -489,15 +489,30 @@ export function drawHexCanvas(
 
     // Determine if we should render this virtual row
     // Render if: row has data, OR (totalSize is set AND offset is within totalSize) OR (windowStart/windowEnd is set AND offset is within window)
+    // IMPORTANT: Only render if bytes are available (windowStart/windowEnd indicate loaded range)
     const shouldRender =
       !isVirtualRow ||
-      (totalSize !== undefined && virtualRowStartOffset < totalSize) ||
       (windowStart !== undefined &&
         windowEnd !== undefined &&
         virtualRowStartOffset < windowEnd &&
-        virtualRowEndOffset >= windowStart)
+        virtualRowEndOffset >= windowStart &&
+        virtualRowStartOffset < (totalSize ?? 0)) ||
+      (windowStart === undefined &&
+        windowEnd === undefined &&
+        totalSize !== undefined &&
+        virtualRowStartOffset < totalSize)
 
     if (!shouldRender) continue
+
+    // Additional safety check: if we have a loaded window, ensure the row is within it
+    if (
+      windowStart !== undefined &&
+      windowEnd !== undefined &&
+      (virtualRowStartOffset >= windowEnd || virtualRowEndOffset < windowStart)
+    ) {
+      // Row is outside loaded range, skip rendering
+      continue
+    }
 
     // Draw row hover background if row is hovered
     const isRowHovered = hoveredRow === i
