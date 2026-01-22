@@ -33,8 +33,8 @@ import {
   TooltipTrigger
 } from "@hexed/ui"
 
-import { useSettings, type Sidebar } from "../hooks/use-settings"
-import { MemoryProfiler } from "./memory-profiler"
+import { useSettings, type Sidebar } from "../../hooks/use-settings"
+import { MemoryProfiler } from "../common/memory-profiler"
 
 export type HexFooterProps = {
   totalSize: number | undefined

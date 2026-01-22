@@ -51,7 +51,7 @@ import {
   DropdownMenuSubTrigger
 } from "@hexed/ui"
 
-import { Brand } from "./logo"
+import { Brand } from "./logo" // logo is in same folder
 
 export type MenuItem = {
   label: string

@@ -5,7 +5,7 @@ import { RefreshCw } from "lucide-react"
 
 import { Button, Popover, PopoverContent, PopoverTrigger } from "@hexed/ui"
 
-import { FileSource } from "../types"
+import { FileSource } from "../../types"
 
 export type FileStatusPopoverProps = {
   fileSource: FileSource

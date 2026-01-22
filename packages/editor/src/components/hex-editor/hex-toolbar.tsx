@@ -3,10 +3,10 @@ import type { CSSProperties, FunctionComponent, ReactNode } from "react"
 
 import { Button } from "@hexed/ui"
 
-import type { FileSource } from "../types"
-import { formatFilenameForDisplay } from "../utils"
-import { FileSourceIcon } from "./file-source-icon"
-import { FileStatusPopover } from "./file-status-popover"
+import type { FileSource } from "../../types"
+import { formatFilenameForDisplay } from "../../utils"
+import { FileSourceIcon } from "../file/file-source-icon"
+import { FileStatusPopover } from "../file/file-status-popover"
 
 export type HexToolbarProps = {
   left?: ReactNode

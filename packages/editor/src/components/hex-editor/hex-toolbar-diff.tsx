@@ -3,7 +3,7 @@ import type { FunctionComponent } from "react"
 
 import type { DiffResult } from "@hexed/types"
 
-import { DiffViewer } from "./diff-viewer"
+import { DiffViewer } from "../toolbar/diff-viewer"
 
 export type HexToolbarDiffProps = {
   diff: DiffResult | null

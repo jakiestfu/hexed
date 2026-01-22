@@ -8,9 +8,10 @@ const clampRange = (r: ByteRange, size: number): ByteRange => ({
 export class FileByteCache {
   private file: File
   private chunkSize: number
-  private chunks = new Map<number, Uint8Array>() // chunkIndex -> bytes
+  private chunks = new Map<number, Uint8Array>() // chunkIndex -> bytes (LRU order maintained by Map insertion order)
   private rowCache = new Map<number, Uint8Array>() // rowIndex -> bytes
   private maxRowCacheSize = 200 // Maximum number of rows to cache
+  private maxChunks = 50 // Maximum number of chunks to cache (~3MB with 64KB chunks)
 
   constructor(file: File, chunkSize = 64 * 1024) {
     this.file = file
@@ -33,9 +34,45 @@ export class FileByteCache {
     const firstChunk = Math.floor(start / this.chunkSize)
     const lastChunk = Math.floor((end - 1) / this.chunkSize)
 
+    // Evict chunks outside the requested range + buffer (keep 2x overscan)
+    const bufferChunks = 10 // Keep 10 chunks on each side as buffer
+    const minChunkToKeep = Math.max(0, firstChunk - bufferChunks)
+    const maxChunkToKeep = Math.min(
+      Math.floor(this.file.size / this.chunkSize),
+      lastChunk + bufferChunks
+    )
+
+    // Evict chunks outside the keep range
+    const chunksToEvict: number[] = []
+    for (const chunkIndex of this.chunks.keys()) {
+      if (chunkIndex < minChunkToKeep || chunkIndex > maxChunkToKeep) {
+        chunksToEvict.push(chunkIndex)
+      }
+    }
+    for (const chunkIndex of chunksToEvict) {
+      this.chunks.delete(chunkIndex)
+    }
+
+    // If we're still over the limit, evict least recently used chunks
+    while (this.chunks.size >= this.maxChunks) {
+      // Remove least recently used (first entry in Map)
+      const firstKey = this.chunks.keys().next().value
+      if (firstKey !== undefined) {
+        this.chunks.delete(firstKey)
+      } else {
+        break
+      }
+    }
+
     const tasks: Promise<void>[] = []
     for (let ci = firstChunk; ci <= lastChunk; ci++) {
-      if (this.chunks.has(ci)) continue
+      if (this.chunks.has(ci)) {
+        // Update LRU order for chunks we're accessing
+        const chunk = this.chunks.get(ci)!
+        this.chunks.delete(ci)
+        this.chunks.set(ci, chunk)
+        continue
+      }
       tasks.push(this.loadChunk(ci, opts?.signal))
     }
 
@@ -49,7 +86,6 @@ export class FileByteCache {
 
   readBytes(range: ByteRange): Uint8Array {
     const { start, end } = clampRange(range, this.file.size)
-    // console.log("readBytes", { start, end })
     if (end <= start) return new Uint8Array(0)
 
     const out = new Uint8Array(end - start)
@@ -59,11 +95,15 @@ export class FileByteCache {
     while (cursor < end) {
       const chunkIndex = Math.floor(cursor / this.chunkSize)
       const chunk = this.chunks.get(chunkIndex)
-      // console.log("readBytes chunk", { chunkIndex, chunk })
       if (!chunk) {
         // Not loaded yet; caller should call ensureRange first
         break
       }
+      
+      // Update LRU order: move chunk to end (most recently used) by deleting and re-inserting
+      this.chunks.delete(chunkIndex)
+      this.chunks.set(chunkIndex, chunk)
+      
       const chunkStart = chunkIndex * this.chunkSize
       const within = cursor - chunkStart
       const take = Math.min(chunk.length - within, end - cursor)
@@ -110,15 +150,19 @@ export class FileByteCache {
     const start = chunkIndex * this.chunkSize
     const end = Math.min(start + this.chunkSize, this.file.size)
 
-    const t0 = performance.now()
     const blob = this.file.slice(start, end)
     // Abort: Blob.arrayBuffer doesn't directly accept a signal, so we check signal before/after.
     if (signal?.aborted) throw new DOMException("Aborted", "AbortError")
-    console.log(`loadChunk ${chunkIndex}: [${start} - ${end}]`)
     const buf = await blob.arrayBuffer()
-    const t1 = performance.now()
-    console.log(`slice ${chunkIndex}: ${t1 - t0}ms`, { start, end, blob, buf })
     if (signal?.aborted) throw new DOMException("Aborted", "AbortError")
+
+    // Evict if we're at the limit before adding new chunk
+    if (this.chunks.size >= this.maxChunks) {
+      const firstKey = this.chunks.keys().next().value
+      if (firstKey !== undefined) {
+        this.chunks.delete(firstKey)
+      }
+    }
 
     this.chunks.set(chunkIndex, new Uint8Array(buf))
     // Clear row cache when chunks are loaded to ensure rows reflect updated chunk data

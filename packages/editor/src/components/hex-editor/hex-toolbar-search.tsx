@@ -3,9 +3,9 @@ import type { FunctionComponent, RefObject } from "react"
 
 import { cn } from "@hexed/ui"
 
-import { useHandleIdToFileHandle } from "../hooks/use-hex-editor-file"
-import type { SelectionRange } from "../types"
-import { FindInput } from "./find-input"
+import { useHandleIdToFileHandle } from "../../hooks/use-hex-editor-file"
+import type { SelectionRange } from "../../types"
+import { FindInput } from "../toolbar/find-input"
 
 export type HexToolbarSearchProps = {
   handleId: string | null | undefined

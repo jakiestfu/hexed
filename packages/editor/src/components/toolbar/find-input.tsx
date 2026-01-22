@@ -12,9 +12,9 @@ import {
   InputGroupInput
 } from "@hexed/ui"
 
-import { useHexInput } from "../hooks/use-hex-input"
-import { useLocalStorage } from "../hooks/use-local-storage"
-import { useWorkerClient } from "../providers/worker-provider"
+import { useHexInput } from "../../hooks/use-hex-input"
+import { useLocalStorage } from "../../hooks/use-local-storage"
+import { useWorkerClient } from "../../providers/worker-provider"
 
 export type FindInputProps = {
   fileId: string | null | undefined

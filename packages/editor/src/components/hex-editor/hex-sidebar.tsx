@@ -5,12 +5,12 @@ import type { FunctionComponent } from "react"
 import type { Endianness, NumberFormat } from "@hexed/binary-utils/interpreter"
 import { ResizablePanel } from "@hexed/ui"
 
-import { useSettings } from "../hooks/use-settings"
-import { useWorkerClient } from "../providers/worker-provider"
-import type { SelectionRange } from "../types"
-import { Interpreter } from "./interpreter"
-import { Strings } from "./strings"
-import { Templates } from "./templates"
+import { useSettings } from "../../hooks/use-settings"
+import { useWorkerClient } from "../../providers/worker-provider"
+import type { SelectionRange } from "../../types"
+import { Interpreter } from "../sidebars/interpreter"
+import { Strings } from "../sidebars/strings"
+import { Templates } from "../sidebars/templates"
 
 export type HexSidebarProps = {
   defaultSize: number

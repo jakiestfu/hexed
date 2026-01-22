@@ -54,8 +54,8 @@ import {
   TooltipTrigger
 } from "@hexed/ui"
 
-import { useSettings } from "../hooks/use-settings"
-import type { InterpreterProps } from "../types"
+import { useSettings } from "../../hooks/use-settings"
+import type { InterpreterProps } from "../../types"
 
 interface InterpretedValue {
   type: string

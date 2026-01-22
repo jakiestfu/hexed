@@ -18,8 +18,6 @@ export type HexCanvasEventMap = {
   selectionChange: { range: SelectionRange }
   scroll: { scrollTop: number }
   offsetHighlight: { offset: number | null }
-  byteSelect: { offset: number | null }
-  byteClick: { offset: number }
 }
 
 export type HexCanvasEventCallbacks = ToOnHandlers<HexCanvasEventMap>

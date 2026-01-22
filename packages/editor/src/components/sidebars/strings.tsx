@@ -33,10 +33,10 @@ import {
   TooltipTrigger
 } from "@hexed/ui"
 
-import { useHandleIdToFileHandle } from "../hooks/use-hex-editor-file"
-import { useSettings } from "../hooks/use-settings"
-import { useWorkerClient } from "../providers/worker-provider"
-import type { StringsProps } from "../types"
+import { useHandleIdToFileHandle } from "../../hooks/use-hex-editor-file"
+import { useSettings } from "../../hooks/use-settings"
+import { useWorkerClient } from "../../providers/worker-provider"
+import type { StringsProps } from "../../types"
 
 export const Strings: FunctionComponent<StringsProps> = ({
   fileId,

@@ -23,8 +23,8 @@ import {
   TooltipTrigger
 } from "@hexed/ui"
 
-import { useSettings } from "../hooks/use-settings"
-import type { TemplatesProps } from "../types"
+import { useSettings } from "../../hooks/use-settings"
+import type { TemplatesProps } from "../../types"
 import { ObjectTree } from "./object-tree"
 import { TemplatesCombobox } from "./templates-combobox"
 

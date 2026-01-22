@@ -3,7 +3,7 @@ import type { FunctionComponent } from "react"
 import type { BinarySnapshot } from "@hexed/types"
 import { TabsList, TabsTrigger } from "@hexed/ui"
 
-import { useSettings } from "../hooks/use-settings"
+import { useSettings } from "../../hooks/use-settings"
 
 export type HexToolbarTabsProps = {
   snapshots: BinarySnapshot[]

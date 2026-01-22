@@ -163,10 +163,8 @@ export class FileScrollManager {
     const startByte = Math.max(0, range.start - overscan)
     const endByte = Math.min(this.cache.size, range.end + overscan)
 
-    // Check if we already loaded this exact range (or a superset)
-    // We need to load if:
-    // 1. No range was loaded before, OR
-    // 2. The requested range extends beyond what we've loaded
+    // Use sliding window: only reload if the new range extends beyond current loaded range
+    // This prevents unnecessary reloads while allowing the window to slide
     const needsLoad =
       !this.lastLoadedRange ||
       startByte < this.lastLoadedRange.start ||
@@ -187,15 +185,9 @@ export class FileScrollManager {
         { start: startByte, end: endByte },
         { signal: this.abortController.signal }
       )
-      // Update lastLoadedRange to the union of old and new ranges
-      if (this.lastLoadedRange) {
-        this.lastLoadedRange = {
-          start: Math.min(this.lastLoadedRange.start, startByte),
-          end: Math.max(this.lastLoadedRange.end, endByte)
-        }
-      } else {
-        this.lastLoadedRange = { start: startByte, end: endByte }
-      }
+      // Use sliding window: set to current range, not union
+      // This prevents unbounded growth and allows chunks to be evicted
+      this.lastLoadedRange = { start: startByte, end: endByte }
     } catch (err) {
       if (
         err &&
@@ -215,7 +207,10 @@ export class FileScrollManager {
       return
     }
 
-    const { start, end } = this.visibleByteRangeRef.current
+    // Always use lastLoadedRange if available (includes overscan), otherwise fall back to visibleByteRange
+    // This ensures consistency and prevents missing bytes
+    const rangeToUse = this.lastLoadedRange || this.visibleByteRangeRef.current
+    const { start, end } = rangeToUse
     const startRow = Math.floor(start / this.bytesPerRow)
     const endRow = Math.ceil(end / this.bytesPerRow)
 
@@ -264,13 +259,16 @@ export class FileScrollManager {
       // Update if range changed or scroll position changed (to ensure we're in sync)
       if (rangeChanged || scrollChanged) {
         this.visibleByteRangeRef.current = newVisibleRange
-        // Load chunks asynchronously (doesn't block)
+        // Load chunks and update bytes after loading completes
+        // Only update immediately if we don't have a loaded range yet (initial load)
         this.loadChunksForRange(newVisibleRange).then(() => {
           // Update loaded bytes after chunks are loaded
           this.updateLoadedBytes()
         })
-        // Update loaded bytes immediately with what we have
-        this.updateLoadedBytes()
+        // Update immediately only if we don't have loaded bytes yet (initial state)
+        if (!this.lastLoadedRange || this.loadedBytesRef.current.length === 0) {
+          this.updateLoadedBytes()
+        }
       }
 
       // Continue the loop
