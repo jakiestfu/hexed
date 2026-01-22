@@ -83,6 +83,12 @@ export const Histogram: FunctionComponent<HistogramProps> = ({ data }) => {
   // Generate hex options
   const hexOptions = useMemo(() => generateHexOptions(), [])
 
+  // Convert selectedBytes array to Set for O(1) lookups
+  const selectedBytesSet = useMemo(
+    () => new Set(selectedBytes),
+    [selectedBytes]
+  )
+
   // Calculate filtered chart data
   const chartData = useMemo(() => {
     let frequencies = calculateByteFrequencies(data, rangeStart, rangeEnd)
@@ -90,20 +96,27 @@ export const Histogram: FunctionComponent<HistogramProps> = ({ data }) => {
     // Apply hex filter if bytes are selected
     if (selectedBytes.length > 0) {
       if (showOnlySelected) {
-        // Show only selected bytes
+        // Show only selected bytes - use Set for O(1) lookup
         frequencies = frequencies.filter((item) =>
-          selectedBytes.includes(item.byte)
+          selectedBytesSet.has(item.byte)
         )
       } else {
-        // Hide selected bytes
+        // Hide selected bytes - use Set for O(1) lookup
         frequencies = frequencies.filter(
-          (item) => !selectedBytes.includes(item.byte)
+          (item) => !selectedBytesSet.has(item.byte)
         )
       }
     }
 
     return frequencies
-  }, [data, rangeStart, rangeEnd, selectedBytes, showOnlySelected])
+  }, [
+    data,
+    rangeStart,
+    rangeEnd,
+    selectedBytes,
+    selectedBytesSet,
+    showOnlySelected
+  ])
 
   const chartConfig = {
     count: {
@@ -191,7 +204,7 @@ export const Histogram: FunctionComponent<HistogramProps> = ({ data }) => {
                     <CommandEmpty>No hex value found.</CommandEmpty>
                     <CommandGroup>
                       {filteredHexOptions.map((option) => {
-                        const isSelected = selectedBytes.includes(option.value)
+                        const isSelected = selectedBytesSet.has(option.value)
                         return (
                           <CommandItem
                             key={option.value}

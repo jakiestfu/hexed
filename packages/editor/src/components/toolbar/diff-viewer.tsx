@@ -28,9 +28,11 @@ export const DiffViewer: FunctionComponent<DiffViewerProps> = ({
   const removed = diff.diffs.filter((d) => d.type === "removed")
   const modified = diff.diffs.filter((d) => d.type === "modified")
 
-  const addedOffsets = added.map((d) => d.offset).sort((a, b) => a - b)
-  const removedOffsets = removed.map((d) => d.offset).sort((a, b) => a - b)
-  const modifiedOffsets = modified.map((d) => d.offset).sort((a, b) => a - b)
+  const addedOffsets = added.map((d) => d.offset).toSorted((a, b) => a - b)
+  const removedOffsets = removed.map((d) => d.offset).toSorted((a, b) => a - b)
+  const modifiedOffsets = modified
+    .map((d) => d.offset)
+    .toSorted((a, b) => a - b)
 
   return (
     <div className="flex divide-x border-b">
@@ -41,7 +43,7 @@ export const DiffViewer: FunctionComponent<DiffViewerProps> = ({
         </div>
         <div className="text-2xl font-bold text-green-500">{added.length}</div>
         <p className="text-xs text-muted-foreground mb-2">bytes added</p>
-        {addedOffsets.length > 0 && (
+        {addedOffsets.length > 0 ? (
           <Select
             onValueChange={(value) => {
               onScrollToOffset(parseInt(value, 16))
@@ -61,7 +63,7 @@ export const DiffViewer: FunctionComponent<DiffViewerProps> = ({
               ))}
             </SelectContent>
           </Select>
-        )}
+        ) : null}
       </div>
 
       <div className="flex-1 p-4">
@@ -71,7 +73,7 @@ export const DiffViewer: FunctionComponent<DiffViewerProps> = ({
         </div>
         <div className="text-2xl font-bold text-red-500">{removed.length}</div>
         <p className="text-xs text-muted-foreground mb-2">bytes removed</p>
-        {removedOffsets.length > 0 && (
+        {removedOffsets.length > 0 ? (
           <Select
             onValueChange={(value) => {
               onScrollToOffset(parseInt(value, 16))
@@ -91,7 +93,7 @@ export const DiffViewer: FunctionComponent<DiffViewerProps> = ({
               ))}
             </SelectContent>
           </Select>
-        )}
+        ) : null}
       </div>
 
       <div className="flex-1 p-4">
@@ -103,7 +105,7 @@ export const DiffViewer: FunctionComponent<DiffViewerProps> = ({
           {modified.length}
         </div>
         <p className="text-xs text-muted-foreground mb-2">bytes modified</p>
-        {modifiedOffsets.length > 0 && (
+        {modifiedOffsets.length > 0 ? (
           <Select
             onValueChange={(value) => {
               onScrollToOffset(parseInt(value, 16))
@@ -123,7 +125,7 @@ export const DiffViewer: FunctionComponent<DiffViewerProps> = ({
               ))}
             </SelectContent>
           </Select>
-        )}
+        ) : null}
       </div>
     </div>
   )

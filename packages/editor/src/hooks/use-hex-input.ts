@@ -38,9 +38,11 @@ export interface UseHexInputReturn {
 }
 
 const HEX_RE = /^[0-9a-fA-F]$/
+// Hoist regex to module level to avoid recreation on every call
+const HEX_STRIP_RE = /[^0-9a-fA-F]/g
 
 const stripToHexNibbles = (s: string) =>
-  s.replace(/[^0-9a-fA-F]/g, "").toUpperCase()
+  s.replace(HEX_STRIP_RE, "").toUpperCase()
 
 const formatHexDisplayFromNibbles = (nibbles: string) => {
   if (!nibbles) return ""

@@ -1,4 +1,4 @@
-import { useCallback } from "react"
+import { useCallback, useMemo } from "react"
 import { useLocation, useNavigate, useSearchParams } from "react-router-dom"
 
 /**
@@ -19,6 +19,14 @@ export function useQueryParamState<T extends string>(
   // Read value directly from URL
   const value = (searchParams.get(key) as T) || defaultValue
 
+  // Use string representation of searchParams for stable dependency
+  // This prevents re-creating the callback when searchParams object reference changes
+  // but the actual params haven't changed
+  const searchParamsString = useMemo(
+    () => searchParams.toString(),
+    [searchParams]
+  )
+
   // Update URL when setValue is called
   const setValue = useCallback(
     (newValue: T | ((prev: T) => T)) => {
@@ -29,7 +37,7 @@ export function useQueryParamState<T extends string>(
           : newValue
 
       // Create new URLSearchParams from current search params
-      const params = new URLSearchParams(searchParams.toString())
+      const params = new URLSearchParams(searchParamsString)
 
       if (resolvedValue === defaultValue) {
         // Remove param if it matches default value
@@ -44,7 +52,7 @@ export function useQueryParamState<T extends string>(
       const newUrl = `${location.pathname}${newSearch ? `?${newSearch}` : ""}`
       navigate(newUrl, { replace: true })
     },
-    [key, defaultValue, searchParams, location.pathname, navigate, value]
+    [key, defaultValue, searchParamsString, location.pathname, navigate, value]
   )
 
   return [value, setValue]

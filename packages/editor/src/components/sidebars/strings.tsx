@@ -310,12 +310,12 @@ export const Strings: FunctionComponent<StringsProps> = ({
                 </Button>
               </div>
 
-              {!isSearching && extractedStrings.length > 0 && (
+              {!isSearching && extractedStrings.length > 0 ? (
                 <div className="text-xs text-muted-foreground whitespace-nowrap">
                   {extractedStrings.length.toLocaleString()} string
                   {extractedStrings.length !== 1 ? "s" : ""} found
                 </div>
-              )}
+              ) : null}
             </div>
 
             {/* Progress */}

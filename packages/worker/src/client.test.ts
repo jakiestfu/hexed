@@ -184,7 +184,6 @@ describe("createWorkerClient", () => {
     })
   })
 
-
   describe("closeFile", () => {
     it("should send CLOSE_FILE request", async () => {
       const closePromise = client.closeFile("file1")

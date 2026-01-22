@@ -26,7 +26,6 @@ describe("Worker message handling", () => {
     handleManager = new FileHandleManager()
   })
 
-
   describe("OPEN_FILE", () => {
     it("should register file handle", async () => {
       const handle = createMockFileHandle("test.bin", 100)

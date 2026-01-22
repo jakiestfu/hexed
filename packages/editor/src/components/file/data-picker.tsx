@@ -18,7 +18,11 @@ import {
 } from "@hexed/ui"
 
 import { useRecentFiles } from "../../hooks/use-recent-files"
-import { createSnapshotFromFile, formatTimestamp, getBasename } from "../../utils"
+import {
+  createSnapshotFromFile,
+  formatTimestamp,
+  getBasename
+} from "../../utils"
 import type { FileHandleMetadata } from "../../utils/file-handle-storage"
 
 type DataPickerProps = {

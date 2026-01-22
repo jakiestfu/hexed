@@ -24,13 +24,13 @@ import { useHandleIdToFileHandle } from "../../hooks/use-hex-editor-file"
 import { useSettings } from "../../hooks/use-settings"
 import { useWorkerClient } from "../../providers/worker-provider"
 import type { HexEditorProps } from "../../types"
+import { Logo } from "../common/logo"
 import { EmptyState } from "../file/empty-state"
 import { HexFooter } from "./hex-footer"
 import { HexSidebar } from "./hex-sidebar"
 import { HexToolbar } from "./hex-toolbar"
 import { HexToolbarDiff } from "./hex-toolbar-diff"
 import { HexToolbarSearch } from "./hex-toolbar-search"
-import { Logo } from "../common/logo"
 
 export const HexEditor: FunctionComponent<HexEditorProps> = ({
   handleId,
@@ -75,10 +75,12 @@ export const HexEditor: FunctionComponent<HexEditorProps> = ({
   const [showSearch, setShowSearch] = useState(false)
   const searchInputRef = useRef<HTMLInputElement | null>(null)
 
-  // Calculate earliest byte for interpreter
-  const selectedOffset = selectedOffsetRange
-    ? Math.min(selectedOffsetRange.start, selectedOffsetRange.end)
-    : null
+  // Calculate earliest byte for interpreter - memoized to avoid recalculation
+  const selectedOffset = useMemo(() => {
+    return selectedOffsetRange
+      ? Math.min(selectedOffsetRange.start, selectedOffsetRange.end)
+      : null
+  }, [selectedOffsetRange])
 
   // Callbacks for keyboard shortcuts
   const handleToggleSearch = useCallback(() => {

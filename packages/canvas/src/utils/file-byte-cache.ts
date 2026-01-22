@@ -99,11 +99,11 @@ export class FileByteCache {
         // Not loaded yet; caller should call ensureRange first
         break
       }
-      
+
       // Update LRU order: move chunk to end (most recently used) by deleting and re-inserting
       this.chunks.delete(chunkIndex)
       this.chunks.set(chunkIndex, chunk)
-      
+
       const chunkStart = chunkIndex * this.chunkSize
       const within = cursor - chunkStart
       const take = Math.min(chunk.length - within, end - cursor)

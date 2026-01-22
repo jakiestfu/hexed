@@ -563,8 +563,9 @@ function autoDetectEncoding(
   ];
 
   // Sort by count descending, return the encoding with most matches
-  results.sort((a, b) => b.count - a.count);
-  return results[0]?.encoding || "ascii";
+  // Use spread operator for immutability (toSorted requires ES2023+)
+  const sortedResults = [...results].sort((a, b) => b.count - a.count);
+  return sortedResults[0]?.encoding || "ascii";
 }
 
 /**
