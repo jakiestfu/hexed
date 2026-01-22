@@ -130,7 +130,8 @@ export function calculateLayout(
 }
 
 /**
- * Calculate total canvas scroll height
+ * Calculate total content height (not scrollable height)
+ * This is the full height of all rows including padding
  */
 export function calculateTotalHeight(
   rowsLength: number,
@@ -138,9 +139,7 @@ export function calculateTotalHeight(
   viewportHeight: number
 ): number {
   if (!layout) return 0
-  return (
-    rowsLength * layout.rowHeight + layout.verticalPadding * 2 - viewportHeight
-  )
+  return rowsLength * layout.rowHeight + layout.verticalPadding * 2
 }
 
 /**

@@ -197,11 +197,13 @@ export class HexCanvas extends EventTarget {
     }
 
     const rowsLength = Math.ceil(this.cache.size / this.layout.bytesPerRow)
+    // totalHeight is now the content height (all rows + padding)
     this.totalHeight = calculateTotalHeight(
       rowsLength,
       this.layout,
       this.dimensions.height
     )
+    // maxScrollTop is the scrollable distance (content height - viewport height)
     this.maxScrollTop = Math.max(
       0,
       Math.floor(this.totalHeight - this.dimensions.height)
@@ -629,6 +631,7 @@ export class HexCanvas extends EventTarget {
     const trackWidth = scrollbarWidth
     const trackHeight = this.dimensions.height
 
+    // totalHeight is now content height, so use it for thumb height calculation
     const thumbHeight = Math.max(
       20,
       Math.floor((this.dimensions.height / this.totalHeight) * trackHeight)
