@@ -1,9 +1,6 @@
 import type { Endianness, NumberFormat } from "@hexed/binary-utils/interpreter"
 import type { BinarySnapshot } from "@hexed/types"
 
-import { useHexedFile } from "./hooks/use-hexed-file"
-import { UseHexedSettings } from "./hooks/use-hexed-settings"
-
 export type FileSource = "file-system"
 
 /**
@@ -42,8 +39,6 @@ export type EditorProps = {
   className?: string
   fileSource?: FileSource
   onAddSnapshot?: (snapshot: BinarySnapshot) => void
-  // Data picker callbacks (for empty state)
-  // onChangeInput: (input: HexedFileInput) => void
   theme?: string
   setTheme?: (theme: string) => void
   packageInfo?: {

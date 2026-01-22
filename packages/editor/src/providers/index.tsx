@@ -5,11 +5,11 @@ import { UseHexedSettings } from "../hooks/use-hexed-settings";
 import { HexedFileInput } from "../types";
 import { DragDropProvider } from "./drag-drop-provider";
 import { WorkerProvider } from "./worker-provider";
-import { UseHexedInput } from "../hooks/use-hexed-input";
+import { OnHexedInputChange, UseHexedInput } from "../hooks/use-hexed-input";
 
 export const HexedProviders: FunctionComponent<PropsWithChildren<{
   input: UseHexedInput[0]
-  onChangeInput: UseHexedInput[1]
+  onChangeInput: OnHexedInputChange
   settings: UseHexedSettings
 }>> = ({ input, onChangeInput, settings, children }) => (
   <WorkerProvider>

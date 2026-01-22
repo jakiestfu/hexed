@@ -19,7 +19,6 @@ import {
 
 import { useRecentFiles } from "../../hooks/use-recent-files"
 import {
-  createSnapshotFromFile,
   formatTimestamp,
   getBasename
 } from "../../utils"
@@ -36,7 +35,6 @@ const RecentFilesDropdown: FunctionComponent<{
   recentFiles: FileHandleMetadata[]
   onSelect: (handleId: string) => void
 }> = ({ recentFiles, onSelect }) => {
-  const { getFileHandleById } = useRecentFiles()
   const [fileSizes, setFileSizes] = useState<Map<string, number>>(new Map())
   const [isLoadingSizes, setIsLoadingSizes] = useState(false)
 

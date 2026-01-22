@@ -325,7 +325,7 @@ export const Histogram: FunctionComponent<HistogramProps> = ({ data }) => {
           <ChartTooltip
             content={
               <ChartTooltipContent
-                formatter={(value, name) => [
+                formatter={(value) => [
                   `${value?.toLocaleString()} occurrences`,
                   "Frequency"
                 ]}

@@ -1,10 +1,8 @@
-import { useCallback, useEffect, useMemo, useState } from "react"
+import { useCallback } from "react"
 import { useHotkeys } from "react-hotkeys-hook"
 
 import { toHexString } from "@hexed/binary-utils/formatter"
 
-import type { Sidebar } from "./use-hexed-settings"
-import { useHexedSettings } from "./use-hexed-settings"
 import { useHexedSettingsContext } from "../providers/hexed-settings-provider"
 
 export interface UseGlobalKeyboardOptions {

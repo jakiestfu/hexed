@@ -1,10 +1,11 @@
-import * as React from "react"
+
 import { useTheme } from "next-themes"
 import { useNavigate, useParams } from "react-router-dom"
 
 import { HexedFileInput, HexedEditor, useHexedInput, useHexedSettings } from "@hexed/editor"
 
 import packageJson from "../../package.public.json"
+import { useCallback } from "react"
 
 export function HexEditorPage() {
   const params = useParams()
@@ -14,11 +15,7 @@ export function HexEditorPage() {
   const [input, setInput] = useHexedInput(params.id)
   const settings = useHexedSettings()
 
-  const handleClose = React.useCallback(() => {
-    navigate("/")
-  }, [navigate])
-
-  const onChangeInput = React.useCallback(
+  const onChangeInput = useCallback(
     (newInput: HexedFileInput) => {
       if (newInput === null) {
         navigate("/")

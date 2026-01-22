@@ -1,6 +1,6 @@
 
-import { createContext, FunctionComponent, PropsWithChildren, ReactNode, useContext } from "react"
-import { UseHexedInput } from "../hooks/use-hexed-input"
+import { createContext, FunctionComponent, PropsWithChildren, useContext } from "react"
+import { OnHexedInputChange, UseHexedInput } from "../hooks/use-hexed-input"
 
 
 /**
@@ -8,7 +8,7 @@ import { UseHexedInput } from "../hooks/use-hexed-input"
  */
 const HexedInputContext = createContext<{
   input: UseHexedInput[0]
-  onChangeInput: UseHexedInput[1]
+  onChangeInput: OnHexedInputChange
 } | null>(null)
 
 /**
@@ -17,7 +17,7 @@ const HexedInputContext = createContext<{
  */
 export const HexedInputProvider: FunctionComponent<PropsWithChildren<{
   input: UseHexedInput[0]
-  onChangeInput: UseHexedInput[1]
+  onChangeInput: OnHexedInputChange
 }>> = ({ children, input, onChangeInput }) => (
   <HexedInputContext.Provider value={{ input, onChangeInput }}>{children}</HexedInputContext.Provider>
 )

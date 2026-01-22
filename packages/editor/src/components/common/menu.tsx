@@ -25,14 +25,12 @@ import {
 import {
   FileSourceIcon,
   formatFilenameForDisplay,
-  Histogram,
   Hotkeys,
   OnHexedInputChange,
   Sidebar,
   useRecentFiles,
   useHexedSettingsContext
 } from "@hexed/editor"
-import type { BinarySnapshot } from "@hexed/types"
 import {
   Button,
   Dialog,

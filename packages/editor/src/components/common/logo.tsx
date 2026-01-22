@@ -1,10 +1,9 @@
 import { FunctionComponent, useState } from "react"
 import { ChevronDown, Ghost } from "lucide-react"
 
-import type { BinarySnapshot } from "@hexed/types"
 import { Button, cn, DropdownMenu, DropdownMenuTrigger } from "@hexed/ui"
 
-import { Menu, type MenuItem, type PackageInfo } from "./menu"
+import { Menu, type PackageInfo } from "./menu"
 import { OnHexedInputChange } from "../../hooks/use-hexed-input"
 
 export type { MenuItem } from "./menu"

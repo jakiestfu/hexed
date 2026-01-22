@@ -22,7 +22,7 @@ export function useFileHandleWatcher(
 
   // Convert handle to File using the new hook
   const {
-    input: { file }
+    input: { file, error: fileError }
   } = useHexedInputContext()
 
   // Read file data using the new hook
@@ -198,7 +198,7 @@ export function useFileHandleWatcher(
   }, [connect])
 
   // Combine errors from hooks and watcher
-  const combinedError = error || fileError || dataError
+  const combinedError = error || fileError
 
   // Find specific snapshot if snapshotId is provided
   const snapshot = useMemo(() => {

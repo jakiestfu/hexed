@@ -1,8 +1,7 @@
-import { useCallback, useEffect, useRef, useState } from "react"
+import { useEffect, useRef, useState } from "react"
 import type { FunctionComponent, RefObject } from "react"
 import { ChevronLeft, ChevronRight, Search, X } from "lucide-react"
 
-import { toAsciiString, toHexString } from "@hexed/binary-utils/formatter"
 import {
   Button,
   cn,

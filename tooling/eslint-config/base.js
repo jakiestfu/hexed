@@ -28,22 +28,6 @@ const config = [
           caughtErrorsIgnorePattern: "^_[^_].*$|^_$",
         },
       ],
-      // "no-restricted-imports": [
-      //   "error",
-      //   {
-      //     patterns: [
-      //       {
-      //         group: [
-      //           "./use-resolve-handle",
-      //           "../use-resolve-handle",
-      //           "use-resolve-handle",
-      //         ],
-      //         message:
-      //           "Do not import useResolveHandle directly. Import it from the public hooks entry instead.",
-      //       },
-      //     ],
-      //   },
-      // ],
     },
   },
   {

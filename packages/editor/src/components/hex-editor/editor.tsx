@@ -1,7 +1,7 @@
 "use client"
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react"
-import type { FunctionComponent, PropsWithChildren } from "react"
+import type { FunctionComponent } from "react"
 
 import { HexCanvasReact } from "@hexed/canvas"
 import type { DiffViewMode } from "@hexed/types"
@@ -28,20 +28,12 @@ import { HexSidebar } from "./hex-sidebar"
 import { HexToolbar } from "./hex-toolbar"
 import { HexToolbarDiff } from "./hex-toolbar-diff"
 import { HexToolbarSearch } from "./hex-toolbar-search"
-import { HexedProviders } from "../../providers"
 import { useHexedSettingsContext } from "../../providers/hexed-settings-provider"
 import { useHexedInputContext } from "../../providers/hex-input-provider"
 
 export const Editor: FunctionComponent<EditorProps> = ({
-  // input: { file, fileHandle, handleId },
-  // settings: {
-  //   showAscii,
-  //   sidebar,
-  //   sidebarPosition
-  // },
   className = "",
   fileSource = "file-system",
-  // onChangeInput,
   theme,
   setTheme,
   packageInfo
@@ -50,15 +42,12 @@ export const Editor: FunctionComponent<EditorProps> = ({
   const { input: { file, fileHandle, handleId }, onChangeInput } = useHexedInputContext();
   const { showAscii, sidebar, sidebarPosition } = useHexedSettingsContext()
 
-  const [diffMode, setDiffMode] = useState<DiffViewMode>("inline")
+  const [diffMode] = useState<DiffViewMode>("inline")
   const [dataType, setDataType] = useState<string>("Signed Int")
   const [endianness, setEndianness] = useState<string>("le")
   const [numberFormat, setNumberFormat] = useState<string>("dec")
 
   const canRender = Boolean(file)
-
-  // const { fileHandle } = useResolveHandle(handleId)
-  // const { file } = useResolveFile(fileHandle)
 
   console.log("hex editor render")
 
@@ -282,10 +271,7 @@ export const Editor: FunctionComponent<EditorProps> = ({
             onClose={() => onChangeInput(null)}
           />
           <HexToolbarSearch
-            handleId={handleId}
             showSearch={showSearch}
-            hasFile={fileHandle !== null}
-            hasSnapshots={false}
             inputRef={searchInputRef}
             syncRangeToFindInput={showSearch ? rangeToSyncToFindInput : null}
             onMatchFound={handleMatchFound}
