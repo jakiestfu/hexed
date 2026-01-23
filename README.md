@@ -1,10 +1,8 @@
-<center>
-<picture >
-  <!-- Source for dark mode -->
-  <source media="(prefers-color-scheme: dark)" srcset="./screenshots/logo-dark.webp">
-  <!-- Source for light mode (used as default/fallback) -->
-  <img alt="Description of image" src="./screenshots/logo-light.webp">
-</picture>
+<div align="center">
+   <picture >
+      <source media="(prefers-color-scheme: dark)" srcset="./screenshots/logo-dark.webp">
+      <img alt="Description of image" src="./screenshots/logo-light.webp">
+   </picture>
 
 ![License](https://img.shields.io/badge/license-ISC-blue.svg)
 ![Node.js](https://img.shields.io/badge/node-%3E%3D18.0.0-brightgreen.svg)
@@ -15,7 +13,7 @@ A modern hex editor for inspecting and tracking binary file changes in real-time
 
 Hexed provides a powerful interface for viewing binary files, tracking changes as they happen, and comparing different versions with visual diff tools. Perfect for developers, reverse engineers, and anyone working with binary data.
 
-</center>
+</div>
 
 ## Features
 
