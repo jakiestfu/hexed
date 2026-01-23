@@ -1,13 +1,17 @@
 <div align="center">
+   <a href="https://github.com/jakiestfu/hexed/">
    <picture >
       <source media="(prefers-color-scheme: dark)" srcset="./screenshots/logo-dark.webp">
       <img alt="Description of image" src="./screenshots/logo-light.webp">
    </picture>
+   </a>
 
 ![License](https://img.shields.io/badge/license-ISC-blue.svg)
 ![Node.js](https://img.shields.io/badge/node-%3E%3D18.0.0-brightgreen.svg)
 ![pnpm](https://img.shields.io/badge/pnpm-%3E%3D8.0.0-orange.svg)
 ![TypeScript](https://img.shields.io/badge/TypeScript-5.7-blue.svg)
+
+---
 
 A modern hex editor for inspecting and tracking binary file changes in real-time.
 
