@@ -8,7 +8,6 @@ import {
   FilePlus,
   FileText,
   FolderOpen,
-  Github,
   Home,
   Info,
   Monitor,
@@ -16,7 +15,6 @@ import {
   Palette,
   PanelLeft,
   Save,
-  Share2,
   Sun,
   Trash2,
   Type
@@ -49,9 +47,8 @@ import {
   DropdownMenuSubContent,
   DropdownMenuSubTrigger
 } from "@hexed/ui"
-
-import packageJson from "../../../../../package.public.json"
-import { Brand } from "./logo" // logo is in same folder
+import { AboutDialog } from "../dialogs/about-dialog"
+import { Theme } from "../../providers/theme-provider"
 
 export type MenuItem = {
   label: string
@@ -64,8 +61,6 @@ export type MenuProps = {
   showHistogram: boolean
   onShowHistogramChange: (show: boolean) => void
   onNavigate?: (path: string) => void
-  theme?: string
-  setTheme?: (theme: string) => void
   onChangeInput: OnHexedInputChange
 }
 
@@ -73,8 +68,6 @@ export const Menu: FunctionComponent<MenuProps> = ({
   // currentSnapshot,
   showHistogram,
   onShowHistogramChange,
-  theme,
-  setTheme,
   // packageJson,
   onChangeInput
 }) => {
@@ -89,32 +82,15 @@ export const Menu: FunctionComponent<MenuProps> = ({
     sidebarPosition,
     setSidebarPosition,
     showMemoryProfiler,
-    setShowMemoryProfiler
+    setShowMemoryProfiler,
+    theme,
+    setTheme,
   } = useHexedSettingsContext()
   const [showClientFileDialog, setShowClientFileDialog] = useState(false)
   const [clickedClientFileHandleId, setClickedClientFileHandleId] = useState<
     string | null
   >(null)
   const [showAboutDialog, setShowAboutDialog] = useState(false)
-
-  const handleShare = async () => {
-    if (navigator.share && packageJson) {
-      try {
-        await navigator.share({
-          title: "Hexed",
-          text: packageJson.description,
-          url: window.location.href
-        })
-      } catch (error) {
-        // User cancelled or error occurred - silently fail
-        if (error instanceof Error && error.name !== "AbortError") {
-          console.error("Error sharing:", error)
-        }
-      }
-    }
-  }
-
-  const canShare = typeof navigator !== "undefined" && "share" in navigator
 
   return (
     <>
@@ -358,7 +334,7 @@ export const Menu: FunctionComponent<MenuProps> = ({
             <DropdownMenuSubContent>
               <DropdownMenuRadioGroup
                 value={theme || "system"}
-                onValueChange={(value) => setTheme(value)}
+                onValueChange={(value) => setTheme(value as Theme)}
               >
                 <DropdownMenuRadioItem
                   value="light"
@@ -437,56 +413,11 @@ export const Menu: FunctionComponent<MenuProps> = ({
           </div>
         </DialogContent>
       </Dialog>
-      {packageJson && (
-        <Dialog
-          open={showAboutDialog}
-          onOpenChange={setShowAboutDialog}
-        >
-          <DialogContent className="text-center">
-            <DialogHeader>
-              <DialogTitle className="sr-only">
-                About {packageJson.name}
-              </DialogTitle>
-            </DialogHeader>
-            <div className="flex flex-col items-center gap-4 py-4">
-              <Brand />
-              <p className="text-muted-foreground max-w-xs">
-                {packageJson.description}
-              </p>
-              <p className="text-sm text-muted-foreground font-mono">
-                Version {packageJson.version}
-              </p>
-              <div className="flex flex-col sm:flex-row gap-2 mt-2 w-full sm:w-auto">
-                <Button
-                  variant="outline"
-                  asChild
-                  className="flex items-center gap-2"
-                >
-                  <a
-                    href={packageJson.repository.url.replace(".git", "")}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="flex items-center gap-2"
-                  >
-                    <Github className="h-4 w-4" />
-                    View on GitHub
-                  </a>
-                </Button>
-                {canShare && (
-                  <Button
-                    variant="outline"
-                    onClick={handleShare}
-                    className="flex items-center gap-2"
-                  >
-                    <Share2 className="h-4 w-4" />
-                    {/* Share */}
-                  </Button>
-                )}
-              </div>
-            </div>
-          </DialogContent>
-        </Dialog>
-      )}
+      <AboutDialog
+        open={showAboutDialog}
+        onOpenChange={setShowAboutDialog}
+      />
+
     </>
   )
 }

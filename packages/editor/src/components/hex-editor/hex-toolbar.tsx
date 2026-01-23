@@ -7,6 +7,7 @@ import type { FileSource } from "../../types"
 import { formatFilenameForDisplay } from "../../utils"
 import { FileSourceIcon } from "../file/file-source-icon"
 import { FileStatusPopover } from "../file/file-status-popover"
+import { Brand } from "../common/logo"
 
 export type HexToolbarProps = {
   left?: ReactNode
@@ -16,15 +17,6 @@ export type HexToolbarProps = {
   error?: string | null
   onRestartWatching?: () => void
   onClose?: () => void
-  isElectron?: boolean | (() => boolean) // Optional prop to check if running in Electron
-}
-
-/**
- * Checks if the app is running in Electron
- * This is a minimal implementation - can be overridden via props
- */
-function isElectron(): boolean {
-  return typeof window !== "undefined" && (window as any).electron !== undefined
 }
 
 export const HexToolbar: FunctionComponent<HexToolbarProps> = ({
@@ -35,45 +27,10 @@ export const HexToolbar: FunctionComponent<HexToolbarProps> = ({
   error = null,
   onRestartWatching,
   onClose,
-  isElectron: isElectronProp
 }) => {
-  const [isInElectron, setIsInElectron] = useState(false)
-
-  useEffect(() => {
-    const inElectron =
-      typeof isElectronProp === "function"
-        ? isElectronProp()
-        : isElectronProp !== undefined
-          ? isElectronProp
-          : isElectron()
-    setIsInElectron(inElectron)
-
-    if (inElectron) {
-      // Add global style to ensure interactive elements are not draggable
-      const style = document.createElement("style")
-      style.textContent = `
-        [data-electron-drag-region] button,
-        [data-electron-drag-region] input,
-        [data-electron-drag-region] select,
-        [data-electron-drag-region] a,
-        [data-electron-drag-region] [role="button"],
-        [data-electron-drag-region] [role="menuitem"] {
-          -webkit-app-region: no-drag !important;
-        }
-      `
-      document.head.appendChild(style)
-
-      return () => {
-        document.head.removeChild(style)
-      }
-    }
-  }, [isElectronProp])
-
   const center = !file ? (
     <div className="flex items-center gap-2 min-w-0">
-      <span className="font-mono text-sm text-muted-foreground">
-        No file selected
-      </span>
+      <Brand />
     </div>
   ) : (
     <FileStatusPopover
@@ -95,9 +52,8 @@ export const HexToolbar: FunctionComponent<HexToolbarProps> = ({
           {formatFilenameForDisplay(file.name!)}
         </span>
         <div
-          className={`inline-flex h-2 w-2 rounded-full shrink-0 ${
-            isConnected ? "bg-green-500" : "bg-gray-500"
-          }`}
+          className={`inline-flex h-2 w-2 rounded-full shrink-0 ${isConnected ? "bg-green-500" : "bg-gray-500"
+            }`}
         />
       </div>
     </FileStatusPopover>
@@ -133,15 +89,7 @@ export const HexToolbar: FunctionComponent<HexToolbarProps> = ({
 
   return (
     <div
-      data-electron-drag-region={isInElectron ? "" : undefined}
       className="flex items-center justify-between p-4 border-b"
-      style={
-        isInElectron
-          ? ({
-              WebkitAppRegion: "drag"
-            } as CSSProperties)
-          : undefined
-      }
     >
       <div className="flex items-start min-w-0 flex-1">{left}</div>
       {center && (

@@ -33,8 +33,6 @@ import { HexToolbarSearch } from "./hex-toolbar-search"
 export const Editor: FunctionComponent<EditorProps> = ({
   className = "",
   fileSource = "file-system",
-  theme,
-  setTheme
 }) => {
   const [activeTab, setActiveTab] = useState<string>("0")
   const {
@@ -259,15 +257,13 @@ export const Editor: FunctionComponent<EditorProps> = ({
                 showHistogram={showHistogram}
                 onShowHistogramChange={setShowHistogram}
                 onChangeInput={onChangeInput}
-                theme={theme}
-                setTheme={setTheme}
               />
             }
             file={file}
             fileSource={fileSource}
             isConnected={Boolean(fileHandle)}
             error={null}
-            onRestartWatching={() => {}}
+            onRestartWatching={() => { }}
             onClose={() => onChangeInput(null)}
           />
           <HexToolbarSearch

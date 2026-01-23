@@ -1,4 +1,3 @@
-import { ThemeProvider } from "next-themes"
 import { createHashRouter, RouterProvider } from "react-router-dom"
 
 import { HexEditorPage } from "~/routes/hex-editor-page"
@@ -17,12 +16,5 @@ const router = createHashRouter([
 ])
 
 export const App = () => (
-  <ThemeProvider
-    attribute="class"
-    defaultTheme="system"
-    enableSystem
-    disableTransitionOnChange
-  >
-    <RouterProvider router={router} />
-  </ThemeProvider>
+  <RouterProvider router={router} />
 )

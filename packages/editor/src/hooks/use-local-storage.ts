@@ -130,7 +130,8 @@ function setCachedLocalStorage(key: string, value: string): void {
  */
 export function useLocalStorage<T>(
   key: string,
-  defaultValue: T
+  defaultValue: T,
+  override?: T
 ): [T, (value: T | ((prev: T) => T)) => void] {
   // Lazy initialization: only runs on initial mount
   const [storedValue, setStoredValue] = React.useState<T>(() => {
@@ -257,5 +258,5 @@ export function useLocalStorage<T>(
     [key, storedValue]
   )
 
-  return [storedValue, setValue]
+  return [override ?? storedValue, setValue]
 }

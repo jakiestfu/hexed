@@ -1,4 +1,18 @@
-# Hexed
+<picture>
+  <!-- Source for dark mode -->
+  <source media="(prefers-color-scheme: dark)" srcset="./screenshots/logo-dark.webp">
+  <!-- Source for light mode (used as default/fallback) -->
+  <img alt="Description of image" src="./screenshots/logo-light.webp">
+</picture>
+
+---
+
+<picture>
+  <!-- Source for dark mode -->
+  <source media="(prefers-color-scheme: dark)" srcset="./screenshots/editor-dark.png">
+  <!-- Source for light mode (used as default/fallback) -->
+  <img alt="Description of image" src="./screenshots/editor-light.png">
+</picture>
 
 ![License](https://img.shields.io/badge/license-ISC-blue.svg)
 ![Node.js](https://img.shields.io/badge/node-%3E%3D18.0.0-brightgreen.svg)

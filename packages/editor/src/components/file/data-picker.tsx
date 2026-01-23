@@ -220,11 +220,10 @@ export const DataPicker: FunctionComponent<DataPickerProps> = ({
 
   return (
     <Card
-      className={`w-full max-w-lg border-none h-[250px] transition-all duration-300 ${
-        isMounted ? "opacity-100" : "opacity-0"
-      }`}
+      className={`bg-transparent w-full max-w-lg border-none h-[250px] transition-all duration-300 ${isMounted ? "opacity-100" : "opacity-0"
+        }`}
     >
-      <CardContent className="space-y-4">
+      <CardContent className="space-y-4 bg-transparent">
         <div className="space-y-4 mt-4">
           <label className="text-sm font-medium inline-block mb-2">
             Select a file

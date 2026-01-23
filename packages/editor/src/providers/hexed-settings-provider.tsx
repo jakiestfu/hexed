@@ -2,12 +2,10 @@ import {
   createContext,
   FunctionComponent,
   PropsWithChildren,
-  ReactNode,
   useContext
 } from "react"
 
-import { HexedSettings, UseHexedSettings } from "../hooks/use-hexed-settings"
-import { HexedFileInput } from "../types"
+import { UseHexedSettings } from "../hooks/use-hexed-settings"
 
 /**
  * Context for the worker client

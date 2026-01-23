@@ -1,5 +1,5 @@
 import { FunctionComponent, useState } from "react"
-import { ChevronDown, Ghost } from "lucide-react"
+import { MenuIcon } from "lucide-react"
 
 import { Button, cn, DropdownMenu, DropdownMenuTrigger } from "@hexed/ui"
 
@@ -8,78 +8,109 @@ import { Menu } from "./menu"
 
 export type { MenuItem } from "./menu"
 
+import packageJson from '../../../../../package.public.json'
+
+
 export const Brand: FunctionComponent<{
   className?: string
-  glitch?: boolean
-  iconOnly?: boolean
-  size?: string
-}> = ({ className, glitch, iconOnly, size }) => (
-  <div
-    className={cn(
-      "flex justify-center items-center gap-2 logo-container-inline",
-      className
-    )}
-  >
-    <Ghost className={cn(size)} />
+  animate?: boolean
+}> = ({ className, animate = true }) => {
+  const text = packageJson.name
 
-    <div
+  if (!animate) {
+    return (
+      <h1 className={cn("font-brand text-2xl tracking-[0.08em]", className)}>
+        {text}
+      </h1>
+    )
+  }
+
+  return (
+    <h1
       className={cn(
-        "font-mono font-bold",
-        glitch && "glitch layers",
-        iconOnly && "hidden"
+        "group font-brand text-2xl tracking-[0.08em]",
+        className
       )}
-      data-text="hexed"
     >
-      <span>hexed</span>
-    </div>
-  </div>
-)
+      <span className="relative inline-block">
+        {/* base text */}
+        <span className="relative z-10 text-current [text-shadow:0_0_12px_rgba(34,211,238,0.25)]">
+          {text.split("").map((ch, i) => (
+            <span
+              key={i}
+              className={cn(
+                "inline-block opacity-0 translate-y-[2px]",
+                // play on mount
+                "animate-[hex-in_520ms_steps(2,end)_forwards]",
+                // replay on hover
+                "group-hover:animate-[hex-in_520ms_steps(2,end)_forwards]",
+                "motion-reduce:opacity-100 motion-reduce:translate-y-0"
+              )}
+              style={{ animationDelay: `${i * 70}ms` }}
+            >
+              {ch}
+            </span>
+          ))}
+        </span>
+
+        {/* RGB ghost layers */}
+        <span
+          aria-hidden
+          className={cn(
+            "pointer-events-none absolute inset-0 z-0 select-none opacity-0",
+            // mount
+            "animate-[ghost-on_900ms_ease-out_forwards]",
+            // hover replay
+            "group-hover:animate-[ghost-on_900ms_ease-out_forwards]"
+          )}
+        >
+          <span className="absolute inset-0 translate-x-[1px] translate-y-[3px] text-red-500/70 mix-blend-screen">
+            {text}
+          </span>
+          <span className="absolute inset-0 -translate-x-[1px] text-cyan-400/70 mix-blend-screen">
+            {text}
+          </span>
+        </span>
+      </span>
+    </h1>
+  )
+}
 
 export const Logo: FunctionComponent<{
   inline?: boolean
   // currentSnapshot?: BinarySnapshot | null
   showHistogram?: boolean
   onShowHistogramChange?: (show: boolean) => void
-  // Theme
-  theme?: string
-  setTheme?: (theme: string) => void
   onChangeInput: OnHexedInputChange
 }> = ({
   inline = false,
   showHistogram: controlledShowHistogram,
   onShowHistogramChange: controlledOnShowHistogramChange,
-  theme,
-  setTheme,
   onChangeInput
 }) => {
-  const [internalShowHistogram, setInternalShowHistogram] = useState(false)
+    const [internalShowHistogram, setInternalShowHistogram] = useState(false)
 
-  // Use controlled state if provided, otherwise use internal state
-  const showHistogram = controlledShowHistogram ?? internalShowHistogram
-  const onShowHistogramChange =
-    controlledOnShowHistogramChange ?? setInternalShowHistogram
+    // Use controlled state if provided, otherwise use internal state
+    const showHistogram = controlledShowHistogram ?? internalShowHistogram
+    const onShowHistogramChange =
+      controlledOnShowHistogramChange ?? setInternalShowHistogram
 
-  if (inline) return <Brand />
+    if (inline) return <Brand />
 
-  return (
-    <div className="flex justify-center gap-2 logo-container">
-      <DropdownMenu>
-        <DropdownMenuTrigger asChild>
-          <Button variant="ghost">
-            <Ghost />
-            <span className="font-mono font-bold">hexed</span>
-            <ChevronDown className="opacity-50 h-4 w-4" />
-          </Button>
-        </DropdownMenuTrigger>
-        <Menu
-          // currentSnapshot={currentSnapshot}
-          showHistogram={showHistogram}
-          onShowHistogramChange={onShowHistogramChange}
-          onChangeInput={onChangeInput}
-          theme={theme}
-          setTheme={setTheme}
-        />
-      </DropdownMenu>
-    </div>
-  )
-}
+    return (
+      <div className="flex justify-center gap-2 logo-container">
+        <DropdownMenu>
+          <DropdownMenuTrigger asChild>
+            <Button variant="ghost" size="lg">
+              <MenuIcon />
+            </Button>
+          </DropdownMenuTrigger>
+          <Menu
+            showHistogram={showHistogram}
+            onShowHistogramChange={onShowHistogramChange}
+            onChangeInput={onChangeInput}
+          />
+        </DropdownMenu>
+      </div>
+    )
+  }

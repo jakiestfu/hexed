@@ -9,6 +9,8 @@
   },
   "homepage": "https://jakiestfu.github.io/hexed",
   "scripts": {
+    "puppeteer:install": "pnpm puppeteer browsers install chrome",
+    "screenshot": "node ./scripts/screenshots.mjs",
     "create-public-package": "node scripts/create-public-package.mjs",
     "predev": "pnpm create-public-package",
     "prebuild": "pnpm create-public-package",
@@ -46,6 +48,8 @@
   "devDependencies": {
     "@manypkg/cli": "^0.25.1",
     "gh-pages": "^6.1.1",
+    "http-server": "^14.1.1",
+    "puppeteer": "^24.36.0",
     "typescript": "^5.7.2"
   },
   "pnpm": {

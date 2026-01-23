@@ -39,8 +39,8 @@ export type EditorProps = {
   className?: string
   fileSource?: FileSource
   onAddSnapshot?: (snapshot: BinarySnapshot) => void
-  theme?: string
-  setTheme?: (theme: string) => void
+  // theme?: string
+  // setTheme?: (theme: string) => void
 }
 
 export type HexedFileInput =

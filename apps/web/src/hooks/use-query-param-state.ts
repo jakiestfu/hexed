@@ -1,6 +1,71 @@
 import { useCallback, useMemo } from "react"
 import { useLocation, useNavigate, useSearchParams } from "react-router-dom"
 
+export type QueryParams = Record<string, string>
+
+export function useQueryParams() {
+  const [searchParams] = useSearchParams()
+  const navigate = useNavigate()
+  const location = useLocation()
+  console.log('searchParams', {
+    location,
+    searchParams,
+  })
+  // Stable string representation
+  const searchParamsString = useMemo(
+    () => searchParams.toString(),
+    [searchParams]
+  )
+
+  /**
+   * Object literal of all params
+   * ?foo=bar&baz=qux -> { foo: "bar", baz: "qux" }
+   */
+  const params = useMemo<QueryParams>(() => {
+    // console.log('searchParamsString', searchParamsString)
+    const out: QueryParams = {}
+    for (const [key, value] of new URLSearchParams(searchParamsString)) {
+      out[key] = value
+    }
+    return out
+  }, [searchParamsString])
+
+  const setParam = useCallback(
+    (
+      key: string,
+      value: string | null | undefined,
+      opts?: { removeIf?: string }
+    ) => {
+      const sp = new URLSearchParams(searchParamsString)
+
+      const shouldRemove =
+        value == null ||
+        value === "" ||
+        (opts?.removeIf != null && value === opts.removeIf)
+
+      if (shouldRemove) sp.delete(key)
+      else sp.set(key, value)
+
+      const newSearch = sp.toString()
+      const newUrl = `${location.pathname}${newSearch ? `?${newSearch}` : ""}`
+      navigate(newUrl, { replace: true })
+    },
+    [searchParamsString, location.pathname, navigate]
+  )
+
+  const deleteParam = useCallback(
+    (key: string) => setParam(key, null),
+    [setParam]
+  )
+
+  return {
+    ...params,          // 👈 magic line
+    params,             // also expose full object if you want it grouped
+    setParam,
+    deleteParam,
+  }
+}
+
 /**
  * Hook that syncs state with URL query parameters
  * Has the same signature as useState but accepts a key parameter
@@ -12,47 +77,20 @@ export function useQueryParamState<T extends string>(
   key: string,
   defaultValue: T
 ): [T, (value: T | ((prev: T) => T)) => void] {
-  const [searchParams] = useSearchParams()
-  const navigate = useNavigate()
-  const location = useLocation()
+  const { params, setParam } = useQueryParams()
 
-  // Read value directly from URL
-  const value = (searchParams.get(key) as T) || defaultValue
+  const value = ((params[key] as T | undefined) ?? defaultValue) as T
 
-  // Use string representation of searchParams for stable dependency
-  // This prevents re-creating the callback when searchParams object reference changes
-  // but the actual params haven't changed
-  const searchParamsString = useMemo(
-    () => searchParams.toString(),
-    [searchParams]
-  )
-
-  // Update URL when setValue is called
   const setValue = useCallback(
     (newValue: T | ((prev: T) => T)) => {
-      // Resolve function updates
       const resolvedValue =
         typeof newValue === "function"
           ? (newValue as (prev: T) => T)(value)
           : newValue
 
-      // Create new URLSearchParams from current search params
-      const params = new URLSearchParams(searchParamsString)
-
-      if (resolvedValue === defaultValue) {
-        // Remove param if it matches default value
-        params.delete(key)
-      } else {
-        // Set param to new value
-        params.set(key, resolvedValue)
-      }
-
-      // Update URL - React Router will cause re-render with new value
-      const newSearch = params.toString()
-      const newUrl = `${location.pathname}${newSearch ? `?${newSearch}` : ""}`
-      navigate(newUrl, { replace: true })
+      setParam(key, resolvedValue, { removeIf: defaultValue })
     },
-    [key, defaultValue, searchParamsString, location.pathname, navigate, value]
+    [key, defaultValue, setParam, value]
   )
 
   return [value, setValue]
