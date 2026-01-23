@@ -21,7 +21,7 @@ const server = spawn(
 
 const browser = await puppeteer.launch({
   headless: "new",
-  defaultViewport: { width: 1440, height: 900, deviceScaleFactor: 3 },
+  defaultViewport: { width: 1440, height: 900, deviceScaleFactor: 4 },
 })
 
 const execFileAsync = promisify(execFile)
@@ -30,42 +30,36 @@ const ensureDir = async (dirPath) => {
   await mkdir(dirPath, { recursive: true })
 }
 
-const runFfmpegGifFromFrames = async ({
-  framesDir,
-  frameGlob,
-  fps,
-  outGifPath,
-}) => {
-  // palette-based GIF for quality + smaller file size
-  const palettePath = join(framesDir, "palette.png")
 
-  // 1) palettegen
-  await execFileAsync("ffmpeg", [
-    "-y",
-    "-framerate",
-    String(fps),
-    "-i",
-    join(framesDir, frameGlob),
-    "-vf",
-    "palettegen",
-    palettePath,
-  ])
+export const screenShotState = async (name, options = {}, browser) => {
+  const themes = ["dark", "light"]
+  await ensureDir(screenshotsDir)
 
-  // 2) paletteuse
-  await execFileAsync("ffmpeg", [
-    "-y",
-    "-framerate",
-    String(fps),
-    "-i",
-    join(framesDir, frameGlob),
-    "-i",
-    palettePath,
-    "-lavfi",
-    "paletteuse=dither=bayer:bayer_scale=5",
-    outGifPath,
-  ])
+  for (const theme of themes) {
+    const outputPath = resolve(screenshotsDir, `${name}-${theme}.png`)
+    const page = await browser.newPage()
+
+    const url = `http://localhost:${port}/#/?${new URLSearchParams({
+      theme,
+      ...options,
+    }).toString()}`
+
+    await page.goto(url, { waitUntil: "networkidle0" })
+
+    await page.waitForSelector("#root", { timeout: 10_000 }).catch(() => { })
+    await new Promise((r) => setTimeout(r, 1000))
+
+    await page.screenshot({ path: outputPath, fullPage: true })
+    console.log(`✅ Screenshot ${url} saved: ${outputPath}`)
+
+    await page.close()
+  }
 }
 
+const fps = 60
+const delayMs = Math.round(1000 / fps) // 17ms
+const durationMs = 4000
+const frameCount = Math.round((durationMs / 1000) * fps) // 120
 
 export const runAnimatedWebpFromPngFrames = async ({
   framesDir,
@@ -75,8 +69,6 @@ export const runAnimatedWebpFromPngFrames = async ({
   // WebP frame duration is in whole milliseconds
   const frameMs = Math.max(1, Math.round(1000 / fps))
 
-  // 1) Convert PNG frames -> WebP still frames (lossless, keeps alpha)
-  //    frame-000.png -> frame-000.webp
   await execFileAsync("ffmpeg", [
     "-y",
     "-framerate",
@@ -118,40 +110,10 @@ export const runAnimatedWebpFromPngFrames = async ({
   await execFileAsync("webpmux", muxArgs)
 }
 
-export const screenShotState = async (name, options = {}, browser) => {
-  const themes = ["dark", "light"]
-  await ensureDir(screenshotsDir)
-
-  for (const theme of themes) {
-    const outputPath = resolve(screenshotsDir, `${name}-${theme}.png`)
-    const page = await browser.newPage()
-
-    const url = `http://localhost:${port}/#/?${new URLSearchParams({
-      theme,
-      ...options,
-    }).toString()}`
-
-    await page.goto(url, { waitUntil: "networkidle0" })
-
-    await page.waitForSelector("#root", { timeout: 10_000 }).catch(() => { })
-    await new Promise((r) => setTimeout(r, 1000))
-
-    await page.screenshot({ path: outputPath, fullPage: true })
-    console.log(`✅ Screenshot ${url} saved: ${outputPath}`)
-
-    await page.close()
-  }
-}
-
-const fps = 60
-const delayMs = Math.round(1000 / fps) // 17ms
-const durationMs = 2000
-const frameCount = Math.round((durationMs / 1000) * fps) // 120
-
 export const screenshotLogo = async (browser) => {
   const themes = ["dark", "light"]
   const selector = ".font-brand"
-  const padding = 10
+  const padding = 0
 
   await ensureDir(screenshotsDir)
 
@@ -199,10 +161,10 @@ export const screenshotLogo = async (browser) => {
             `frame-${String(i).padStart(3, "0")}.png`
           ),
           clip: {
-            x: Math.max(0, box.x - padding),
-            y: Math.max(0, box.y - padding),
-            width: box.width + padding * 2,
-            height: box.height + padding * 2,
+            x: Math.max(0, box.x - 4),
+            y: Math.max(0, box.y + 4),
+            width: box.width + 5,
+            height: box.height - 4,
           },
         })
 
@@ -232,11 +194,9 @@ try {
   await screenshotLogo(browser)
   await screenShotState("home", {}, browser)
   await screenShotState("editor", {
-    input: "We can only see a short distance ahead, but we can see plenty there that needs to be done.",
+    input: "I invoke you, holy angels and holy names, join forces with this restraining spell and bind, tie up, block, strike, overthrow, harm, destroy, kill and shatter Eucherios the charioteer and all his horses tomorrow in the arena of Rome. Let the starting-gates not [open] properly. Let him not compete quickly. Let him not pass. Let him not make the turn properly. Let him not receive the honors. Let him not squeeze over and overpower. Let him not come from behind and pass but instead let him collapse, let him be bound, let him be broken up, and let him drag behind your power. Both in the early races and the later ones. Now, now! Quickly, quickly! In the ancient world, it was common practice to curse or bind an enemy or rival by writing an incantation, such as the one above, on a tablet and dedicating it to a god or spirit. These curses or binding spells, commonly called defixiones, were intended to bring other people under the power and control of those who commissioned them. More than a thousand such texts, written between the fifth century B.C.E. and the fifth century C.E., have been discovered from North Africa to England, and from Syria to Spain. Extending into every aspect of ancient life - athletic and theatrical competitions, judicial proceedings, love affairs, business rivalries, and the recovery of stolen property - they shed new light on a previously neglected dimension of classical study. Potentially harmful to the entrenched reputations of classical Greece and Rome, as well as Judaism and Christianity, as bastions, respectively, of pure philosophy and true religion, these small tablets provide a fascinating perspective on the times as well as a rare, intimate look at the personal lives of the ancient Greeks and Romans.",
     showAscii: true,
   }, browser)
-  // await Promise.all([
-  // ])
 } finally {
   await browser.close()
   server.kill("SIGTERM")

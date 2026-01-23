@@ -34,7 +34,7 @@ export const Brand: FunctionComponent<{
     >
       <span className="relative inline-block">
         {/* base text */}
-        <span className="relative z-10 text-current [text-shadow:0_0_12px_rgba(34,211,238,0.25)]">
+        <span className="relative z-10 text-current">
           {text.split("").map((ch, i) => (
             <span
               key={i}
