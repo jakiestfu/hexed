@@ -35,15 +35,15 @@ Hexed provides a powerful interface for viewing binary files, tracking changes a
 ## Screenshots
 
 **Homepage**
-<picture>
 
+<picture>
   <source media="(prefers-color-scheme: dark)" srcset="./screenshots/home-dark.png">
   <img alt="Description of image" src="./screenshots/home-light.png">
 </picture>
 
 **Editor**
-<picture>
 
+<picture>
   <source media="(prefers-color-scheme: dark)" srcset="./screenshots/editor-dark.png">
   <img alt="Description of image" src="./screenshots/editor-light.png">
 </picture>
