@@ -1,17 +1,9 @@
-<picture>
+<center>
+<picture >
   <!-- Source for dark mode -->
   <source media="(prefers-color-scheme: dark)" srcset="./screenshots/logo-dark.webp">
   <!-- Source for light mode (used as default/fallback) -->
   <img alt="Description of image" src="./screenshots/logo-light.webp">
-</picture>
-
----
-
-<picture>
-  <!-- Source for dark mode -->
-  <source media="(prefers-color-scheme: dark)" srcset="./screenshots/editor-dark.png">
-  <!-- Source for light mode (used as default/fallback) -->
-  <img alt="Description of image" src="./screenshots/editor-light.png">
 </picture>
 
 ![License](https://img.shields.io/badge/license-ISC-blue.svg)
@@ -23,17 +15,7 @@ A modern hex editor for inspecting and tracking binary file changes in real-time
 
 Hexed provides a powerful interface for viewing binary files, tracking changes as they happen, and comparing different versions with visual diff tools. Perfect for developers, reverse engineers, and anyone working with binary data.
 
-## Screenshots
-
-**Light Mode**
-
-<img width="3128" height="1608" alt="light" src="https://github.com/user-attachments/assets/4b818745-7e06-4f96-ad56-4e05b5ecf71e" />
-
----
-
-**Dark Mode**
-
-<img width="3128" height="1608" alt="dark" src="https://github.com/user-attachments/assets/ed4628d3-5130-4111-bc33-a27d40ae5572" />
+</center>
 
 ## Features
 
@@ -47,6 +29,22 @@ Hexed provides a powerful interface for viewing binary files, tracking changes a
 - **Checksum Visibility**: MD5 checksums for file integrity verification
 - **Keyboard Navigation**: Efficient keyboard shortcuts for navigation
 - **Efficient Rendering**: Canvas-based rendering for smooth performance with large files
+
+## Screenshots
+
+**Homepage**
+<picture>
+
+  <source media="(prefers-color-scheme: dark)" srcset="./screenshots/home-dark.png">
+  <img alt="Description of image" src="./screenshots/home-light.png">
+</picture>
+
+**Editor**
+<picture>
+
+  <source media="(prefers-color-scheme: dark)" srcset="./screenshots/editor-dark.png">
+  <img alt="Description of image" src="./screenshots/editor-light.png">
+</picture>
 
 ## Tech Stack
 
