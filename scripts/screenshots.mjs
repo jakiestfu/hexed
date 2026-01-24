@@ -132,7 +132,7 @@ export const recordLogoAnimation = async (browser) => {
     await page.setViewport({
       width: 460,
       height: 208,
-      deviceScaleFactor: 2,
+      deviceScaleFactor: 1,
     })
 
     const url = `http://localhost:${port}/#/brand/?theme=${theme}`;
