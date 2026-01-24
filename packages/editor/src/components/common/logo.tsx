@@ -9,6 +9,7 @@ import { Menu } from "./menu"
 export type { MenuItem } from "./menu"
 
 import packageJson from '../../../../../package.public.json'
+import { useHexedInputContext } from "../../providers/hex-input-provider"
 
 
 export const Brand: FunctionComponent<{
@@ -39,7 +40,7 @@ export const Brand: FunctionComponent<{
             <span
               key={i}
               className={cn(
-                "inline-block opacity-0 translate-y-[2px]",
+                "inline opacity-0 translate-y-[2px]",
                 // play on mount
                 "animate-[hex-in_520ms_steps(2,end)_forwards]",
                 // replay on hover
@@ -88,6 +89,7 @@ export const Logo: FunctionComponent<{
   onShowHistogramChange: controlledOnShowHistogramChange,
   onChangeInput
 }) => {
+    const { input: { file } } = useHexedInputContext()
     const [internalShowHistogram, setInternalShowHistogram] = useState(false)
 
     // Use controlled state if provided, otherwise use internal state
@@ -101,8 +103,9 @@ export const Logo: FunctionComponent<{
       <div className="flex justify-center gap-2 logo-container">
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
-            <Button variant="ghost" size="lg">
+            <Button variant="ghost" size="sm">
               <MenuIcon />
+              {file ? <Brand className="text-sm" /> : null}
             </Button>
           </DropdownMenuTrigger>
           <Menu

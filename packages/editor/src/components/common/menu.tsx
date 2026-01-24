@@ -154,6 +154,7 @@ export const Menu: FunctionComponent<MenuProps> = ({
                       >
                         <FileSourceIcon
                           fileSource={fileSource}
+                          fileName={file.handle.name}
                           className="mr-2"
                         />
                         {formatFilenameForDisplay(file.handle.name)}
