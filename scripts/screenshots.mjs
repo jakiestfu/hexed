@@ -7,6 +7,7 @@ import { promisify } from "node:util"
 
 const ROOT = process.cwd()
 const distDir = resolve(ROOT, "apps/web/dist")
+const publicDir = resolve(ROOT, "apps/web/public")
 const screenshotsDir = resolve(ROOT, "screenshots")
 const port = 4173
 
@@ -190,6 +191,67 @@ export const screenshotLogo = async (browser) => {
   }
 }
 
+export const appIcons = async (browser) => {
+  const themes = ["dark", "light"]
+  const selector = ".font-brand"
+  const SIZE = 180
+
+  await ensureDir(publicDir)
+
+  for (const theme of themes) {
+    const page = await browser.newPage()
+
+    await page.setViewport({
+      width: 800,
+      height: 600,
+      deviceScaleFactor: 2,
+    })
+
+    const url = `http://localhost:${port}/#/?theme=${theme}`
+    await page.goto(url, { waitUntil: "networkidle0" })
+    await page.waitForSelector(selector, { timeout: 10_000 })
+
+    // Height already set elsewhere, but safe to ensure
+    await page.evaluate(
+      (selector, height) => {
+        const el = document.querySelector(selector)
+        if (!el) return
+        el.style.height = `${height}px`
+        el.style.width = `${height}px`
+        el.style.fontSize = '2rem'
+      },
+      selector,
+      SIZE
+    )
+
+    await new Promise((r) => setTimeout(r, 1000))
+
+    const element = await page.$(selector)
+    const box = await element?.boundingBox()
+    if (!box) {
+      await page.close()
+      throw new Error(`Could not compute bounding box for selector: ${selector}`)
+    }
+
+    await page.screenshot({
+      path: resolve(
+        publicDir,
+        `app-icon-${theme}.png`
+      ),
+      omitBackground: true,
+      clip: {
+        x: box.x,
+        y: box.y,
+        width: box.width,
+        height: box.height,
+      },
+    })
+
+    console.log(`✅ ${theme} app icon saved`)
+    await page.close()
+  }
+}
+
 try {
   await screenshotLogo(browser)
   await screenShotState("home", {}, browser)
@@ -197,6 +259,7 @@ try {
     input: "I invoke you, holy angels and holy names, join forces with this restraining spell and bind, tie up, block, strike, overthrow, harm, destroy, kill and shatter Eucherios the charioteer and all his horses tomorrow in the arena of Rome. Let the starting-gates not [open] properly. Let him not compete quickly. Let him not pass. Let him not make the turn properly. Let him not receive the honors. Let him not squeeze over and overpower. Let him not come from behind and pass but instead let him collapse, let him be bound, let him be broken up, and let him drag behind your power. Both in the early races and the later ones. Now, now! Quickly, quickly! In the ancient world, it was common practice to curse or bind an enemy or rival by writing an incantation, such as the one above, on a tablet and dedicating it to a god or spirit. These curses or binding spells, commonly called defixiones, were intended to bring other people under the power and control of those who commissioned them. More than a thousand such texts, written between the fifth century B.C.E. and the fifth century C.E., have been discovered from North Africa to England, and from Syria to Spain. Extending into every aspect of ancient life - athletic and theatrical competitions, judicial proceedings, love affairs, business rivalries, and the recovery of stolen property - they shed new light on a previously neglected dimension of classical study. Potentially harmful to the entrenched reputations of classical Greece and Rome, as well as Judaism and Christianity, as bastions, respectively, of pure philosophy and true religion, these small tablets provide a fascinating perspective on the times as well as a rare, intimate look at the personal lives of the ancient Greeks and Romans.",
     showAscii: true,
   }, browser)
+  await appIcons(browser)
 } finally {
   await browser.close()
   server.kill("SIGTERM")

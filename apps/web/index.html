@@ -2,9 +2,23 @@
 <html
   lang="en"
   suppressHydrationWarning
-  class="overscroll-none bg-muted/30"
+  class="bg-muted/30 overscroll-none"
 >
   <head>
+    <link
+      rel="icon"
+      type="image/png"
+      href="/app-icon-light.png"
+      media="(prefers-color-scheme: light)"
+    />
+
+    <!-- Dark mode icon -->
+    <link
+      rel="icon"
+      type="image/png"
+      href="/app-icon-dark.png"
+      media="(prefers-color-scheme: dark)"
+    />
     <meta charset="UTF-8" />
     <link
       rel="icon"
@@ -21,7 +35,9 @@
       content="A modern hex editor for inspecting and tracking binary file changes"
     />
   </head>
-  <body class="bg-background min-h-dvh overflow-hidden cursor-default font-sans antialiased">
+  <body
+    class="bg-background min-h-dvh cursor-default overflow-hidden font-sans antialiased"
+  >
     <div
       id="root"
       class="h-full w-full"

@@ -20,7 +20,7 @@ export const Brand: FunctionComponent<{
 
   if (!animate) {
     return (
-      <h1 className={cn("font-brand text-2xl tracking-[0.08em]", className)}>
+      <h1 className={cn("font-brand text-2xl tracking-[0.08em] flex items-center", className)}>
         {text}
       </h1>
     )
@@ -29,7 +29,7 @@ export const Brand: FunctionComponent<{
   return (
     <h1
       className={cn(
-        "group font-brand text-2xl tracking-[0.08em]",
+        "group font-brand text-2xl tracking-[0.08em] flex items-center justify-center",
         className
       )}
     >
