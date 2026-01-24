@@ -29,26 +29,23 @@ export const Brand: FunctionComponent<{
   return (
     <h1
       className={cn(
-        "group font-brand overflow-visible text-2xl tracking-[0.08em] flex items-center justify-center",
+        "group font-brand text-2xl tracking-[0.08em] flex items-center justify-center",
         className
       )}
     >
-      <span className="relative inline-block overflow-visible">
+      <span className="relative inline-block">
         {/* base text */}
-        <span className="relative z-10 text-current -translate-y-[2px] inline-block overflow-visible">
+        <span className="relative z-10 text-current -translate-y-[2px] inline-block">
           {text.split("").map((ch, i) => (
-            <span key={i} className="inline-block overflow-visible relative z-10">
-              <span
-                className={cn(
-                  "inline-block px-2 -mx-2 opacity-0",
-                  // "will-change-[transform,opacity]",
-                  // "[transform:translate3d(0,2px,0)]",
-                  "animate-[hex-in_520ms_steps(2,end)_forwards] relative z-10"
-                )}
-                style={{ animationDelay: `${i * 70}ms` }}
-              >
-                {ch}
-              </span>
+            <span
+              key={i}
+              className={cn(
+                "inline-block opacity-0 translate-y-[2px] px-2 -mx-2",
+                "animate-[hex-in_520ms_steps(2,end)_forwards]",
+              )}
+              style={{ animationDelay: `${i * 70}ms` }}
+            >
+              {ch}
             </span>
           ))}
         </span>
