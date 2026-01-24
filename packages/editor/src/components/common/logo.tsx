@@ -35,12 +35,12 @@ export const Brand: FunctionComponent<{
     >
       <span className="relative inline-block">
         {/* base text */}
-        <span className="relative z-10 text-current">
+        <span className="relative z-10 text-current -translate-y-[2px] inline-block">
           {text.split("").map((ch, i) => (
             <span
               key={i}
               className={cn(
-                "inline opacity-0 translate-y-[2px]",
+                "inline-block opacity-0 translate-y-[2px]",
                 // play on mount
                 "animate-[hex-in_520ms_steps(2,end)_forwards]",
                 // replay on hover
@@ -105,7 +105,7 @@ export const Logo: FunctionComponent<{
           <DropdownMenuTrigger asChild>
             <Button variant="ghost" size="sm">
               <MenuIcon />
-              {file ? <Brand className="text-sm" /> : null}
+              {file ? <Brand className="ml-1 text-sm" /> : null}
             </Button>
           </DropdownMenuTrigger>
           <Menu
