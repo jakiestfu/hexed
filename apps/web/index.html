@@ -5,34 +5,48 @@
   class="bg-muted/30 overscroll-none"
 >
   <head>
-    <link
-      rel="apple-touch-icon"
-      type="image/png"
-      href="./app-icon-light.png"
-      media="(prefers-color-scheme: light)"
+    <meta charset="UTF-8" />
+
+    <meta
+      property="og:type"
+      content="website"
+    />
+    <meta
+      property="og:title"
+      content="%VITE_APP_NAME%"
+    />
+    <meta
+      property="og:url"
+      content="%VITE_BASE_URL%/"
+    />
+    <meta
+      property="og:image"
+      content="%VITE_BASE_URL%/brand-1200x800-dark.png"
+    />
+    <meta
+      property="og:description"
+      content="%VITE_APP_DESCRIPTION%"
     />
 
-    <!-- Dark mode icon -->
     <link
       rel="apple-touch-icon"
       type="image/png"
-      href="./app-icon-dark.png"
-      media="(prefers-color-scheme: dark)"
+      href="%VITE_BASE_URL%/brand-180x180-dark.png"
     />
-    <meta charset="UTF-8" />
-    <link
+    <!-- <link
       rel="icon"
       type="image/svg+xml"
       href="/vite.svg"
-    />
+    /> -->
     <meta
       name="viewport"
-      content="width=device-width, initial-scale=1.0"
+      content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no"
     />
-    <title>Hexed - Binary File Inspector</title>
+
+    <title>%VITE_APP_NAME%</title>
     <meta
       name="description"
-      content="A modern hex editor for inspecting and tracking binary file changes"
+      content="%VITE_APP_DESCRIPTION%"
     />
   </head>
   <body
