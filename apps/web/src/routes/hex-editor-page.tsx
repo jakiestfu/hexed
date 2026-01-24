@@ -67,7 +67,7 @@ export function HexEditorPage() {
 
   const inputText = queryParams.params.input
   useEffect(() => {
-    if (location.pathname !== '/') return
+    if (pathname !== '/') return
     if (!inputText) {
       if (input.file) {
         setInput(null)

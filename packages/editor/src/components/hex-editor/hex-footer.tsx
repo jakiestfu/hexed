@@ -12,6 +12,7 @@ import { formatFileSize } from "@hexed/binary-utils/formatter"
 import type { BinarySnapshot } from "@hexed/types"
 import {
   Button,
+  cn,
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuGroup,
@@ -68,7 +69,7 @@ export const HexFooter: FunctionComponent<HexFooterProps> = ({
     useHexedSettingsContext()
 
   const bytesLabel = totalSize ? (
-    <div className="flex items-center gap-2 font-mono">
+    <div className="items-center gap-2 font-mono hidden md:flex flex-col">
       <span className="text-xs text-muted-foreground">
         {formatFileSize(totalSize)}
       </span>
@@ -77,14 +78,12 @@ export const HexFooter: FunctionComponent<HexFooterProps> = ({
   ) : undefined
 
   return (
-    <div className="flex items-center justify-between w-full border-t bg-muted/30 p-4">
-      <div className="flex items-start min-w-0 flex-1">
-        <div className="flex items-center gap-2">
-          <Select
-            value={dataType}
-            onValueChange={setDataType}
-          >
-            <SelectTrigger size="sm">
+    <div className="flex w-full flex-col gap-3 border-t bg-muted/30 p-4 md:flex-row md:items-center md:justify-between md:gap-4 h-auto md:h-[66px]">
+      {/* left */}
+      <div className="flex w-full min-w-0 md:w-auto md:flex-1">
+        <div className="flex w-full grow items-center gap-2">
+          <Select value={dataType} onValueChange={setDataType}>
+            <SelectTrigger size="sm" className="grow md:grow-0">
               <SelectValue />
             </SelectTrigger>
             <SelectContent>
@@ -97,30 +96,26 @@ export const HexFooter: FunctionComponent<HexFooterProps> = ({
               <SelectItem value="Binary">Binary</SelectItem>
             </SelectContent>
           </Select>
+
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
               <Button
                 variant="outline"
                 size="sm"
-                className="justify-between font-mono"
+                className="justify-between font-mono grow md:grow-0"
               >
                 {endianness}, {numberFormat}
                 <ChevronDownIcon className="ml-2 h-4 w-4 opacity-50" />
               </Button>
             </DropdownMenuTrigger>
-            <DropdownMenuContent
-              align="start"
-              className="w-48"
-            >
+            <DropdownMenuContent align="start" className="w-48">
               <DropdownMenuGroup>
                 <DropdownMenuLabel>Endianness</DropdownMenuLabel>
                 <DropdownMenuRadioGroup
                   value={endianness}
                   onValueChange={setEndianness}
                 >
-                  <DropdownMenuRadioItem value="le">
-                    little
-                  </DropdownMenuRadioItem>
+                  <DropdownMenuRadioItem value="le">little</DropdownMenuRadioItem>
                   <DropdownMenuRadioItem value="be">big</DropdownMenuRadioItem>
                 </DropdownMenuRadioGroup>
               </DropdownMenuGroup>
@@ -131,27 +126,23 @@ export const HexFooter: FunctionComponent<HexFooterProps> = ({
                   value={numberFormat}
                   onValueChange={setNumberFormat}
                 >
-                  <DropdownMenuRadioItem value="dec">
-                    decimal
-                  </DropdownMenuRadioItem>
-                  <DropdownMenuRadioItem value="hex">
-                    hexadecimal
-                  </DropdownMenuRadioItem>
+                  <DropdownMenuRadioItem value="dec">decimal</DropdownMenuRadioItem>
+                  <DropdownMenuRadioItem value="hex">hexadecimal</DropdownMenuRadioItem>
                 </DropdownMenuRadioGroup>
               </DropdownMenuGroup>
             </DropdownMenuContent>
           </DropdownMenu>
         </div>
       </div>
-      {bytesLabel ? (
-        <div className="flex items-center grow justify-center">
-          {bytesLabel}
-        </div>
-      ) : (
-        <span />
-      )}
-      <div className="flex items-end justify-end flex-1 min-w-0">
-        <div className="flex items-center gap-2">
+
+      {/* center */}
+      <div className="order-last hidden w-full items-center justify-start md:order-none md:w-auto md:flex md:flex-1 md:justify-center">
+        {bytesLabel ? bytesLabel : <span className="hidden md:inline" />}
+      </div>
+
+      {/* right */}
+      <div className="flex w-full min-w-0 items-center justify-start md:w-auto md:flex-1 md:justify-end">
+        <div className="flex flex-wrap items-center gap-2 w-full md:w-auto">
           <Tooltip>
             <TooltipTrigger asChild>
               <Toggle
@@ -160,13 +151,14 @@ export const HexFooter: FunctionComponent<HexFooterProps> = ({
                 onPressedChange={setShowAscii}
                 aria-label="Toggle ASCII view"
                 size="sm"
-                className={showAscii ? "bg-accent" : ""}
+                className={cn("grow md:grow-0", showAscii ? "bg-accent" : "")}
               >
                 <CaseSensitive />
               </Toggle>
             </TooltipTrigger>
             <TooltipContent>Toggle ASCII view</TooltipContent>
           </Tooltip>
+
           <Tooltip>
             <TooltipTrigger asChild>
               <Button
@@ -175,27 +167,28 @@ export const HexFooter: FunctionComponent<HexFooterProps> = ({
                 onClick={onShowHistogram}
                 disabled={!hasSnapshots}
                 aria-label="Show histogram"
+                className="grow md:grow-0"
               >
                 <BarChart3 className="h-4 w-4" />
               </Button>
             </TooltipTrigger>
             <TooltipContent>Show Histogram</TooltipContent>
           </Tooltip>
+
           <ToggleGroup
             type="single"
             value={paneToggleValue}
             onValueChange={(value) => setSidebar((value || null) as Sidebar)}
             variant="outline"
             size="sm"
+            className="grow md:grow-0"
           >
             <Tooltip>
               <TooltipTrigger asChild>
                 <ToggleGroupItem
                   value="interpreter"
                   aria-label="Toggle interpreter"
-                  className={
-                    paneToggleValue === "interpreter" ? "bg-accent" : ""
-                  }
+                  className={cn("grow md:grow-0", paneToggleValue === "interpreter" ? "bg-accent" : "")}
                 >
                   <Binary />
                 </ToggleGroupItem>
@@ -206,24 +199,26 @@ export const HexFooter: FunctionComponent<HexFooterProps> = ({
                   : "Toggle interpreter panel"}
               </TooltipContent>
             </Tooltip>
+
             <Tooltip>
               <TooltipTrigger asChild>
                 <ToggleGroupItem
                   value="templates"
                   aria-label="Toggle templates panel"
-                  className={paneToggleValue === "templates" ? "bg-accent" : ""}
+                  className={cn("grow md:grow-0", paneToggleValue === "templates" ? "bg-accent" : "")}
                 >
                   <FileText />
                 </ToggleGroupItem>
               </TooltipTrigger>
               <TooltipContent>Toggle templates panel</TooltipContent>
             </Tooltip>
+
             <Tooltip>
               <TooltipTrigger asChild>
                 <ToggleGroupItem
                   value="strings"
                   aria-label="Toggle strings panel"
-                  className={paneToggleValue === "strings" ? "bg-accent" : ""}
+                  className={cn("grow md:grow-0", paneToggleValue === "strings" ? "bg-accent" : "")}
                 >
                   <Type />
                 </ToggleGroupItem>

@@ -32,7 +32,6 @@ export const MemoryProfiler: FunctionComponent = () => {
 
   return (
     <>
-      <span className="text-xs text-muted-foreground/50">•</span>
       <Popover>
         <PopoverTrigger asChild>
           <span

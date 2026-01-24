@@ -9,7 +9,7 @@ import { FileSource } from "../../types"
 
 export type FileStatusPopoverProps = {
   fileSource: FileSource
-  filePath: string
+  fileName: string
   isConnected?: boolean
   error?: string | null
   onRestartWatching?: () => void
@@ -18,7 +18,7 @@ export type FileStatusPopoverProps = {
 
 export const FileStatusPopover: FunctionComponent<FileStatusPopoverProps> = ({
   fileSource: _fileSource,
-  filePath,
+  fileName,
   isConnected = false,
   error = null,
   onRestartWatching,
@@ -59,7 +59,7 @@ export const FileStatusPopover: FunctionComponent<FileStatusPopoverProps> = ({
           </div>
 
           <div className="text-xs text-muted-foreground font-mono break-all">
-            <span className="font-semibold">File:</span> {filePath}
+            <span className="font-semibold">File:</span> {fileName}
           </div>
           <div className="text-sm text-muted-foreground">
             <p>

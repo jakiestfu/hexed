@@ -37,14 +37,16 @@ export function calculateLayout(
   showAscii: boolean
 ): LayoutMetrics | null {
   if (dimensions.width === 0 || dimensions.height === 0) return null
+  const isSmall = dimensions.width <= 768
 
   const computedStyle = window.getComputedStyle(canvas)
 
   // Set font for measurements
   ctx.font = `14px ${computedStyle.getPropertyValue("--font-mono")}`
 
+  // console.log("Dimensions", dimensions.width)
   // Measure text widths
-  const addressText = "0x00000000"
+  let addressText = isSmall ? "0x0000" : "0x00000000"
   const hexByteText = "FF"
   const asciiText = "A"
 
@@ -90,6 +92,7 @@ export function calculateLayout(
     const asciiCellWidth = availableWidthForAsciiCells / finalBytesPerRow
 
     return {
+      isSmall,
       rowHeight,
       addressColumnWidth: addressColumnTotalWidth,
       hexByteWidth,
@@ -112,6 +115,7 @@ export function calculateLayout(
     const asciiCellWidth = asciiCharWidth
 
     return {
+      isSmall,
       rowHeight,
       addressColumnWidth: addressColumnTotalWidth,
       hexByteWidth,
@@ -422,8 +426,8 @@ export function drawHexCanvas(
       ? Math.ceil(totalSize / layout.bytesPerRow)
       : rows.length > 0
         ? Math.max(
-            ...rows.map((r) => Math.floor(r.endOffset / layout.bytesPerRow))
-          ) + 1
+          ...rows.map((r) => Math.floor(r.endOffset / layout.bytesPerRow))
+        ) + 1
         : 0
 
   // If no rows and no totalSize, nothing to render
@@ -524,7 +528,7 @@ export function drawHexCanvas(
     // Draw address
     ctx.textAlign = "left" // Address is left-aligned
     ctx.fillStyle = colors.addressText
-    const address = formatAddress(virtualRowStartOffset)
+    const address = formatAddress(virtualRowStartOffset, layout.isSmall ? 4 : 8)
     ctx.fillText(
       address,
       layout.addressPadding,
@@ -535,11 +539,11 @@ export function drawHexCanvas(
     let hexX = hexColumnStartX
     const bytesToRender = isVirtualRow
       ? Math.min(
-          layout.bytesPerRow,
-          totalSize !== undefined
-            ? totalSize - virtualRowStartOffset
-            : layout.bytesPerRow
-        )
+        layout.bytesPerRow,
+        totalSize !== undefined
+          ? totalSize - virtualRowStartOffset
+          : layout.bytesPerRow
+      )
       : row.hexBytes.length
 
     for (let j = 0; j < bytesToRender; j++) {
@@ -685,8 +689,8 @@ export function drawHexCanvas(
     0,
     Math.floor(
       rowsLength * layout.rowHeight +
-        layout.verticalPadding * 2 -
-        dimensions.height
+      layout.verticalPadding * 2 -
+      dimensions.height
     )
   )
   drawScrollbar(

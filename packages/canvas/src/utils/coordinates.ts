@@ -3,6 +3,7 @@ import type { FormattedRow } from "@hexed/binary-utils/formatter"
 import { getAsciiStartX } from "./canvas"
 
 export interface LayoutMetrics {
+  isSmall: boolean
   rowHeight: number
   addressColumnWidth: number
   hexByteWidth: number

@@ -35,7 +35,7 @@ export const HexToolbar: FunctionComponent<HexToolbarProps> = ({
   ) : (
     <FileStatusPopover
       fileSource={fileSource}
-      filePath={file.name || ""}
+      fileName={file.name || ""}
       isConnected={isConnected}
       error={error}
       onRestartWatching={onRestartWatching}
@@ -43,6 +43,7 @@ export const HexToolbar: FunctionComponent<HexToolbarProps> = ({
       <div className="flex items-center gap-2 min-w-0 cursor-pointer hover:opacity-80 transition-opacity group">
         <FileSourceIcon
           fileSource={fileSource}
+          fileName={file.name || ""}
           className="text-muted-foreground shrink-0"
         />
         <span
@@ -58,7 +59,7 @@ export const HexToolbar: FunctionComponent<HexToolbarProps> = ({
       </div>
     </FileStatusPopover>
   )
-  console.log("file", file)
+
   // const right = !file ? (
   //   <p>wat</p>
   // ) : (
@@ -93,7 +94,7 @@ export const HexToolbar: FunctionComponent<HexToolbarProps> = ({
     >
       <div className="flex items-start min-w-0 flex-1">{left}</div>
       {center && (
-        <div className="flex items-center grow justify-center">{center}</div>
+        <div className="flex items-center grow justify-center truncate">{center}</div>
       )}
       {right && (
         <div className="flex items-end justify-end flex-1 min-w-0">{right}</div>
