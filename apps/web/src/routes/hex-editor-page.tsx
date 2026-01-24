@@ -8,7 +8,8 @@ import {
   useHexedInput,
   useHexedSettings,
   Sidebar,
-  SidebarPosition
+  SidebarPosition,
+  supportsFileSystemAccess
 } from "@hexed/editor"
 import { useQueryParams } from "~/hooks/use-query-param-state"
 import { useEffect, useMemo } from "react"
@@ -67,7 +68,8 @@ export function HexEditorPage() {
 
   const inputText = queryParams.params.input
   useEffect(() => {
-    if (pathname !== '/') return
+    if (pathname !== '/' || (pathname === '/' && !supportsFileSystemAccess())) return
+
     if (!inputText) {
       if (input.file) {
         setInput(null)

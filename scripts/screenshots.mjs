@@ -204,7 +204,7 @@ export const appIcons = async (browser) => {
     await page.setViewport({
       width: 800,
       height: 600,
-      deviceScaleFactor: 2,
+      deviceScaleFactor: 1,
     })
 
     const url = `http://localhost:${port}/#/?theme=${theme}`

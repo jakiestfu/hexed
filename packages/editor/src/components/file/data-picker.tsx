@@ -17,6 +17,7 @@ import { useRecentFiles } from "../../hooks/use-recent-files"
 import { formatTimestamp, getBasename } from "../../utils"
 import type { FileHandleMetadata } from "../../utils/file-handle-storage"
 import { AboutFileSystemAccessDialog } from "../dialogs/about-file-system-access-dialog"
+import { supportsFileSystemAccess } from "../../utils/file-system-access"
 
 type DataPickerProps = {
   recentFiles: FileHandleMetadata[]
@@ -136,9 +137,6 @@ export const DataPicker: FunctionComponent<DataPickerProps> = ({
 
   const fileInputRef = useRef<HTMLInputElement | null>(null)
 
-  const supportsFileSystemAccess =
-    typeof window !== "undefined" && "showOpenFilePicker" in window
-
   useEffect(() => {
     // Wait for component mount and local storage restoration
     const timer = setTimeout(() => {
@@ -165,7 +163,7 @@ export const DataPicker: FunctionComponent<DataPickerProps> = ({
   }
 
   const handleFileSystemAccessPicker = async () => {
-    if (!supportsFileSystemAccess || !window.showOpenFilePicker) {
+    if (!(supportsFileSystemAccess()) || !window.showOpenFilePicker) {
       // Fallback: open a normal file input picker
       fileInputRef.current?.click()
       return
@@ -251,7 +249,7 @@ export const DataPicker: FunctionComponent<DataPickerProps> = ({
               {isLoading ? "Opening..." : "Choose File"}
             </Button>
 
-            {supportsFileSystemAccess && recentFiles.length > 0 && (
+            {supportsFileSystemAccess() && recentFiles.length > 0 && (
               <RecentFilesDropdown
                 recentFiles={recentFiles}
                 onSelect={handleRecentFileSelect}
@@ -260,7 +258,7 @@ export const DataPicker: FunctionComponent<DataPickerProps> = ({
           </div>
 
           <p className="text-xs text-muted-foreground">
-            {supportsFileSystemAccess ? (
+            {supportsFileSystemAccess() ? (
               <>
                 Choose a file using the{" "}
                 <button

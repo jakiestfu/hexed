@@ -26,6 +26,7 @@ export * from "./types"
 // Utils
 export * from "./utils"
 export * from "./utils/file-handle-storage"
+export * from "./utils/file-system-access"
 
 // Hooks
 export * from "./hooks/use-global-keyboard"
