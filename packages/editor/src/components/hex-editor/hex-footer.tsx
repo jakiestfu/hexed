@@ -82,8 +82,14 @@ export const HexFooter: FunctionComponent<HexFooterProps> = ({
       {/* left */}
       <div className="flex w-full min-w-0 md:w-auto md:flex-1">
         <div className="flex w-full grow items-center gap-2">
-          <Select value={dataType} onValueChange={setDataType}>
-            <SelectTrigger size="sm" className="grow md:grow-0">
+          <Select
+            value={dataType}
+            onValueChange={setDataType}
+          >
+            <SelectTrigger
+              size="sm"
+              className="grow md:grow-0"
+            >
               <SelectValue />
             </SelectTrigger>
             <SelectContent>
@@ -108,14 +114,19 @@ export const HexFooter: FunctionComponent<HexFooterProps> = ({
                 <ChevronDownIcon className="ml-2 h-4 w-4 opacity-50" />
               </Button>
             </DropdownMenuTrigger>
-            <DropdownMenuContent align="start" className="w-48">
+            <DropdownMenuContent
+              align="start"
+              className="w-48"
+            >
               <DropdownMenuGroup>
                 <DropdownMenuLabel>Endianness</DropdownMenuLabel>
                 <DropdownMenuRadioGroup
                   value={endianness}
                   onValueChange={setEndianness}
                 >
-                  <DropdownMenuRadioItem value="le">little</DropdownMenuRadioItem>
+                  <DropdownMenuRadioItem value="le">
+                    little
+                  </DropdownMenuRadioItem>
                   <DropdownMenuRadioItem value="be">big</DropdownMenuRadioItem>
                 </DropdownMenuRadioGroup>
               </DropdownMenuGroup>
@@ -126,8 +137,12 @@ export const HexFooter: FunctionComponent<HexFooterProps> = ({
                   value={numberFormat}
                   onValueChange={setNumberFormat}
                 >
-                  <DropdownMenuRadioItem value="dec">decimal</DropdownMenuRadioItem>
-                  <DropdownMenuRadioItem value="hex">hexadecimal</DropdownMenuRadioItem>
+                  <DropdownMenuRadioItem value="dec">
+                    decimal
+                  </DropdownMenuRadioItem>
+                  <DropdownMenuRadioItem value="hex">
+                    hexadecimal
+                  </DropdownMenuRadioItem>
                 </DropdownMenuRadioGroup>
               </DropdownMenuGroup>
             </DropdownMenuContent>
@@ -188,7 +203,10 @@ export const HexFooter: FunctionComponent<HexFooterProps> = ({
                 <ToggleGroupItem
                   value="interpreter"
                   aria-label="Toggle interpreter"
-                  className={cn("grow md:grow-0", paneToggleValue === "interpreter" ? "bg-accent" : "")}
+                  className={cn(
+                    "grow md:grow-0",
+                    paneToggleValue === "interpreter" ? "bg-accent" : ""
+                  )}
                 >
                   <Binary />
                 </ToggleGroupItem>
@@ -205,7 +223,10 @@ export const HexFooter: FunctionComponent<HexFooterProps> = ({
                 <ToggleGroupItem
                   value="templates"
                   aria-label="Toggle templates panel"
-                  className={cn("grow md:grow-0", paneToggleValue === "templates" ? "bg-accent" : "")}
+                  className={cn(
+                    "grow md:grow-0",
+                    paneToggleValue === "templates" ? "bg-accent" : ""
+                  )}
                 >
                   <FileText />
                 </ToggleGroupItem>
@@ -218,7 +239,10 @@ export const HexFooter: FunctionComponent<HexFooterProps> = ({
                 <ToggleGroupItem
                   value="strings"
                   aria-label="Toggle strings panel"
-                  className={cn("grow md:grow-0", paneToggleValue === "strings" ? "bg-accent" : "")}
+                  className={cn(
+                    "grow md:grow-0",
+                    paneToggleValue === "strings" ? "bg-accent" : ""
+                  )}
                 >
                   <Type />
                 </ToggleGroupItem>

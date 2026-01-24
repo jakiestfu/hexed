@@ -32,7 +32,7 @@ import { HexToolbarSearch } from "./hex-toolbar-search"
 
 export const Editor: FunctionComponent<EditorProps> = ({
   className = "",
-  fileSource = "file-system",
+  fileSource = "file-system"
 }) => {
   const [activeTab, setActiveTab] = useState<string>("0")
   const {

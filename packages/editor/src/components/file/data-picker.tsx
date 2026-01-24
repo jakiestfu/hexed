@@ -16,8 +16,8 @@ import { OnHexedInputChange } from "../../hooks/use-hexed-input"
 import { useRecentFiles } from "../../hooks/use-recent-files"
 import { formatTimestamp, getBasename } from "../../utils"
 import type { FileHandleMetadata } from "../../utils/file-handle-storage"
-import { AboutFileSystemAccessDialog } from "../dialogs/about-file-system-access-dialog"
 import { supportsFileSystemAccess } from "../../utils/file-system-access"
+import { AboutFileSystemAccessDialog } from "../dialogs/about-file-system-access-dialog"
 
 type DataPickerProps = {
   recentFiles: FileHandleMetadata[]
@@ -163,7 +163,7 @@ export const DataPicker: FunctionComponent<DataPickerProps> = ({
   }
 
   const handleFileSystemAccessPicker = async () => {
-    if (!(supportsFileSystemAccess()) || !window.showOpenFilePicker) {
+    if (!supportsFileSystemAccess() || !window.showOpenFilePicker) {
       // Fallback: open a normal file input picker
       fileInputRef.current?.click()
       return
@@ -218,8 +218,9 @@ export const DataPicker: FunctionComponent<DataPickerProps> = ({
 
   return (
     <Card
-      className={`bg-transparent w-full max-w-lg border-none h-[250px] transition-all duration-300 ${isMounted ? "opacity-100" : "opacity-0"
-        }`}
+      className={`bg-transparent w-full max-w-lg border-none h-[250px] transition-all duration-300 ${
+        isMounted ? "opacity-100" : "opacity-0"
+      }`}
     >
       <CardContent className="space-y-4 bg-transparent">
         <div className="space-y-4 mt-4">

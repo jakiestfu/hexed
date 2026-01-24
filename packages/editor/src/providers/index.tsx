@@ -5,8 +5,8 @@ import { STORAGE_KEYS, UseHexedSettings } from "../hooks/use-hexed-settings"
 import { DragDropProvider } from "./drag-drop-provider"
 import { HexedInputProvider } from "./hex-input-provider"
 import { HexedSettingsProvider } from "./hexed-settings-provider"
-import { WorkerProvider } from "./worker-provider"
 import { ThemeProvider } from "./theme-provider"
+import { WorkerProvider } from "./worker-provider"
 
 export const HexedProviders: FunctionComponent<
   PropsWithChildren<{

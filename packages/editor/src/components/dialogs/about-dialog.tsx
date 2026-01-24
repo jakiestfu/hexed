@@ -1,10 +1,17 @@
-import { Dialog, DialogContent, DialogHeader, DialogTitle, Button } from "@hexed/ui"
-import { Github, Share2 } from "lucide-react"
 import { FunctionComponent } from "react"
-import { Brand } from "../common/logo"
+import { Github, Share2 } from "lucide-react"
+
+import {
+  Button,
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle
+} from "@hexed/ui"
 
 import packageJson from "../../../../../package.public.json"
 import { Ascii } from "../common/ascii"
+import { Brand } from "../common/logo"
 
 export const AboutDialog: FunctionComponent<{
   open: boolean
@@ -78,5 +85,5 @@ export const AboutDialog: FunctionComponent<{
         </div>
       </DialogContent>
     </Dialog>
-  );
+  )
 }

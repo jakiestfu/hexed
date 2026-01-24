@@ -1,23 +1,16 @@
+import { useEffect, useMemo } from "react"
 import { useLocation, useNavigate, useParams } from "react-router-dom"
 
 import {
   HexedEditor,
   HexedFileInput,
-  HexedSettings,
-  Theme,
+  supportsFileSystemAccess,
   useHexedInput,
-  useHexedSettings,
-  Sidebar,
-  SidebarPosition,
-  supportsFileSystemAccess
+  useHexedSettings
 } from "@hexed/editor"
-import { useQueryParams } from "~/hooks/use-query-param-state"
-import { useEffect, useMemo } from "react"
 
-const isTheme: (value: string) => value is Theme = (value) => value === 'light' || value === 'dark' || value === 'system'
-const isBoolean: (value: string) => value is 'true' | 'false' = (value) => value === 'true' || value === 'false'
-const isSidebar: (value: string) => value is NonNullable<Sidebar> = (value) => value === 'templates' || value === 'strings' || value === 'interpreter' || value === null
-const isSidebarPosition: (value: string) => value is SidebarPosition = (value) => value === 'left' || value === 'right'
+import { useQueryParams } from "~/hooks/use-query-param-state"
+import { queryParamsToOptions } from "~/utils/query-params-to-options"
 
 export function HexEditorPage() {
   const queryParams = useQueryParams()
@@ -25,56 +18,24 @@ export function HexEditorPage() {
   const navigate = useNavigate()
   const { pathname } = useLocation()
 
-  const overrides = useMemo(() => {
-    const temp: Partial<HexedSettings> = {}
-    for (const [key, value] of Object.entries(queryParams)) {
-      if (typeof value !== "string") continue
-      switch (key) {
-        case 'theme':
-          if (isTheme(value)) {
-            temp.theme = value
-          }
-          break
-        case 'showAscii':
-        case 'showChecksums':
-        case 'showMemoryProfiler':
-          if (isBoolean(value)) {
-            temp[key] = value === 'true'
-          }
-          break
-
-        case 'sidebar':
-          if (isSidebar(value)) {
-            temp.sidebar = value as Sidebar
-            break
-          }
-          break
-        case 'sidebarPosition':
-          if (isSidebarPosition(value)) {
-            temp.sidebarPosition = value
-          }
-          break
-
-        default:
-          break
-      }
-    }
-    return temp
-  }, [queryParams])
-
+  const overrides = useMemo(
+    () => queryParamsToOptions(queryParams.params),
+    [queryParams]
+  )
 
   const [input, setInput] = useHexedInput(params.id)
   const settings = useHexedSettings(overrides)
 
   const inputText = queryParams.params.input
   useEffect(() => {
-    if (pathname !== '/' || (pathname === '/' && !supportsFileSystemAccess())) return
+    if (pathname !== "/" || (pathname === "/" && !supportsFileSystemAccess()))
+      return
 
     if (!inputText) {
       if (input.file) {
         setInput(null)
       }
-      return;
+      return
     }
     const read = async () => {
       const newInput = new TextEncoder().encode(inputText)

@@ -1,8 +1,8 @@
 <div align="center">
    <a href="https://github.com/jakiestfu/hexed/">
-   <picture >
-      <source media="(prefers-color-scheme: dark)" srcset="./screenshots/logo-dark.webp">
-      <img alt="Description of image" src="./screenshots/logo-light.webp">
+   <picture>
+      <source width="460" height="208" media="(prefers-color-scheme: dark)" srcset="./screenshots/logo-dark.webp">
+      <img width="460" height="208" alt="Description of image" src="./screenshots/logo-light.webp">
    </picture>
    </a>
 

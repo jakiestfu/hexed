@@ -7,9 +7,9 @@ export function useQueryParams() {
   const [searchParams] = useSearchParams()
   const navigate = useNavigate()
   const location = useLocation()
-  console.log('searchParams', {
+  console.log("searchParams", {
     location,
-    searchParams,
+    searchParams
   })
   // Stable string representation
   const searchParamsString = useMemo(
@@ -59,10 +59,10 @@ export function useQueryParams() {
   )
 
   return {
-    ...params,          // 👈 magic line
-    params,             // also expose full object if you want it grouped
+    ...params, // 👈 magic line
+    params, // also expose full object if you want it grouped
     setParam,
-    deleteParam,
+    deleteParam
   }
 }
 

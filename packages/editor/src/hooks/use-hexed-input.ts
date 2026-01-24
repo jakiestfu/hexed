@@ -8,7 +8,7 @@ export type OnHexedInputChange = (input: HexedFileInput) => void
 
 export type UseHexedInput = ReturnType<typeof useHexedInput>
 
-export const useHexedInput = (defaultInput: HexedFileInput) => {
+export const useHexedInput = (defaultInput?: HexedFileInput) => {
   const [input, setInput] = useState<HexedFileInput>(() => defaultInput)
 
   useEffect(() => {

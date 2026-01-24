@@ -39,6 +39,7 @@ export * from "./hooks/use-file-handle-watcher"
 export * from "./hooks/use-hexed-input"
 
 // Providers
+export * from "./providers/index"
 export * from "./providers/worker-provider"
 export * from "./providers/drag-drop-provider"
 export * from "./providers/hex-input-provider"

@@ -3,14 +3,12 @@ import { MenuIcon } from "lucide-react"
 
 import { Button, cn, DropdownMenu, DropdownMenuTrigger } from "@hexed/ui"
 
+import packageJson from "../../../../../package.public.json"
 import { OnHexedInputChange } from "../../hooks/use-hexed-input"
+import { useHexedInputContext } from "../../providers/hex-input-provider"
 import { Menu } from "./menu"
 
 export type { MenuItem } from "./menu"
-
-import packageJson from '../../../../../package.public.json'
-import { useHexedInputContext } from "../../providers/hex-input-provider"
-
 
 export const Brand: FunctionComponent<{
   className?: string
@@ -20,7 +18,12 @@ export const Brand: FunctionComponent<{
 
   if (!animate) {
     return (
-      <h1 className={cn("font-brand text-2xl tracking-[0.08em] flex items-center", className)}>
+      <h1
+        className={cn(
+          "font-brand text-2xl tracking-[0.08em] flex items-center",
+          className
+        )}
+      >
         {text}
       </h1>
     )
@@ -41,7 +44,7 @@ export const Brand: FunctionComponent<{
               key={i}
               className={cn(
                 "inline-block opacity-0 translate-y-[2px] px-2 -mx-2",
-                "animate-[hex-in_520ms_steps(2,end)_forwards]",
+                "animate-[hex-in_520ms_steps(2,end)_forwards]"
               )}
               style={{ animationDelay: `${i * 70}ms` }}
             >
@@ -85,31 +88,36 @@ export const Logo: FunctionComponent<{
   onShowHistogramChange: controlledOnShowHistogramChange,
   onChangeInput
 }) => {
-    const { input: { file } } = useHexedInputContext()
-    const [internalShowHistogram, setInternalShowHistogram] = useState(false)
+  const {
+    input: { file }
+  } = useHexedInputContext()
+  const [internalShowHistogram, setInternalShowHistogram] = useState(false)
 
-    // Use controlled state if provided, otherwise use internal state
-    const showHistogram = controlledShowHistogram ?? internalShowHistogram
-    const onShowHistogramChange =
-      controlledOnShowHistogramChange ?? setInternalShowHistogram
+  // Use controlled state if provided, otherwise use internal state
+  const showHistogram = controlledShowHistogram ?? internalShowHistogram
+  const onShowHistogramChange =
+    controlledOnShowHistogramChange ?? setInternalShowHistogram
 
-    if (inline) return <Brand />
+  if (inline) return <Brand />
 
-    return (
-      <div className="flex justify-center gap-2 logo-container">
-        <DropdownMenu>
-          <DropdownMenuTrigger asChild>
-            <Button variant="ghost" size="sm">
-              <MenuIcon />
-              {file ? <Brand className="ml-1 text-sm" /> : null}
-            </Button>
-          </DropdownMenuTrigger>
-          <Menu
-            showHistogram={showHistogram}
-            onShowHistogramChange={onShowHistogramChange}
-            onChangeInput={onChangeInput}
-          />
-        </DropdownMenu>
-      </div>
-    )
-  }
+  return (
+    <div className="flex justify-center gap-2 logo-container">
+      <DropdownMenu>
+        <DropdownMenuTrigger asChild>
+          <Button
+            variant="ghost"
+            size="sm"
+          >
+            <MenuIcon />
+            {file ? <Brand className="ml-1 text-sm" /> : null}
+          </Button>
+        </DropdownMenuTrigger>
+        <Menu
+          showHistogram={showHistogram}
+          onShowHistogramChange={onShowHistogramChange}
+          onChangeInput={onChangeInput}
+        />
+      </DropdownMenu>
+    </div>
+  )
+}

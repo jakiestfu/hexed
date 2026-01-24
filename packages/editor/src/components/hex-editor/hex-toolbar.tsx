@@ -5,9 +5,9 @@ import { Button } from "@hexed/ui"
 
 import type { FileSource } from "../../types"
 import { formatFilenameForDisplay } from "../../utils"
+import { Brand } from "../common/logo"
 import { FileSourceIcon } from "../file/file-source-icon"
 import { FileStatusPopover } from "../file/file-status-popover"
-import { Brand } from "../common/logo"
 
 export type HexToolbarProps = {
   left?: ReactNode
@@ -26,7 +26,7 @@ export const HexToolbar: FunctionComponent<HexToolbarProps> = ({
   isConnected = false,
   error = null,
   onRestartWatching,
-  onClose,
+  onClose
 }) => {
   const center = !file ? (
     <div className="flex items-center gap-2 min-w-0">
@@ -89,12 +89,12 @@ export const HexToolbar: FunctionComponent<HexToolbarProps> = ({
     )
 
   return (
-    <div
-      className="flex items-center justify-between p-4 border-b"
-    >
+    <div className="flex items-center justify-between p-4 border-b">
       <div className="flex items-start min-w-0 flex-1">{left}</div>
       {center && (
-        <div className="flex items-center grow justify-center truncate">{center}</div>
+        <div className="flex items-center grow justify-center truncate">
+          {center}
+        </div>
       )}
       {right && (
         <div className="flex items-end justify-end flex-1 min-w-0">{right}</div>

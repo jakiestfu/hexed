@@ -47,8 +47,9 @@ import {
   DropdownMenuSubContent,
   DropdownMenuSubTrigger
 } from "@hexed/ui"
-import { AboutDialog } from "../dialogs/about-dialog"
+
 import { Theme } from "../../providers/theme-provider"
+import { AboutDialog } from "../dialogs/about-dialog"
 
 export type MenuItem = {
   label: string
@@ -84,7 +85,7 @@ export const Menu: FunctionComponent<MenuProps> = ({
     showMemoryProfiler,
     setShowMemoryProfiler,
     theme,
-    setTheme,
+    setTheme
   } = useHexedSettingsContext()
   const [showClientFileDialog, setShowClientFileDialog] = useState(false)
   const [clickedClientFileHandleId, setClickedClientFileHandleId] = useState<
@@ -418,7 +419,6 @@ export const Menu: FunctionComponent<MenuProps> = ({
         open={showAboutDialog}
         onOpenChange={setShowAboutDialog}
       />
-
     </>
   )
 }

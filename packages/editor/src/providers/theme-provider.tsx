@@ -1,25 +1,26 @@
-import { createContext, PropsWithChildren, useContext, useEffect, useState } from "react"
-import { useLocalStorage } from "../hooks/use-local-storage"
+import {
+  createContext,
+  PropsWithChildren,
+  useContext,
+  useEffect,
+  useState
+} from "react"
+
 import { useHexedSettings } from "../hooks/use-hexed-settings"
+import { useLocalStorage } from "../hooks/use-local-storage"
 import { useHexedSettingsContext } from "./hexed-settings-provider"
 
 export type Theme = "dark" | "light" | "system"
 
 type ThemeProviderState = ReturnType<typeof useLocalStorage<Theme>>
 
-const initialState: ThemeProviderState = [
-  "system",
-  () => null,
-]
+const initialState: ThemeProviderState = ["system", () => null]
 
 const ThemeProviderContext = createContext<ThemeProviderState>(initialState)
 
-export function ThemeProvider({
-  children,
-}: PropsWithChildren) {
+export function ThemeProvider({ children }: PropsWithChildren) {
   const { theme } = useHexedSettingsContext()
   useEffect(() => {
-
     const root = window.document.documentElement
 
     root.classList.remove("light", "dark")
@@ -37,11 +38,7 @@ export function ThemeProvider({
     root.classList.add(theme)
   }, [theme])
 
-  return (
-    <>
-      {children}
-    </>
-  )
+  return <>{children}</>
 }
 
 export const useTheme = () => {
