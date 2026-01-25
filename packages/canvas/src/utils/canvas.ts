@@ -402,8 +402,9 @@ export function drawHexCanvas(
   canvas.width = displayWidth * dpr
   canvas.height = displayHeight * dpr
 
-  // Scale the context to account for device pixel ratio
-  ctx.scale(dpr, dpr)
+  // Reset transform and apply device pixel ratio scale
+  // Using setTransform ensures a clean transform matrix (scaleX, skewY, skewX, scaleY, translateX, translateY)
+  ctx.setTransform(dpr, 0, 0, dpr, 0, 0)
 
   // Set CSS size to maintain correct display size
   canvas.style.width = `${displayWidth}px`

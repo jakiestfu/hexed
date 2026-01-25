@@ -105,6 +105,12 @@ export class HexCanvas extends EventTarget {
   private touchScrollStartScrollTop: number = 0
   private isTouchScrolling: boolean = false
 
+  // Inertial scrolling state
+  private touchVelocityHistory: Array<{ scrollTop: number; time: number }> = []
+  private inertialScrollVelocity: number = 0
+  private inertialScrollRafId: number | null = null
+  private isInertialScrolling: boolean = false
+
   // Highlight state
   private highlightedOffset: number | null = null
   private highlightTimeout: ReturnType<typeof setTimeout> | null = null
@@ -485,6 +491,9 @@ export class HexCanvas extends EventTarget {
     const pointerData = getPointerEventData(event, this.canvas)
     if (!pointerData) return
 
+    // Cancel any active inertial scrolling
+    this.stopInertialScroll()
+
     // Check if scrollbar was touched first
     const scrollbarTouched = this.handleScrollbarPointerDown(pointerData)
     if (scrollbarTouched) {
@@ -500,6 +509,7 @@ export class HexCanvas extends EventTarget {
     this.touchScrollStartY = pointerData.y
     this.touchScrollStartScrollTop = this.scrollTop
     this.isTouchScrolling = false
+    this.touchVelocityHistory = [] // Clear velocity history on new touch
 
     // Try to select byte at touch position
     const offset = this.getOffsetFromPosition(pointerData.x, pointerData.y)
@@ -538,6 +548,14 @@ export class HexCanvas extends EventTarget {
       const newScrollTop = this.touchScrollStartScrollTop - scrollDelta
       this.setScrollTop(newScrollTop)
 
+      // Track scroll velocity for inertial scrolling (track scrollTop changes, not finger position)
+      const now = Date.now()
+      this.touchVelocityHistory.push({ scrollTop: this.scrollTop, time: now })
+      // Keep only last 10 samples to limit memory
+      if (this.touchVelocityHistory.length > 10) {
+        this.touchVelocityHistory.shift()
+      }
+
       // Update touch start position for smooth scrolling
       this.touchScrollStartY = pointerData.y
       this.touchScrollStartScrollTop = this.scrollTop
@@ -558,6 +576,14 @@ export class HexCanvas extends EventTarget {
       const scrollDelta = deltaY
       const newScrollTop = this.touchScrollStartScrollTop - scrollDelta
       this.setScrollTop(newScrollTop)
+
+      // Track scroll velocity for inertial scrolling (track scrollTop changes, not finger position)
+      const now = Date.now()
+      this.touchVelocityHistory.push({ scrollTop: this.scrollTop, time: now })
+      // Keep only last 10 samples to limit memory
+      if (this.touchVelocityHistory.length > 10) {
+        this.touchVelocityHistory.shift()
+      }
 
       // Update touch start position for smooth scrolling
       this.touchScrollStartY = pointerData.y
@@ -650,6 +676,38 @@ export class HexCanvas extends EventTarget {
       }
     }
 
+    // Calculate velocity and start inertial scrolling if applicable
+    if (this.isTouchScrolling && this.touchVelocityHistory.length >= 2) {
+      // Calculate velocity from recent samples (use last 3-5 samples for better accuracy)
+      const samples = this.touchVelocityHistory.slice(-5)
+      if (samples.length >= 2) {
+        // Calculate weighted average velocity (more recent samples have higher weight)
+        let totalVelocity = 0
+        let totalWeight = 0
+
+        for (let i = 1; i < samples.length; i++) {
+          const deltaScrollTop = samples[i].scrollTop - samples[i - 1].scrollTop
+          const deltaTime = samples[i].time - samples[i - 1].time
+
+          if (deltaTime > 0) {
+            const velocity = deltaScrollTop / deltaTime // scrollTop change per millisecond
+            const weight = i // More recent = higher weight
+            totalVelocity += velocity * weight
+            totalWeight += weight
+          }
+        }
+
+        if (totalWeight > 0) {
+          const averageVelocity = totalVelocity / totalWeight
+          // Start inertial scroll if velocity exceeds threshold (0.5 pixels/ms)
+          // Velocity is the rate of change of scrollTop, so use it directly
+          if (Math.abs(averageVelocity) > 0.5) {
+            this.startInertialScroll(averageVelocity)
+          }
+        }
+      }
+    }
+
     // Clean up touch state
     this.isTouchDragging = false
     this.isTouchScrolling = false
@@ -657,17 +715,20 @@ export class HexCanvas extends EventTarget {
     this.touchStartOffset = null
     this.touchScrollStartY = 0
     this.touchScrollStartScrollTop = 0
+    this.touchVelocityHistory = []
   }
 
   private handleTouchCancel(event: TouchEvent): void {
     // Cancel any ongoing touch interactions
     this.handleScrollbarPointerUp()
+    this.stopInertialScroll()
     this.isTouchDragging = false
     this.isTouchScrolling = false
     this.touchStartPosition = null
     this.touchStartOffset = null
     this.touchScrollStartY = 0
     this.touchScrollStartScrollTop = 0
+    this.touchVelocityHistory = []
   }
 
   private handleGlobalTouchEnd(event: TouchEvent): void {
@@ -676,6 +737,77 @@ export class HexCanvas extends EventTarget {
 
   private handleGlobalTouchCancel(event: TouchEvent): void {
     this.handleTouchCancel(event)
+  }
+
+  private startInertialScroll(initialVelocity: number): void {
+    // Cancel any existing inertial scroll
+    if (this.inertialScrollRafId !== null) {
+      cancelAnimationFrame(this.inertialScrollRafId)
+      this.inertialScrollRafId = null
+    }
+
+    // Don't start if velocity is too low
+    const minVelocity = 0.1 // pixels per millisecond
+    if (Math.abs(initialVelocity) < minVelocity) {
+      return
+    }
+
+    this.isInertialScrolling = true
+    this.inertialScrollVelocity = initialVelocity
+
+    // Deceleration factor (0.95 per frame at ~60fps)
+    const decelerationFactor = 0.95
+    const minVelocityThreshold = 0.1 // pixels per millisecond
+
+    let lastTime = performance.now()
+
+    const animate = () => {
+      const currentTime = performance.now()
+      const deltaTime = currentTime - lastTime
+      lastTime = currentTime
+
+      // Apply deceleration
+      this.inertialScrollVelocity *= Math.pow(decelerationFactor, deltaTime / 16.67) // Normalize to 60fps
+
+      // Update scroll position
+      // Velocity is the rate of change of scrollTop (scrollTop per millisecond)
+      // So we add it directly: newScrollTop = scrollTop + (velocity * deltaTime)
+      const scrollDelta = this.inertialScrollVelocity * deltaTime
+      const newScrollTop = this.scrollTop + scrollDelta
+      this.setScrollTop(newScrollTop)
+
+      // Check if we've hit boundaries
+      // Positive velocity increases scrollTop (scrolling down), negative velocity decreases scrollTop (scrolling up)
+      const hitTop = this.scrollTop === 0 && this.inertialScrollVelocity < 0
+      const hitBottom =
+        this.scrollTop >= this.maxScrollTop && this.inertialScrollVelocity > 0
+
+      // Stop if velocity is too low or we hit boundaries
+      if (
+        Math.abs(this.inertialScrollVelocity) < minVelocityThreshold ||
+        hitTop ||
+        hitBottom
+      ) {
+        this.isInertialScrolling = false
+        this.inertialScrollVelocity = 0
+        this.inertialScrollRafId = null
+        return
+      }
+
+      // Continue animation
+      this.inertialScrollRafId = requestAnimationFrame(animate)
+    }
+
+    this.inertialScrollRafId = requestAnimationFrame(animate)
+  }
+
+  private stopInertialScroll(): void {
+    if (this.inertialScrollRafId !== null) {
+      cancelAnimationFrame(this.inertialScrollRafId)
+      this.inertialScrollRafId = null
+    }
+    this.isInertialScrolling = false
+    this.inertialScrollVelocity = 0
   }
 
   private handleWheel(event: WheelEvent): void {
@@ -982,6 +1114,9 @@ export class HexCanvas extends EventTarget {
 
     const metrics = this.calculateScrollbarMetrics()
     if (!metrics) return false
+
+    // Cancel any active inertial scrolling when starting scrollbar drag
+    this.stopInertialScroll()
 
     // Check if clicking on thumb
     if (
@@ -1332,6 +1467,11 @@ export class HexCanvas extends EventTarget {
     if (this.fileRafId !== null) {
       cancelAnimationFrame(this.fileRafId)
       this.fileRafId = null
+    }
+
+    if (this.inertialScrollRafId !== null) {
+      cancelAnimationFrame(this.inertialScrollRafId)
+      this.inertialScrollRafId = null
     }
 
     // Abort file loading
