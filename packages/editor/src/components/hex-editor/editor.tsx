@@ -202,6 +202,7 @@ export const Editor: FunctionComponent<EditorProps> = ({
       id="hex-canvas"
       defaultSize={70}
       minSize={20}
+      className={sidebar ? "hidden md:flex" : ""}
     >
       <div
         ref={containerRef}
@@ -287,24 +288,29 @@ export const Editor: FunctionComponent<EditorProps> = ({
             value="0"
             className={cn("h-full", !canRender && "hidden")}
           >
-            <ResizablePanelGroup
-              direction="horizontal"
-              className="h-full"
-            >
-              {sidebarPosition === "left" ? (
-                <>
+            {sidebarPosition === "left" ? (
+              <>
+                <ResizablePanelGroup
+                  direction="horizontal"
+                  className="h-full"
+                >
                   {sidebarPanel}
-                  {hasSidebars && <ResizableHandle withHandle />}
+                  {hasSidebars && <ResizableHandle className={sidebar ? "hidden md:flex" : ""} withHandle />}
                   {hexCanvasPanel}
-                </>
-              ) : (
-                <>
+                </ResizablePanelGroup>
+              </>
+            ) : (
+              <>
+                <ResizablePanelGroup
+                  direction="horizontal"
+                  className="h-full"
+                >
                   {hexCanvasPanel}
-                  {hasSidebars && <ResizableHandle withHandle />}
+                  {hasSidebars && <ResizableHandle className={sidebar ? "hidden md:flex" : ""} withHandle />}
                   {sidebarPanel}
-                </>
-              )}
-            </ResizablePanelGroup>
+                </ResizablePanelGroup>
+              </>
+            )}
           </TabsContent>
         </CardContent>
 
