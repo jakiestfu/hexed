@@ -170,6 +170,14 @@ export class FileByteCache {
   }
 
   /**
+   * Clear the row cache. Should be called when bytesPerRow changes
+   * to prevent returning stale cached rows.
+   */
+  clearRowCache(): void {
+    this.rowCache.clear()
+  }
+
+  /**
    * Check if a byte range is fully loaded in the cache
    * Returns true if all chunks covering the range are present
    */

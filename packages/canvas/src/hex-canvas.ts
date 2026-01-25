@@ -198,6 +198,9 @@ export class HexCanvas extends EventTarget {
     const computedStyle = window.getComputedStyle(this.canvas)
     this.ctx.font = `14px ${computedStyle.getPropertyValue("--font-mono")}`
 
+    // Store old bytesPerRow to detect changes
+    const oldBytesPerRow = this.layout?.bytesPerRow
+
     this.layout = calculateLayout(
       this.ctx,
       this.canvas,
@@ -206,6 +209,18 @@ export class HexCanvas extends EventTarget {
     )
 
     if (this.layout) {
+      // If bytesPerRow changed, clear the row cache and force reload
+      if (oldBytesPerRow !== undefined && oldBytesPerRow !== this.layout.bytesPerRow) {
+        if (this.cache) {
+          this.cache.clearRowCache()
+        }
+        // Clear loaded bytes to force recalculation
+        this.loadedBytes = new Uint8Array(0)
+        this.lastLoadedRange = null
+        // Trigger file update to reload with new bytesPerRow
+        this.triggerFileUpdate()
+      }
+
       // Update total height and max scroll
       this.updateScrollBounds()
     }

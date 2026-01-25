@@ -7,4 +7,4 @@ export const asciiPadding = 16
 export const addressHexGap = 16 // Gap between address and hex columns
 export const hexAsciiGap = 16 // Gap between hex and ASCII columns
 export const verticalPadding = 16 // Vertical padding for top and bottom rows
-export const scrollbarWidth = 12 // Width of the scrollbar on the right side
+export const scrollbarWidth = 16 // Width of the scrollbar on the right side
