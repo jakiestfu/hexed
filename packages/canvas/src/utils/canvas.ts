@@ -409,8 +409,12 @@ export function drawHexCanvas(
   canvas.style.width = `${displayWidth}px`
   canvas.style.height = `${displayHeight}px`
 
+  // Interesting variables
+  const addressLength = layout.isSmall ? 4 : 8
+  const fontSize = layout.isSmall ? "12px" : "14px"
+
   // Set font
-  ctx.font = `14px ${window
+  ctx.font = `${fontSize} ${window
     .getComputedStyle(canvas)
     .getPropertyValue("--font-mono")}`
   ctx.textBaseline = "middle"
@@ -426,8 +430,8 @@ export function drawHexCanvas(
       ? Math.ceil(totalSize / layout.bytesPerRow)
       : rows.length > 0
         ? Math.max(
-            ...rows.map((r) => Math.floor(r.endOffset / layout.bytesPerRow))
-          ) + 1
+          ...rows.map((r) => Math.floor(r.endOffset / layout.bytesPerRow))
+        ) + 1
         : 0
 
   // If no rows and no totalSize, nothing to render
@@ -528,7 +532,7 @@ export function drawHexCanvas(
     // Draw address
     ctx.textAlign = "left" // Address is left-aligned
     ctx.fillStyle = colors.addressText
-    const address = formatAddress(virtualRowStartOffset, layout.isSmall ? 4 : 8)
+    const address = formatAddress(virtualRowStartOffset, addressLength)
     ctx.fillText(
       address,
       layout.addressPadding,
@@ -539,11 +543,11 @@ export function drawHexCanvas(
     let hexX = hexColumnStartX
     const bytesToRender = isVirtualRow
       ? Math.min(
-          layout.bytesPerRow,
-          totalSize !== undefined
-            ? totalSize - virtualRowStartOffset
-            : layout.bytesPerRow
-        )
+        layout.bytesPerRow,
+        totalSize !== undefined
+          ? totalSize - virtualRowStartOffset
+          : layout.bytesPerRow
+      )
       : row.hexBytes.length
 
     for (let j = 0; j < bytesToRender; j++) {
@@ -689,8 +693,8 @@ export function drawHexCanvas(
     0,
     Math.floor(
       rowsLength * layout.rowHeight +
-        layout.verticalPadding * 2 -
-        dimensions.height
+      layout.verticalPadding * 2 -
+      dimensions.height
     )
   )
   drawScrollbar(

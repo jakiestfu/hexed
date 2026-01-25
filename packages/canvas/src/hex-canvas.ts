@@ -19,6 +19,11 @@ import {
   type LayoutMetrics
 } from "./utils/coordinates"
 import { FileByteCache } from "./utils/file-byte-cache"
+import {
+  getPointerEventData,
+  getDistance,
+  type PointerEventData
+} from "./utils/pointer-events"
 
 export type HexCanvasOptions = {
   windowSize?: number // bytes (default: 128KB)
@@ -90,6 +95,15 @@ export class HexCanvas extends EventTarget {
   private isScrollbarDragging: boolean = false
   private scrollbarDragStartY: number = 0
   private scrollbarDragStartScrollTop: number = 0
+
+  // Touch state
+  private touchStartPosition: { x: number; y: number; time: number } | null = null
+  private touchStartOffset: number | null = null
+  private isTouchDragging: boolean = false
+  private touchDragThreshold: number = 5 // pixels to move before considering it a drag
+  private touchScrollStartY: number = 0
+  private touchScrollStartScrollTop: number = 0
+  private isTouchScrolling: boolean = false
 
   // Highlight state
   private highlightedOffset: number | null = null
@@ -255,11 +269,27 @@ export class HexCanvas extends EventTarget {
   }
 
   private setupEventListeners(): void {
-    // Mouse events
+    // Mouse events (keep for backward compatibility)
     this.canvas.addEventListener("mousedown", this.handleMouseDown.bind(this))
     this.canvas.addEventListener("mousemove", this.handleMouseMove.bind(this))
     this.canvas.addEventListener("mouseup", this.handleMouseUp.bind(this))
     this.canvas.addEventListener("mouseleave", this.handleMouseLeave.bind(this))
+
+    // Touch events
+    this.canvas.addEventListener("touchstart", this.handleTouchStart.bind(this), {
+      passive: false
+    })
+    this.canvas.addEventListener("touchmove", this.handleTouchMove.bind(this), {
+      passive: false
+    })
+    this.canvas.addEventListener("touchend", this.handleTouchEnd.bind(this), {
+      passive: false
+    })
+    this.canvas.addEventListener(
+      "touchcancel",
+      this.handleTouchCancel.bind(this),
+      { passive: false }
+    )
 
     // Keyboard events
     window.addEventListener("keydown", this.handleKeyDown.bind(this))
@@ -279,25 +309,31 @@ export class HexCanvas extends EventTarget {
 
     // Global mouseup for drag handling
     window.addEventListener("mouseup", this.handleGlobalMouseUp.bind(this))
+
+    // Global touch events for drag handling
+    window.addEventListener("touchend", this.handleGlobalTouchEnd.bind(this), {
+      passive: false
+    })
+    window.addEventListener(
+      "touchcancel",
+      this.handleGlobalTouchCancel.bind(this),
+      { passive: false }
+    )
   }
 
-  private handleMouseDown(event: MouseEvent): void {
+  private handlePointerDown(pointerData: PointerEventData): void {
     if (!this.layout || !this.canvas) return
 
     // Check if scrollbar was clicked first
-    const scrollbarClicked = this.handleScrollbarMouseDown(event)
+    const scrollbarClicked = this.handleScrollbarPointerDown(pointerData)
     if (scrollbarClicked) {
       return
     }
 
-    const rect = this.canvas.getBoundingClientRect()
-    const mouseX = event.clientX - rect.left
-    const mouseY = event.clientY - rect.top
-
-    const offset = this.getOffsetFromPosition(mouseX, mouseY)
+    const offset = this.getOffsetFromPosition(pointerData.x, pointerData.y)
     if (offset !== null) {
       // Handle shift-click to extend selection
-      if (event.shiftKey) {
+      if (pointerData.shiftKey) {
         if (this.selectedOffsetRange !== null) {
           const anchor = this.selectedOffsetRange.start
           this.setSelectionRange({ start: anchor, end: offset })
@@ -317,8 +353,18 @@ export class HexCanvas extends EventTarget {
 
       this.shouldDeselect = shouldDeselect
 
-      this.isDragging = true
-      this.dragStartOffset = offset
+      if (pointerData.type === "touch") {
+        this.isTouchDragging = true
+        this.touchStartPosition = {
+          x: pointerData.x,
+          y: pointerData.y,
+          time: Date.now()
+        }
+        this.touchStartOffset = offset
+      } else {
+        this.isDragging = true
+        this.dragStartOffset = offset
+      }
 
       // Only set selection if we're not deselecting
       if (!shouldDeselect) {
@@ -330,10 +376,17 @@ export class HexCanvas extends EventTarget {
     this.canvas.focus()
   }
 
-  private handleMouseMove(event: MouseEvent): void {
+  private handleMouseDown(event: MouseEvent): void {
+    const pointerData = getPointerEventData(event, this.canvas)
+    if (pointerData) {
+      this.handlePointerDown(pointerData)
+    }
+  }
+
+  private handlePointerMove(pointerData: PointerEventData): void {
     // Handle scrollbar dragging first
     if (this.isScrollbarDragging) {
-      this.handleScrollbarMouseMove(event)
+      this.handleScrollbarPointerMove(pointerData)
       return
     }
 
@@ -343,24 +396,36 @@ export class HexCanvas extends EventTarget {
       return
     }
 
-    const rect = this.canvas.getBoundingClientRect()
-    const mouseX = event.clientX - rect.left
-    const mouseY = event.clientY - rect.top
+    const rowIndex = this.getRowFromY(pointerData.y)
+    const offset = this.getOffsetFromPosition(pointerData.x, pointerData.y)
 
-    const rowIndex = this.getRowFromY(mouseY)
-    const offset = this.getOffsetFromPosition(mouseX, mouseY)
-
-    this.hoveredRow = rowIndex
-    this.hoveredOffset = offset
+    // Only update hover for mouse events (not touch)
+    if (pointerData.type === "mouse") {
+      this.hoveredRow = rowIndex
+      this.hoveredOffset = offset
+    }
 
     // Handle drag selection
     if (this.isDragging && this.dragStartOffset !== null && offset !== null) {
       this.setSelectionRange({ start: this.dragStartOffset, end: offset })
+    } else if (
+      this.isTouchDragging &&
+      this.touchStartOffset !== null &&
+      offset !== null
+    ) {
+      this.setSelectionRange({ start: this.touchStartOffset, end: offset })
     }
   }
 
-  private handleMouseUp(event: MouseEvent): void {
-    this.handleScrollbarMouseUp()
+  private handleMouseMove(event: MouseEvent): void {
+    const pointerData = getPointerEventData(event, this.canvas)
+    if (pointerData) {
+      this.handlePointerMove(pointerData)
+    }
+  }
+
+  private handlePointerUp(pointerData: PointerEventData | null): void {
+    this.handleScrollbarPointerUp()
 
     if (this.isDragging) {
       const dragOccurred = didDragOccur(
@@ -376,7 +441,17 @@ export class HexCanvas extends EventTarget {
         this.setSelectionRange(null)
         this.shouldDeselect = false
       }
+    } else if (this.isTouchDragging) {
+      // Touch drag handling is done in handleTouchEnd for tap detection
+      this.isTouchDragging = false
+      this.touchStartPosition = null
+      this.touchStartOffset = null
     }
+  }
+
+  private handleMouseUp(event: MouseEvent): void {
+    const pointerData = getPointerEventData(event, this.canvas)
+    this.handlePointerUp(pointerData)
   }
 
   private handleMouseLeave(): void {
@@ -385,7 +460,7 @@ export class HexCanvas extends EventTarget {
   }
 
   private handleGlobalMouseUp(): void {
-    this.handleScrollbarMouseUp()
+    this.handleScrollbarPointerUp()
 
     if (this.isDragging) {
       const dragOccurred = didDragOccur(
@@ -401,6 +476,206 @@ export class HexCanvas extends EventTarget {
         this.shouldDeselect = false
       }
     }
+  }
+
+  // Touch event handlers
+  private handleTouchStart(event: TouchEvent): void {
+    if (!this.layout || !this.canvas) return
+
+    const pointerData = getPointerEventData(event, this.canvas)
+    if (!pointerData) return
+
+    // Check if scrollbar was touched first
+    const scrollbarTouched = this.handleScrollbarPointerDown(pointerData)
+    if (scrollbarTouched) {
+      return
+    }
+
+    // Store touch start position for tap detection and scrolling
+    this.touchStartPosition = {
+      x: pointerData.x,
+      y: pointerData.y,
+      time: Date.now()
+    }
+    this.touchScrollStartY = pointerData.y
+    this.touchScrollStartScrollTop = this.scrollTop
+    this.isTouchScrolling = false
+
+    // Try to select byte at touch position
+    const offset = this.getOffsetFromPosition(pointerData.x, pointerData.y)
+    if (offset !== null) {
+      this.touchStartOffset = offset
+      this.isTouchDragging = true
+      this.setSelectionRange({ start: offset, end: offset })
+    }
+
+    // Prevent default to avoid double-tap zoom and other default behaviors
+    event.preventDefault()
+  }
+
+  private handleTouchMove(event: TouchEvent): void {
+    const pointerData = getPointerEventData(event, this.canvas)
+    if (!pointerData || !this.touchStartPosition) return
+
+    // Handle scrollbar dragging first
+    if (this.isScrollbarDragging) {
+      this.handleScrollbarPointerMove(pointerData)
+      return
+    }
+
+    const deltaY = pointerData.y - this.touchScrollStartY
+    const deltaX = pointerData.x - this.touchStartPosition.x
+    const distance = getDistance(
+      this.touchStartPosition.x,
+      this.touchStartPosition.y,
+      pointerData.x,
+      pointerData.y
+    )
+
+    // If we're already scrolling, continue scrolling
+    if (this.isTouchScrolling) {
+      const scrollDelta = deltaY
+      const newScrollTop = this.touchScrollStartScrollTop - scrollDelta
+      this.setScrollTop(newScrollTop)
+
+      // Update touch start position for smooth scrolling
+      this.touchScrollStartY = pointerData.y
+      this.touchScrollStartScrollTop = this.scrollTop
+
+      event.preventDefault()
+      return
+    }
+
+    // Determine if this is a scroll gesture or selection drag
+    // If vertical movement is greater than horizontal, treat as scroll
+    const isVerticalScroll = Math.abs(deltaY) > Math.abs(deltaX) && Math.abs(deltaY) > 5
+
+    if (isVerticalScroll) {
+      // Touch scrolling
+      this.isTouchScrolling = true
+      this.isTouchDragging = false
+
+      const scrollDelta = deltaY
+      const newScrollTop = this.touchScrollStartScrollTop - scrollDelta
+      this.setScrollTop(newScrollTop)
+
+      // Update touch start position for smooth scrolling
+      this.touchScrollStartY = pointerData.y
+      this.touchScrollStartScrollTop = this.scrollTop
+
+      event.preventDefault()
+    } else if (distance > this.touchDragThreshold) {
+      // Selection drag
+      this.isTouchDragging = true
+      this.isTouchScrolling = false
+
+      const offset = this.getOffsetFromPosition(pointerData.x, pointerData.y)
+      if (offset !== null && this.touchStartOffset !== null) {
+        this.setSelectionRange({ start: this.touchStartOffset, end: offset })
+      }
+
+      event.preventDefault()
+    } else {
+      // Small movement, might still be a tap - don't prevent default yet
+      // but track the movement
+    }
+  }
+
+  private handleTouchEnd(event: TouchEvent): void {
+    const pointerData = getPointerEventData(event, this.canvas)
+
+    // Handle scrollbar end
+    if (this.isScrollbarDragging) {
+      this.handleScrollbarPointerUp()
+      if (pointerData) {
+        pointerData.preventDefault()
+      }
+      // Clean up touch state
+      this.isTouchDragging = false
+      this.isTouchScrolling = false
+      this.touchStartPosition = null
+      this.touchStartOffset = null
+      this.touchScrollStartY = 0
+      this.touchScrollStartScrollTop = 0
+      return
+    }
+
+    // Tap detection for byte selection
+    if (
+      this.touchStartPosition &&
+      pointerData &&
+      !this.isTouchScrolling &&
+      this.touchStartOffset !== null
+    ) {
+      const distance = getDistance(
+        this.touchStartPosition.x,
+        this.touchStartPosition.y,
+        pointerData.x,
+        pointerData.y
+      )
+      const duration = Date.now() - this.touchStartPosition.time
+
+      // Consider it a tap if movement was minimal and duration was short
+      const isTap = distance < this.touchDragThreshold && duration < 300
+
+      if (isTap && !this.isTouchDragging) {
+        // It's a tap - ensure selection is set
+        const offset = this.getOffsetFromPosition(pointerData.x, pointerData.y)
+        if (offset !== null) {
+          // Check if tapping an already-selected single byte to deselect it
+          const shouldDeselect =
+            this.selectedOffsetRange !== null &&
+            this.selectedOffsetRange.start === this.selectedOffsetRange.end &&
+            isOffsetInRange(offset, this.selectedOffsetRange)
+
+          if (shouldDeselect) {
+            this.setSelectionRange(null)
+          } else {
+            this.setSelectionRange({ start: offset, end: offset })
+          }
+        }
+        pointerData.preventDefault()
+      } else if (this.isTouchDragging) {
+        // It was a drag - selection is already set, just clean up
+        const dragOccurred = didDragOccur(
+          this.touchStartOffset,
+          this.selectedOffsetRange
+        )
+
+        if (!dragOccurred && this.shouldDeselect) {
+          this.setSelectionRange(null)
+          this.shouldDeselect = false
+        }
+        pointerData.preventDefault()
+      }
+    }
+
+    // Clean up touch state
+    this.isTouchDragging = false
+    this.isTouchScrolling = false
+    this.touchStartPosition = null
+    this.touchStartOffset = null
+    this.touchScrollStartY = 0
+    this.touchScrollStartScrollTop = 0
+  }
+
+  private handleTouchCancel(event: TouchEvent): void {
+    // Cancel any ongoing touch interactions
+    this.handleScrollbarPointerUp()
+    this.isTouchDragging = false
+    this.isTouchScrolling = false
+    this.touchStartPosition = null
+    this.touchStartOffset = null
+    this.touchScrollStartY = 0
+    this.touchScrollStartScrollTop = 0
+  }
+
+  private handleGlobalTouchEnd(event: TouchEvent): void {
+    this.handleTouchEnd(event)
+  }
+
+  private handleGlobalTouchCancel(event: TouchEvent): void {
+    this.handleTouchCancel(event)
   }
 
   private handleWheel(event: WheelEvent): void {
@@ -687,7 +962,7 @@ export class HexCanvas extends EventTarget {
     const scrollPositionForThumb = this.pendingScrollTop ?? this.scrollTop
     const thumbY =
       (scrollPositionForThumb / this.maxScrollTop) *
-        (trackHeight - thumbHeight) +
+      (trackHeight - thumbHeight) +
       trackY
 
     return {
@@ -702,37 +977,34 @@ export class HexCanvas extends EventTarget {
     }
   }
 
-  private handleScrollbarMouseDown(event: MouseEvent): boolean {
+  private handleScrollbarPointerDown(pointerData: PointerEventData): boolean {
     if (!this.canvas) return false
-
-    const rect = this.canvas.getBoundingClientRect()
-    const mouseX = event.clientX - rect.left
-    const mouseY = event.clientY - rect.top
 
     const metrics = this.calculateScrollbarMetrics()
     if (!metrics) return false
 
     // Check if clicking on thumb
     if (
-      mouseX >= metrics.thumbX &&
-      mouseX <= metrics.thumbX + metrics.thumbWidth &&
-      mouseY >= metrics.thumbY &&
-      mouseY <= metrics.thumbY + metrics.thumbHeight
+      pointerData.x >= metrics.thumbX &&
+      pointerData.x <= metrics.thumbX + metrics.thumbWidth &&
+      pointerData.y >= metrics.thumbY &&
+      pointerData.y <= metrics.thumbY + metrics.thumbHeight
     ) {
       this.isScrollbarDragging = true
-      this.scrollbarDragStartY = mouseY
+      this.scrollbarDragStartY = pointerData.y
       this.scrollbarDragStartScrollTop = this.scrollTop
+      pointerData.preventDefault()
       return true
     }
 
     // Check if clicking on track (but not thumb)
     if (
-      mouseX >= metrics.trackX &&
-      mouseX <= metrics.trackX + metrics.trackWidth &&
-      mouseY >= metrics.trackY &&
-      mouseY <= metrics.trackY + metrics.trackHeight
+      pointerData.x >= metrics.trackX &&
+      pointerData.x <= metrics.trackX + metrics.trackWidth &&
+      pointerData.y >= metrics.trackY &&
+      pointerData.y <= metrics.trackY + metrics.trackHeight
     ) {
-      const clickY = mouseY - metrics.trackY
+      const clickY = pointerData.y - metrics.trackY
       const thumbHeight = metrics.thumbHeight
       const trackHeight = metrics.trackHeight
       const availableHeight = trackHeight - thumbHeight
@@ -743,22 +1015,26 @@ export class HexCanvas extends EventTarget {
       const targetScrollTop = scrollRatio * this.maxScrollTop
 
       this.setScrollTop(targetScrollTop)
+      pointerData.preventDefault()
       return true
     }
 
     return false
   }
 
-  private handleScrollbarMouseMove(event: MouseEvent): void {
-    if (!this.isScrollbarDragging || !this.canvas) return
+  private handleScrollbarMouseDown(event: MouseEvent): boolean {
+    const pointerData = getPointerEventData(event, this.canvas)
+    if (!pointerData) return false
+    return this.handleScrollbarPointerDown(pointerData)
+  }
 
-    const rect = this.canvas.getBoundingClientRect()
-    const mouseY = event.clientY - rect.top
+  private handleScrollbarPointerMove(pointerData: PointerEventData): void {
+    if (!this.isScrollbarDragging || !this.canvas) return
 
     const metrics = this.calculateScrollbarMetrics()
     if (!metrics) return
 
-    const deltaY = mouseY - this.scrollbarDragStartY
+    const deltaY = pointerData.y - this.scrollbarDragStartY
     const trackHeight = metrics.trackHeight
     const thumbHeight = metrics.thumbHeight
     const availableHeight = trackHeight - thumbHeight
@@ -768,15 +1044,27 @@ export class HexCanvas extends EventTarget {
 
     // Set pending scroll position during drag
     this.setScrollTop(newScrollTop)
+    pointerData.preventDefault()
   }
 
-  private handleScrollbarMouseUp(): void {
+  private handleScrollbarMouseMove(event: MouseEvent): void {
+    const pointerData = getPointerEventData(event, this.canvas)
+    if (pointerData) {
+      this.handleScrollbarPointerMove(pointerData)
+    }
+  }
+
+  private handleScrollbarPointerUp(): void {
     if (this.isScrollbarDragging) {
       this.isScrollbarDragging = false
       this.scrollbarDragStartY = 0
       this.scrollbarDragStartScrollTop = 0
       // Final scroll position will be committed when chunks load (handled by setScrollTop)
     }
+  }
+
+  private handleScrollbarMouseUp(): void {
+    this.handleScrollbarPointerUp()
   }
 
   // File reading and windowing
@@ -1067,6 +1355,11 @@ export class HexCanvas extends EventTarget {
     // Remove event listeners
     window.removeEventListener("keydown", this.handleKeyDown.bind(this))
     window.removeEventListener("mouseup", this.handleGlobalMouseUp.bind(this))
+    window.removeEventListener("touchend", this.handleGlobalTouchEnd.bind(this))
+    window.removeEventListener(
+      "touchcancel",
+      this.handleGlobalTouchCancel.bind(this)
+    )
 
     // Remove canvas from DOM
     if (this.canvas.parentNode) {
