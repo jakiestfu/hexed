@@ -220,7 +220,7 @@ export class HexCanvas extends EventTarget {
 
       // Update total height and max scroll
       this.updateScrollBounds()
-      
+
       // Always trigger file update when layout recalculates to ensure proper rendering
       if (this.hexedFile) {
         this.triggerFileUpdate()
@@ -1362,14 +1362,14 @@ export class HexCanvas extends EventTarget {
     // This ensures consistency with getFormattedRows() which uses the same logic
     const rangeToUse = this.lastLoadedRange || this.visibleByteRange
     const { start, end } = rangeToUse
-    
+
     // Ensure range is loaded before reading
     if (!this.hexedFile.isRangeLoaded(rangeToUse)) {
       // Range not loaded yet, return empty array
       // Will be updated when range loads
       return
     }
-    
+
     // Read bytes directly from HexedFile
     const bytes = this.hexedFile.readBytes(start, end - start)
     this.loadedBytes = bytes || new Uint8Array(0)

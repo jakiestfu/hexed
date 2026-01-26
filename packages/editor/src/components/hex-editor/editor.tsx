@@ -140,7 +140,6 @@ export const Editor: FunctionComponent<EditorProps> = ({
           <HexToolbar
             left={
               <Logo
-                onChangeInput={onChangeInput}
                 plugins={plugins}
               />
             }

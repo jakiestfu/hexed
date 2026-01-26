@@ -7,10 +7,7 @@ export function useQueryParams() {
   const [searchParams] = useSearchParams()
   const navigate = useNavigate()
   const location = useLocation()
-  console.log("searchParams", {
-    location,
-    searchParams
-  })
+
   // Stable string representation
   const searchParamsString = useMemo(
     () => searchParams.toString(),

@@ -1,5 +1,4 @@
 import { useEffect, useState } from "react"
-import type { FunctionComponent } from "react"
 import { AlertCircle, FileCode } from "lucide-react"
 
 import { KsySchema, manifest, parse } from "@hexed/templates"
@@ -17,8 +16,8 @@ import {
   TabsTrigger
 } from "@hexed/ui"
 
-import { HexedPluginComponent } from "../../plugins/types"
-import { createHexedEditorPlugin } from "../.."
+import type { HexedPluginComponent } from "../../types"
+import { createHexedEditorPlugin } from "../../index"
 import { ObjectTree } from "./object-tree"
 import { TemplatesCombobox } from "./templates-combobox"
 
@@ -95,25 +94,6 @@ export const Templates: HexedPluginComponent = ({ file, state }) => {
   )
   const [selectedSpec, setSelectedSpec] = useState<KsySchema | null>(null)
   const [parseError, setParseError] = useState<string | null>(null)
-  const [fileData, setFileData] = useState<Uint8Array | null>(null)
-
-  // Load file data
-  useEffect(() => {
-    if (!file || file.size === 0) {
-      setFileData(null)
-      return
-    }
-
-    // Try to read the full file
-    const data = file.readBytes(0, file.size)
-    if (data) {
-      setFileData(data)
-    } else {
-      // If readBytes returns null, the file might need async loading
-      // For now, set to null and handle gracefully
-      setFileData(null)
-    }
-  }, [file])
 
   // Restore template from URL param on mount or when value changes
   useEffect(() => {
@@ -124,6 +104,7 @@ export const Templates: HexedPluginComponent = ({ file, state }) => {
         setSelectedTemplate(template)
         setParseError(null)
 
+        const fileData = file.readBytes(0, file.size)
         if (fileData) {
           parse(template.path, fileData).then(
             ({ parsedData: result, spec, error }) => {
@@ -157,13 +138,14 @@ export const Templates: HexedPluginComponent = ({ file, state }) => {
       setParseError(null)
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [templateValue, fileData])
+  }, [templateValue, file])
 
   const handleTemplateSelect = async (entry: TemplateEntry) => {
     setSelectedTemplate(entry)
     setTemplateValue(entry.name)
     setParseError(null)
 
+    const fileData = file.readBytes(0, file.size)
     if (!fileData) {
       console.warn("No data available to parse")
       setParsedData(null)
