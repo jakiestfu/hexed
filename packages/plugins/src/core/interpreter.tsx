@@ -18,8 +18,8 @@ import {
 } from "@hexed/ui"
 
 import { formatAddress, type HexedFile } from "@hexed/file"
-import { HexedPluginComponent } from "../../plugins/types"
-import { createHexedEditorPlugin } from ".."
+import { HexedPluginComponent } from "../types"
+import { createHexedEditorPlugin } from "../index"
 
 interface InterpretedValue {
   type: string

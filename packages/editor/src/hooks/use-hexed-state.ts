@@ -1,6 +1,6 @@
 "use client"
 
-import { useCallback, useEffect, useMemo, useRef, useState } from "react"
+import { useCallback, useMemo, useRef, useState } from "react"
 import type React from "react"
 
 import type { DiffViewMode } from "@hexed/types"
@@ -16,18 +16,16 @@ export type HexedState = {
   numberFormat: string
   scrollToOffset: number | null
   selectedOffsetRange: SelectionRange
-  rangeToSyncToFindInput: SelectionRange
   showHistogram: boolean
-  showSearch: boolean
+  // showSearch: boolean
   dimensions: { width: number; height: number }
   // Derived values
   selectedOffset: number | null
   // Callbacks
-  handleToggleSearch: () => void
+  // handleToggleSearch: () => void
   handleDeselectBytes: () => void
-  handleRangeSelectedForSearch: (range: SelectionRange) => void
   handleToggleHistogram: () => void
-  handleCloseSearch: () => void
+  // handleCloseSearch: () => void
   handleScrollToOffset: (offset: number) => void
   handleMatchFound: (offset: number, length: number) => void
   // Setters
@@ -38,7 +36,6 @@ export type HexedState = {
   setSelectedOffsetRange: (range: SelectionRange) => void
   setDimensions: (dimensions: { width: number; height: number }) => void
   // Refs (exposed so Editor component can set them)
-  searchInputRef: React.RefObject<HTMLInputElement | null>
   canvasRef: React.RefObject<{
     scrollToOffset: (offset: number) => void
     getSelectedRange: () => { start: number; end: number } | null
@@ -60,14 +57,11 @@ export const useHexedState = () => {
   const [scrollToOffset, setScrollToOffset] = useState<number | null>(null)
   const [selectedOffsetRange, setSelectedOffsetRange] =
     useState<SelectionRange>(null)
-  const [rangeToSyncToFindInput, setRangeToSyncToFindInput] =
-    useState<SelectionRange>(null)
   const [showHistogram, setShowHistogram] = useState(false)
-  const [showSearch, setShowSearch] = useState(false)
+  // const [showSearch, setShowSearch] = useState(false)
   const [dimensions, setDimensions] = useState({ width: 0, height: 0 })
 
   // Refs that need to be accessible from Editor component
-  const searchInputRef = useRef<HTMLInputElement | null>(null)
   const canvasRef = useRef<{
     scrollToOffset: (offset: number) => void
     getSelectedRange: () => { start: number; end: number } | null
@@ -83,37 +77,18 @@ export const useHexedState = () => {
   }, [selectedOffsetRange])
 
   // Callbacks for keyboard shortcuts
-  const handleToggleSearch = useCallback(() => {
-    setShowSearch((prev) => {
-      const newValue = !prev
-      // Focus input after state update if opening
-      if (newValue) {
-        setTimeout(() => {
-          searchInputRef.current?.focus()
-        }, 0)
-      }
-      return newValue
-    })
-  }, [])
+  // const handleToggleSearch = useCallback(() => {
+  //   setShowSearch((prev) => !prev)
+  // }, [])
 
   const handleDeselectBytes = useCallback(() => {
     setSelectedOffsetRange(null)
   }, [])
 
-  const handleRangeSelectedForSearch = useCallback(
-    (range: SelectionRange) => {
-      setRangeToSyncToFindInput(range)
-    },
-    []
-  )
-
   const handleToggleHistogram = useCallback(() => {
     setShowHistogram((prev) => !prev)
   }, [])
 
-  const handleCloseSearch = useCallback(() => {
-    setShowSearch(false)
-  }, [])
 
   const handleScrollToOffset = useCallback((offset: number) => {
     setScrollToOffset(offset)
@@ -129,20 +104,6 @@ export const useHexedState = () => {
     canvasRef.current?.scrollToOffset(offset)
   }, [])
 
-  // Clear rangeToSyncToFindInput after it's been processed or when search closes
-  useEffect(() => {
-    if (!showSearch) {
-      setRangeToSyncToFindInput(null)
-    }
-  }, [showSearch])
-
-  // Focus search input when search toolbar is shown
-  useEffect(() => {
-    if (showSearch && searchInputRef.current) {
-      searchInputRef.current.focus()
-    }
-  }, [showSearch])
-
   const state: HexedState = {
     // State values
     activeTab,
@@ -152,21 +113,13 @@ export const useHexedState = () => {
     numberFormat,
     scrollToOffset,
     selectedOffsetRange,
-    rangeToSyncToFindInput,
     showHistogram,
-    showSearch,
     dimensions,
-    // Derived values
     selectedOffset,
-    // Callbacks
-    handleToggleSearch,
     handleDeselectBytes,
-    handleRangeSelectedForSearch,
     handleToggleHistogram,
-    handleCloseSearch,
     handleScrollToOffset,
     handleMatchFound,
-    // Setters
     setActiveTab,
     setDataType,
     setEndianness,
@@ -174,25 +127,8 @@ export const useHexedState = () => {
     setSelectedOffsetRange,
     setDimensions,
     // Refs
-    searchInputRef,
     canvasRef
   }
-
-  // setState function that can update multiple state values
-  // const setState = useCallback((updates: Partial<HexedState>) => {
-  //   if ("activeTab" in updates) setActiveTab(updates.activeTab!)
-  //   if ("dataType" in updates) setDataType(updates.dataType!)
-  //   if ("endianness" in updates) setEndianness(updates.endianness!)
-  //   if ("numberFormat" in updates) setNumberFormat(updates.numberFormat!)
-  //   if ("scrollToOffset" in updates) setScrollToOffset(updates.scrollToOffset!)
-  //   if ("selectedOffsetRange" in updates)
-  //     setSelectedOffsetRange(updates.selectedOffsetRange!)
-  //   if ("rangeToSyncToFindInput" in updates)
-  //     setRangeToSyncToFindInput(updates.rangeToSyncToFindInput!)
-  //   if ("showHistogram" in updates) setShowHistogram(updates.showHistogram!)
-  //   if ("showSearch" in updates) setShowSearch(updates.showSearch!)
-  //   if ("dimensions" in updates) setDimensions(updates.dimensions!)
-  // }, [])
 
   return state
 }

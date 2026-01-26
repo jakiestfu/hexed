@@ -8,7 +8,7 @@ import { OnHexedFileChange } from "../../hooks/use-hexed-file"
 import { useHexedFileContext } from "../../providers/hexed-file-provider"
 import { useHexedStateContext } from "../../providers/hexed-state-provider"
 import { Menu } from "./menu"
-import { HexedPlugin } from "../../plugins/types"
+import { HexedPlugin } from "@hexed/plugins/types"
 
 export type { MenuItem } from "./menu"
 

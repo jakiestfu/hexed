@@ -1,8 +1,8 @@
 import type { HexedFile } from "@hexed/file";
 import type { LucideIcon } from "lucide-react";
 import type { FunctionComponent, PropsWithChildren, ReactNode } from "react";
-import type { UseHexedSettings } from "../hooks/use-hexed-settings";
-import type { HexedState } from "../hooks/use-hexed-state";
+import type { UseHexedSettings } from "@hexed/editor";
+import type { HexedState } from "@hexed/editor";
 import { Keys } from "react-hotkeys-hook";
 
 export type HexedPluginComponent<T = Record<string, unknown>> = FunctionComponent<PropsWithChildren<{

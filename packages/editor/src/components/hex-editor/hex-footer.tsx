@@ -1,4 +1,4 @@
-import type { FunctionComponent } from "react"
+import { Fragment, type FunctionComponent } from "react"
 import {
   BarChart3,
   Binary,
@@ -26,6 +26,7 @@ import {
   SelectItem,
   SelectTrigger,
   SelectValue,
+  Separator,
   Toggle,
   ToggleGroup,
   ToggleGroupItem,
@@ -37,8 +38,8 @@ import {
 import { useHexedSettings, type Sidebar } from "../../hooks/use-hexed-settings"
 import { useHexedSettingsContext } from "../../providers/hexed-settings-provider"
 import { useHexedStateContext } from "../../providers/hexed-state-provider"
-import { MemoryProfiler } from "../common/memory-profiler"
-import { HexedPlugin } from "../../plugins/types"
+// import { MemoryProfiler } from "../common/memory-profiler"
+import { HexedPlugin } from "@hexed/plugins/types"
 
 export type HexFooterProps = {
   totalSize: number | undefined
@@ -53,7 +54,7 @@ export const HexFooter: FunctionComponent<HexFooterProps> = ({
   paneToggleValue,
   plugins,
 }) => {
-  const { showAscii, setShowAscii, showMemoryProfiler, setSidebar } =
+  const { showAscii, setShowAscii, visibleLabels, setSidebar } =
     useHexedSettingsContext()
   const {
     dataType,
@@ -63,17 +64,11 @@ export const HexFooter: FunctionComponent<HexFooterProps> = ({
     numberFormat,
     setNumberFormat,
     selectedOffset,
-    handleToggleHistogram
+    handleToggleHistogram,
   } = useHexedStateContext()
 
-  const bytesLabel = totalSize ? (
-    <div className="items-center gap-2 font-mono hidden md:flex flex-col">
-      <span className="text-xs text-muted-foreground">
-        {formatFileSize(totalSize)}
-      </span>
-      {showMemoryProfiler && <MemoryProfiler />}
-    </div>
-  ) : undefined
+  const visibleLabelPlugins = plugins.filter((plugin) => visibleLabels.includes(plugin.id))
+
 
   return (
     <div className="flex w-full flex-col gap-3 border-t bg-muted/30 p-4 md:flex-row md:items-center md:justify-between md:gap-4 h-auto md:h-[66px]">
@@ -149,8 +144,17 @@ export const HexFooter: FunctionComponent<HexFooterProps> = ({
       </div>
 
       {/* center */}
-      <div className="order-last hidden w-full items-center justify-start md:order-none md:w-auto md:flex md:flex-1 md:justify-center">
-        {bytesLabel ? bytesLabel : <span className="hidden md:inline" />}
+      <div className="order-last hidden w-full items-center justify-start md:order-none md:w-auto md:flex md:flex-1 md:justify-center h-full">
+        <div className="items-center gap-4 font-mono hidden md:flex h-full">
+          {visibleLabelPlugins.map((plugin, index) => (
+            <Fragment key={plugin.id}>
+              <span className="flex items-center">
+                {plugin.component}
+              </span>
+              {index < visibleLabelPlugins.length - 1 && <Separator orientation="vertical" />}
+            </Fragment>
+          ))}
+        </div>
       </div>
 
       {/* right */}
@@ -197,7 +201,7 @@ export const HexFooter: FunctionComponent<HexFooterProps> = ({
             className="grow md:grow-0"
           >
 
-            {plugins.map((plugin) => (
+            {plugins.filter((plugin) => plugin.type === "sidebar").map((plugin) => (
               <Tooltip key={plugin.id}>
                 <TooltipTrigger asChild>
                   <ToggleGroupItem
@@ -214,58 +218,6 @@ export const HexFooter: FunctionComponent<HexFooterProps> = ({
                 <TooltipContent>Toggle {plugin.title} panel</TooltipContent>
               </Tooltip>
             ))}
-
-            {/* <Tooltip>
-              <TooltipTrigger asChild>
-                <ToggleGroupItem
-                  value="interpreter"
-                  aria-label="Toggle interpreter"
-                  className={cn(
-                    "grow md:grow-0",
-                    paneToggleValue === "interpreter" ? "bg-accent" : ""
-                  )}
-                >
-                  <Binary />
-                </ToggleGroupItem>
-              </TooltipTrigger>
-              <TooltipContent>
-                {selectedOffset === null
-                  ? "Select bytes to enable interpreter"
-                  : "Toggle interpreter panel"}
-              </TooltipContent>
-            </Tooltip>
-
-            <Tooltip>
-              <TooltipTrigger asChild>
-                <ToggleGroupItem
-                  value="templates"
-                  aria-label="Toggle templates panel"
-                  className={cn(
-                    "grow md:grow-0",
-                    paneToggleValue === "templates" ? "bg-accent" : ""
-                  )}
-                >
-                  <FileText />
-                </ToggleGroupItem>
-              </TooltipTrigger>
-              <TooltipContent>Toggle templates panel</TooltipContent>
-            </Tooltip>
-
-            <Tooltip>
-              <TooltipTrigger asChild>
-                <ToggleGroupItem
-                  value="strings"
-                  aria-label="Toggle strings panel"
-                  className={cn(
-                    "grow md:grow-0",
-                    paneToggleValue === "strings" ? "bg-accent" : ""
-                  )}
-                >
-                  <Type />
-                </ToggleGroupItem>
-              </TooltipTrigger>
-              <TooltipContent>Toggle strings panel</TooltipContent>
-            </Tooltip> */}
           </ToggleGroup>
         </div>
       </div>

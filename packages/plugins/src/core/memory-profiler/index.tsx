@@ -3,7 +3,9 @@ import type { FunctionComponent } from "react"
 import { formatBytes } from "@hexed/file/formatter"
 import { Popover, PopoverContent, PopoverTrigger } from "@hexed/ui"
 
-import { usePerformanceMetrics } from "../../hooks/use-performance-metrics"
+import { usePerformanceMetrics } from "./use-performance-metrics"
+import { createHexedEditorPlugin } from "../.."
+import { MemoryStick } from "lucide-react"
 
 /**
  * Memory profiler component that displays browser memory usage
@@ -83,3 +85,11 @@ export const MemoryProfiler: FunctionComponent = () => {
     </>
   )
 }
+
+export const memoryProfilerPlugin = createHexedEditorPlugin({
+  type: "label",
+  id: "memory-profiler",
+  title: "Memory Profiler",
+  icon: MemoryStick,
+  component: MemoryProfiler
+})

@@ -17,7 +17,7 @@ import {
   TabsContent
 } from "@hexed/ui"
 
-import { useGlobalKeyboard } from "../../hooks/use-global-keyboard"
+// import { useGlobalKeyboard } from "../../hooks/use-global-keyboard"
 import { useHexedFileContext } from "../../providers/hexed-file-provider"
 import { useHexedSettingsContext } from "../../providers/hexed-settings-provider"
 import { useHexedStateContext } from "../../providers/hexed-state-provider"
@@ -28,8 +28,8 @@ import { HexFooter } from "./hex-footer"
 import { HexSidebar } from "./hex-sidebar"
 import { HexToolbar } from "./hex-toolbar"
 import { HexToolbarDiff } from "./hex-toolbar-diff"
-import { HexToolbarSearch } from "./hex-toolbar-search"
-import { plugins } from "../../plugins/core"
+// import { HexToolbarSearch } from "./hex-toolbar-search"
+import { plugins } from "@hexed/plugins/core"
 
 export const Editor: FunctionComponent<EditorProps> = ({
   className = "",
@@ -50,13 +50,10 @@ export const Editor: FunctionComponent<EditorProps> = ({
     return null
   }, [state.diffMode])
 
-  // Get refs from state
-  const searchInputRef = state.searchInputRef
-
   // Global keyboard shortcuts
-  useGlobalKeyboard({
-    data: new Uint8Array()
-  })
+  // useGlobalKeyboard({
+  //   data: new Uint8Array()
+  // })
 
   // Derived value for toggle group
   const paneToggleValue = sidebar || ""
@@ -121,7 +118,6 @@ export const Editor: FunctionComponent<EditorProps> = ({
       <HexSidebar
         defaultSize={30}
         minSize={30}
-        filePath={hexedFile?.getHandle()?.name}
         fileId={handleId ?? undefined}
         plugins={plugins}
       />
@@ -138,6 +134,7 @@ export const Editor: FunctionComponent<EditorProps> = ({
       >
         <CardHeader className="p-0! gap-0 m-0 bg-muted/30">
           <HexToolbar
+            plugins={plugins}
             left={
               <Logo
                 plugins={plugins}
@@ -150,7 +147,6 @@ export const Editor: FunctionComponent<EditorProps> = ({
             onRestartWatching={() => { }}
             onClose={() => onChangeInput(null)}
           />
-          <HexToolbarSearch inputRef={searchInputRef} />
           {/* <HexToolbarTabs snapshots={snapshots} /> */}
           <HexToolbarDiff diff={diff} />
         </CardHeader>

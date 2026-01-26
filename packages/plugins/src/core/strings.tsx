@@ -26,9 +26,9 @@ import {
   TableRow
 } from "@hexed/ui"
 
-import { HexedPluginComponent } from "../../plugins/types"
-import { createHexedEditorPlugin } from ".."
-import { useWorkerClient } from "../../providers/worker-provider"
+import { HexedPluginComponent } from "../types"
+import { createHexedEditorPlugin } from "../index"
+import { useWorkerClient } from "@hexed/editor"
 
 export const Strings: HexedPluginComponent = ({ file, state }) => {
   const workerClient = useWorkerClient()
@@ -137,7 +137,6 @@ export const Strings: HexedPluginComponent = ({ file, state }) => {
               onClick={() => {
                 state.handleScrollToOffset(match.offset)
                 state.setSelectedOffsetRange(range)
-                state.handleRangeSelectedForSearch(range)
               }}
               className="hover:text-foreground hover:underline transition-colors cursor-pointer text-left"
               aria-label={`Scroll to offset ${hexOffset}`}

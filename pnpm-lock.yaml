@@ -197,6 +197,9 @@ importers:
       '@hexed/logger':
         specifier: workspace:*
         version: link:../logger
+      '@hexed/plugins':
+        specifier: workspace:*
+        version: link:../plugins
       '@hexed/templates':
         specifier: workspace:*
         version: link:../templates
@@ -298,6 +301,58 @@ importers:
       vite:
         specifier: ^6.0.5
         version: 6.4.1(@types/node@25.0.3)(jiti@2.6.1)(lightningcss@1.30.2)
+
+  packages/plugins:
+    dependencies:
+      '@hexed/editor':
+        specifier: workspace:*
+        version: link:../editor
+      '@hexed/file':
+        specifier: workspace:*
+        version: link:../file
+      '@hexed/templates':
+        specifier: workspace:*
+        version: link:../templates
+      '@hexed/ui':
+        specifier: workspace:*
+        version: link:../ui
+      lucide-react:
+        specifier: ^0.468.0
+        version: 0.468.0(react@19.2.3)
+      react-hotkeys-hook:
+        specifier: ^4.5.1
+        version: 4.6.2(react-dom@19.2.3(react@19.2.3))(react@19.2.3)
+      react-window:
+        specifier: ^1.8.10
+        version: 1.8.11(react-dom@19.2.3(react@19.2.3))(react@19.2.3)
+    devDependencies:
+      '@hexed/eslint-config':
+        specifier: workspace:*
+        version: link:../../tooling/eslint-config
+      '@hexed/prettier-config':
+        specifier: workspace:*
+        version: link:../../tooling/prettier-config
+      '@hexed/typescript-config':
+        specifier: workspace:*
+        version: link:../../tooling/typescript-config
+      '@types/react':
+        specifier: ^19.2.3
+        version: 19.2.7
+      '@types/react-dom':
+        specifier: ^19.2.3
+        version: 19.2.3(@types/react@19.2.7)
+      '@types/react-window':
+        specifier: ^1.8.8
+        version: 1.8.8
+      react:
+        specifier: 19.2.3
+        version: 19.2.3
+      react-dom:
+        specifier: 19.2.3
+        version: 19.2.3(react@19.2.3)
+      typescript:
+        specifier: ^5.7.2
+        version: 5.9.3
 
   packages/templates:
     dependencies:

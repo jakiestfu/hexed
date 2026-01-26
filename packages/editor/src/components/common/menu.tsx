@@ -8,6 +8,7 @@ import {
   FolderOpen,
   Home,
   Info,
+  Logs,
   Monitor,
   Moon,
   Palette,
@@ -35,6 +36,7 @@ import {
   DialogTitle,
   DropdownMenuCheckboxItem,
   DropdownMenuContent,
+  DropdownMenuGroup,
   DropdownMenuItem,
   DropdownMenuRadioGroup,
   DropdownMenuRadioItem,
@@ -47,7 +49,7 @@ import {
 
 import { Theme } from "../../providers/theme-provider"
 import { AboutDialog } from "../dialogs/about-dialog"
-import { HexedPlugin } from "../../plugins/types"
+import { HexedPlugin } from "@hexed/plugins/types"
 
 export type MenuItem = {
   label: string
@@ -83,7 +85,9 @@ export const Menu: FunctionComponent<MenuProps> = ({
     showMemoryProfiler,
     setShowMemoryProfiler,
     theme,
-    setTheme
+    setTheme,
+    visibleLabels,
+    setVisibleLabels,
   } = useHexedSettingsContext()
   const [showClientFileDialog, setShowClientFileDialog] = useState(false)
   const [clickedClientFileHandleId, setClickedClientFileHandleId] = useState<
@@ -303,6 +307,42 @@ export const Menu: FunctionComponent<MenuProps> = ({
             </DropdownMenuRadioGroup>
           </DropdownMenuSubContent>
         </DropdownMenuSub>
+
+        <DropdownMenuSub>
+          <DropdownMenuSubTrigger className="cursor-pointer">
+            <Logs className="mr-2 h-4 w-4" />
+            Labels
+          </DropdownMenuSubTrigger>
+          <DropdownMenuSubContent>
+            <DropdownMenuGroup
+            // value={visibleLabels}
+            // onValueChange={(v) => setV(sidebar === v ? null : v as Sidebar)}
+            >
+              {plugins.filter((plugin) => plugin.type === "label").map((plugin) => (
+                <DropdownMenuCheckboxItem
+                  key={plugin.id}
+                  checked={visibleLabels.includes(plugin.id)}
+                  onCheckedChange={(checked) => {
+                    if (checked) {
+                      setVisibleLabels([...visibleLabels, plugin.id])
+                    } else {
+                      setVisibleLabels(visibleLabels.filter((id) => id !== plugin.id))
+                    }
+                  }}
+                  className="cursor-pointer"
+                >
+                  <plugin.icon className="mr-2 h-4 w-4" />
+                  {plugin.title}
+                  <DropdownMenuShortcut>
+                    {plugin.hotkey?.formatted}
+                  </DropdownMenuShortcut>
+                </DropdownMenuCheckboxItem>
+              ))}
+
+            </DropdownMenuGroup>
+          </DropdownMenuSubContent>
+        </DropdownMenuSub>
+
         {setTheme && (
           <DropdownMenuSub>
             <DropdownMenuSubTrigger className="cursor-pointer">

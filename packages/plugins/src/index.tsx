@@ -1,12 +1,18 @@
-import { formatHotkey } from "../utils";
+import { formatHotkey } from "@hexed/editor";
 import { plugins } from "./core";
 import { SidebarPlugin } from "./sidebar-plugin";
 import { HexedPlugin, HexedPluginOptions } from "./types";
+import { ToolbarPlugin } from "./toolbar-plugin";
+import { LabelPlugin } from "./label-plugin";
 
 const getComponent = (options: HexedPluginOptions) => {
   switch (options.type) {
     case "sidebar":
       return <SidebarPlugin {...options} />
+    case "toolbar":
+      return <ToolbarPlugin {...options} />
+    case "label":
+      return <LabelPlugin {...options} />
     default:
       return null;
   }

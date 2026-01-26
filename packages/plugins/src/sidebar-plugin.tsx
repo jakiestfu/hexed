@@ -3,9 +3,7 @@ import { ArrowLeftRight, X } from "lucide-react";
 
 import { HexedPluginOptions } from "./types";
 import { FunctionComponent } from "react";
-import { useHexedSettingsContext } from "../providers/hexed-settings-provider";
-import { useHexedStateContext } from "../providers/hexed-state-provider";
-import { useHexedFileContext } from "../providers/hexed-file-provider";
+import { useHexedSettingsContext, useHexedStateContext, useHexedFileContext } from "@hexed/editor";
 
 export const SidebarPlugin: FunctionComponent<HexedPluginOptions> = ({ title, icon: Icon, component: Component }) => {
   const settings = useHexedSettingsContext()

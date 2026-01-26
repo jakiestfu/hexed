@@ -1,0 +1,10 @@
+{
+  "extends": "@hexed/typescript-config/base.json",
+  "compilerOptions": {
+    "outDir": "./dist",
+    "rootDir": "./src",
+    "jsx": "react-jsx",
+    "lib": ["es2023", "DOM", "DOM.Iterable"]
+  },
+  "include": ["src/**/*"]
+}

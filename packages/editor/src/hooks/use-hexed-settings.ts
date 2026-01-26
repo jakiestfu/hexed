@@ -1,24 +1,29 @@
 "use client"
 
-import { Theme, useTheme } from "../providers/theme-provider"
+import { useEffect, useState } from "react"
+import { Theme } from "../providers/theme-provider"
 import { useLocalStorage } from "./use-local-storage"
 
 export const STORAGE_KEYS = {
   ASCII: "hexed:show-ascii",
   CHECKSUMS: "hexed:show-checksums",
   SIDEBAR: "hexed:sidebar",
+  TOOLBAR: "hexed:toolbar",
   SIDEBAR_POSITION: "hexed:sidebar-position",
   MEMORY_PROFILER: "hexed:show-memory-profiler",
-  THEME: "hexed:theme"
+  THEME: "hexed:theme",
+  VISIBLE_LABELS: "hexed:visible-labels",
 }
 
 export type HexedSettings = {
   theme: Theme
   showAscii: boolean
   showChecksums: boolean
-  sidebar: Sidebar
+  sidebar: string | null
   sidebarPosition: SidebarPosition
   showMemoryProfiler: boolean
+  toolbar: string | null
+  visibleLabels: string[]
 }
 
 export type SidebarPosition = "left" | "right"
@@ -31,7 +36,7 @@ export type UseHexedSettings = ReturnType<typeof useHexedSettings>
  * @returns An object containing all settings and their setters
  */
 export function useHexedSettings(overrides: Partial<HexedSettings> = {}) {
-  // const [theme, setTheme] = useTheme()
+
   const [theme, setTheme] = useLocalStorage(
     STORAGE_KEYS.THEME,
     "system",
@@ -47,7 +52,17 @@ export function useHexedSettings(overrides: Partial<HexedSettings> = {}) {
     true,
     overrides.showChecksums
   )
-  const [sidebar, setSidebar] = useLocalStorage<Sidebar>(
+
+  // TOOLBARS ARE NOT STORED IN LOCAL STORED BY DESIGN
+  const [toolbar, setToolbar] = useState<string | null>(
+    overrides.toolbar ?? null
+  )
+  useEffect(() => {
+    setToolbar(overrides.toolbar ?? null)
+  }, [overrides.toolbar])
+
+
+  const [sidebar, setSidebar] = useLocalStorage<string | null>(
     STORAGE_KEYS.SIDEBAR,
     null,
     overrides.sidebar
@@ -58,6 +73,17 @@ export function useHexedSettings(overrides: Partial<HexedSettings> = {}) {
       "right",
       overrides.sidebarPosition
     )
+
+  const [visibleLabels, setVisibleLabels] = useLocalStorage<string[]>(
+    STORAGE_KEYS.VISIBLE_LABELS,
+    ["file-size"],
+    overrides.visibleLabels
+  )
+  // useEffect(() => {
+  //   console.log("TODO THIS MIGHT RENDER A LOT")
+  //   setVisibleLabels(overrides.visibleLabels ?? [])
+  // }, [overrides.visibleLabels])
+
   const [showMemoryProfiler, setShowMemoryProfiler] = useLocalStorage(
     STORAGE_KEYS.MEMORY_PROFILER,
     false,
@@ -86,6 +112,12 @@ export function useHexedSettings(overrides: Partial<HexedSettings> = {}) {
     toggleSidebarPosition,
     // Memory profiler visibility
     showMemoryProfiler,
-    setShowMemoryProfiler
+    setShowMemoryProfiler,
+
+    toolbar,
+    setToolbar,
+
+    visibleLabels,
+    setVisibleLabels,
   }
 }

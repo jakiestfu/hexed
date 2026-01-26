@@ -2,13 +2,16 @@ import { useEffect, useState } from "react"
 import type { CSSProperties, FunctionComponent, ReactNode } from "react"
 
 import { HexedFile } from "@hexed/file"
-import { Button } from "@hexed/ui"
+import { Button, cn, ToggleGroup, ToggleGroupItem, Tooltip, TooltipContent, TooltipTrigger } from "@hexed/ui"
 
 import type { FileSource } from "../../types"
 import { formatFilenameForDisplay } from "../../utils"
 import { Brand } from "../common/logo"
 import { FileSourceIcon } from "../file/file-source-icon"
 import { FileStatusPopover } from "../file/file-status-popover"
+import { HexedPlugin } from "@hexed/plugins/types"
+import { useHexedSettingsContext } from "../../providers/hexed-settings-provider"
+import { Sidebar } from "../../hooks/use-hexed-settings"
 
 export type HexToolbarProps = {
   left?: ReactNode
@@ -18,6 +21,7 @@ export type HexToolbarProps = {
   error?: string | null
   onRestartWatching?: () => void
   onClose?: () => void
+  plugins: HexedPlugin[]
 }
 
 export const HexToolbar: FunctionComponent<HexToolbarProps> = ({
@@ -27,8 +31,9 @@ export const HexToolbar: FunctionComponent<HexToolbarProps> = ({
   isConnected = false,
   error = null,
   onRestartWatching,
-  onClose
+  plugins,
 }) => {
+  const { toolbar, setToolbar } = useHexedSettingsContext()
   const center = !file ? (
     <div className="flex items-center gap-2 min-w-0">
       <Brand />
@@ -61,45 +66,60 @@ export const HexToolbar: FunctionComponent<HexToolbarProps> = ({
     </FileStatusPopover>
   )
 
-  // const right = !file ? (
-  //   <p>wat</p>
-  // ) : (
-  //   onClose && (
-  //     <Button
-  //       variant="outline"
-  //       size="sm"
-  //       onClick={onClose}
-  //       className="ml-2 shrink-0"
-  //     >
-  //       Done
-  //     </Button>
-  //   )
-  // )
+
   const right =
-    file && onClose ? (
-      <Button
+    file ? (
+      <ToggleGroup
+        type="single"
+        value={toolbar || ""}
+        onValueChange={(value) => {
+          console.log('value', value)
+          setToolbar(value === toolbar ? null : value)
+        }}
         variant="outline"
         size="sm"
-        onClick={onClose}
-        className="ml-2 shrink-0"
+        className="grow md:grow-0"
       >
-        Done
-      </Button>
+
+        {plugins.filter((plugin) => plugin.type === "toolbar").map((plugin) => (
+          <Tooltip key={plugin.id}>
+            <TooltipTrigger asChild>
+              <ToggleGroupItem
+                value={plugin.id}
+                aria-label={`Toggle ${plugin.title} panel`}
+                className={cn(
+                  "grow md:grow-0",
+                  toolbar === plugin.id ? "bg-accent" : ""
+                )}
+              >
+                <plugin.icon />
+              </ToggleGroupItem>
+            </TooltipTrigger>
+            <TooltipContent>Toggle {plugin.title}</TooltipContent>
+          </Tooltip>
+        ))}
+      </ToggleGroup>
     ) : (
       <span />
     )
 
+  const toolbarPlugin = file && toolbar ? plugins.find((plugin) => plugin.id === toolbar) : null
+
   return (
-    <div className="flex items-center justify-between p-4 border-b overflow-hidden">
-      <div className="flex items-start flex-1">{left}</div>
-      {center && (
-        <div className="flex items-center grow justify-center truncate">
-          {center}
-        </div>
-      )}
-      {right && (
-        <div className="flex items-end justify-end flex-1">{right}</div>
-      )}
-    </div>
+    <>
+      <div className="flex items-center justify-between p-4 border-b overflow-hidden">
+        <div className="flex items-start flex-1">{left}</div>
+        {center && (
+          <div className="flex items-center grow justify-center truncate">
+            {center}
+          </div>
+        )}
+        {right && (
+          <div className="flex items-end justify-end flex-1">{right}</div>
+        )}
+      </div>
+
+      {toolbarPlugin && toolbarPlugin.component}
+    </>
   )
 }
