@@ -5,7 +5,7 @@
 import {
   extractStrings,
   type StringEncoding
-} from "@hexed/binary-utils/strings"
+} from "@hexed/file/strings"
 import { createLogger } from "@hexed/logger"
 
 import { FileHandleManager } from "./file-handle-manager"

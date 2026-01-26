@@ -1,5 +1,5 @@
-import { formatDataIntoRows } from "@hexed/binary-utils/formatter"
-import type { FormattedRow } from "@hexed/binary-utils/formatter"
+import { formatDataIntoRows } from "@hexed/file/formatter"
+import type { FormattedRow } from "@hexed/file/formatter"
 import type { DiffResult } from "@hexed/types"
 
 import {

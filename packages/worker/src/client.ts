@@ -2,7 +2,7 @@
  * Client-side API for interacting with the Worker
  */
 
-import type { StringEncoding, StringMatch } from "@hexed/binary-utils/strings"
+import type { StringEncoding, StringMatch } from "@hexed/file/strings"
 import { createLogger } from "@hexed/logger"
 
 import type {

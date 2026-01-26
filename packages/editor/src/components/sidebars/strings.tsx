@@ -3,8 +3,8 @@ import type { CSSProperties, FunctionComponent } from "react"
 import { ArrowLeftRight, Search, Type, X } from "lucide-react"
 import { FixedSizeList } from "react-window"
 
-import { formatAddress } from "@hexed/binary-utils/formatter"
-import type { StringEncoding, StringMatch } from "@hexed/binary-utils/strings"
+import { formatAddress } from "@hexed/file/formatter"
+import type { StringEncoding, StringMatch } from "@hexed/file/strings"
 import { SelectionRange } from "@hexed/canvas"
 import {
   Button,

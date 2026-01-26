@@ -1,5 +1,5 @@
 {
-  "name": "@hexed/binary-utils",
+  "name": "@hexed/file",
   "version": "0.0.1",
   "private": true,
   "type": "module",
@@ -12,7 +12,8 @@
     "./interpreter": "./src/interpreter.ts",
     "./storage": "./src/storage.ts",
     "./strings": "./src/strings.ts",
-    "./search": "./src/search.ts"
+    "./search": "./src/search.ts",
+    "./file": "./src/file.ts"
   },
   "scripts": {
     "typecheck": "tsc --noEmit",

@@ -3,7 +3,8 @@ import {
   useHexedInput,
   useHexedSettings,
   Brand,
-  HexedProviders
+  HexedProviders,
+  useHexedState
 } from "@hexed/editor"
 import { useMemo } from "react"
 import { useQueryParams } from "~/hooks/use-query-param-state"
@@ -20,9 +21,10 @@ export function HexedBrandRoute() {
 
   const [input, setInput] = useHexedInput()
   const settings = useHexedSettings(overrides)
+  const [state] = useHexedState()
 
   return (
-    <HexedProviders input={input} onChangeInput={setInput} settings={settings}>
+    <HexedProviders input={input} onChangeInput={setInput} settings={settings} state={state}>
       <div className="flex flex-col h-dvh items-center justify-center bg-muted/30">
         <Brand />
       </div>

@@ -8,7 +8,7 @@ import {
   Type
 } from "lucide-react"
 
-import { formatFileSize } from "@hexed/binary-utils/formatter"
+import { formatFileSize } from "@hexed/file/formatter"
 import type { BinarySnapshot } from "@hexed/types"
 import {
   Button,

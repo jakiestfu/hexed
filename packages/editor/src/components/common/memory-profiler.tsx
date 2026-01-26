@@ -1,6 +1,6 @@
 import type { FunctionComponent } from "react"
 
-import { formatBytes } from "@hexed/binary-utils/formatter"
+import { formatBytes } from "@hexed/file/formatter"
 import { Popover, PopoverContent, PopoverTrigger } from "@hexed/ui"
 
 import { usePerformanceMetrics } from "../../hooks/use-performance-metrics"

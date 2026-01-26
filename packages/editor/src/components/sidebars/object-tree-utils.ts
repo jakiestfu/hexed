@@ -1,4 +1,4 @@
-import { formatBytesPreview, formatHex } from "@hexed/binary-utils/formatter"
+import { formatBytesPreview, formatHex } from "@hexed/file/formatter"
 
 export type TreeNodeType =
   | "object"

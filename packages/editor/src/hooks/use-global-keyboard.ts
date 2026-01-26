@@ -1,7 +1,7 @@
 import { useCallback } from "react"
 import { useHotkeys } from "react-hotkeys-hook"
 
-import { toHexString } from "@hexed/binary-utils/formatter"
+import { toHexString } from "@hexed/file/formatter"
 
 import { useHexedSettingsContext } from "../providers/hexed-settings-provider"
 import { useHexedStateContext } from "../providers/hexed-state-provider"

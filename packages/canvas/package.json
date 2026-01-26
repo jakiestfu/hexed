@@ -15,7 +15,7 @@
     "format:fix": "prettier --write \"**/*.{js,cjs,mjs,ts,tsx,mdx}\" --ignore-path=\"../../.prettierignore\""
   },
   "dependencies": {
-    "@hexed/binary-utils": "workspace:*",
+    "@hexed/file": "workspace:*",
     "@hexed/types": "workspace:*"
   },
   "devDependencies": {

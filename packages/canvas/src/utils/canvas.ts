@@ -1,6 +1,6 @@
-import { getDiffAtOffset } from "@hexed/binary-utils/differ"
-import { formatAddress } from "@hexed/binary-utils/formatter"
-import type { FormattedRow } from "@hexed/binary-utils/formatter"
+import { getDiffAtOffset } from "@hexed/file/differ"
+import { formatAddress } from "@hexed/file/formatter"
+import type { FormattedRow } from "@hexed/file/formatter"
 import type { DiffResult } from "@hexed/types"
 
 import type { HexCanvasColors } from "./colors"

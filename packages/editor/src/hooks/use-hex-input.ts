@@ -1,7 +1,7 @@
 import * as React from "react"
 
-import { toAsciiString, toHexString } from "@hexed/binary-utils/formatter"
-import { parseHexString } from "@hexed/binary-utils/search"
+import { toAsciiString, toHexString } from "@hexed/file/formatter"
+import { parseHexString } from "@hexed/file/search"
 
 export interface UseHexInputOptions {
   /** Input mode: "hex" for byte-by-byte hex input, "text" for normal text input */

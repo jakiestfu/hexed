@@ -2,7 +2,7 @@
  * Message protocol for worker communication
  */
 
-import type { StringEncoding, StringMatch } from "@hexed/binary-utils/strings"
+import type { StringEncoding, StringMatch } from "@hexed/file/strings"
 
 export type MessageType =
   | "OPEN_FILE"

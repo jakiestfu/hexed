@@ -1,4 +1,4 @@
-import type { FormattedRow } from "@hexed/binary-utils/formatter"
+import type { FormattedRow } from "@hexed/file/formatter"
 
 import { getAsciiStartX } from "./canvas"
 

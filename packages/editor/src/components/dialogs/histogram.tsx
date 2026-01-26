@@ -2,7 +2,7 @@ import { useMemo, useState, type FunctionComponent } from "react"
 import { Check, ChevronsUpDown, X } from "lucide-react"
 import { Bar, BarChart, CartesianGrid, XAxis, YAxis } from "recharts"
 
-import { byteToHex } from "@hexed/binary-utils/formatter"
+import { byteToHex } from "@hexed/file/formatter"
 import {
   Badge,
   Button,

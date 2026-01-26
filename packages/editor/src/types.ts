@@ -1,4 +1,5 @@
-import type { Endianness, NumberFormat } from "@hexed/binary-utils/interpreter"
+import type { Endianness, NumberFormat } from "@hexed/file/interpreter"
+import type { HexedFileInput } from "@hexed/file"
 import type { BinarySnapshot } from "@hexed/types"
 
 export type FileSource = "file-system"
@@ -43,10 +44,4 @@ export type EditorProps = {
   // setTheme?: (theme: string) => void
 }
 
-export type HexedFileInput =
-  | FileSystemFileHandle
-  | File
-  | ArrayBufferView<ArrayBuffer>
-  | string
-  | null
-  | undefined
+export type { HexedFileInput }

@@ -18,7 +18,7 @@
   },
   "dependencies": {
     "@hexed/binary-templates": "workspace:*",
-    "@hexed/binary-utils": "workspace:*",
+    "@hexed/file": "workspace:*",
     "@hexed/canvas": "workspace:*",
     "@hexed/logger": "workspace:*",
     "@hexed/types": "workspace:*",

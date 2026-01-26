@@ -2,7 +2,7 @@ import { useEffect, useRef, useState } from "react"
 import type { FunctionComponent } from "react"
 import { Clock, FolderOpen, Loader2 } from "lucide-react"
 
-import { formatFileSize } from "@hexed/binary-utils/formatter"
+import { formatFileSize } from "@hexed/file/formatter"
 import {
   Button,
   Card,

@@ -67,3 +67,7 @@ export {
   searchTextAll,
   parseHexString,
 } from './search';
+
+// File
+export { HexedFile } from './file';
+export type { HexedFileInput, HexedFileOptions, ByteRange } from './types';

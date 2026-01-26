@@ -164,33 +164,11 @@ importers:
         specifier: ^5.7.2
         version: 5.9.3
 
-  packages/binary-utils:
-    dependencies:
-      '@hexed/types':
-        specifier: workspace:*
-        version: link:../types
-    devDependencies:
-      '@hexed/eslint-config':
-        specifier: workspace:*
-        version: link:../../tooling/eslint-config
-      '@hexed/prettier-config':
-        specifier: workspace:*
-        version: link:../../tooling/prettier-config
-      '@hexed/typescript-config':
-        specifier: workspace:*
-        version: link:../../tooling/typescript-config
-      '@types/node':
-        specifier: ^25.0.3
-        version: 25.0.3
-      typescript:
-        specifier: ^5.7.2
-        version: 5.9.3
-
   packages/canvas:
     dependencies:
-      '@hexed/binary-utils':
+      '@hexed/file':
         specifier: workspace:*
-        version: link:../binary-utils
+        version: link:../file
       '@hexed/types':
         specifier: workspace:*
         version: link:../types
@@ -225,12 +203,12 @@ importers:
       '@hexed/binary-templates':
         specifier: workspace:*
         version: link:../binary-templates
-      '@hexed/binary-utils':
-        specifier: workspace:*
-        version: link:../binary-utils
       '@hexed/canvas':
         specifier: workspace:*
         version: link:../canvas
+      '@hexed/file':
+        specifier: workspace:*
+        version: link:../file
       '@hexed/logger':
         specifier: workspace:*
         version: link:../logger
@@ -289,6 +267,28 @@ importers:
       typescript:
         specifier: ^5.7.2
         version: 5.8.3
+
+  packages/file:
+    dependencies:
+      '@hexed/types':
+        specifier: workspace:*
+        version: link:../types
+    devDependencies:
+      '@hexed/eslint-config':
+        specifier: workspace:*
+        version: link:../../tooling/eslint-config
+      '@hexed/prettier-config':
+        specifier: workspace:*
+        version: link:../../tooling/prettier-config
+      '@hexed/typescript-config':
+        specifier: workspace:*
+        version: link:../../tooling/typescript-config
+      '@types/node':
+        specifier: ^25.0.3
+        version: 25.0.3
+      typescript:
+        specifier: ^5.7.2
+        version: 5.9.3
 
   packages/logger:
     devDependencies:
@@ -494,9 +494,9 @@ importers:
 
   packages/worker:
     dependencies:
-      '@hexed/binary-utils':
+      '@hexed/file':
         specifier: workspace:*
-        version: link:../binary-utils
+        version: link:../file
       '@hexed/logger':
         specifier: workspace:*
         version: link:../logger
