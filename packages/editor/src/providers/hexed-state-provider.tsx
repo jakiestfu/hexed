@@ -5,12 +5,12 @@ import {
   useContext
 } from "react"
 
-import { UseHexedState } from "../hooks/use-hexed-state"
+import { HexedState } from "../hooks/use-hexed-state"
 
 /**
  * Context for the editor state
  */
-const HexedStateContext = createContext<UseHexedState[0] | null>(null)
+const HexedStateContext = createContext<HexedState | null>(null)
 
 /**
  * Provider component that provides the editor state
@@ -18,7 +18,7 @@ const HexedStateContext = createContext<UseHexedState[0] | null>(null)
  */
 export const HexedStateProvider: FunctionComponent<
   PropsWithChildren<{
-    value: UseHexedState[0]
+    value: HexedState
   }>
 > = ({ children, value }) => (
   <HexedStateContext.Provider value={value}>

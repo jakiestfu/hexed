@@ -29,6 +29,7 @@ import { HexSidebar } from "./hex-sidebar"
 import { HexToolbar } from "./hex-toolbar"
 import { HexToolbarDiff } from "./hex-toolbar-diff"
 import { HexToolbarSearch } from "./hex-toolbar-search"
+import { plugins } from "../../plugins/core"
 
 export const Editor: FunctionComponent<EditorProps> = ({
   className = "",
@@ -122,6 +123,7 @@ export const Editor: FunctionComponent<EditorProps> = ({
         minSize={30}
         filePath={hexedFile?.getHandle()?.name}
         fileId={handleId ?? undefined}
+        plugins={plugins}
       />
     ) : null
 
@@ -135,19 +137,20 @@ export const Editor: FunctionComponent<EditorProps> = ({
         className="gap-0 h-full"
       >
         <CardHeader className="p-0! gap-0 m-0 bg-muted/30">
-            <HexToolbar
-              left={
-                <Logo
-                  onChangeInput={onChangeInput}
-                />
-              }
-              file={hexedFile}
-              fileSource={fileSource}
-              isConnected={Boolean(hexedFile?.getHandle())}
-              error={null}
-              onRestartWatching={() => { }}
-              onClose={() => onChangeInput(null)}
-            />
+          <HexToolbar
+            left={
+              <Logo
+                onChangeInput={onChangeInput}
+                plugins={plugins}
+              />
+            }
+            file={hexedFile}
+            fileSource={fileSource}
+            isConnected={Boolean(hexedFile?.getHandle())}
+            error={null}
+            onRestartWatching={() => { }}
+            onClose={() => onChangeInput(null)}
+          />
           <HexToolbarSearch inputRef={searchInputRef} />
           {/* <HexToolbarTabs snapshots={snapshots} /> */}
           <HexToolbarDiff diff={diff} />
@@ -198,6 +201,7 @@ export const Editor: FunctionComponent<EditorProps> = ({
             totalSize={hexedFile?.size}
             hasSnapshots={false}
             paneToggleValue={paneToggleValue}
+            plugins={plugins}
           />
         </CardFooter>
       </Tabs>

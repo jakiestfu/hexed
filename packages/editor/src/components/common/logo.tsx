@@ -8,6 +8,7 @@ import { OnHexedFileChange } from "../../hooks/use-hexed-file"
 import { useHexedFileContext } from "../../providers/hexed-file-provider"
 import { useHexedStateContext } from "../../providers/hexed-state-provider"
 import { Menu } from "./menu"
+import { HexedPlugin } from "../../plugins/types"
 
 export type { MenuItem } from "./menu"
 
@@ -79,11 +80,10 @@ export const Brand: FunctionComponent<{
 
 export const Logo: FunctionComponent<{
   inline?: boolean
-  // currentSnapshot?: BinarySnapshot | null
-  onChangeInput: OnHexedFileChange
-}> = ({ inline = false, onChangeInput }) => {
+  plugins: HexedPlugin[]
+}> = ({ inline = false, plugins }) => {
   const {
-    input: { hexedFile }
+    input: { hexedFile },
   } = useHexedFileContext()
   const { showHistogram, handleToggleHistogram } = useHexedStateContext()
 
@@ -108,7 +108,7 @@ export const Logo: FunctionComponent<{
               handleToggleHistogram()
             }
           }}
-          onChangeInput={onChangeInput}
+          plugins={plugins}
         />
       </DropdownMenu>
     </div>

@@ -26,6 +26,7 @@ import {
   Hotkeys,
   OnHexedFileChange,
   Sidebar,
+  useHexedFileContext,
   useHexedSettingsContext,
   useRecentFiles
 } from "@hexed/editor"
@@ -50,6 +51,7 @@ import {
 
 import { Theme } from "../../providers/theme-provider"
 import { AboutDialog } from "../dialogs/about-dialog"
+import { HexedPlugin } from "../../plugins/types"
 
 export type MenuItem = {
   label: string
@@ -62,16 +64,16 @@ export type MenuProps = {
   showHistogram: boolean
   onShowHistogramChange: (show: boolean) => void
   onNavigate?: (path: string) => void
-  onChangeInput: OnHexedFileChange
+  plugins: HexedPlugin[]
 }
 
 export const Menu: FunctionComponent<MenuProps> = ({
   // currentSnapshot,
   showHistogram,
   onShowHistogramChange,
-  // packageJson,
-  onChangeInput
+  plugins,
 }) => {
+  const { onChangeInput } = useHexedFileContext()
   const { recentFiles, clearRecentFiles, removeRecentFile } = useRecentFiles()
   const {
     sidebar,
@@ -260,9 +262,19 @@ export const Menu: FunctionComponent<MenuProps> = ({
           <DropdownMenuSubContent>
             <DropdownMenuRadioGroup
               value={String(sidebar)}
-              onValueChange={(v) => setSidebar(v as Sidebar)}
+              onValueChange={(v) => setSidebar(sidebar === v ? null : v as Sidebar)}
             >
-              <DropdownMenuRadioItem
+              {plugins.filter((plugin) => plugin.type === "sidebar").map((plugin) => (
+                <DropdownMenuRadioItem
+                  key={plugin.id}
+                  value={plugin.id}
+                  className="cursor-pointer"
+                >
+                  <plugin.icon className="mr-2 h-4 w-4" />
+                  {plugin.title}
+                </DropdownMenuRadioItem>
+              ))}
+              {/* <DropdownMenuRadioItem
                 value="interpreter"
                 className="cursor-pointer"
               >
@@ -297,7 +309,7 @@ export const Menu: FunctionComponent<MenuProps> = ({
                 <DropdownMenuShortcut>
                   {Hotkeys.toggleStrings()}
                 </DropdownMenuShortcut>
-              </DropdownMenuRadioItem>
+              </DropdownMenuRadioItem> */}
             </DropdownMenuRadioGroup>
             <DropdownMenuSeparator />
             <DropdownMenuRadioGroup

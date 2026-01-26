@@ -8,22 +8,24 @@ import { useHexedFileContext } from "../../providers/hexed-file-provider"
 import { useHexedSettingsContext } from "../../providers/hexed-settings-provider"
 import { useHexedStateContext } from "../../providers/hexed-state-provider"
 import { useWorkerClient } from "../../providers/worker-provider"
-import { Interpreter } from "../sidebars/interpreter"
-import { Strings } from "../sidebars/strings"
-import { Templates } from "../sidebars/templates"
+// import { Interpreter } from "../sidebars/interpreter"
+// import { Strings } from "../sidebars/strings"
+// import { Templates } from "../sidebars/templates"
+import { HexedPlugin, HexedPluginComponent } from "../../plugins/types"
 
 export type HexSidebarProps = {
   defaultSize: number
   minSize: number
   filePath?: string
   fileId?: string
+  plugins: HexedPlugin[]
 }
 
 export const HexSidebar: FunctionComponent<HexSidebarProps> = ({
   defaultSize,
   minSize,
   filePath,
-  fileId
+  plugins,
 }) => {
   const { input: { hexedFile } } = useHexedFileContext()
   const settings = useHexedSettingsContext()
@@ -43,6 +45,9 @@ export const HexSidebar: FunctionComponent<HexSidebarProps> = ({
 
   const borderClass = settings.sidebarPosition === "left" ? "border-r" : "border-l"
 
+  const plugin = plugins.find((plugin) => plugin.id === sidebar)
+  if (!plugin) return null;
+
   return (
     <ResizablePanel
       id={sidebar}
@@ -51,7 +56,8 @@ export const HexSidebar: FunctionComponent<HexSidebarProps> = ({
       collapsible
     >
       <div className="h-full overflow-auto">
-        {sidebar === "interpreter" && (
+        {plugin.component}
+        {/* {sidebar === "interpreter" && (
           <Interpreter
             file={hexedFile}
             settings={settings}
@@ -75,7 +81,7 @@ export const HexSidebar: FunctionComponent<HexSidebarProps> = ({
             onSelectedOffsetRangeChange={setSelectedOffsetRange}
             onRangeSelectedForSearch={handleRangeSelectedForSearch}
           />
-        )}
+        )} */}
       </div>
     </ResizablePanel>
   )

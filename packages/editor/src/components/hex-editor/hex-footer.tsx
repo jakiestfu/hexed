@@ -38,17 +38,20 @@ import { useHexedSettings, type Sidebar } from "../../hooks/use-hexed-settings"
 import { useHexedSettingsContext } from "../../providers/hexed-settings-provider"
 import { useHexedStateContext } from "../../providers/hexed-state-provider"
 import { MemoryProfiler } from "../common/memory-profiler"
+import { HexedPlugin } from "../../plugins/types"
 
 export type HexFooterProps = {
   totalSize: number | undefined
   hasSnapshots: boolean
   paneToggleValue: string
+  plugins: HexedPlugin[]
 }
 
 export const HexFooter: FunctionComponent<HexFooterProps> = ({
   totalSize,
   hasSnapshots,
-  paneToggleValue
+  paneToggleValue,
+  plugins,
 }) => {
   const { showAscii, setShowAscii, showMemoryProfiler, setSidebar } =
     useHexedSettingsContext()
@@ -193,7 +196,26 @@ export const HexFooter: FunctionComponent<HexFooterProps> = ({
             size="sm"
             className="grow md:grow-0"
           >
-            <Tooltip>
+
+            {plugins.map((plugin) => (
+              <Tooltip key={plugin.id}>
+                <TooltipTrigger asChild>
+                  <ToggleGroupItem
+                    value={plugin.id}
+                    aria-label={`Toggle ${plugin.title} panel`}
+                    className={cn(
+                      "grow md:grow-0",
+                      paneToggleValue === plugin.id ? "bg-accent" : ""
+                    )}
+                  >
+                    <plugin.icon />
+                  </ToggleGroupItem>
+                </TooltipTrigger>
+                <TooltipContent>Toggle {plugin.title} panel</TooltipContent>
+              </Tooltip>
+            ))}
+
+            {/* <Tooltip>
               <TooltipTrigger asChild>
                 <ToggleGroupItem
                   value="interpreter"
@@ -243,7 +265,7 @@ export const HexFooter: FunctionComponent<HexFooterProps> = ({
                 </ToggleGroupItem>
               </TooltipTrigger>
               <TooltipContent>Toggle strings panel</TooltipContent>
-            </Tooltip>
+            </Tooltip> */}
           </ToggleGroup>
         </div>
       </div>

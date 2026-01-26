@@ -47,8 +47,6 @@ export type HexedState = {
   } | null>
 }
 
-export type UseHexedState = ReturnType<typeof useHexedState>
-
 /**
  * Hook for managing editor state
  * Returns a tuple of [state, setState] where state contains all state values and callbacks
@@ -181,20 +179,20 @@ export const useHexedState = () => {
   }
 
   // setState function that can update multiple state values
-  const setState = useCallback((updates: Partial<HexedState>) => {
-    if ("activeTab" in updates) setActiveTab(updates.activeTab!)
-    if ("dataType" in updates) setDataType(updates.dataType!)
-    if ("endianness" in updates) setEndianness(updates.endianness!)
-    if ("numberFormat" in updates) setNumberFormat(updates.numberFormat!)
-    if ("scrollToOffset" in updates) setScrollToOffset(updates.scrollToOffset!)
-    if ("selectedOffsetRange" in updates)
-      setSelectedOffsetRange(updates.selectedOffsetRange!)
-    if ("rangeToSyncToFindInput" in updates)
-      setRangeToSyncToFindInput(updates.rangeToSyncToFindInput!)
-    if ("showHistogram" in updates) setShowHistogram(updates.showHistogram!)
-    if ("showSearch" in updates) setShowSearch(updates.showSearch!)
-    if ("dimensions" in updates) setDimensions(updates.dimensions!)
-  }, [])
+  // const setState = useCallback((updates: Partial<HexedState>) => {
+  //   if ("activeTab" in updates) setActiveTab(updates.activeTab!)
+  //   if ("dataType" in updates) setDataType(updates.dataType!)
+  //   if ("endianness" in updates) setEndianness(updates.endianness!)
+  //   if ("numberFormat" in updates) setNumberFormat(updates.numberFormat!)
+  //   if ("scrollToOffset" in updates) setScrollToOffset(updates.scrollToOffset!)
+  //   if ("selectedOffsetRange" in updates)
+  //     setSelectedOffsetRange(updates.selectedOffsetRange!)
+  //   if ("rangeToSyncToFindInput" in updates)
+  //     setRangeToSyncToFindInput(updates.rangeToSyncToFindInput!)
+  //   if ("showHistogram" in updates) setShowHistogram(updates.showHistogram!)
+  //   if ("showSearch" in updates) setShowSearch(updates.showSearch!)
+  //   if ("dimensions" in updates) setDimensions(updates.dimensions!)
+  // }, [])
 
-  return [state, setState] as const
+  return state
 }

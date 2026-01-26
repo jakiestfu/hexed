@@ -26,7 +26,7 @@ export function HexEditorPage() {
 
   const [input, setInput] = useHexedFile(params.id)
   const settings = useHexedSettings(overrides)
-  const [state, setState] = useHexedState()
+  const state = useHexedState()
 
   const inputText = queryParams.params.input
   useEffect(() => {
@@ -84,7 +84,6 @@ export function HexEditorPage() {
         onChangeInput={onChangeInput}
         settings={settings}
         state={state}
-        onStateChange={setState}
       />
     </div>
   )
