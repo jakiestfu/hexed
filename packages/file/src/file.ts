@@ -489,6 +489,13 @@ export class HexedFile extends EventTarget {
   }
 
   /**
+   * Get the FileSystemFileHandle if this instance was created from one
+   */
+  getHandle(): FileSystemFileHandle | null {
+    return this.fileHandle
+  }
+
+  /**
    * Cleanup resources
    */
   disconnect(): void {

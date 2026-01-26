@@ -18,7 +18,7 @@ import {
 } from "@hexed/ui"
 
 import { useGlobalKeyboard } from "../../hooks/use-global-keyboard"
-import { useHexedInputContext } from "../../providers/hex-input-provider"
+import { useHexedFileContext } from "../../providers/hexed-file-provider"
 import { useHexedSettingsContext } from "../../providers/hexed-settings-provider"
 import { useHexedStateContext } from "../../providers/hexed-state-provider"
 import type { EditorProps } from "../../types"
@@ -35,13 +35,13 @@ export const Editor: FunctionComponent<EditorProps> = ({
   fileSource = "file-system"
 }) => {
   const {
-    input: { file, fileHandle, handleId },
+    input: { hexedFile, handleId },
     onChangeInput
-  } = useHexedInputContext()
+  } = useHexedFileContext()
   const { showAscii, sidebar, sidebarPosition } = useHexedSettingsContext()
   const state = useHexedStateContext()
 
-  const canRender = Boolean(file)
+  const canRender = Boolean(hexedFile)
 
   console.log("hex editor render")
 
@@ -103,7 +103,7 @@ export const Editor: FunctionComponent<EditorProps> = ({
       >
         <HexCanvasReact
           ref={state.canvasRef}
-          file={file}
+          hexedFile={hexedFile}
           showAscii={showAscii}
           diff={diff}
           windowSize={windowSize}
@@ -123,7 +123,7 @@ export const Editor: FunctionComponent<EditorProps> = ({
         defaultSize={30}
         minSize={30}
         data={new Uint8Array()}
-        filePath={fileHandle?.name}
+        filePath={hexedFile?.getHandle()?.name}
         fileId={handleId ?? undefined}
       />
     ) : null
@@ -138,19 +138,19 @@ export const Editor: FunctionComponent<EditorProps> = ({
         className="gap-0 h-full"
       >
         <CardHeader className="p-0! gap-0 m-0 bg-muted/30">
-          <HexToolbar
-            left={
-              <Logo
-                onChangeInput={onChangeInput}
-              />
-            }
-            file={file}
-            fileSource={fileSource}
-            isConnected={Boolean(fileHandle)}
-            error={null}
-            onRestartWatching={() => { }}
-            onClose={() => onChangeInput(null)}
-          />
+            <HexToolbar
+              left={
+                <Logo
+                  onChangeInput={onChangeInput}
+                />
+              }
+              file={hexedFile}
+              fileSource={fileSource}
+              isConnected={Boolean(hexedFile?.getHandle())}
+              error={null}
+              onRestartWatching={() => { }}
+              onClose={() => onChangeInput(null)}
+            />
           <HexToolbarSearch inputRef={searchInputRef} />
           {/* <HexToolbarTabs snapshots={snapshots} /> */}
           <HexToolbarDiff diff={diff} />
@@ -198,7 +198,7 @@ export const Editor: FunctionComponent<EditorProps> = ({
           )}
         >
           <HexFooter
-            totalSize={file?.size}
+            totalSize={hexedFile?.size}
             hasSnapshots={false}
             paneToggleValue={paneToggleValue}
           />

@@ -1,10 +1,10 @@
 import { FunctionComponent, PropsWithChildren } from "react"
 
-import { OnHexedInputChange, UseHexedInput } from "../hooks/use-hexed-input"
+import { OnHexedFileChange, UseHexedFile } from "../hooks/use-hexed-file"
 import { STORAGE_KEYS, UseHexedSettings } from "../hooks/use-hexed-settings"
 import { UseHexedState } from "../hooks/use-hexed-state"
 import { DragDropProvider } from "./drag-drop-provider"
-import { HexedInputProvider } from "./hex-input-provider"
+import { HexedFileProvider } from "./hexed-file-provider"
 import { HexedSettingsProvider } from "./hexed-settings-provider"
 import { HexedStateProvider } from "./hexed-state-provider"
 import { ThemeProvider } from "./theme-provider"
@@ -12,8 +12,8 @@ import { WorkerProvider } from "./worker-provider"
 
 export const HexedProviders: FunctionComponent<
   PropsWithChildren<{
-    input: UseHexedInput[0]
-    onChangeInput: OnHexedInputChange
+    input: UseHexedFile[0]
+    onChangeInput: OnHexedFileChange
     settings: UseHexedSettings
     state: UseHexedState[0]
   }>
@@ -23,12 +23,12 @@ export const HexedProviders: FunctionComponent<
       <ThemeProvider>
         <WorkerProvider>
           <DragDropProvider>
-            <HexedInputProvider
+            <HexedFileProvider
               input={input}
               onChangeInput={onChangeInput}
             >
               {children}
-            </HexedInputProvider>
+            </HexedFileProvider>
           </DragDropProvider>
         </WorkerProvider>
       </ThemeProvider>

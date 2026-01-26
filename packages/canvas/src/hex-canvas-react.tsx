@@ -2,20 +2,20 @@ import { forwardRef, useEffect, useRef } from "react"
 
 import {
   HexCanvasEventCallbacks,
-  useHexCanvas,
+  useHexedCanvas,
   useHexCanvasEvent,
-  UseHexCanvasOptions,
+  UseHexedCanvasOptions,
   type HexCanvasHandle
-} from "./use-hex-canvas"
+} from "./use-hexed-canvas"
 
 export type HexCanvasReactRef = HexCanvasHandle
 
 export const HexCanvasReact = forwardRef<
   HexCanvasReactRef,
-  UseHexCanvasOptions & HexCanvasEventCallbacks & { className?: string }
+  UseHexedCanvasOptions & HexCanvasEventCallbacks & { className?: string }
 >(({ className, ...props }, ref) => {
   const containerRef = useRef<HTMLDivElement | null>(null)
-  const canvas = useHexCanvas(containerRef, props, ref)
+  const canvas = useHexedCanvas(containerRef, props, ref)
   useHexCanvasEvent(canvas, "selectionChange", props.onSelectionChange)
   return (
     <div

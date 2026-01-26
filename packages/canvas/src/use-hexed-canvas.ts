@@ -1,6 +1,7 @@
 import { useEffect, useImperativeHandle, useRef } from "react"
 import type { Ref, RefObject } from "react"
 
+import { HexedFile } from "@hexed/file"
 import type { DiffResult } from "@hexed/types"
 
 import { HexCanvas, type HexCanvasOptions } from "./hex-canvas"
@@ -22,8 +23,8 @@ export type HexCanvasEventMap = {
 
 export type HexCanvasEventCallbacks = ToOnHandlers<HexCanvasEventMap>
 
-export type UseHexCanvasOptions = {
-  file: File | null
+export type UseHexedCanvasOptions = {
+  hexedFile: HexedFile | null
   showAscii?: boolean
   colors?: Partial<HexCanvasColors>
   diff?: DiffResult | null
@@ -38,7 +39,7 @@ export type HexCanvasHandle = {
   setSelectedRange: (range: SelectionRange) => void
 }
 
-export type UseHexCanvasReturn = ReturnType<typeof useHexCanvas>
+export type UseHexedCanvasReturn = ReturnType<typeof useHexedCanvas>
 
 /**
  * Type-safe hook for subscribing to HexCanvas events
@@ -95,13 +96,13 @@ export function useHexCanvasEvent<K extends keyof HexCanvasEventMap>(
  * @param options - Configuration options for the HexCanvas instance
  * @param ref - Optional ref to expose imperative handle
  */
-export function useHexCanvas(
+export function useHexedCanvas(
   containerRef: RefObject<HTMLDivElement | null>,
-  options: UseHexCanvasOptions,
+  options: UseHexedCanvasOptions,
   ref?: Ref<HexCanvasHandle>
 ) {
   const {
-    file,
+    hexedFile,
     showAscii = true,
     colors,
     diff = null,
@@ -124,17 +125,17 @@ export function useHexCanvas(
 
     canvasInstanceRef.current = new HexCanvas(
       containerRef.current,
-      file,
+      hexedFile,
       canvasOptions
     )
   }, []) // Only run once on mount
 
-  // Update file when it changes
+  // Update hexedFile when it changes
   useEffect(() => {
     if (canvasInstanceRef.current) {
-      canvasInstanceRef.current.setFile(file)
+      canvasInstanceRef.current.setHexedFile(hexedFile)
     }
-  }, [file])
+  }, [hexedFile])
 
   // Update options when they change
   useEffect(() => {

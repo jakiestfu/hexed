@@ -1,4 +1,5 @@
 import type { BinarySnapshot } from "@hexed/types"
+import type { HexedFile } from "@hexed/file"
 
 /**
  * Remove query parameters from a path or URL
@@ -120,16 +121,16 @@ export function formatTimestamp(timestamp: number): string {
 }
 
 /**
- * Create a minimal snapshot object from data and file handle
+ * Create a minimal snapshot object from data and hexed file
  * Used when components require a BinarySnapshot but we only have raw data
  */
 export function createMinimalSnapshot(
   data: Uint8Array | null,
-  fileHandle: FileSystemFileHandle | null
+  hexedFile: HexedFile | null
 ): BinarySnapshot {
   return {
     id: "current",
-    filePath: fileHandle?.name || "",
+    filePath: hexedFile?.getHandle()?.name || "",
     data: data || new Uint8Array(),
     timestamp: Date.now(),
     index: 0,

@@ -2,7 +2,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react"
 
 import type { BinarySnapshot } from "@hexed/types"
 
-import { useHexedInputContext } from "../providers/hex-input-provider"
+import { useHexedFileContext } from "../providers/hexed-file-provider"
 import { calculateChecksum, createSnapshotFromArrayBuffer } from "../utils"
 
 /**
@@ -20,10 +20,10 @@ export function useFileHandleWatcher(
   const observerRef = useRef<FileSystemObserver | null>(null)
   const snapshotIndexRef = useRef<number>(0)
 
-  // Convert handle to File using the new hook
+  // Convert handle to HexedFile using the new hook
   const {
-    input: { file, error: fileError }
-  } = useHexedInputContext()
+    input: { hexedFile, error: fileError }
+  } = useHexedFileContext()
 
   // Read file data using the new hook
   // const { data, loading: dataLoading, error: dataError } = useFileData(file)

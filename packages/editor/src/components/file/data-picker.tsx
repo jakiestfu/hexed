@@ -12,7 +12,7 @@ import {
   PopoverTrigger
 } from "@hexed/ui"
 
-import { OnHexedInputChange } from "../../hooks/use-hexed-input"
+import { OnHexedFileChange } from "../../hooks/use-hexed-file"
 import { useRecentFiles } from "../../hooks/use-recent-files"
 import { formatTimestamp, getBasename } from "../../utils"
 import type { FileHandleMetadata } from "../../utils/file-handle-storage"
@@ -21,7 +21,7 @@ import { AboutFileSystemAccessDialog } from "../dialogs/about-file-system-access
 
 type DataPickerProps = {
   recentFiles: FileHandleMetadata[]
-  onChangeInput: OnHexedInputChange
+  onChangeInput: OnHexedFileChange
 }
 
 // Recent Files Component

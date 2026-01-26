@@ -24,7 +24,7 @@ import {
   FileSourceIcon,
   formatFilenameForDisplay,
   Hotkeys,
-  OnHexedInputChange,
+  OnHexedFileChange,
   Sidebar,
   useHexedSettingsContext,
   useRecentFiles
@@ -62,7 +62,7 @@ export type MenuProps = {
   showHistogram: boolean
   onShowHistogramChange: (show: boolean) => void
   onNavigate?: (path: string) => void
-  onChangeInput: OnHexedInputChange
+  onChangeInput: OnHexedFileChange
 }
 
 export const Menu: FunctionComponent<MenuProps> = ({

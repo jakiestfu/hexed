@@ -1,6 +1,6 @@
 
 import {
-  useHexedInput,
+  useHexedFile,
   useHexedSettings,
   Brand,
   HexedProviders,
@@ -19,7 +19,7 @@ export function HexedBrandRoute() {
     [queryParams]
   )
 
-  const [input, setInput] = useHexedInput()
+  const [input, setInput] = useHexedFile()
   const settings = useHexedSettings(overrides)
   const [state] = useHexedState()
 

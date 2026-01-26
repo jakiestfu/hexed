@@ -34,7 +34,7 @@ import {
   TooltipTrigger
 } from "@hexed/ui"
 
-import { useHexedInputContext } from "../../providers/hex-input-provider"
+import { useHexedFileContext } from "../../providers/hexed-file-provider"
 import { useHexedSettingsContext } from "../../providers/hexed-settings-provider"
 import { useWorkerClient } from "../../providers/worker-provider"
 
@@ -51,8 +51,8 @@ export const Strings: FunctionComponent<{
 }) => {
   const { toggleSidebarPosition } = useHexedSettingsContext()
   const {
-    input: { fileHandle, handleId }
-  } = useHexedInputContext()
+    input: { hexedFile, handleId }
+  } = useHexedFileContext()
   const workerClient = useWorkerClient()
   const [minLength, setMinLength] = useState<number>(4)
   const [encoding, setEncoding] = useState<StringEncoding>("ascii")
@@ -66,6 +66,7 @@ export const Strings: FunctionComponent<{
   const minLengthOptions: readonly number[] = [4, 8, 10, 12, 24, 36]
 
   const handleSearch = useCallback(async () => {
+    const fileHandle = hexedFile?.getHandle()
     if (!workerClient || !handleId || !fileHandle) {
       return
     }
@@ -102,7 +103,7 @@ export const Strings: FunctionComponent<{
       setIsSearching(false)
       setSearchProgress(0)
     }
-  }, [workerClient, handleId, fileHandle, minLength, encoding])
+  }, [workerClient, handleId, hexedFile, minLength, encoding])
 
   // Calculate available height for the virtualized list
   useEffect(() => {
@@ -307,7 +308,7 @@ export const Strings: FunctionComponent<{
                 <Button
                   onClick={handleSearch}
                   disabled={
-                    isSearching || !handleId || !workerClient || !fileHandle
+                    isSearching || !handleId || !workerClient || !hexedFile?.getHandle()
                   }
                   // className="h-9"
                   size="icon"

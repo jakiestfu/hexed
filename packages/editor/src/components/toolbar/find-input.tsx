@@ -13,7 +13,7 @@ import {
 
 import { useHexInput } from "../../hooks/use-hex-input"
 import { useLocalStorage } from "../../hooks/use-local-storage"
-import { useHexedInputContext } from "../../providers/hex-input-provider"
+import { useHexedFileContext } from "../../providers/hexed-file-provider"
 import { useWorkerClient } from "../../providers/worker-provider"
 
 export type FindInputProps = {
@@ -30,8 +30,8 @@ export const FindInput: FunctionComponent<FindInputProps> = ({
   syncRangeToFindInput
 }) => {
   const {
-    input: { fileHandle, handleId }
-  } = useHexedInputContext()
+    input: { hexedFile, handleId }
+  } = useHexedFileContext()
   const workerClient = useWorkerClient()
   const [searchMode, setSearchMode] = useLocalStorage<"hex" | "text">(
     "hexed:find-input-mode",
@@ -123,6 +123,7 @@ export const FindInput: FunctionComponent<FindInputProps> = ({
       currentSearchRequestIdRef.current = null
     }
 
+    const fileHandle = hexedFile?.getHandle()
     if (
       !searchQuery.trim() ||
       !handleId ||
@@ -245,7 +246,7 @@ export const FindInput: FunctionComponent<FindInputProps> = ({
         setIsSearching(false)
       }
     }
-  }, [searchQuery, searchMode, handleId, fileHandle, workerClient, bytes])
+  }, [searchQuery, searchMode, handleId, hexedFile, workerClient, bytes])
 
   // Navigate to match at current index
   useEffect(() => {

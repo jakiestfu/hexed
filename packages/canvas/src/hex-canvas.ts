@@ -1,5 +1,6 @@
 import { formatDataIntoRows } from "@hexed/file/formatter"
 import type { FormattedRow } from "@hexed/file/formatter"
+import { HexedFile } from "@hexed/file"
 import type { DiffResult } from "@hexed/types"
 
 import {
@@ -18,7 +19,6 @@ import {
   getRowFromY as getRowFromYUtil,
   type LayoutMetrics
 } from "./utils/coordinates"
-import { FileByteCache } from "./utils/file-byte-cache"
 import {
   getPointerEventData,
   getDistance,
@@ -43,8 +43,7 @@ export class HexCanvas extends EventTarget {
   private container: HTMLElement
   private canvas: HTMLCanvasElement
   private ctx: CanvasRenderingContext2D
-  private file: File | null = null
-  private cache: FileByteCache | null = null
+  private hexedFile: HexedFile | null = null
 
   // Options
   private options: Required<HexCanvasOptions> = {
@@ -124,7 +123,7 @@ export class HexCanvas extends EventTarget {
 
   constructor(
     container: HTMLElement,
-    file: File | null,
+    hexedFile: HexedFile | null,
     options: HexCanvasOptions = {}
   ) {
     super()
@@ -156,8 +155,8 @@ export class HexCanvas extends EventTarget {
     // Set up dimensions tracking
     this.setupDimensionsTracking()
 
-    // Set file
-    this.setFile(file)
+    // Set hexed file
+    this.setHexedFile(hexedFile)
 
     // Set up event listeners
     this.setupEventListeners()
@@ -209,11 +208,8 @@ export class HexCanvas extends EventTarget {
     )
 
     if (this.layout) {
-      // If bytesPerRow changed, clear the row cache and force reload
+      // If bytesPerRow changed, force reload
       if (oldBytesPerRow !== undefined && oldBytesPerRow !== this.layout.bytesPerRow) {
-        if (this.cache) {
-          this.cache.clearRowCache()
-        }
         // Clear loaded bytes to force recalculation
         this.loadedBytes = new Uint8Array(0)
         this.lastLoadedRange = null
@@ -223,17 +219,22 @@ export class HexCanvas extends EventTarget {
 
       // Update total height and max scroll
       this.updateScrollBounds()
+      
+      // Always trigger file update when layout recalculates to ensure proper rendering
+      if (this.hexedFile) {
+        this.triggerFileUpdate()
+      }
     }
   }
 
   private updateScrollBounds(): void {
-    if (!this.layout || !this.cache) {
+    if (!this.layout || !this.hexedFile) {
       this.totalHeight = 0
       this.maxScrollTop = 0
       return
     }
 
-    const rowsLength = Math.ceil(this.cache.size / this.layout.bytesPerRow)
+    const rowsLength = Math.ceil(this.hexedFile.size / this.layout.bytesPerRow)
     // totalHeight is now the content height (all rows + padding)
     this.totalHeight = calculateTotalHeight(
       rowsLength,
@@ -248,20 +249,18 @@ export class HexCanvas extends EventTarget {
     this.scrollTop = Math.min(this.scrollTop, this.maxScrollTop)
   }
 
-  setFile(file: File | null): void {
-    if (this.file === file) return
+  setHexedFile(hexedFile: HexedFile | null): void {
+    if (this.hexedFile === hexedFile) return
 
-    this.file = file
+    this.hexedFile = hexedFile
 
-    if (file) {
-      this.cache = new FileByteCache(file, this.options.windowSize)
+    if (hexedFile) {
       this.lastLoadedRange = null
       this.pendingScrollTop = null
       this.isLoadingChunks = false
       this.updateScrollBounds()
       this.triggerFileUpdate()
     } else {
-      this.cache = null
       this.visibleByteRange = { start: 0, end: 0 }
       this.loadedBytes = new Uint8Array(0)
       this.lastLoadedRange = null
@@ -279,14 +278,8 @@ export class HexCanvas extends EventTarget {
       this.recalculateLayout()
     }
 
-    if (options.windowSize && this.cache) {
-      // Recreate cache with new window size
-      if (this.file) {
-        this.cache = new FileByteCache(this.file, options.windowSize)
-        this.lastLoadedRange = null
-        this.triggerFileUpdate()
-      }
-    }
+    // Note: windowSize option is handled by HexedFile's chunkSize option
+    // No need to recreate anything here
   }
 
   private setupEventListeners(): void {
@@ -856,9 +849,9 @@ export class HexCanvas extends EventTarget {
 
     if (keyboardSelectedOffset === null) return
 
-    if (!this.layout || !this.cache) return
+    if (!this.layout || !this.hexedFile) return
 
-    const dataLength = this.cache.size
+    const dataLength = this.hexedFile.size
     const bytesPerRow = this.layout.bytesPerRow
     const viewportHeight = this.dimensions.height
     const rowHeight = this.layout.rowHeight
@@ -945,17 +938,17 @@ export class HexCanvas extends EventTarget {
   }
 
   private getRowFromY(mouseY: number): number | null {
-    if (!this.layout || !this.cache) return null
+    if (!this.layout || !this.hexedFile) return null
     return getRowFromYUtil(
       mouseY,
       this.scrollTop,
       this.layout,
-      Math.ceil(this.cache.size / this.layout.bytesPerRow)
+      Math.ceil(this.hexedFile.size / this.layout.bytesPerRow)
     )
   }
 
   private getOffsetFromPosition(mouseX: number, mouseY: number): number | null {
-    if (!this.layout || !this.cache) return null
+    if (!this.layout || !this.hexedFile) return null
 
     const rows = this.getFormattedRows()
     return getOffsetFromPositionUtil(
@@ -965,12 +958,12 @@ export class HexCanvas extends EventTarget {
       rows,
       this.options.showAscii,
       (y: number) => this.getRowFromY(y),
-      this.cache.size
+      this.hexedFile.size
     )
   }
 
   private getFormattedRows(): FormattedRow[] {
-    if (!this.cache || this.loadedBytes.length === 0) return []
+    if (!this.hexedFile || this.loadedBytes.length === 0) return []
 
     // Use the start offset from the loaded range (includes overscan), otherwise fall back to visibleByteRange
     const rangeToUse = this.lastLoadedRange || this.visibleByteRange
@@ -989,9 +982,9 @@ export class HexCanvas extends EventTarget {
     this.pendingScrollTop = clamped
 
     // Check if chunks are already loaded for this scroll position
-    if (this.layout && this.cache) {
+    if (this.layout && this.hexedFile) {
       const requiredRange = this.calculateRequiredByteRange(clamped)
-      if (this.cache.isRangeLoaded(requiredRange)) {
+      if (this.hexedFile.isRangeLoaded(requiredRange)) {
         // Chunks already loaded, update scroll position immediately
         this.commitScrollPosition(clamped)
       } else {
@@ -999,7 +992,7 @@ export class HexCanvas extends EventTarget {
         // The scroll position will be committed after chunks load
       }
     } else {
-      // No layout or cache yet, commit immediately
+      // No layout or hexedFile yet, commit immediately
       this.commitScrollPosition(clamped)
     }
   }
@@ -1015,7 +1008,7 @@ export class HexCanvas extends EventTarget {
   }
 
   private calculateRequiredByteRange(scrollTop: number): ByteRange {
-    if (!this.layout || !this.cache) {
+    if (!this.layout || !this.hexedFile) {
       return { start: 0, end: 0 }
     }
 
@@ -1032,7 +1025,7 @@ export class HexCanvas extends EventTarget {
     const overscan = this.layout.bytesPerRow * 5
     const startByte = Math.max(0, startRow * this.layout.bytesPerRow - overscan)
     const endByte = Math.min(
-      this.cache.size,
+      this.hexedFile.size,
       endRow * this.layout.bytesPerRow + overscan
     )
 
@@ -1220,7 +1213,7 @@ export class HexCanvas extends EventTarget {
   // File reading and windowing
   private startFileReadingLoop(): void {
     const update = async () => {
-      if (!this.layout || !this.cache || this.dimensions.height === 0) {
+      if (!this.layout || !this.hexedFile || this.dimensions.height === 0) {
         this.fileRafId = requestAnimationFrame(update)
         return
       }
@@ -1270,7 +1263,7 @@ export class HexCanvas extends EventTarget {
   }
 
   private calculateVisibleByteRangeForScroll(scrollTop: number): ByteRange {
-    if (!this.layout || !this.cache) {
+    if (!this.layout || !this.hexedFile) {
       return { start: 0, end: 0 }
     }
 
@@ -1284,7 +1277,7 @@ export class HexCanvas extends EventTarget {
     )
 
     const startByte = startRow * this.layout.bytesPerRow
-    const endByte = Math.min(endRow * this.layout.bytesPerRow, this.cache.size)
+    const endByte = Math.min(endRow * this.layout.bytesPerRow, this.hexedFile.size)
 
     return { start: startByte, end: endByte }
   }
@@ -1295,15 +1288,15 @@ export class HexCanvas extends EventTarget {
   }
 
   private async loadChunksForRange(range: ByteRange): Promise<boolean> {
-    if (!this.cache || !this.layout) return false
+    if (!this.hexedFile || !this.layout) return false
 
     // Add overscan (5 rows)
     const overscan = this.layout.bytesPerRow * 5
     const startByte = Math.max(0, range.start - overscan)
-    const endByte = Math.min(this.cache.size, range.end + overscan)
+    const endByte = Math.min(this.hexedFile.size, range.end + overscan)
 
     // Check if range is already loaded
-    if (this.cache.isRangeLoaded({ start: startByte, end: endByte })) {
+    if (this.hexedFile.isRangeLoaded({ start: startByte, end: endByte })) {
       // Update lastLoadedRange to reflect current state
       this.lastLoadedRange = { start: startByte, end: endByte }
       return true
@@ -1328,7 +1321,7 @@ export class HexCanvas extends EventTarget {
     this.isLoadingChunks = true
 
     try {
-      await this.cache.ensureRange(
+      await this.hexedFile.ensureRange(
         { start: startByte, end: endByte },
         { signal: this.abortController.signal }
       )
@@ -1352,7 +1345,7 @@ export class HexCanvas extends EventTarget {
   }
 
   private updateLoadedBytes(): void {
-    if (!this.cache || !this.layout) {
+    if (!this.hexedFile || !this.layout) {
       this.loadedBytes = new Uint8Array(0)
       return
     }
@@ -1361,16 +1354,17 @@ export class HexCanvas extends EventTarget {
     // This ensures consistency with getFormattedRows() which uses the same logic
     const rangeToUse = this.lastLoadedRange || this.visibleByteRange
     const { start, end } = rangeToUse
-    const startRow = Math.floor(start / this.layout.bytesPerRow)
-    const endRow = Math.ceil(end / this.layout.bytesPerRow)
-
-    const bytes: number[] = []
-    for (let rowIndex = startRow; rowIndex < endRow; rowIndex++) {
-      const rowBytes = this.cache.getRowBytes(rowIndex, this.layout.bytesPerRow)
-      bytes.push(...Array.from(rowBytes))
+    
+    // Ensure range is loaded before reading
+    if (!this.hexedFile.isRangeLoaded(rangeToUse)) {
+      // Range not loaded yet, return empty array
+      // Will be updated when range loads
+      return
     }
-
-    this.loadedBytes = new Uint8Array(bytes)
+    
+    // Read bytes directly from HexedFile
+    const bytes = this.hexedFile.readBytes(start, end - start)
+    this.loadedBytes = bytes || new Uint8Array(0)
   }
 
   private triggerFileUpdate(): void {
@@ -1428,7 +1422,7 @@ export class HexCanvas extends EventTarget {
         this.selectedOffsetRange,
         this.hoveredRow,
         this.hoveredOffset,
-        this.cache?.size,
+        this.hexedFile?.size,
         this.lastLoadedRange?.start ?? this.visibleByteRange.start,
         this.lastLoadedRange?.end ?? this.visibleByteRange.end
       )
@@ -1522,7 +1516,6 @@ export class HexCanvas extends EventTarget {
     }
 
     // Clear state
-    this.cache = null
-    this.file = null
+    this.hexedFile = null
   }
 }

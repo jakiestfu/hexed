@@ -1,13 +1,13 @@
+import { HexedFile } from "@hexed/file"
+
 import type { LayoutMetrics } from "./coordinates"
-import { FileByteCache } from "./file-byte-cache"
 
 type ByteRange = { start: number; end: number }
 
 type ScrollTopRef = { current: number | null | undefined }
 
 export class FileScrollManager {
-  private file: File | null = null
-  private cache: FileByteCache | null = null
+  private hexedFile: HexedFile | null = null
   private scrollTopRef: ScrollTopRef
   private layout: LayoutMetrics | null = null
   private dimensions: { width: number; height: number } = {
@@ -33,24 +33,21 @@ export class FileScrollManager {
   private isLoadingChunks: boolean = false
 
   constructor(params: {
-    file: File | null
+    hexedFile: HexedFile | null
     scrollTopRef: ScrollTopRef
     bytesPerRow: number
-    chunkSize?: number
   }) {
     this.scrollTopRef = params.scrollTopRef
     this.bytesPerRow = params.bytesPerRow
-    this.chunkSize = params.chunkSize ?? 64 * 1024
-    this.setFile(params.file)
+    this.setHexedFile(params.hexedFile)
     this.startRafLoop()
   }
 
-  setFile(file: File | null): void {
-    if (this.file === file) return
+  setHexedFile(hexedFile: HexedFile | null): void {
+    if (this.hexedFile === hexedFile) return
 
-    this.file = file
-    if (file) {
-      this.cache = new FileByteCache(file, this.chunkSize)
+    this.hexedFile = hexedFile
+    if (hexedFile) {
       // Reset last loaded range so we reload chunks
       this.lastLoadedRange = null
       this.pendingScrollTop = null
@@ -58,7 +55,6 @@ export class FileScrollManager {
       // Trigger update to load initial chunks
       this.triggerUpdate()
     } else {
-      this.cache = null
       this.visibleByteRangeRef.current = { start: 0, end: 0 }
       this.loadedBytesRef.current = new Uint8Array(0)
       this.lastLoadedRange = null
@@ -84,7 +80,7 @@ export class FileScrollManager {
 
   private triggerUpdate(): void {
     // Only update if we have the necessary data
-    if (!this.layout || !this.cache || this.dimensions.height === 0) {
+    if (!this.layout || !this.hexedFile || this.dimensions.height === 0) {
       return
     }
 
@@ -130,7 +126,7 @@ export class FileScrollManager {
   }
 
   getFileSize(): number | undefined {
-    return this.cache?.size
+    return this.hexedFile?.size
   }
 
   scrollToOffset(offset: number): void {
@@ -147,9 +143,9 @@ export class FileScrollManager {
     this.pendingScrollTop = clampedScrollTop
 
     // Check if chunks are already loaded for this scroll position
-    if (this.cache && this.layout) {
+    if (this.hexedFile && this.layout) {
       const requiredRange = this.calculateRequiredByteRange(clampedScrollTop)
-      if (this.cache.isRangeLoaded(requiredRange)) {
+      if (this.hexedFile.isRangeLoaded(requiredRange)) {
         // Chunks already loaded, commit scroll position immediately
         if (this.scrollTopRef.current !== undefined) {
           this.scrollTopRef.current = clampedScrollTop
@@ -158,7 +154,7 @@ export class FileScrollManager {
       }
       // Otherwise, will be handled by RAF loop
     } else {
-      // No cache or layout yet, commit immediately
+      // No hexedFile or layout yet, commit immediately
       if (this.scrollTopRef.current !== undefined) {
         this.scrollTopRef.current = clampedScrollTop
       }
@@ -167,7 +163,7 @@ export class FileScrollManager {
   }
 
   private calculateVisibleByteRange(): ByteRange {
-    if (!this.layout || !this.cache) {
+    if (!this.layout || !this.hexedFile) {
       return { start: 0, end: 0 }
     }
 
@@ -184,13 +180,13 @@ export class FileScrollManager {
     )
 
     const startByte = startRow * this.bytesPerRow
-    const endByte = Math.min(endRow * this.bytesPerRow, this.cache.size)
+    const endByte = Math.min(endRow * this.bytesPerRow, this.hexedFile.size)
 
     return { start: startByte, end: endByte }
   }
 
   private calculateRequiredByteRange(scrollTop: number): ByteRange {
-    if (!this.layout || !this.cache) {
+    if (!this.layout || !this.hexedFile) {
       return { start: 0, end: 0 }
     }
 
@@ -207,7 +203,7 @@ export class FileScrollManager {
     const overscan = this.bytesPerRow * 5
     const startByte = Math.max(0, startRow * this.bytesPerRow - overscan)
     const endByte = Math.min(
-      this.cache.size,
+      this.hexedFile.size,
       endRow * this.bytesPerRow + overscan
     )
 
@@ -215,15 +211,15 @@ export class FileScrollManager {
   }
 
   private async loadChunksForRange(range: ByteRange): Promise<boolean> {
-    if (!this.cache || !this.layout) return false
+    if (!this.hexedFile || !this.layout) return false
 
     // Add overscan (5 rows)
     const overscan = this.bytesPerRow * 5
     const startByte = Math.max(0, range.start - overscan)
-    const endByte = Math.min(this.cache.size, range.end + overscan)
+    const endByte = Math.min(this.hexedFile.size, range.end + overscan)
 
     // Check if range is already loaded
-    if (this.cache.isRangeLoaded({ start: startByte, end: endByte })) {
+    if (this.hexedFile.isRangeLoaded({ start: startByte, end: endByte })) {
       // Update lastLoadedRange to reflect current state
       this.lastLoadedRange = { start: startByte, end: endByte }
       return true
@@ -248,7 +244,7 @@ export class FileScrollManager {
     this.isLoadingChunks = true
 
     try {
-      await this.cache.ensureRange(
+      await this.hexedFile.ensureRange(
         { start: startByte, end: endByte },
         { signal: this.abortController.signal }
       )
@@ -272,7 +268,7 @@ export class FileScrollManager {
   }
 
   private updateLoadedBytes(): void {
-    if (!this.cache || !this.layout) {
+    if (!this.hexedFile || !this.layout) {
       this.loadedBytesRef.current = new Uint8Array(0)
       this.dataVersionRef.current++
       return
@@ -282,16 +278,11 @@ export class FileScrollManager {
     // This ensures consistency and prevents missing bytes
     const rangeToUse = this.lastLoadedRange || this.visibleByteRangeRef.current
     const { start, end } = rangeToUse
-    const startRow = Math.floor(start / this.bytesPerRow)
-    const endRow = Math.ceil(end / this.bytesPerRow)
-
-    const bytes: number[] = []
-    for (let rowIndex = startRow; rowIndex < endRow; rowIndex++) {
-      const rowBytes = this.cache.getRowBytes(rowIndex, this.bytesPerRow)
-      bytes.push(...Array.from(rowBytes))
-    }
-
-    const newBytes = new Uint8Array(bytes)
+    
+    // Read bytes directly from HexedFile
+    const bytes = this.hexedFile.readBytes(start, end - start)
+    const newBytes = bytes || new Uint8Array(0)
+    
     // Only increment version if bytes actually changed
     const bytesChanged =
       newBytes.length !== this.loadedBytesRef.current.length ||
@@ -307,8 +298,8 @@ export class FileScrollManager {
     let lastScrollTop = this.scrollTopRef.current ?? 0
 
     const update = async () => {
-      // Only update if we have layout, cache, and valid dimensions
-      if (!this.layout || !this.cache || this.dimensions.height === 0) {
+      // Only update if we have layout, hexedFile, and valid dimensions
+      if (!this.layout || !this.hexedFile || this.dimensions.height === 0) {
         // Continue the loop even if not ready
         this.rafId = requestAnimationFrame(update)
         return
@@ -381,8 +372,7 @@ export class FileScrollManager {
       this.abortController = null
     }
 
-    this.cache = null
-    this.file = null
+    this.hexedFile = null
     this.layout = null
     this.visibleByteRangeRef.current = { start: 0, end: 0 }
     this.loadedBytesRef.current = new Uint8Array(0)

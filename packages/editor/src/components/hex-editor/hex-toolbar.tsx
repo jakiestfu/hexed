@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react"
 import type { CSSProperties, FunctionComponent, ReactNode } from "react"
 
+import { HexedFile } from "@hexed/file"
 import { Button } from "@hexed/ui"
 
 import type { FileSource } from "../../types"
@@ -11,7 +12,7 @@ import { FileStatusPopover } from "../file/file-status-popover"
 
 export type HexToolbarProps = {
   left?: ReactNode
-  file: File | null
+  file: HexedFile | null
   fileSource?: FileSource
   isConnected?: boolean
   error?: string | null

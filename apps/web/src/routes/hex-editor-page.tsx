@@ -5,7 +5,7 @@ import {
   HexedEditor,
   HexedFileInput,
   supportsFileSystemAccess,
-  useHexedInput,
+  useHexedFile,
   useHexedSettings,
   useHexedState
 } from "@hexed/editor"
@@ -24,7 +24,7 @@ export function HexEditorPage() {
     [queryParams]
   )
 
-  const [input, setInput] = useHexedInput(params.id)
+  const [input, setInput] = useHexedFile(params.id)
   const settings = useHexedSettings(overrides)
   const [state, setState] = useHexedState()
 
@@ -34,26 +34,34 @@ export function HexEditorPage() {
       return
 
     if (!inputText) {
-      if (input.file) {
+      if (input.hexedFile) {
         setInput(null)
       }
       return
     }
     const read = async () => {
       const newInput = new TextEncoder().encode(inputText)
-      if (!input.file) {
+      if (!input.hexedFile) {
         setInput(newInput)
         return
       }
-      const data = await input.file.arrayBuffer()
-      const currentInputText = new TextDecoder().decode(data)
+      // Ensure range is loaded before reading
+      const range = { start: 0, end: input.hexedFile.size }
+      if (!input.hexedFile.isRangeLoaded(range)) {
+        await input.hexedFile.ensureRange(range)
+      }
+      // Read bytes from HexedFile
+      const data = input.hexedFile.readBytes(0, input.hexedFile.size)
+      if (data) {
+        const currentInputText = new TextDecoder().decode(data)
 
-      if (inputText && currentInputText !== inputText) {
-        setInput(newInput)
+        if (inputText && currentInputText !== inputText) {
+          setInput(newInput)
+        }
       }
     }
     read()
-  }, [inputText, input.file, pathname])
+  }, [inputText, input.hexedFile, pathname, setInput])
 
   const onChangeInput = (newInput: HexedFileInput) => {
     if (newInput === null) {
