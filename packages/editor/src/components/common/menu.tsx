@@ -3,10 +3,8 @@
 import { FunctionComponent, ReactNode, useState } from "react"
 import {
   BarChart3,
-  Binary,
   CaseSensitive,
   FilePlus,
-  FileText,
   FolderOpen,
   Home,
   Info,
@@ -16,16 +14,13 @@ import {
   PanelLeft,
   Save,
   Sun,
-  Trash2,
-  Type
+  Trash2
 } from "lucide-react"
 
 import {
   FileSourceIcon,
   formatFilenameForDisplay,
-  formatHotkey,
   Hotkeys,
-  OnHexedFileChange,
   Sidebar,
   useHexedFileContext,
   useHexedSettingsContext,
@@ -278,42 +273,7 @@ export const Menu: FunctionComponent<MenuProps> = ({
                   </DropdownMenuShortcut>
                 </DropdownMenuRadioItem>
               ))}
-              {/* <DropdownMenuRadioItem
-                value="interpreter"
-                className="cursor-pointer"
-              >
-                <span className="flex items-center">
-                  <Binary className="mr-2 h-4 w-4" />
-                  Interpreter
-                </span>
-                <DropdownMenuShortcut>
-                  {Hotkeys.toggleInterpreter()}
-                </DropdownMenuShortcut>
-              </DropdownMenuRadioItem>
-              <DropdownMenuRadioItem
-                value="templates"
-                className="cursor-pointer"
-              >
-                <span className="flex items-center">
-                  <FileText className="mr-2 h-4 w-4" />
-                  Templates
-                </span>
-                <DropdownMenuShortcut>
-                  {Hotkeys.toggleTemplates()}
-                </DropdownMenuShortcut>
-              </DropdownMenuRadioItem>
-              <DropdownMenuRadioItem
-                value="strings"
-                className="cursor-pointer"
-              >
-                <span className="flex items-center">
-                  <Type className="mr-2 h-4 w-4" />
-                  Strings
-                </span>
-                <DropdownMenuShortcut>
-                  {Hotkeys.toggleStrings()}
-                </DropdownMenuShortcut>
-              </DropdownMenuRadioItem> */}
+
             </DropdownMenuRadioGroup>
             <DropdownMenuSeparator />
             <DropdownMenuRadioGroup

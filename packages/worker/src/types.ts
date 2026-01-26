@@ -5,14 +5,8 @@
 import type { StringEncoding, StringMatch } from "@hexed/file/strings"
 
 export type MessageType =
-  | "OPEN_FILE"
-  | "GET_FILE_SIZE"
-  | "CLOSE_FILE"
-  | "STREAM_FILE_REQUEST"
   | "SEARCH_REQUEST"
   | "STRINGS_REQUEST"
-  | "FILE_SIZE_RESPONSE"
-  | "STREAM_FILE_RESPONSE"
   | "SEARCH_RESPONSE"
   | "STRINGS_RESPONSE"
   | "PROGRESS_EVENT"
@@ -32,41 +26,9 @@ export interface BaseMessage {
  * Request Messages
  */
 
-export interface OpenFileRequest extends BaseMessage {
-  type: "OPEN_FILE"
-  fileId: string
-  handle: FileSystemFileHandle
-}
-
-export interface GetFileSizeRequest extends BaseMessage {
-  type: "GET_FILE_SIZE"
-  fileId: string
-}
-
-export interface CloseFileRequest extends BaseMessage {
-  type: "CLOSE_FILE"
-  fileId: string
-}
-
-export interface StreamFileRequest extends BaseMessage {
-  type: "STREAM_FILE_REQUEST"
-  fileId: string
-}
-
 /**
  * Response Messages
  */
-
-export interface FileSizeResponse extends BaseMessage {
-  type: "FILE_SIZE_RESPONSE"
-  fileId: string
-  size: number
-}
-
-export interface StreamFileResponse extends BaseMessage {
-  type: "STREAM_FILE_RESPONSE"
-  fileId: string
-}
 
 export interface ErrorResponse extends BaseMessage {
   type: "ERROR"
@@ -84,7 +46,7 @@ export interface ConnectedResponse extends BaseMessage {
 
 export interface SearchRequest extends BaseMessage {
   type: "SEARCH_REQUEST"
-  fileId: string
+  file: File
   pattern: Uint8Array
   startOffset?: number
   endOffset?: number
@@ -92,7 +54,6 @@ export interface SearchRequest extends BaseMessage {
 
 export interface SearchResponse extends BaseMessage {
   type: "SEARCH_RESPONSE"
-  fileId: string
   matches: Array<{ offset: number; length: number }>
 }
 
@@ -102,7 +63,7 @@ export interface SearchResponse extends BaseMessage {
 
 export interface StringsRequest extends BaseMessage {
   type: "STRINGS_REQUEST"
-  fileId: string
+  file: File
   minLength: number
   encoding: StringEncoding
   startOffset?: number
@@ -111,7 +72,6 @@ export interface StringsRequest extends BaseMessage {
 
 export interface StringsResponse extends BaseMessage {
   type: "STRINGS_RESPONSE"
-  fileId: string
   matches: StringMatch[]
 }
 
@@ -138,20 +98,12 @@ export interface SearchMatchEvent extends BaseMessage {
 /**
  * Union type of all request messages
  */
-export type RequestMessage =
-  | OpenFileRequest
-  | GetFileSizeRequest
-  | CloseFileRequest
-  | StreamFileRequest
-  | SearchRequest
-  | StringsRequest
+export type RequestMessage = SearchRequest | StringsRequest
 
 /**
  * Union type of all response messages
  */
 export type ResponseMessage =
-  | FileSizeResponse
-  | StreamFileResponse
   | SearchResponse
   | StringsResponse
   | ErrorResponse

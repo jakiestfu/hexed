@@ -2,14 +2,15 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest"
 
 import { createWorkerClient, type WorkerClient } from "./client"
 import {
-  createMockFileHandle,
+  createMockFile,
   createMockWorker,
   createTestData
 } from "./test-utils"
 import type {
   ConnectedResponse,
   ErrorResponse,
-  FileSizeResponse
+  SearchResponse,
+  StringsResponse
 } from "./types"
 
 // Mock Worker constructor
@@ -36,15 +37,34 @@ describe("createWorkerClient", () => {
   })
 
   describe("initialization", () => {
-    it("should create Worker on first use", () => {
+    it("should create Worker on first use", async () => {
       // Worker should be created when client methods are called
+      const file = createMockFile("test.bin", 100)
+      const searchPromise = client.search(file, new Uint8Array([1, 2, 3]))
+
+      // Wait for message to be sent
+      await new Promise((resolve) => setTimeout(resolve, 10))
+
       expect(mockWorker.worker).toBeDefined()
+      expect(mockWorker.messages.length).toBeGreaterThan(0)
+
+      // Complete the promise
+      const request = mockWorker.messages[0]?.data
+      if (request) {
+        const response: SearchResponse = {
+          id: request.id,
+          type: "SEARCH_RESPONSE",
+          matches: []
+        }
+        mockWorker.simulateMessage(response)
+        await searchPromise
+      }
     })
 
     it("should send CONNECTED message on connection", async () => {
       // Trigger initialization by calling a method
-      const handle = createMockFileHandle("test.bin", 100)
-      const openPromise = client.openFile("file1", handle)
+      const file = createMockFile("test.bin", 100)
+      const searchPromise = client.search(file, new Uint8Array([1, 2, 3]))
 
       // Wait for message to be sent
       await new Promise((resolve) => setTimeout(resolve, 10))
@@ -64,45 +84,49 @@ describe("createWorkerClient", () => {
       // Complete the promise
       const request = mockWorker.messages[0]?.data
       if (request) {
-        const response: ConnectedResponse = {
+        const response: SearchResponse = {
           id: request.id,
-          type: "CONNECTED"
+          type: "SEARCH_RESPONSE",
+          matches: []
         }
         mockWorker.simulateMessage(response)
-        await openPromise
+        await searchPromise
       }
     })
   })
 
-  describe("openFile", () => {
-    it("should send OPEN_FILE request", async () => {
-      const handle = createMockFileHandle("test.bin", 100)
+  describe("search", () => {
+    it("should send SEARCH_REQUEST with File", async () => {
+      const file = createMockFile("test.bin", 100)
+      const pattern = new Uint8Array([1, 2, 3])
 
-      const openPromise = client.openFile("file1", handle)
+      const searchPromise = client.search(file, pattern)
 
       // Wait for message to be sent
       await new Promise((resolve) => setTimeout(resolve, 10))
 
       expect(mockWorker.messages.length).toBeGreaterThan(0)
       const request = mockWorker.messages[0]?.data
-      expect(request?.type).toBe("OPEN_FILE")
-      expect(request?.fileId).toBe("file1")
-      expect(request?.handle).toBe(handle)
+      expect(request?.type).toBe("SEARCH_REQUEST")
+      expect(request?.file).toBe(file)
+      expect(request?.pattern).toEqual(pattern)
 
       // Simulate response with matching ID
-      const response: ConnectedResponse = {
+      const response: SearchResponse = {
         id: request.id,
-        type: "CONNECTED"
+        type: "SEARCH_RESPONSE",
+        matches: []
       }
       mockWorker.simulateMessage(response)
 
-      await openPromise
+      await searchPromise
     })
 
     it("should handle error response", async () => {
-      const handle = createMockFileHandle("test.bin", 100)
+      const file = createMockFile("test.bin", 100)
+      const pattern = new Uint8Array([1, 2, 3])
 
-      const openPromise = client.openFile("file1", handle)
+      const searchPromise = client.search(file, pattern)
 
       // Wait for message to be sent
       await new Promise((resolve) => setTimeout(resolve, 10))
@@ -111,37 +135,73 @@ describe("createWorkerClient", () => {
       const errorResponse: ErrorResponse = {
         id: request.id,
         type: "ERROR",
-        error: "Failed to open file",
+        error: "Failed to search file",
         originalMessageId: request.id
       }
       mockWorker.simulateMessage(errorResponse)
 
-      await expect(openPromise).rejects.toThrow("Failed to open file")
+      await expect(searchPromise).rejects.toThrow("Failed to search file")
     })
-  })
 
-  describe("streamFile", () => {
-    it("should send STREAM_FILE_REQUEST", async () => {
-      const streamPromise = client.streamFile("file1")
+    it("should return matches from response", async () => {
+      const file = createMockFile("test.bin", 100)
+      const pattern = new Uint8Array([1, 2, 3])
+      const expectedMatches = [
+        { offset: 10, length: 3 },
+        { offset: 50, length: 3 }
+      ]
+
+      const searchPromise = client.search(file, pattern)
 
       // Wait for message to be sent
       await new Promise((resolve) => setTimeout(resolve, 10))
 
       const request = mockWorker.messages[0]?.data
-      expect(request?.type).toBe("STREAM_FILE_REQUEST")
-      expect(request?.fileId).toBe("file1")
-
-      const response: ConnectedResponse = {
+      const response: SearchResponse = {
         id: request.id,
-        type: "CONNECTED"
+        type: "SEARCH_RESPONSE",
+        matches: expectedMatches
       }
       mockWorker.simulateMessage(response)
 
-      await streamPromise
+      const matches = await searchPromise
+      expect(matches).toEqual(expectedMatches)
+    })
+  })
+
+  describe("strings", () => {
+    it("should send STRINGS_REQUEST with File", async () => {
+      const file = createMockFile("test.bin", 100)
+      const options = { minLength: 4, encoding: "ascii" as const }
+
+      const stringsPromise = client.strings(file, options)
+
+      // Wait for message to be sent
+      await new Promise((resolve) => setTimeout(resolve, 10))
+
+      expect(mockWorker.messages.length).toBeGreaterThan(0)
+      const request = mockWorker.messages[0]?.data
+      expect(request?.type).toBe("STRINGS_REQUEST")
+      expect(request?.file).toBe(file)
+      expect(request?.minLength).toBe(4)
+      expect(request?.encoding).toBe("ascii")
+
+      // Simulate response with matching ID
+      const response: StringsResponse = {
+        id: request.id,
+        type: "STRINGS_RESPONSE",
+        matches: []
+      }
+      mockWorker.simulateMessage(response)
+
+      await stringsPromise
     })
 
     it("should handle error response", async () => {
-      const streamPromise = client.streamFile("file1")
+      const file = createMockFile("test.bin", 100)
+      const options = { minLength: 4, encoding: "ascii" as const }
+
+      const stringsPromise = client.strings(file, options)
 
       // Wait for message to be sent
       await new Promise((resolve) => setTimeout(resolve, 10))
@@ -150,70 +210,54 @@ describe("createWorkerClient", () => {
       const errorResponse: ErrorResponse = {
         id: request.id,
         type: "ERROR",
-        error: "File not found"
+        error: "Failed to extract strings",
+        originalMessageId: request.id
       }
       mockWorker.simulateMessage(errorResponse)
 
-      await expect(streamPromise).rejects.toThrow("File not found")
+      await expect(stringsPromise).rejects.toThrow("Failed to extract strings")
     })
-  })
 
-  describe("getFileSize", () => {
-    it("should send GET_FILE_SIZE request and return size", async () => {
-      const fileSize = 2048
+    it("should return matches from response", async () => {
+      const file = createMockFile("test.bin", 100)
+      const options = { minLength: 4, encoding: "ascii" as const }
+      const expectedMatches = [
+        {
+          offset: 10,
+          length: 5,
+          encoding: "ascii" as const,
+          text: "hello"
+        }
+      ]
 
-      const sizePromise = client.getFileSize("file1")
+      const stringsPromise = client.strings(file, options)
 
       // Wait for message to be sent
       await new Promise((resolve) => setTimeout(resolve, 10))
 
       const request = mockWorker.messages[0]?.data
-      expect(request?.type).toBe("GET_FILE_SIZE")
-      expect(request?.fileId).toBe("file1")
-
-      const response: FileSizeResponse = {
+      const response: StringsResponse = {
         id: request.id,
-        type: "FILE_SIZE_RESPONSE",
-        fileId: "file1",
-        size: fileSize
+        type: "STRINGS_RESPONSE",
+        matches: expectedMatches
       }
       mockWorker.simulateMessage(response)
 
-      const size = await sizePromise
-      expect(size).toBe(fileSize)
-    })
-  })
-
-  describe("closeFile", () => {
-    it("should send CLOSE_FILE request", async () => {
-      const closePromise = client.closeFile("file1")
-
-      // Wait for message to be sent
-      await new Promise((resolve) => setTimeout(resolve, 10))
-
-      const request = mockWorker.messages[0]?.data
-      expect(request?.type).toBe("CLOSE_FILE")
-      expect(request?.fileId).toBe("file1")
-
-      const response: ConnectedResponse = {
-        id: request.id,
-        type: "CONNECTED"
-      }
-      mockWorker.simulateMessage(response)
-
-      await closePromise
+      const matches = await stringsPromise
+      expect(matches).toEqual(expectedMatches)
     })
   })
 
   describe("disconnect", () => {
     it("should terminate worker and reject pending requests", async () => {
       // Start a request that won't complete
-      const readPromise = client.getFileSize("file1")
+      const file = createMockFile("test.bin", 100)
+      const searchPromise = client.search(file, new Uint8Array([1, 2, 3]))
 
       // Disconnect before response
       client.disconnect()
 
-      await expect(readPromise).rejects.toThrow("Worker disconnected")
+      await expect(searchPromise).rejects.toThrow("Worker disconnected")
     })
 
     it("should terminate worker", () => {
@@ -229,12 +273,13 @@ describe("createWorkerClient", () => {
     it("should timeout if response not received", async () => {
       vi.useFakeTimers()
 
-      const readPromise = client.getFileSize("file1")
+      const file = createMockFile("test.bin", 100)
+      const searchPromise = client.search(file, new Uint8Array([1, 2, 3]))
 
       // Advance time past timeout (30 seconds)
       vi.advanceTimersByTime(30000)
 
-      await expect(readPromise).rejects.toThrow("Request timeout")
+      await expect(searchPromise).rejects.toThrow("Request timeout")
 
       vi.useRealTimers()
     })
@@ -242,9 +287,16 @@ describe("createWorkerClient", () => {
 
   describe("multiple concurrent requests", () => {
     it("should handle multiple concurrent requests", async () => {
-      const promise1 = client.getFileSize("file1")
-      const promise2 = client.getFileSize("file2")
-      const promise3 = client.getFileSize("file3")
+      const file1 = createMockFile("file1.bin", 1000)
+      const file2 = createMockFile("file2.bin", 2000)
+      const file3 = createMockFile("file3.bin", 3000)
+
+      const promise1 = client.search(file1, new Uint8Array([1]))
+      const promise2 = client.search(file2, new Uint8Array([2]))
+      const promise3 = client.strings(file3, {
+        minLength: 4,
+        encoding: "ascii"
+      })
 
       // Wait for all messages to be sent
       await new Promise((resolve) => setTimeout(resolve, 10))
@@ -253,49 +305,46 @@ describe("createWorkerClient", () => {
 
       // Send responses in different order, matching request IDs
       const request3 = mockWorker.messages[2]?.data
-      const response3: FileSizeResponse = {
+      const response3: StringsResponse = {
         id: request3.id,
-        type: "FILE_SIZE_RESPONSE",
-        fileId: "file3",
-        size: 3000
+        type: "STRINGS_RESPONSE",
+        matches: []
       }
       mockWorker.simulateMessage(response3)
 
       const request1 = mockWorker.messages[0]?.data
-      const response1: FileSizeResponse = {
+      const response1: SearchResponse = {
         id: request1.id,
-        type: "FILE_SIZE_RESPONSE",
-        fileId: "file1",
-        size: 1000
+        type: "SEARCH_RESPONSE",
+        matches: [{ offset: 10, length: 1 }]
       }
       mockWorker.simulateMessage(response1)
 
       const request2 = mockWorker.messages[1]?.data
-      const response2: FileSizeResponse = {
+      const response2: SearchResponse = {
         id: request2.id,
-        type: "FILE_SIZE_RESPONSE",
-        fileId: "file2",
-        size: 2000
+        type: "SEARCH_RESPONSE",
+        matches: [{ offset: 20, length: 1 }]
       }
       mockWorker.simulateMessage(response2)
 
-      const [size1, size2, size3] = await Promise.all([
+      const [matches1, matches2, strings3] = await Promise.all([
         promise1,
         promise2,
         promise3
       ])
 
-      expect(size1).toBe(1000)
-      expect(size2).toBe(2000)
-      expect(size3).toBe(3000)
+      expect(matches1).toEqual([{ offset: 10, length: 1 }])
+      expect(matches2).toEqual([{ offset: 20, length: 1 }])
+      expect(strings3).toEqual([])
     })
   })
 
   describe("error handling", () => {
     it("should handle worker errors", async () => {
-      const handle = createMockFileHandle("test.bin", 100)
+      const file = createMockFile("test.bin", 100)
 
-      const openPromise = client.openFile("file1", handle)
+      const searchPromise = client.search(file, new Uint8Array([1, 2, 3]))
 
       // Simulate worker error
       if (mockWorker.worker.onerror) {
@@ -304,7 +353,7 @@ describe("createWorkerClient", () => {
         )
       }
 
-      await expect(openPromise).rejects.toThrow()
+      await expect(searchPromise).rejects.toThrow()
     })
   })
 })

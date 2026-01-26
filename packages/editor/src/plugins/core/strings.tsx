@@ -28,13 +28,9 @@ import {
 
 import { HexedPluginComponent } from "../../plugins/types"
 import { createHexedEditorPlugin } from ".."
-import { useHexedFileContext } from "../../providers/hexed-file-provider"
 import { useWorkerClient } from "../../providers/worker-provider"
 
 export const Strings: HexedPluginComponent = ({ file, state }) => {
-  const {
-    input: { handleId }
-  } = useHexedFileContext()
   const workerClient = useWorkerClient()
   const [minLength, setMinLength] = useState<number>(4)
   const [encoding, setEncoding] = useState<StringEncoding>("ascii")
@@ -49,7 +45,7 @@ export const Strings: HexedPluginComponent = ({ file, state }) => {
 
   const handleSearch = useCallback(async () => {
     const fileHandle = file?.getHandle()
-    if (!workerClient || !handleId || !fileHandle) {
+    if (!workerClient || !fileHandle) {
       return
     }
 
@@ -58,16 +54,11 @@ export const Strings: HexedPluginComponent = ({ file, state }) => {
     setExtractedStrings([])
 
     try {
-      // Open file in worker if not already open
-      try {
-        await workerClient.openFile(handleId, fileHandle)
-      } catch (error) {
-        // File might already be open, which is fine
-        console.log("File may already be open:", error)
-      }
-      console.log("getStrings", { handleId, minLength, encoding })
+      // Get File object from handle
+      const fileObj = await fileHandle.getFile()
+      console.log("getStrings", { minLength, encoding })
       const matches = await workerClient.strings(
-        handleId,
+        fileObj,
         {
           minLength,
           encoding
@@ -85,7 +76,7 @@ export const Strings: HexedPluginComponent = ({ file, state }) => {
       setIsSearching(false)
       setSearchProgress(0)
     }
-  }, [workerClient, handleId, file, minLength, encoding])
+  }, [workerClient, file, minLength, encoding])
 
   // Calculate available height for the virtualized list
   useEffect(() => {
@@ -222,9 +213,7 @@ export const Strings: HexedPluginComponent = ({ file, state }) => {
 
           <Button
             onClick={handleSearch}
-            disabled={
-              isSearching || !handleId || !workerClient || !file?.getHandle()
-            }
+            disabled={isSearching || !workerClient || !file?.getHandle()}
             size="icon"
           >
             {isSearching ? <Spinner /> : <Search />}

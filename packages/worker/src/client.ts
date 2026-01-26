@@ -6,20 +6,14 @@ import type { StringEncoding, StringMatch } from "@hexed/file/strings"
 import { createLogger } from "@hexed/logger"
 
 import type {
-  CloseFileRequest,
   ConnectedResponse,
   ErrorResponse,
-  FileSizeResponse,
-  GetFileSizeRequest,
-  OpenFileRequest,
   ProgressEvent,
   RequestMessage,
   ResponseMessage,
   SearchMatchEvent,
   SearchRequest,
   SearchResponse,
-  StreamFileRequest,
-  StreamFileResponse,
   StringsRequest,
   StringsResponse
 } from "./types"
@@ -37,15 +31,8 @@ function generateMessageId(): string {
  * Worker client interface
  */
 export interface WorkerClient {
-  openFile(fileId: string, handle: FileSystemFileHandle): Promise<void>
-  getFileSize(fileId: string): Promise<number>
-  closeFile(fileId: string): Promise<void>
-  streamFile(
-    fileId: string,
-    onProgress?: (progress: number) => void
-  ): Promise<void>
   search(
-    fileId: string,
+    file: File,
     pattern: Uint8Array,
     onProgress?: (progress: number) => void,
     onMatch?: (matches: Array<{ offset: number; length: number }>) => void,
@@ -53,7 +40,7 @@ export interface WorkerClient {
     endOffset?: number
   ): Promise<Array<{ offset: number; length: number }>>
   strings(
-    fileId: string,
+    file: File,
     options: { minLength: number; encoding: StringEncoding },
     onProgress?: (progress: number) => void,
     startOffset?: number,
@@ -199,14 +186,8 @@ export function createWorkerClient(
       })
 
       try {
-        // Transfer FileSystemFileHandle if present
-        if (request.type === "OPEN_FILE") {
-          // FileSystemFileHandle is not transferable, so we send it directly
-          // The worker will receive it and store it
-          worker.postMessage(request)
-        } else {
-          worker.postMessage(request)
-        }
+        // File objects are structured cloneable and can be passed via postMessage
+        worker.postMessage(request)
       } catch (error) {
         logger.log(`Failed to send request: ${request.type}`, error)
         clearTimeout(timeout)
@@ -221,82 +202,19 @@ export function createWorkerClient(
   }
 
   return {
-    async openFile(
-      fileId: string,
-      handle: FileSystemFileHandle
-    ): Promise<void> {
-      logger.log(`Opening file: ${fileId}`)
-      const request: OpenFileRequest = {
-        id: generateMessageId(),
-        type: "OPEN_FILE",
-        fileId,
-        handle
-      }
-      await sendRequest<ConnectedResponse>(request)
-      logger.log(`File opened: ${fileId}`)
-    },
-
-    async getFileSize(fileId: string): Promise<number> {
-      logger.log(`Getting file size: ${fileId}`)
-      const request: GetFileSizeRequest = {
-        id: generateMessageId(),
-        type: "GET_FILE_SIZE",
-        fileId
-      }
-      const response = await sendRequest<FileSizeResponse>(request)
-      logger.log(`File size: ${fileId} = ${response.size} bytes`)
-      return response.size
-    },
-
-    async closeFile(fileId: string): Promise<void> {
-      logger.log(`Closing file: ${fileId}`)
-      const request: CloseFileRequest = {
-        id: generateMessageId(),
-        type: "CLOSE_FILE",
-        fileId
-      }
-      await sendRequest<ConnectedResponse>(request)
-      logger.log(`File closed: ${fileId}`)
-    },
-
-    async streamFile(
-      fileId: string,
-      onProgress?: (progress: number) => void
-    ): Promise<void> {
-      logger.log(`Streaming file: ${fileId}`)
-      const request: StreamFileRequest = {
-        id: generateMessageId(),
-        type: "STREAM_FILE_REQUEST",
-        fileId
-      }
-
-      // Register progress callback if provided
-      if (onProgress) {
-        progressCallbacks.set(request.id, onProgress)
-      }
-
-      try {
-        await sendRequest<StreamFileResponse>(request)
-        logger.log(`File streamed: ${fileId}`)
-      } finally {
-        // Clean up progress callback
-        progressCallbacks.delete(request.id)
-      }
-    },
-
     async search(
-      fileId: string,
+      file: File,
       pattern: Uint8Array,
       onProgress?: (progress: number) => void,
       onMatch?: (matches: Array<{ offset: number; length: number }>) => void,
       startOffset?: number,
       endOffset?: number
     ): Promise<Array<{ offset: number; length: number }>> {
-      logger.log(`Searching file: ${fileId}`)
+      logger.log(`Searching file: ${file.name}`)
       const request: SearchRequest = {
         id: generateMessageId(),
         type: "SEARCH_REQUEST",
-        fileId,
+        file,
         pattern,
         startOffset,
         endOffset
@@ -315,7 +233,7 @@ export function createWorkerClient(
       try {
         const response = await sendRequest<SearchResponse>(request)
         logger.log(
-          `Search completed: ${fileId}, found ${response.matches.length} matches`
+          `Search completed, found ${response.matches.length} matches`
         )
         return response.matches
       } finally {
@@ -326,17 +244,17 @@ export function createWorkerClient(
     },
 
     async strings(
-      fileId: string,
+      file: File,
       options: { minLength: number; encoding: StringEncoding },
       onProgress?: (progress: number) => void,
       startOffset?: number,
       endOffset?: number
     ): Promise<StringMatch[]> {
-      logger.log(`Extracting strings from file: ${fileId}`)
+      logger.log(`Extracting strings from file: ${file.name}`)
       const request: StringsRequest = {
         id: generateMessageId(),
         type: "STRINGS_REQUEST",
-        fileId,
+        file,
         minLength: options.minLength,
         encoding: options.encoding,
         startOffset,
@@ -351,7 +269,7 @@ export function createWorkerClient(
       try {
         const response = await sendRequest<StringsResponse>(request)
         logger.log(
-          `Strings extraction completed: ${fileId}, found ${response.matches.length} matches`
+          `Strings extraction completed, found ${response.matches.length} matches`
         )
         return response.matches
       } finally {

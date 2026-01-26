@@ -126,7 +126,6 @@ export const FindInput: FunctionComponent<FindInputProps> = ({
     const fileHandle = hexedFile?.getHandle()
     if (
       !searchQuery.trim() ||
-      !handleId ||
       !fileHandle ||
       !workerClient ||
       bytes.length === 0
@@ -147,13 +146,8 @@ export const FindInput: FunctionComponent<FindInputProps> = ({
 
     const performSearch = async () => {
       try {
-        // Ensure file is open in worker
-        try {
-          await workerClient.openFile(handleId, fileHandle)
-        } catch (error) {
-          // File might already be open, which is fine
-          console.log("File may already be open:", error)
-        }
+        // Get File object from handle
+        const fileObj = await fileHandle.getFile()
 
         // Convert search query to pattern bytes
         let pattern: Uint8Array
@@ -178,7 +172,7 @@ export const FindInput: FunctionComponent<FindInputProps> = ({
 
         // Perform search with streaming matches
         await workerClient.search(
-          handleId,
+          fileObj,
           pattern,
           undefined, // onProgress - not needed for now
           (streamedMatches) => {
@@ -246,7 +240,7 @@ export const FindInput: FunctionComponent<FindInputProps> = ({
         setIsSearching(false)
       }
     }
-  }, [searchQuery, searchMode, handleId, hexedFile, workerClient, bytes])
+  }, [searchQuery, searchMode, hexedFile, workerClient, bytes])
 
   // Navigate to match at current index
   useEffect(() => {
