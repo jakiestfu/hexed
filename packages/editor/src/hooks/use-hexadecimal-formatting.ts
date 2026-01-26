@@ -3,7 +3,7 @@ import * as React from "react"
 import { toAsciiString, toHexString } from "@hexed/file/formatter"
 import { parseHexString } from "@hexed/file/search"
 
-export interface UseHexInputOptions {
+export interface UseHexadecimalFormattingOptions {
   /** Input mode: "hex" for byte-by-byte hex input, "text" for normal text input */
   mode: "hex" | "text"
   /** Setter function for mode */
@@ -16,7 +16,7 @@ export interface UseHexInputOptions {
   maxBytes?: number
 }
 
-export interface UseHexInputReturn {
+export interface UseHexadecimalFormattingReturn {
   /** Formatted display value (hex string with spaces or text string) */
   value: string
   /** Raw bytes array */
@@ -96,7 +96,9 @@ const truncateTextToMaxBytes = (text: string, maxBytes?: number) => {
   return text.slice(0, lo)
 }
 
-export const useHexInput = (options: UseHexInputOptions): UseHexInputReturn => {
+export const useHexadecimalFormatting = (
+  options: UseHexadecimalFormattingOptions
+): UseHexadecimalFormattingReturn => {
   const { mode, maxBytes, onChange } = options
 
   // internal representation:
@@ -221,6 +223,7 @@ export const useHexInput = (options: UseHexInputOptions): UseHexInputReturn => {
         const b = new TextEncoder().encode(nextText)
         const bb = maxBytes != null ? b.slice(0, maxBytes) : b
         notify("text", nextText, bb)
+
         return
       }
 

@@ -11,7 +11,7 @@ import {
   InputGroupInput
 } from "@hexed/ui"
 
-import { useHexInput } from "../../hooks/use-hex-input"
+import { useHexadecimalFormatting } from "../../hooks/use-hexadecimal-formatting"
 import { useLocalStorage } from "../../hooks/use-local-storage"
 import { useHexedFileContext } from "../../providers/hexed-file-provider"
 import { useWorkerClient } from "../../providers/worker-provider"
@@ -30,7 +30,7 @@ export const FindInput: FunctionComponent<FindInputProps> = ({
   syncRangeToFindInput
 }) => {
   const {
-    input: { hexedFile, handleId }
+    input: { hexedFile }
   } = useHexedFileContext()
   const workerClient = useWorkerClient()
   const [searchMode, setSearchMode] = useLocalStorage<"hex" | "text">(
@@ -57,7 +57,7 @@ export const FindInput: FunctionComponent<FindInputProps> = ({
     handlePaste,
     clear,
     setValue
-  } = useHexInput({
+  } = useHexadecimalFormatting({
     mode: searchMode,
     setMode: setSearchMode,
     onChange: () => {
