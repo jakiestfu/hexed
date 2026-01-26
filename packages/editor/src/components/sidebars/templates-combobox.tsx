@@ -2,7 +2,7 @@ import { useState } from "react"
 import type { FunctionComponent } from "react"
 import { Check, ChevronsUpDown } from "lucide-react"
 
-import { manifest } from "@hexed/binary-templates"
+import { manifest } from "@hexed/templates"
 import { Button } from "@hexed/ui/components/button"
 import {
   Command,
@@ -163,25 +163,25 @@ export const TemplatesCombobox: FunctionComponent<TemplatesComboboxProps> = ({
 
   const selectedTemplate = value
     ? (() => {
-        // Find template by name in manifest
-        for (const entry of manifest) {
-          if (isTemplate(entry) && entry.name === value) {
-            return {
-              name: entry.name,
-              title: entry.title,
-              path: entry.path,
-              extension: entry.extension
-            }
-          }
-          if (isCategory(entry)) {
-            const found = findTemplateInCategory(entry.children, value)
-            if (found) {
-              return found
-            }
+      // Find template by name in manifest
+      for (const entry of manifest) {
+        if (isTemplate(entry) && entry.name === value) {
+          return {
+            name: entry.name,
+            title: entry.title,
+            path: entry.path,
+            extension: entry.extension
           }
         }
-        return undefined
-      })()
+        if (isCategory(entry)) {
+          const found = findTemplateInCategory(entry.children, value)
+          if (found) {
+            return found
+          }
+        }
+      }
+      return undefined
+    })()
     : undefined
 
   // Helper function to recursively find a template by name

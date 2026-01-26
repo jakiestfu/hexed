@@ -2,7 +2,7 @@ import { useEffect, useState } from "react"
 import type { FunctionComponent } from "react"
 import { AlertCircle, ArrowLeftRight, FileCode, X } from "lucide-react"
 
-import { KsySchema, manifest, parse } from "@hexed/binary-templates"
+import { KsySchema, manifest, parse } from "@hexed/templates"
 import {
   Button,
   Card,
@@ -341,7 +341,7 @@ export const Templates: FunctionComponent<TemplatesProps> = ({
                                   </dt>
                                   <dd className="mt-1">
                                     {typeof selectedSpec.meta.endian ===
-                                    "string"
+                                      "string"
                                       ? selectedSpec.meta.endian.toUpperCase()
                                       : "Conditional"}
                                   </dd>
@@ -357,8 +357,8 @@ export const Templates: FunctionComponent<TemplatesProps> = ({
                                       selectedSpec.meta["file-extension"]
                                     )
                                       ? selectedSpec.meta[
-                                          "file-extension"
-                                        ].join(", ")
+                                        "file-extension"
+                                      ].join(", ")
                                       : selectedSpec.meta["file-extension"]}
                                   </dd>
                                 </div>

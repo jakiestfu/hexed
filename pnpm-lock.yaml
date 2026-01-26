@@ -127,43 +127,6 @@ importers:
         specifier: ^6.0.5
         version: 6.4.1(@types/node@25.0.3)(jiti@2.6.1)(lightningcss@1.30.2)
 
-  packages/binary-templates:
-    dependencies:
-      iconv-lite:
-        specifier: ^0.7.2
-        version: 0.7.2
-      kaitai-struct:
-        specifier: ^0.10.0
-        version: 0.10.0
-    devDependencies:
-      '@hexed/eslint-config':
-        specifier: workspace:*
-        version: link:../../tooling/eslint-config
-      '@hexed/prettier-config':
-        specifier: workspace:*
-        version: link:../../tooling/prettier-config
-      '@hexed/typescript-config':
-        specifier: workspace:*
-        version: link:../../tooling/typescript-config
-      '@types/node':
-        specifier: ^25.0.3
-        version: 25.0.3
-      esbuild:
-        specifier: ^0.24.0
-        version: 0.24.2
-      js-yaml:
-        specifier: ^4.1.0
-        version: 4.1.1
-      json-schema-to-typescript:
-        specifier: ^14.0.0
-        version: 14.1.0
-      kaitai-struct-compiler:
-        specifier: ^0.10.0
-        version: 0.10.0
-      typescript:
-        specifier: ^5.7.2
-        version: 5.9.3
-
   packages/canvas:
     dependencies:
       '@hexed/file':
@@ -225,9 +188,6 @@ importers:
 
   packages/editor:
     dependencies:
-      '@hexed/binary-templates':
-        specifier: workspace:*
-        version: link:../binary-templates
       '@hexed/canvas-react':
         specifier: workspace:*
         version: link:../canvas-react
@@ -237,6 +197,9 @@ importers:
       '@hexed/logger':
         specifier: workspace:*
         version: link:../logger
+      '@hexed/templates':
+        specifier: workspace:*
+        version: link:../templates
       '@hexed/types':
         specifier: workspace:*
         version: link:../types
@@ -335,6 +298,43 @@ importers:
       vite:
         specifier: ^6.0.5
         version: 6.4.1(@types/node@25.0.3)(jiti@2.6.1)(lightningcss@1.30.2)
+
+  packages/templates:
+    dependencies:
+      iconv-lite:
+        specifier: ^0.7.2
+        version: 0.7.2
+      kaitai-struct:
+        specifier: ^0.10.0
+        version: 0.10.0
+    devDependencies:
+      '@hexed/eslint-config':
+        specifier: workspace:*
+        version: link:../../tooling/eslint-config
+      '@hexed/prettier-config':
+        specifier: workspace:*
+        version: link:../../tooling/prettier-config
+      '@hexed/typescript-config':
+        specifier: workspace:*
+        version: link:../../tooling/typescript-config
+      '@types/node':
+        specifier: ^25.0.3
+        version: 25.0.3
+      esbuild:
+        specifier: ^0.24.0
+        version: 0.24.2
+      js-yaml:
+        specifier: ^4.1.0
+        version: 4.1.1
+      json-schema-to-typescript:
+        specifier: ^14.0.0
+        version: 14.1.0
+      kaitai-struct-compiler:
+        specifier: ^0.10.0
+        version: 0.10.0
+      typescript:
+        specifier: ^5.7.2
+        version: 5.9.3
 
   packages/types:
     devDependencies:
@@ -4313,11 +4313,6 @@ packages:
 
   prettier@3.5.3:
     resolution: {integrity: sha512-QQtaxnoDJeAkDvDKWCLiwIXkTgRhwYDEQCghU9Z6q03iyek/rxRh/2lC3HB7P8sWT2xC/y5JDctPLBIGzHKbhw==}
-    engines: {node: '>=14'}
-    hasBin: true
-
-  prettier@3.7.4:
-    resolution: {integrity: sha512-v6UNi1+3hSlVvv8fSaoUbggEM5VErKmmpGA7Pl3HF8V6uKY7rvClBOJlH6yNwQtfTueNkGVpOv/mtWL9L4bgRA==}
     engines: {node: '>=14'}
     hasBin: true
 
@@ -8466,7 +8461,7 @@ snapshots:
       minimist: 1.2.8
       mkdirp: 3.0.1
       node-fetch: 3.3.2
-      prettier: 3.7.4
+      prettier: 3.5.3
 
   json-schema-traverse@0.4.1: {}
 
@@ -9113,8 +9108,6 @@ snapshots:
       '@ianvs/prettier-plugin-sort-imports': 4.4.2(prettier@3.5.3)
 
   prettier@3.5.3: {}
-
-  prettier@3.7.4: {}
 
   progress@2.0.3: {}
 

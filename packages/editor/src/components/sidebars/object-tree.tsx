@@ -2,7 +2,7 @@ import { useState } from "react"
 import type { FunctionComponent } from "react"
 import { ChevronDown, ChevronRight } from "lucide-react"
 
-import type { KsySchema } from "@hexed/binary-templates"
+import type { KsySchema } from "@hexed/templates"
 import {
   cn,
   Collapsible,

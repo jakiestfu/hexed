@@ -17,7 +17,7 @@
     "format:fix": "prettier --write \"**/*.{js,cjs,mjs,ts,tsx,mdx}\" --ignore-path=\"../../.prettierignore\""
   },
   "dependencies": {
-    "@hexed/binary-templates": "workspace:*",
+    "@hexed/templates": "workspace:*",
     "@hexed/file": "workspace:*",
     "@hexed/canvas-react": "workspace:*",
     "@hexed/logger": "workspace:*",
