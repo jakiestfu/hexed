@@ -1,5 +1,5 @@
 {
-  "name": "@hexed/canvas",
+  "name": "@hexed/canvas-react",
   "version": "0.0.1",
   "private": true,
   "type": "module",
@@ -15,14 +15,23 @@
     "format:fix": "prettier --write \"**/*.{js,cjs,mjs,ts,tsx,mdx}\" --ignore-path=\"../../.prettierignore\""
   },
   "dependencies": {
+    "@hexed/canvas": "workspace:*",
     "@hexed/file": "workspace:*",
-    "@hexed/types": "workspace:*"
+    "@hexed/types": "workspace:*",
+    "react": "^19.2.3",
+    "react-dom": "^19.2.3"
   },
   "devDependencies": {
     "@hexed/eslint-config": "workspace:*",
     "@hexed/prettier-config": "workspace:*",
     "@hexed/typescript-config": "workspace:*",
+    "@types/react": "^19.2.3",
+    "@types/react-dom": "^19.2.3",
     "typescript": "^5.7.2"
+  },
+  "peerDependencies": {
+    "react": "^19.2.3",
+    "react-dom": "^19.2.3"
   },
   "prettier": "@hexed/prettier-config"
 }

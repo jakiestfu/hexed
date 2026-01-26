@@ -182,18 +182,43 @@ importers:
       '@hexed/typescript-config':
         specifier: workspace:*
         version: link:../../tooling/typescript-config
-      '@types/react':
-        specifier: ^19.2.3
-        version: 19.2.7
-      '@types/react-dom':
-        specifier: ^19.2.3
-        version: 19.2.3(@types/react@19.2.7)
+      typescript:
+        specifier: ^5.7.2
+        version: 5.9.3
+
+  packages/canvas-react:
+    dependencies:
+      '@hexed/canvas':
+        specifier: workspace:*
+        version: link:../canvas
+      '@hexed/file':
+        specifier: workspace:*
+        version: link:../file
+      '@hexed/types':
+        specifier: workspace:*
+        version: link:../types
       react:
         specifier: 19.2.3
         version: 19.2.3
       react-dom:
         specifier: 19.2.3
         version: 19.2.3(react@19.2.3)
+    devDependencies:
+      '@hexed/eslint-config':
+        specifier: workspace:*
+        version: link:../../tooling/eslint-config
+      '@hexed/prettier-config':
+        specifier: workspace:*
+        version: link:../../tooling/prettier-config
+      '@hexed/typescript-config':
+        specifier: workspace:*
+        version: link:../../tooling/typescript-config
+      '@types/react':
+        specifier: ^19.2.3
+        version: 19.2.7
+      '@types/react-dom':
+        specifier: ^19.2.3
+        version: 19.2.3(@types/react@19.2.7)
       typescript:
         specifier: ^5.7.2
         version: 5.9.3
@@ -203,9 +228,9 @@ importers:
       '@hexed/binary-templates':
         specifier: workspace:*
         version: link:../binary-templates
-      '@hexed/canvas':
+      '@hexed/canvas-react':
         specifier: workspace:*
-        version: link:../canvas
+        version: link:../canvas-react
       '@hexed/file':
         specifier: workspace:*
         version: link:../file

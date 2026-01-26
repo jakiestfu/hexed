@@ -3,7 +3,7 @@
 import { useEffect, useMemo, useRef } from "react"
 import type { FunctionComponent } from "react"
 
-import { HexCanvasReact } from "@hexed/canvas"
+import { HexCanvasReact } from "@hexed/canvas-react"
 import {
   Card,
   CardContent,

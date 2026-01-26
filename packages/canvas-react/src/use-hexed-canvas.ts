@@ -3,10 +3,9 @@ import type { Ref, RefObject } from "react"
 
 import { HexedFile } from "@hexed/file"
 import type { DiffResult } from "@hexed/types"
-
-import { HexCanvas, type HexCanvasOptions } from "./hex-canvas"
-import type { SelectionRange } from "./utils/canvas"
-import type { HexCanvasColors } from "./utils/colors"
+import { HexCanvas, type HexCanvasOptions } from "@hexed/canvas"
+import type { SelectionRange } from "@hexed/canvas"
+import type { HexCanvasColors } from "@hexed/canvas"
 
 type ToOnHandlers<T> = Partial<{
   [K in keyof T as `on${Capitalize<string & K>}`]: (payload: T[K]) => void

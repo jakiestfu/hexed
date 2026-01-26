@@ -5,7 +5,7 @@ import { FixedSizeList } from "react-window"
 
 import { formatAddress } from "@hexed/file/formatter"
 import type { StringEncoding, StringMatch } from "@hexed/file/strings"
-import { SelectionRange } from "@hexed/canvas"
+import { SelectionRange } from "@hexed/canvas-react"
 import {
   Button,
   Card,
