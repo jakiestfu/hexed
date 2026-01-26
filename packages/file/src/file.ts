@@ -1,13 +1,31 @@
-import type { Endianness } from "./interpreter"
+import type { Endianness, NumberFormat } from "./interpreter"
 import {
+  formatNumber as formatNumberImpl,
   readUint8 as readUint8Impl,
   readInt8 as readInt8Impl,
   readUint16 as readUint16Impl,
   readInt16 as readInt16Impl,
+  readUint24 as readUint24Impl,
+  readInt24 as readInt24Impl,
   readUint32 as readUint32Impl,
   readInt32 as readInt32Impl,
   readUint64 as readUint64Impl,
-  readInt64 as readInt64Impl
+  readInt64 as readInt64Impl,
+  readFloat16 as readFloat16Impl,
+  readFloat32 as readFloat32Impl,
+  readFloat64 as readFloat64Impl,
+  readLEB128 as readLEB128Impl,
+  readSLEB128 as readSLEB128Impl,
+  readRational as readRationalImpl,
+  readSRational as readSRationalImpl,
+  readMSDOSDateTime as readMSDOSDateTimeImpl,
+  readOLEDateTime as readOLEDateTimeImpl,
+  readUnixDateTime as readUnixDateTimeImpl,
+  readMacHFSDateTime as readMacHFSDateTimeImpl,
+  readMacHFSPlusDateTime as readMacHFSPlusDateTimeImpl,
+  readUTF8Char as readUTF8CharImpl,
+  readUTF16Char as readUTF16CharImpl,
+  readBinary as readBinaryImpl
 } from "./interpreter"
 import type { ByteRange, HexedFileInput, HexedFileOptions } from "./types"
 
@@ -486,6 +504,256 @@ export class HexedFile extends EventTarget {
       return { value: null, error: "Invalid offset or insufficient bytes" }
     }
     return readInt64Impl(data, 0, endianness)
+  }
+
+  /**
+   * Format a number as decimal or hexadecimal
+   */
+  formatNumber(
+    value: number,
+    format: NumberFormat = "dec"
+  ): string {
+    return formatNumberImpl(value, format)
+  }
+
+  /**
+   * Read unsigned 24-bit integer
+   */
+  readUint24(
+    offset: number,
+    endianness: Endianness = "le"
+  ): { value: number; error: null } | { value: null; error: string } {
+    const data = this.getDataAtRange({ start: offset, end: offset + 3 })
+    if (!data || data.length < 3) {
+      return { value: null, error: "Invalid offset or insufficient bytes" }
+    }
+    return readUint24Impl(data, 0, endianness)
+  }
+
+  /**
+   * Read signed 24-bit integer
+   */
+  readInt24(
+    offset: number,
+    endianness: Endianness = "le"
+  ): { value: number; error: null } | { value: null; error: string } {
+    const data = this.getDataAtRange({ start: offset, end: offset + 3 })
+    if (!data || data.length < 3) {
+      return { value: null, error: "Invalid offset or insufficient bytes" }
+    }
+    return readInt24Impl(data, 0, endianness)
+  }
+
+  /**
+   * Read 16-bit floating point (half precision)
+   */
+  readFloat16(
+    offset: number,
+    endianness: Endianness = "le"
+  ): { value: number; error: null } | { value: null; error: string } {
+    const data = this.getDataAtRange({ start: offset, end: offset + 2 })
+    if (!data || data.length < 2) {
+      return { value: null, error: "Invalid offset or insufficient bytes" }
+    }
+    return readFloat16Impl(data, 0, endianness)
+  }
+
+  /**
+   * Read 32-bit floating point
+   */
+  readFloat32(
+    offset: number,
+    endianness: Endianness = "le"
+  ): { value: number; error: null } | { value: null; error: string } {
+    const data = this.getDataAtRange({ start: offset, end: offset + 4 })
+    if (!data || data.length < 4) {
+      return { value: null, error: "Invalid offset or insufficient bytes" }
+    }
+    return readFloat32Impl(data, 0, endianness)
+  }
+
+  /**
+   * Read 64-bit floating point
+   */
+  readFloat64(
+    offset: number,
+    endianness: Endianness = "le"
+  ): { value: number; error: null } | { value: null; error: string } {
+    const data = this.getDataAtRange({ start: offset, end: offset + 8 })
+    if (!data || data.length < 8) {
+      return { value: null, error: "Invalid offset or insufficient bytes" }
+    }
+    return readFloat64Impl(data, 0, endianness)
+  }
+
+  /**
+   * Read unsigned LEB128 (variable-length encoding)
+   */
+  readLEB128(
+    offset: number
+  ): { value: bigint; bytesRead: number; error: null } | { value: null; bytesRead: 0; error: string } {
+    // LEB128 can be up to 10 bytes, but we'll read a reasonable chunk
+    const data = this.getDataAtRange({ start: offset, end: offset + 10 })
+    if (!data || data.length === 0) {
+      return { value: null, bytesRead: 0, error: "Invalid offset or insufficient bytes" }
+    }
+    const result = readLEB128Impl(data, 0)
+    return result
+  }
+
+  /**
+   * Read signed LEB128 (variable-length encoding)
+   */
+  readSLEB128(
+    offset: number
+  ): { value: bigint; bytesRead: number; error: null } | { value: null; bytesRead: 0; error: string } {
+    // SLEB128 can be up to 10 bytes, but we'll read a reasonable chunk
+    const data = this.getDataAtRange({ start: offset, end: offset + 10 })
+    if (!data || data.length === 0) {
+      return { value: null, bytesRead: 0, error: "Invalid offset or insufficient bytes" }
+    }
+    const result = readSLEB128Impl(data, 0)
+    return result
+  }
+
+  /**
+   * Read unsigned rational number (numerator/denominator)
+   */
+  readRational(
+    offset: number,
+    endianness: Endianness = "le"
+  ): { value: string; error: null } | { value: null; error: string } {
+    const data = this.getDataAtRange({ start: offset, end: offset + 8 })
+    if (!data || data.length < 8) {
+      return { value: null, error: "Invalid offset or insufficient bytes" }
+    }
+    return readRationalImpl(data, 0, endianness)
+  }
+
+  /**
+   * Read signed rational number (numerator/denominator)
+   */
+  readSRational(
+    offset: number,
+    endianness: Endianness = "le"
+  ): { value: string; error: null } | { value: null; error: string } {
+    const data = this.getDataAtRange({ start: offset, end: offset + 8 })
+    if (!data || data.length < 8) {
+      return { value: null, error: "Invalid offset or insufficient bytes" }
+    }
+    return readSRationalImpl(data, 0, endianness)
+  }
+
+  /**
+   * Read MS-DOS DateTime
+   */
+  readMSDOSDateTime(
+    offset: number,
+    endianness: Endianness = "le"
+  ): { value: Date; error: null } | { value: null; error: string } {
+    const data = this.getDataAtRange({ start: offset, end: offset + 4 })
+    if (!data || data.length < 4) {
+      return { value: null, error: "Invalid offset or insufficient bytes" }
+    }
+    return readMSDOSDateTimeImpl(data, 0, endianness)
+  }
+
+  /**
+   * Read OLE 2.0 DateTime (days since December 30, 1899)
+   */
+  readOLEDateTime(
+    offset: number,
+    endianness: Endianness = "le"
+  ): { value: Date; error: null } | { value: null; error: string } {
+    const data = this.getDataAtRange({ start: offset, end: offset + 8 })
+    if (!data || data.length < 8) {
+      return { value: null, error: "Invalid offset or insufficient bytes" }
+    }
+    return readOLEDateTimeImpl(data, 0, endianness)
+  }
+
+  /**
+   * Read UNIX 32-bit DateTime (seconds since January 1, 1970)
+   */
+  readUnixDateTime(
+    offset: number,
+    endianness: Endianness = "le"
+  ): { value: Date; error: null } | { value: null; error: string } {
+    const data = this.getDataAtRange({ start: offset, end: offset + 4 })
+    if (!data || data.length < 4) {
+      return { value: null, error: "Invalid offset or insufficient bytes" }
+    }
+    return readUnixDateTimeImpl(data, 0, endianness)
+  }
+
+  /**
+   * Read Macintosh HFS DateTime (seconds since January 1, 1904)
+   */
+  readMacHFSDateTime(
+    offset: number,
+    endianness: Endianness = "le"
+  ): { value: Date; error: null } | { value: null; error: string } {
+    const data = this.getDataAtRange({ start: offset, end: offset + 4 })
+    if (!data || data.length < 4) {
+      return { value: null, error: "Invalid offset or insufficient bytes" }
+    }
+    return readMacHFSDateTimeImpl(data, 0, endianness)
+  }
+
+  /**
+   * Read Macintosh HFS+ DateTime (seconds since January 1, 1904)
+   */
+  readMacHFSPlusDateTime(
+    offset: number,
+    endianness: Endianness = "le"
+  ): { value: Date; error: null } | { value: null; error: string } {
+    const data = this.getDataAtRange({ start: offset, end: offset + 4 })
+    if (!data || data.length < 4) {
+      return { value: null, error: "Invalid offset or insufficient bytes" }
+    }
+    return readMacHFSPlusDateTimeImpl(data, 0, endianness)
+  }
+
+  /**
+   * Read UTF-8 character
+   */
+  readUTF8Char(
+    offset: number
+  ): { value: string; error: null } | { value: null; error: string } {
+    // UTF-8 can be 1-4 bytes, read up to 4 bytes
+    const data = this.getDataAtRange({ start: offset, end: offset + 4 })
+    if (!data || data.length === 0) {
+      return { value: null, error: "Invalid offset or insufficient bytes" }
+    }
+    return readUTF8CharImpl(data, 0)
+  }
+
+  /**
+   * Read UTF-16 character
+   */
+  readUTF16Char(
+    offset: number,
+    endianness: Endianness = "le"
+  ): { value: string; error: null } | { value: null; error: string } {
+    // UTF-16 can be 2 or 4 bytes (for surrogate pairs), read up to 4 bytes
+    const data = this.getDataAtRange({ start: offset, end: offset + 4 })
+    if (!data || data.length < 2) {
+      return { value: null, error: "Invalid offset or insufficient bytes" }
+    }
+    return readUTF16CharImpl(data, 0, endianness)
+  }
+
+  /**
+   * Read binary representation (8 bits)
+   */
+  readBinary(
+    offset: number
+  ): { value: string; error: null } | { value: null; error: string } {
+    const data = this.getDataAtRange({ start: offset, end: offset + 1 })
+    if (!data || data.length < 1) {
+      return { value: null, error: "Invalid offset or insufficient bytes" }
+    }
+    return readBinaryImpl(data, 0)
   }
 
   /**

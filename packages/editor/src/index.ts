@@ -1,5 +1,4 @@
 // Main hex editor component
-// export * from "./components/hex-editor/editor"
 export * from "./components/hex-editor/index"
 
 // Components
@@ -36,7 +35,6 @@ export * from "./hooks/use-local-storage"
 export * from "./hooks/use-hex-input"
 export * from "./hooks/use-performance-metrics"
 export * from "./hooks/use-recent-files"
-export * from "./hooks/use-file-handle-watcher"
 export * from "./hooks/use-hexed-file"
 
 // Providers

@@ -4,6 +4,7 @@ import type { FunctionComponent } from "react"
 
 import { ResizablePanel } from "@hexed/ui"
 
+import { useHexedFileContext } from "../../providers/hexed-file-provider"
 import { useHexedSettingsContext } from "../../providers/hexed-settings-provider"
 import { useHexedStateContext } from "../../providers/hexed-state-provider"
 import { useWorkerClient } from "../../providers/worker-provider"
@@ -14,7 +15,6 @@ import { Templates } from "../sidebars/templates"
 export type HexSidebarProps = {
   defaultSize: number
   minSize: number
-  data?: Uint8Array
   filePath?: string
   fileId?: string
 }
@@ -22,20 +22,18 @@ export type HexSidebarProps = {
 export const HexSidebar: FunctionComponent<HexSidebarProps> = ({
   defaultSize,
   minSize,
-  data = new Uint8Array(),
   filePath,
   fileId
 }) => {
-  const { sidebar, sidebarPosition, setSidebar } = useHexedSettingsContext()
+  const { input: { hexedFile } } = useHexedFileContext()
+  const settings = useHexedSettingsContext()
+  const state = useHexedStateContext()
+  const { sidebar, setSidebar } = settings
   const {
-    selectedOffset,
-    endianness,
-    numberFormat,
     handleScrollToOffset,
     setSelectedOffsetRange,
-    handleRangeSelectedForSearch,
-    dimensions
-  } = useHexedStateContext()
+    handleRangeSelectedForSearch
+  } = state
   const workerClient = useWorkerClient()
 
   // Return null if no sidebar is selected
@@ -43,7 +41,7 @@ export const HexSidebar: FunctionComponent<HexSidebarProps> = ({
     return null
   }
 
-  const borderClass = sidebarPosition === "left" ? "border-r" : "border-l"
+  const borderClass = settings.sidebarPosition === "left" ? "border-r" : "border-l"
 
   return (
     <ResizablePanel
@@ -55,17 +53,15 @@ export const HexSidebar: FunctionComponent<HexSidebarProps> = ({
       <div className="h-full overflow-auto">
         {sidebar === "interpreter" && (
           <Interpreter
-            data={data}
-            selectedOffset={selectedOffset}
-            endianness={endianness as "le" | "be"}
-            numberFormat={numberFormat as "dec" | "hex"}
+            file={hexedFile}
+            settings={settings}
+            state={state}
             onClose={() => setSidebar(null)}
-            onScrollToOffset={handleScrollToOffset}
           />
         )}
         {sidebar === "templates" && (
           <Templates
-            data={data}
+            data={undefined}
             filePath={filePath}
             onClose={() => setSidebar(null)}
             onScrollToOffset={handleScrollToOffset}

@@ -43,8 +43,6 @@ export const Editor: FunctionComponent<EditorProps> = ({
 
   const canRender = Boolean(hexedFile)
 
-  console.log("hex editor render")
-
   // Diff is disabled since we don't have multiple snapshots
   const diff = useMemo(() => {
     if (state.diffMode === "none") return null
@@ -122,7 +120,6 @@ export const Editor: FunctionComponent<EditorProps> = ({
       <HexSidebar
         defaultSize={30}
         minSize={30}
-        data={new Uint8Array()}
         filePath={hexedFile?.getHandle()?.name}
         fileId={handleId ?? undefined}
       />

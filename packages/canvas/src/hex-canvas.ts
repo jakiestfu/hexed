@@ -76,6 +76,7 @@ export class HexCanvas extends EventTarget {
   private loadedBytes: Uint8Array = new Uint8Array(0)
   private lastLoadedRange: ByteRange | null = null
   private abortController: AbortController | null = null
+  private lastFileSize: number = 0
 
   // Selection state
   private selectedOffset: number | null = null
@@ -253,6 +254,7 @@ export class HexCanvas extends EventTarget {
     if (this.hexedFile === hexedFile) return
 
     this.hexedFile = hexedFile
+    this.lastFileSize = 0
 
     if (hexedFile) {
       this.lastLoadedRange = null
@@ -1216,6 +1218,12 @@ export class HexCanvas extends EventTarget {
       if (!this.layout || !this.hexedFile || this.dimensions.height === 0) {
         this.fileRafId = requestAnimationFrame(update)
         return
+      }
+
+      // Check if file size has changed (e.g., from 0 to actual size when file loads)
+      if (this.hexedFile.size !== this.lastFileSize) {
+        this.lastFileSize = this.hexedFile.size
+        this.updateScrollBounds()
       }
 
       // Check for pending scroll position first

@@ -1,38 +1,11 @@
-import { useEffect, useMemo } from "react"
+import { useMemo } from "react"
 import type { FunctionComponent } from "react"
 import { ArrowLeftRight, MousePointerClick, X } from "lucide-react"
 
 import { formatAddress } from "@hexed/file/formatter"
+import { formatNumber } from "@hexed/file/interpreter"
+import type { Endianness, NumberFormat } from "@hexed/file/interpreter"
 import {
-  formatNumber,
-  readBinary,
-  readFloat16,
-  readFloat32,
-  readFloat64,
-  readInt8,
-  readInt16,
-  readInt24,
-  readInt32,
-  readInt64,
-  readLEB128,
-  readMacHFSDateTime,
-  readMacHFSPlusDateTime,
-  readMSDOSDateTime,
-  readOLEDateTime,
-  readRational,
-  readSLEB128,
-  readSRational,
-  readUint8,
-  readUint16,
-  readUint24,
-  readUint32,
-  readUint64,
-  readUnixDateTime,
-  readUTF8Char,
-  readUTF16Char
-} from "@hexed/file/interpreter"
-import {
-  Badge,
   Button,
   Card,
   CardContent,
@@ -54,7 +27,7 @@ import {
   TooltipTrigger
 } from "@hexed/ui"
 
-import { useHexedSettings } from "../../hooks/use-hexed-settings"
+import type { HexedFile } from "@hexed/file"
 import { useHexedSettingsContext } from "../../providers/hexed-settings-provider"
 import type { InterpreterProps } from "../../types"
 
@@ -75,212 +48,85 @@ function formatDate(date: Date): string {
   return `${year}-${month}-${day} ${hours}:${minutes}:${seconds}.${milliseconds} UTC`
 }
 
+type ReadFn = (file: HexedFile, offset: number, endianness?: Endianness) => { value: number | bigint | string | Date; error: string | null } | { value: null; error: string }
+type FormatFn = (v: number | bigint | string | Date, nf?: NumberFormat) => string
+
+const fmtNum = (v: number | bigint | string | Date, nf: NumberFormat = "dec") => formatNumber(v as number, nf)
+const fmtBigInt = (v: number | bigint | string | Date, nf: NumberFormat = "dec") => formatNumber(Number(v), nf)
+const fmtFloat = (v: number | bigint | string | Date) => (v as number).toString()
+const fmtStr = (v: number | bigint | string | Date) => v as string
+const fmtDate = (v: number | bigint | string | Date) => formatDate(v as Date)
+
+const INTERPRETER_READS: Array<{
+  type: string
+  unsigned?: ReadFn
+  signed?: ReadFn
+  format: FormatFn
+  endian?: boolean
+}> = [
+    { type: "8-bit Integer", unsigned: (f, o) => f.readUint8(o), signed: (f, o) => f.readInt8(o), format: fmtNum, endian: false },
+    { type: "16-bit Integer", unsigned: (f, o, e) => f.readUint16(o, e!), signed: (f, o, e) => f.readInt16(o, e!), format: fmtNum, endian: true },
+    { type: "24-bit Integer", unsigned: (f, o, e) => f.readUint24(o, e!), signed: (f, o, e) => f.readInt24(o, e!), format: fmtNum, endian: true },
+    { type: "32-bit Integer", unsigned: (f, o, e) => f.readUint32(o, e!), signed: (f, o, e) => f.readInt32(o, e!), format: fmtNum, endian: true },
+    { type: "64-bit Integer (+)", unsigned: (f, o, e) => f.readUint64(o, e!), format: fmtBigInt, endian: true },
+    { type: "64-bit Integer (±)", signed: (f, o, e) => f.readInt64(o, e!), format: fmtBigInt, endian: true },
+    { type: "16-bit Float. P.", unsigned: (f, o, e) => f.readFloat16(o, e!), format: fmtFloat, endian: true },
+    { type: "32-bit Float. P.", unsigned: (f, o, e) => f.readFloat32(o, e!), format: fmtFloat, endian: true },
+    { type: "64-bit Float. P.", unsigned: (f, o, e) => f.readFloat64(o, e!), format: fmtFloat, endian: true },
+    { type: "LEB128 (+)", unsigned: (f, o) => f.readLEB128(o), format: fmtBigInt, endian: false },
+    { type: "LEB128 (±)", signed: (f, o) => f.readSLEB128(o), format: fmtBigInt, endian: false },
+    { type: "Rational (+)", unsigned: (f, o, e) => f.readRational(o, e!), format: fmtStr, endian: true },
+    { type: "SRational (±)", signed: (f, o, e) => f.readSRational(o, e!), format: fmtStr, endian: true },
+    { type: "MS-DOS DateTime", unsigned: (f, o, e) => f.readMSDOSDateTime(o, e!), format: fmtDate, endian: true },
+    { type: "OLE 2.0 DateTime", unsigned: (f, o, e) => f.readOLEDateTime(o, e!), format: fmtDate, endian: true },
+    { type: "UNIX 32-bit DateTime", unsigned: (f, o, e) => f.readUnixDateTime(o, e!), format: fmtDate, endian: true },
+    { type: "Macintosh HFS DateTime", unsigned: (f, o, e) => f.readMacHFSDateTime(o, e!), format: fmtDate, endian: true },
+    { type: "Macintosh HFS+ DateTime", unsigned: (f, o, e) => f.readMacHFSPlusDateTime(o, e!), format: fmtDate, endian: true },
+    { type: "UTF-8 Character", unsigned: (f, o) => f.readUTF8Char(o), format: fmtStr, endian: false },
+    { type: "UTF-16 Character", unsigned: (f, o, e) => f.readUTF16Char(o, e!), format: fmtStr, endian: true },
+    { type: "Binary", unsigned: (f, o) => f.readBinary(o), format: fmtStr, endian: false }
+  ]
+
+function buildInterpreterList(file: HexedFile, offset: number, endianness: Endianness, numberFormat: NumberFormat): InterpretedValue[] {
+  return INTERPRETER_READS.map(entry => {
+    const result: InterpretedValue = { type: entry.type }
+    const read = (fn?: ReadFn) => fn ? (entry.endian ? fn(file, offset, endianness) : fn(file, offset)) : null
+    const format = (v: number | bigint | string | Date) => entry.format(v, numberFormat)
+
+    const u = read(entry.unsigned)
+    if (u && !u.error && u.value !== null) result.unsigned = format(u.value)
+
+    const s = read(entry.signed)
+    if (s && !s.error && s.value !== null) result.signed = format(s.value)
+
+    return result
+  })
+}
+
 export const Interpreter: FunctionComponent<InterpreterProps> = ({
-  data,
-  selectedOffset,
-  endianness = "le",
-  numberFormat = "dec",
-  onClose,
-  onScrollToOffset
+  file,
+  settings: _settings,
+  state,
+  onClose
 }) => {
+  // Extract values from props
+  const selectedOffset = state.selectedOffset
+  const endianness = state.endianness as Endianness
+  const numberFormat = state.numberFormat as NumberFormat
+  const onScrollToOffset = state.handleScrollToOffset
+
   const interpretedData = useMemo<InterpretedValue[]>(() => {
     if (
+      !file ||
       selectedOffset === null ||
       selectedOffset < 0 ||
-      selectedOffset >= data.length
+      selectedOffset >= file.size
     ) {
       return []
     }
 
-    const results: InterpretedValue[] = []
-
-    // 8-bit Integer
-    const uint8Result = readUint8(data, selectedOffset)
-    const int8Result = readInt8(data, selectedOffset)
-    results.push({
-      type: "8-bit Integer",
-      unsigned: uint8Result.error
-        ? undefined
-        : formatNumber(uint8Result.value!, numberFormat),
-      signed: int8Result.error
-        ? undefined
-        : formatNumber(int8Result.value!, numberFormat)
-    })
-
-    // 16-bit Integer
-    const uint16Result = readUint16(data, selectedOffset, endianness)
-    const int16Result = readInt16(data, selectedOffset, endianness)
-    results.push({
-      type: "16-bit Integer",
-      unsigned: uint16Result.error
-        ? undefined
-        : formatNumber(uint16Result.value!, numberFormat),
-      signed: int16Result.error
-        ? undefined
-        : formatNumber(int16Result.value!, numberFormat)
-    })
-
-    // 24-bit Integer
-    const uint24Result = readUint24(data, selectedOffset, endianness)
-    const int24Result = readInt24(data, selectedOffset, endianness)
-    results.push({
-      type: "24-bit Integer",
-      unsigned: uint24Result.error
-        ? undefined
-        : formatNumber(uint24Result.value!, numberFormat),
-      signed: int24Result.error
-        ? undefined
-        : formatNumber(int24Result.value!, numberFormat)
-    })
-
-    // 32-bit Integer
-    const uint32Result = readUint32(data, selectedOffset, endianness)
-    const int32Result = readInt32(data, selectedOffset, endianness)
-    results.push({
-      type: "32-bit Integer",
-      unsigned: uint32Result.error
-        ? undefined
-        : formatNumber(uint32Result.value!, numberFormat),
-      signed: int32Result.error
-        ? undefined
-        : formatNumber(int32Result.value!, numberFormat)
-    })
-
-    // 64-bit Integer
-    const uint64Result = readUint64(data, selectedOffset, endianness)
-    const int64Result = readInt64(data, selectedOffset, endianness)
-    results.push({
-      type: "64-bit Integer (+)",
-      unsigned: uint64Result.error
-        ? undefined
-        : formatNumber(Number(uint64Result.value!), numberFormat)
-    })
-    results.push({
-      type: "64-bit Integer (±)",
-      signed: int64Result.error
-        ? undefined
-        : formatNumber(Number(int64Result.value!), numberFormat)
-    })
-
-    // 16-bit Float
-    const float16Result = readFloat16(data, selectedOffset, endianness)
-    results.push({
-      type: "16-bit Float. P.",
-      unsigned: float16Result.error
-        ? undefined
-        : float16Result.value!.toString()
-    })
-
-    // 32-bit Float
-    const float32Result = readFloat32(data, selectedOffset, endianness)
-    results.push({
-      type: "32-bit Float. P.",
-      unsigned: float32Result.error
-        ? undefined
-        : float32Result.value!.toString()
-    })
-
-    // 64-bit Float
-    const float64Result = readFloat64(data, selectedOffset, endianness)
-    results.push({
-      type: "64-bit Float. P.",
-      unsigned: float64Result.error
-        ? undefined
-        : float64Result.value!.toString()
-    })
-
-    // LEB128
-    const leb128Result = readLEB128(data, selectedOffset)
-    results.push({
-      type: "LEB128 (+)",
-      unsigned: leb128Result.error
-        ? undefined
-        : formatNumber(Number(leb128Result.value!), numberFormat)
-    })
-    const sleb128Result = readSLEB128(data, selectedOffset)
-    results.push({
-      type: "LEB128 (±)",
-      signed: sleb128Result.error
-        ? undefined
-        : formatNumber(Number(sleb128Result.value!), numberFormat)
-    })
-
-    // Rational
-    const rationalResult = readRational(data, selectedOffset, endianness)
-    results.push({
-      type: "Rational (+)",
-      unsigned: rationalResult.error ? undefined : rationalResult.value!
-    })
-    const srationalResult = readSRational(data, selectedOffset, endianness)
-    results.push({
-      type: "SRational (±)",
-      signed: srationalResult.error ? undefined : srationalResult.value!
-    })
-
-    // MS-DOS DateTime
-    const msdosResult = readMSDOSDateTime(data, selectedOffset, endianness)
-    results.push({
-      type: "MS-DOS DateTime",
-      unsigned: msdosResult.error ? undefined : formatDate(msdosResult.value!)
-    })
-
-    // OLE 2.0 DateTime
-    const oleResult = readOLEDateTime(data, selectedOffset, endianness)
-    results.push({
-      type: "OLE 2.0 DateTime",
-      unsigned: oleResult.error ? undefined : formatDate(oleResult.value!)
-    })
-
-    // UNIX 32-bit DateTime
-    const unixResult = readUnixDateTime(data, selectedOffset, endianness)
-    results.push({
-      type: "UNIX 32-bit DateTime",
-      unsigned: unixResult.error ? undefined : formatDate(unixResult.value!)
-    })
-
-    // Macintosh HFS DateTime
-    const macHFSResult = readMacHFSDateTime(data, selectedOffset, endianness)
-    results.push({
-      type: "Macintosh HFS DateTime",
-      unsigned: macHFSResult.error ? undefined : formatDate(macHFSResult.value!)
-    })
-
-    // Macintosh HFS+ DateTime
-    const macHFSPlusResult = readMacHFSPlusDateTime(
-      data,
-      selectedOffset,
-      endianness
-    )
-    results.push({
-      type: "Macintosh HFS+ DateTime",
-      unsigned: macHFSPlusResult.error
-        ? undefined
-        : formatDate(macHFSPlusResult.value!)
-    })
-
-    // UTF-8 Character
-    const utf8Result = readUTF8Char(data, selectedOffset)
-    results.push({
-      type: "UTF-8 Character",
-      unsigned: utf8Result.error ? undefined : utf8Result.value!
-    })
-
-    // UTF-16 Character
-    const utf16Result = readUTF16Char(data, selectedOffset, endianness)
-    results.push({
-      type: "UTF-16 Character",
-      unsigned: utf16Result.error ? undefined : utf16Result.value!
-    })
-
-    // Binary
-    const binaryResult = readBinary(data, selectedOffset)
-    results.push({
-      type: "Binary",
-      unsigned: binaryResult.error ? undefined : binaryResult.value!
-    })
-
-    return results
-  }, [data, selectedOffset, endianness, numberFormat])
+    return buildInterpreterList(file, selectedOffset, endianness, numberFormat)
+  }, [file, selectedOffset, endianness, numberFormat])
 
   const { toggleSidebarPosition } = useHexedSettingsContext()
 

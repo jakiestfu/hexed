@@ -1,6 +1,9 @@
 import type { Endianness, NumberFormat } from "@hexed/file/interpreter"
-import type { HexedFileInput } from "@hexed/file"
+import type { HexedFile, HexedFileInput } from "@hexed/file"
 import type { BinarySnapshot } from "@hexed/types"
+
+import type { HexedSettings } from "./hooks/use-hexed-settings"
+import type { HexedState } from "./hooks/use-hexed-state"
 
 export type FileSource = "file-system"
 
@@ -16,12 +19,10 @@ export function getFileSourceDisplayName(source: FileSource): string {
 export type SelectionRange = { start: number; end: number } | null
 
 export type InterpreterProps = {
-  data: Uint8Array
-  selectedOffset: number | null
-  endianness: Endianness
-  numberFormat: NumberFormat
+  file: HexedFile | null
+  settings: HexedSettings
+  state: HexedState
   onClose?: () => void
-  onScrollToOffset?: (offset: number) => void
 }
 
 export type TemplatesProps = {

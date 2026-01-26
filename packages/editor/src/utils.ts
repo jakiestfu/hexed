@@ -1,5 +1,4 @@
 import type { BinarySnapshot } from "@hexed/types"
-import type { HexedFile } from "@hexed/file"
 
 /**
  * Remove query parameters from a path or URL
@@ -118,25 +117,6 @@ export function formatTimestamp(timestamp: number): string {
   if (diffHours < 24) return `${diffHours}h ago`
   if (diffDays < 7) return `${diffDays}d ago`
   return date.toLocaleDateString()
-}
-
-/**
- * Create a minimal snapshot object from data and hexed file
- * Used when components require a BinarySnapshot but we only have raw data
- */
-export function createMinimalSnapshot(
-  data: Uint8Array | null,
-  hexedFile: HexedFile | null
-): BinarySnapshot {
-  return {
-    id: "current",
-    filePath: hexedFile?.getHandle()?.name || "",
-    data: data || new Uint8Array(),
-    timestamp: Date.now(),
-    index: 0,
-    label: "Current",
-    md5: undefined
-  }
 }
 
 // Export utilities from other files
