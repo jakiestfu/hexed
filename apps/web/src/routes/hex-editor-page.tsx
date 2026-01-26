@@ -6,7 +6,8 @@ import {
   HexedFileInput,
   supportsFileSystemAccess,
   useHexedInput,
-  useHexedSettings
+  useHexedSettings,
+  useHexedState
 } from "@hexed/editor"
 
 import { useQueryParams } from "~/hooks/use-query-param-state"
@@ -25,6 +26,7 @@ export function HexEditorPage() {
 
   const [input, setInput] = useHexedInput(params.id)
   const settings = useHexedSettings(overrides)
+  const [state, setState] = useHexedState()
 
   const inputText = queryParams.params.input
   useEffect(() => {
@@ -73,6 +75,8 @@ export function HexEditorPage() {
         fileSource="file-system"
         onChangeInput={onChangeInput}
         settings={settings}
+        state={state}
+        onStateChange={setState}
       />
     </div>
   )

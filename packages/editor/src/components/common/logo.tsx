@@ -6,6 +6,7 @@ import { Button, cn, DropdownMenu, DropdownMenuTrigger } from "@hexed/ui"
 import packageJson from "../../../../../package.public.json"
 import { OnHexedInputChange } from "../../hooks/use-hexed-input"
 import { useHexedInputContext } from "../../providers/hex-input-provider"
+import { useHexedStateContext } from "../../providers/hexed-state-provider"
 import { Menu } from "./menu"
 
 export type { MenuItem } from "./menu"
@@ -79,24 +80,12 @@ export const Brand: FunctionComponent<{
 export const Logo: FunctionComponent<{
   inline?: boolean
   // currentSnapshot?: BinarySnapshot | null
-  showHistogram?: boolean
-  onShowHistogramChange?: (show: boolean) => void
   onChangeInput: OnHexedInputChange
-}> = ({
-  inline = false,
-  showHistogram: controlledShowHistogram,
-  onShowHistogramChange: controlledOnShowHistogramChange,
-  onChangeInput
-}) => {
+}> = ({ inline = false, onChangeInput }) => {
   const {
     input: { file }
   } = useHexedInputContext()
-  const [internalShowHistogram, setInternalShowHistogram] = useState(false)
-
-  // Use controlled state if provided, otherwise use internal state
-  const showHistogram = controlledShowHistogram ?? internalShowHistogram
-  const onShowHistogramChange =
-    controlledOnShowHistogramChange ?? setInternalShowHistogram
+  const { showHistogram, handleToggleHistogram } = useHexedStateContext()
 
   if (inline) return <Brand />
 
@@ -114,7 +103,11 @@ export const Logo: FunctionComponent<{
         </DropdownMenuTrigger>
         <Menu
           showHistogram={showHistogram}
-          onShowHistogramChange={onShowHistogramChange}
+          onShowHistogramChange={(show: boolean) => {
+            if (show !== showHistogram) {
+              handleToggleHistogram()
+            }
+          }}
           onChangeInput={onChangeInput}
         />
       </DropdownMenu>

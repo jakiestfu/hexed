@@ -36,37 +36,32 @@ import {
 
 import { useHexedSettings, type Sidebar } from "../../hooks/use-hexed-settings"
 import { useHexedSettingsContext } from "../../providers/hexed-settings-provider"
+import { useHexedStateContext } from "../../providers/hexed-state-provider"
 import { MemoryProfiler } from "../common/memory-profiler"
 
 export type HexFooterProps = {
   totalSize: number | undefined
-  dataType: string
-  setDataType: (value: string) => void
-  endianness: string
-  setEndianness: (value: string) => void
-  numberFormat: string
-  setNumberFormat: (value: string) => void
   hasSnapshots: boolean
-  selectedOffset: number | null
   paneToggleValue: string
-  onShowHistogram: () => void
 }
 
 export const HexFooter: FunctionComponent<HexFooterProps> = ({
   totalSize,
-  dataType,
-  setDataType,
-  endianness,
-  setEndianness,
-  numberFormat,
-  setNumberFormat,
   hasSnapshots,
-  selectedOffset,
-  paneToggleValue,
-  onShowHistogram
+  paneToggleValue
 }) => {
   const { showAscii, setShowAscii, showMemoryProfiler, setSidebar } =
     useHexedSettingsContext()
+  const {
+    dataType,
+    setDataType,
+    endianness,
+    setEndianness,
+    numberFormat,
+    setNumberFormat,
+    selectedOffset,
+    handleToggleHistogram
+  } = useHexedStateContext()
 
   const bytesLabel = totalSize ? (
     <div className="items-center gap-2 font-mono hidden md:flex flex-col">
@@ -179,7 +174,7 @@ export const HexFooter: FunctionComponent<HexFooterProps> = ({
               <Button
                 variant="outline"
                 size="sm"
-                onClick={onShowHistogram}
+                onClick={handleToggleHistogram}
                 disabled={!hasSnapshots}
                 aria-label="Show histogram"
                 className="grow md:grow-0"

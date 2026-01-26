@@ -1,25 +1,18 @@
-import { useCallback } from "react"
 import type { FunctionComponent } from "react"
 
 import type { DiffResult } from "@hexed/types"
 
+import { useHexedStateContext } from "../../providers/hexed-state-provider"
 import { DiffViewer } from "../toolbar/diff-viewer"
 
 export type HexToolbarDiffProps = {
   diff: DiffResult | null
-  onScrollToOffset: (offset: number) => void
 }
 
 export const HexToolbarDiff: FunctionComponent<HexToolbarDiffProps> = ({
-  diff,
-  onScrollToOffset
+  diff
 }) => {
-  const handleScrollToOffset = useCallback(
-    (offset: number) => {
-      onScrollToOffset(offset)
-    },
-    [onScrollToOffset]
-  )
+  const { handleScrollToOffset } = useHexedStateContext()
 
   if (!diff) {
     return null

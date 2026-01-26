@@ -4,6 +4,7 @@ import type { FunctionComponent, PropsWithChildren } from "react"
 
 import { OnHexedInputChange, UseHexedInput } from "../../hooks/use-hexed-input"
 import { UseHexedSettings } from "../../hooks/use-hexed-settings"
+import { UseHexedState } from "../../hooks/use-hexed-state"
 import { HexedProviders } from "../../providers"
 import type { EditorProps } from "../../types"
 import { Editor } from "./editor"
@@ -14,13 +15,16 @@ export const HexedEditor: FunctionComponent<
       input: UseHexedInput[0]
       onChangeInput: OnHexedInputChange
       settings: UseHexedSettings
+      state: UseHexedState[0]
+      onStateChange: UseHexedState[1]
     } & EditorProps
   >
-> = ({ input, onChangeInput, settings, ...props }) => (
+> = ({ input, onChangeInput, settings, state, onStateChange, ...props }) => (
   <HexedProviders
     input={input}
     onChangeInput={onChangeInput}
     settings={settings}
+    state={state}
   >
     <Editor {...props} />
   </HexedProviders>

@@ -4,24 +4,13 @@ import { useHotkeys } from "react-hotkeys-hook"
 import { toHexString } from "@hexed/binary-utils/formatter"
 
 import { useHexedSettingsContext } from "../providers/hexed-settings-provider"
+import { useHexedStateContext } from "../providers/hexed-state-provider"
 
 export interface UseGlobalKeyboardOptions {
-  /** Current selection range */
-  selectedOffsetRange: { start: number; end: number } | null
   /** Current snapshot data */
   data: Uint8Array
-  /** Whether search input is visible */
-  showSearch: boolean
-  /** Callback to toggle search input */
-  onToggleSearch: () => void
-  /** Callback to close search input */
-  onCloseSearch: () => void
-  /** Callback to deselect bytes */
-  onDeselectBytes: () => void
   /** Optional callback when bytes are copied (for notifications, etc.) */
   onCopy?: (hexString: string) => void
-  /** Callback to toggle histogram dialog */
-  onToggleHistogram?: () => void
 }
 
 /**
@@ -38,14 +27,8 @@ export interface UseGlobalKeyboardOptions {
  * - Ctrl+Shift+P/meta+Shift+P: Toggle sidebar position
  */
 export function useGlobalKeyboard({
-  selectedOffsetRange,
   data,
-  showSearch,
-  onToggleSearch,
-  onCloseSearch,
-  onDeselectBytes,
-  onCopy,
-  onToggleHistogram
+  onCopy
 }: UseGlobalKeyboardOptions): void {
   // Get settings from context
   const {
@@ -55,6 +38,16 @@ export function useGlobalKeyboard({
     sidebar,
     setSidebar
   } = useHexedSettingsContext()
+  
+  // Get state from context
+  const {
+    selectedOffsetRange,
+    showSearch,
+    handleToggleSearch,
+    handleCloseSearch,
+    handleDeselectBytes,
+    handleToggleHistogram
+  } = useHexedStateContext()
 
   /**
    * Check if user is currently typing in an input field
@@ -119,21 +112,21 @@ export function useGlobalKeyboard({
   const handleEscape = useCallback((): void => {
     if (showSearch) {
       // First priority: close find input
-      onCloseSearch()
+      handleCloseSearch()
     } else if (sidebar !== null) {
       // Second priority: close sidebars
       setSidebar(null)
     } else if (selectedOffsetRange !== null) {
       // Third priority: deselect bytes
-      onDeselectBytes()
+      handleDeselectBytes()
     }
   }, [
     showSearch,
     sidebar,
     selectedOffsetRange,
-    onCloseSearch,
+    handleCloseSearch,
     setSidebar,
-    onDeselectBytes
+    handleDeselectBytes
   ])
 
   // Copy shortcut: Ctrl+C or meta+C
@@ -181,13 +174,13 @@ export function useGlobalKeyboard({
       if (isTypingInInput()) return
 
       event.preventDefault()
-      onToggleSearch()
+      handleToggleSearch()
     },
     {
       enabled: true,
       enableOnFormTags: false
     },
-    [onToggleSearch, isTypingInInput]
+    [handleToggleSearch, isTypingInInput]
   )
 
   // Toggle ASCII: Ctrl+Shift+A or meta+Shift+A
@@ -227,16 +220,15 @@ export function useGlobalKeyboard({
     "ctrl+shift+h, meta+shift+h",
     (event) => {
       if (isTypingInInput()) return
-      if (!onToggleHistogram) return
 
       event.preventDefault()
-      onToggleHistogram()
+      handleToggleHistogram()
     },
     {
-      enabled: true && !!onToggleHistogram,
+      enabled: true,
       enableOnFormTags: false
     },
-    [onToggleHistogram, isTypingInInput]
+    [handleToggleHistogram, isTypingInInput]
   )
 
   // Toggle interpreter: Ctrl+1 or meta+1

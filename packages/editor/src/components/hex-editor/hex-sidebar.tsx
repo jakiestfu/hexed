@@ -2,13 +2,11 @@
 
 import type { FunctionComponent } from "react"
 
-import type { Endianness, NumberFormat } from "@hexed/binary-utils/interpreter"
 import { ResizablePanel } from "@hexed/ui"
 
-import { useHexedSettings } from "../../hooks/use-hexed-settings"
 import { useHexedSettingsContext } from "../../providers/hexed-settings-provider"
+import { useHexedStateContext } from "../../providers/hexed-state-provider"
 import { useWorkerClient } from "../../providers/worker-provider"
-import type { SelectionRange } from "../../types"
 import { Interpreter } from "../sidebars/interpreter"
 import { Strings } from "../sidebars/strings"
 import { Templates } from "../sidebars/templates"
@@ -16,36 +14,28 @@ import { Templates } from "../sidebars/templates"
 export type HexSidebarProps = {
   defaultSize: number
   minSize: number
-  data: Uint8Array
-  selectedOffset: number | null
-  endianness: Endianness
-  numberFormat: NumberFormat
+  data?: Uint8Array
   filePath?: string
   fileId?: string
-  onScrollToOffset: (offset: number) => void
-  onSelectedOffsetRangeChange: (range: SelectionRange) => void
-  onRangeSelectedForSearch?: (range: SelectionRange) => void
-  dimensions: {
-    width: number
-    height: number
-  }
 }
 
 export const HexSidebar: FunctionComponent<HexSidebarProps> = ({
   defaultSize,
   minSize,
-  data,
-  selectedOffset,
-  endianness,
-  numberFormat,
+  data = new Uint8Array(),
   filePath,
-  fileId,
-  onScrollToOffset,
-  onSelectedOffsetRangeChange,
-  onRangeSelectedForSearch,
-  dimensions
+  fileId
 }) => {
   const { sidebar, sidebarPosition, setSidebar } = useHexedSettingsContext()
+  const {
+    selectedOffset,
+    endianness,
+    numberFormat,
+    handleScrollToOffset,
+    setSelectedOffsetRange,
+    handleRangeSelectedForSearch,
+    dimensions
+  } = useHexedStateContext()
   const workerClient = useWorkerClient()
 
   // Return null if no sidebar is selected
@@ -67,10 +57,10 @@ export const HexSidebar: FunctionComponent<HexSidebarProps> = ({
           <Interpreter
             data={data}
             selectedOffset={selectedOffset}
-            endianness={endianness}
-            numberFormat={numberFormat}
+            endianness={endianness as "le" | "be"}
+            numberFormat={numberFormat as "dec" | "hex"}
             onClose={() => setSidebar(null)}
-            onScrollToOffset={onScrollToOffset}
+            onScrollToOffset={handleScrollToOffset}
           />
         )}
         {sidebar === "templates" && (
@@ -78,16 +68,16 @@ export const HexSidebar: FunctionComponent<HexSidebarProps> = ({
             data={data}
             filePath={filePath}
             onClose={() => setSidebar(null)}
-            onScrollToOffset={onScrollToOffset}
-            onSelectedOffsetRangeChange={onSelectedOffsetRangeChange}
+            onScrollToOffset={handleScrollToOffset}
+            onSelectedOffsetRangeChange={setSelectedOffsetRange}
           />
         )}
         {sidebar === "strings" && (
           <Strings
             onClose={() => setSidebar(null)}
-            onScrollToOffset={onScrollToOffset}
-            onSelectedOffsetRangeChange={onSelectedOffsetRangeChange}
-            onRangeSelectedForSearch={onRangeSelectedForSearch}
+            onScrollToOffset={handleScrollToOffset}
+            onSelectedOffsetRangeChange={setSelectedOffsetRange}
+            onRangeSelectedForSearch={handleRangeSelectedForSearch}
           />
         )}
       </div>

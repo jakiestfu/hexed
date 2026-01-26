@@ -1,34 +1,21 @@
-import { useCallback } from "react"
 import type { FunctionComponent, RefObject } from "react"
 
-import type { SelectionRange } from "../../types"
+import { useHexedStateContext } from "../../providers/hexed-state-provider"
 import { FindInput } from "../toolbar/find-input"
 
 export type HexToolbarSearchProps = {
-  showSearch: boolean
   inputRef?: RefObject<HTMLInputElement | null>
-  syncRangeToFindInput: SelectionRange
-  onMatchFound: (offset: number, length: number) => void
-  onClose: () => void
 }
 
 export const HexToolbarSearch: FunctionComponent<HexToolbarSearchProps> = ({
-  showSearch,
-  inputRef,
-  syncRangeToFindInput,
-  onMatchFound,
-  onClose
+  inputRef
 }) => {
-  const handleMatchFound = useCallback(
-    (offset: number, length: number) => {
-      onMatchFound(offset, length)
-    },
-    [onMatchFound]
-  )
-
-  const handleClose = useCallback(() => {
-    onClose()
-  }, [onClose])
+  const {
+    showSearch,
+    rangeToSyncToFindInput,
+    handleMatchFound,
+    handleCloseSearch
+  } = useHexedStateContext()
 
   if (!showSearch) {
     return null
@@ -39,9 +26,9 @@ export const HexToolbarSearch: FunctionComponent<HexToolbarSearchProps> = ({
       <div className="p-4">
         <FindInput
           inputRef={inputRef}
-          syncRangeToFindInput={syncRangeToFindInput}
+          syncRangeToFindInput={showSearch ? rangeToSyncToFindInput : null}
           onMatchFound={handleMatchFound}
-          onClose={handleClose}
+          onClose={handleCloseSearch}
         />
       </div>
     </div>
