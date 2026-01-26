@@ -17,7 +17,7 @@ import {
   TableRow
 } from "@hexed/ui"
 
-import type { HexedFile } from "@hexed/file"
+import { formatAddress, type HexedFile } from "@hexed/file"
 import { HexedPluginComponent } from "../../plugins/types"
 import { createHexedEditorPlugin } from ".."
 
@@ -115,10 +115,10 @@ export const Interpreter: HexedPluginComponent = ({ file, state }) => {
 
   // const { toggleSidebarPosition } = useHexedSettingsContext()
 
-  // const hexAddress =
-  //   selectedOffset !== null ? formatAddress(selectedOffset) : ""
-  // const byteOffset =
-  //   selectedOffset !== null ? selectedOffset.toLocaleString() : ""
+  const hexAddress =
+    selectedOffset !== null ? formatAddress(selectedOffset) : ""
+  const byteOffset =
+    selectedOffset !== null ? selectedOffset.toLocaleString() : ""
 
   return (
     <>
@@ -135,50 +135,69 @@ export const Interpreter: HexedPluginComponent = ({ file, state }) => {
           </EmptyHeader>
         </Empty>
       ) : (
-        <Table>
-          <TableHeader>
-            <TableRow>
-              <TableHead className="w-[200px]">Type</TableHead>
-              <TableHead>Unsigned (+)</TableHead>
-              <TableHead>Signed (±)</TableHead>
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {interpretedData.map((row, index) => (
-              <TableRow key={index}>
-                <TableCell className="font-medium text-xs">
-                  {row.type}
-                </TableCell>
-                <TableCell className="font-mono text-xs">
-                  {row.unsigned !== undefined ? (
-                    row.unsigned
-                  ) : (
-                    <span className="text-muted-foreground">
-                      {row.type.includes("DateTime")
-                        ? "Invalid date"
-                        : row.type.includes("Character")
-                          ? "Null"
-                          : "Invalid number"}
-                    </span>
-                  )}
-                </TableCell>
-                <TableCell className="font-mono text-xs">
-                  {row.signed !== undefined ? (
-                    row.signed
-                  ) : (
-                    <span className="text-muted-foreground">
-                      {row.type.includes("DateTime")
-                        ? "Invalid date"
-                        : row.type.includes("Character")
-                          ? "Null"
-                          : "Invalid number"}
-                    </span>
-                  )}
-                </TableCell>
+        <div>
+          {selectedOffset !== null && (
+            <div className="flex items-center p-4 text-xs gap-4 border-b">
+              <button
+                onClick={() => state.handleScrollToOffset(selectedOffset)}
+                className="font-mono hover:text-foreground hover:underline transition-colors cursor-pointer"
+                aria-label={`Scroll to offset ${hexAddress}`}
+              >
+                {hexAddress}
+              </button>
+              <span className="text-muted-foreground/70">•</span>
+              <span>Offset {byteOffset}</span>
+              <span className="text-muted-foreground/70">•</span>
+              <span className="font-mono">
+                {endianness === "le" ? "LE" : "BE"}
+              </span>
+            </div>
+          )}
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead className="w-[200px]">Type</TableHead>
+                <TableHead>Unsigned (+)</TableHead>
+                <TableHead>Signed (±)</TableHead>
               </TableRow>
-            ))}
-          </TableBody>
-        </Table>
+            </TableHeader>
+            <TableBody>
+              {interpretedData.map((row, index) => (
+                <TableRow key={index}>
+                  <TableCell className="font-medium text-xs">
+                    {row.type}
+                  </TableCell>
+                  <TableCell className="font-mono text-xs">
+                    {row.unsigned !== undefined ? (
+                      row.unsigned
+                    ) : (
+                      <span className="text-muted-foreground">
+                        {row.type.includes("DateTime")
+                          ? "Invalid date"
+                          : row.type.includes("Character")
+                            ? "Null"
+                            : "Invalid number"}
+                      </span>
+                    )}
+                  </TableCell>
+                  <TableCell className="font-mono text-xs">
+                    {row.signed !== undefined ? (
+                      row.signed
+                    ) : (
+                      <span className="text-muted-foreground">
+                        {row.type.includes("DateTime")
+                          ? "Invalid date"
+                          : row.type.includes("Character")
+                            ? "Null"
+                            : "Invalid number"}
+                      </span>
+                    )}
+                  </TableCell>
+                </TableRow>
+              ))}
+            </TableBody>
+          </Table>
+        </div>
       )}
     </>
   )

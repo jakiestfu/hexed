@@ -23,6 +23,7 @@ import {
 import {
   FileSourceIcon,
   formatFilenameForDisplay,
+  formatHotkey,
   Hotkeys,
   OnHexedFileChange,
   Sidebar,
@@ -272,6 +273,9 @@ export const Menu: FunctionComponent<MenuProps> = ({
                 >
                   <plugin.icon className="mr-2 h-4 w-4" />
                   {plugin.title}
+                  <DropdownMenuShortcut>
+                    {plugin.hotkey?.formatted}
+                  </DropdownMenuShortcut>
                 </DropdownMenuRadioItem>
               ))}
               {/* <DropdownMenuRadioItem

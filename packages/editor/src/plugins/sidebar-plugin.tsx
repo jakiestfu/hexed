@@ -18,8 +18,8 @@ export const SidebarPlugin: FunctionComponent<HexedPluginOptions> = ({ title, ic
         <CardHeader className="py-3! px-4 border-b shrink-0 gap-0 bg-secondary">
           <div className="flex items-center justify-between gap-4">
             <div className="flex items-center gap-3 min-w-0">
-              <CardTitle className="text-sm font-medium shrink-0 flex-1">
-                <Icon className="h-4 w-4" />
+              <CardTitle className="text-sm font-medium shrink-0 flex-1 flex items-center gap-2">
+                <Icon className="size-4" />
                 {title}
               </CardTitle>
             </div>

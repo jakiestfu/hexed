@@ -3,6 +3,7 @@ import type { LucideIcon } from "lucide-react";
 import type { FunctionComponent, PropsWithChildren, ReactNode } from "react";
 import type { UseHexedSettings } from "../hooks/use-hexed-settings";
 import type { HexedState } from "../hooks/use-hexed-state";
+import { Keys } from "react-hotkeys-hook";
 
 export type HexedPluginComponent<T = Record<string, unknown>> = FunctionComponent<PropsWithChildren<{
   file: HexedFile;
@@ -16,6 +17,10 @@ export type HexedPluginOptions<T = Record<string, unknown>> = {
   title: string;
   icon: LucideIcon;
   component: HexedPluginComponent<T>
+  hotkey?: {
+    formatted: string;
+    keys: string;
+  };
 }
 
 export type HexedPlugin<T = Record<string, unknown>> = Omit<HexedPluginOptions<T>, "component"> & {
