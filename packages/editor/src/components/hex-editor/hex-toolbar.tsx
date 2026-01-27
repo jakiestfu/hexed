@@ -67,9 +67,8 @@ export const HexToolbar: FunctionComponent<HexToolbarProps> = ({
           {formatFilenameForDisplay(file.name!)}
         </span>
         <div
-          className={`inline-flex h-2 w-2 rounded-full shrink-0 ${
-            isConnected ? "bg-green-500" : "bg-gray-500"
-          }`}
+          className={`inline-flex h-2 w-2 rounded-full shrink-0 ${isConnected ? "bg-green-500" : "bg-gray-500"
+            }`}
         />
       </div>
     </FileStatusPopover>
@@ -103,7 +102,7 @@ export const HexToolbar: FunctionComponent<HexToolbarProps> = ({
                 <plugin.icon />
               </ToggleGroupItem>
             </TooltipTrigger>
-            <TooltipContent>Toggle {plugin.title}</TooltipContent>
+            <TooltipContent>{plugin.title}</TooltipContent>
           </Tooltip>
         ))}
     </ToggleGroup>

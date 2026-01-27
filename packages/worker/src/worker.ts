@@ -5,12 +5,16 @@
 import { extractStrings, type StringEncoding } from "@hexed/file/strings"
 import { createLogger } from "@hexed/logger"
 
-import { renderChart } from "./chart-worker"
+import {
+  generateMessageId,
+  sendError,
+  sendProgress,
+  sendResponse,
+  sendSearchMatch
+} from "./utils"
 import type {
   ByteFrequencyRequest,
   ByteFrequencyResponse,
-  ChartRenderRequest,
-  ChartRenderResponse,
   ChiSquareRequest,
   ChiSquareResponse,
   ConnectedResponse,
@@ -46,63 +50,6 @@ async function readByteRange(
   return new Uint8Array(arrayBuffer)
 }
 
-/**
- * Generate a unique message ID
- */
-function generateMessageId(): string {
-  return `${Date.now()}-${Math.random().toString(36).substr(2, 9)}`
-}
-
-/**
- * Send a response message
- */
-function sendResponse(message: ResponseMessage): void {
-  try {
-    self.postMessage(message)
-  } catch (error) {
-    console.error("Error sending response:", error)
-  }
-}
-
-/**
- * Send a progress event
- */
-function sendProgress(event: ProgressEvent): void {
-  try {
-    self.postMessage(event)
-  } catch (error) {
-    console.error("Error sending progress event:", error)
-  }
-}
-
-/**
- * Send a search match event
- */
-function sendSearchMatch(event: SearchMatchEvent): void {
-  try {
-    self.postMessage(event)
-  } catch (error) {
-    console.error("Error sending search match event:", error)
-  }
-}
-
-/**
- * Send an error response
- */
-function sendError(error: string, originalMessageId?: string): void {
-  logger.log(
-    "Error:",
-    error,
-    originalMessageId ? `(request: ${originalMessageId})` : ""
-  )
-  const response: ErrorResponse = {
-    id: generateMessageId(),
-    type: "ERROR",
-    error,
-    originalMessageId
-  }
-  sendResponse(response)
-}
 
 /**
  * Handle SEARCH_REQUEST - Search for pattern in file with progress updates
@@ -383,13 +330,27 @@ function calculateBlockEntropy(
  * Determine optimal block size based on file size for block-based calculations
  * Smaller files use smaller blocks to get more data points for visualization
  */
-function getBlockSize(fileSize: number): number {
-  // return 32;
-  // if (fileSize < 1024) return 32 // < 1KB: 32 bytes (~32 points)
-  // if (fileSize < 10 * 1024) return 128 // < 10KB: 128 bytes (~80 points)
-  if (fileSize < 100 * 1024) return 32 // < 100KB: 512 bytes (~200 points)
-  if (fileSize < 1024 * 1024) return 2048 // < 1MB: 2KB (~512 points)
-  return STREAM_CHUNK_SIZE // >= 1MB: 1MB chunks
+// function getBlockSize(fileSize: number): number {
+//   // return 32;
+//   // if (fileSize < 1024) return 32 // < 1KB: 32 bytes (~32 points)
+//   // if (fileSize < 10 * 1024) return 128 // < 10KB: 128 bytes (~80 points)
+//   if (fileSize < 100 * 1024) return 32 // < 100KB: 512 bytes (~200 points)
+//   if (fileSize < 1024 * 1024) return 2048 // < 1MB: 2KB (~512 points)
+//   return STREAM_CHUNK_SIZE // >= 1MB: 1MB chunks
+// }
+const TARGET_POINTS = 512
+const MIN_BLOCK = 32
+const MAX_BLOCK = 1024 * 1024
+export const getBlockSize = (fileSize: number): number => {
+  const raw = Math.floor(fileSize / TARGET_POINTS)
+
+  // round to nice powers of two
+  const pow2 = Math.pow(2, Math.round(Math.log2(raw)))
+
+  return Math.max(
+    MIN_BLOCK,
+    Math.min(pow2, MAX_BLOCK)
+  )
 }
 
 /**
@@ -751,51 +712,6 @@ async function handleByteFrequency(
   }
 }
 
-// Store chart instances by canvas (for updates without re-transferring)
-const chartInstances = new Map<OffscreenCanvas, unknown>()
-
-/**
- * Handle CHART_RENDER_REQUEST - Render chart on offscreen canvas
- */
-async function handleChartRender(request: ChartRenderRequest): Promise<void> {
-  logger.log(`Rendering chart (request: ${request.id})`)
-  try {
-    // Check if we already have a chart instance for this canvas
-    const existingChart = chartInstances.get(request.canvas)
-
-    if (existingChart && request.canvas) {
-      // Update existing chart with new config
-      // Chart.js doesn't have a direct update method, so we'll create a new one
-      // But first, destroy the old one if possible
-      if (typeof (existingChart as any).destroy === "function") {
-        (existingChart as any).destroy()
-      }
-    }
-
-    // Create new chart instance
-    if (request.canvas) {
-      const chart = renderChart(request.canvas, request.config)
-      chartInstances.set(request.canvas, chart)
-    } else {
-      // Canvas is null, which means this is an update request
-      // We can't update without the canvas, so this is an error
-      throw new Error("Canvas is required for chart rendering")
-    }
-
-    const response: ChartRenderResponse = {
-      id: request.id,
-      type: "CHART_RENDER_RESPONSE",
-      success: true
-    }
-    sendResponse(response)
-  } catch (error) {
-    sendError(
-      error instanceof Error ? error.message : "Failed to render chart",
-      request.id
-    )
-  }
-}
-
 /**
  * Route a request message to the appropriate handler
  */
@@ -815,9 +731,6 @@ async function handleRequest(message: RequestMessage): Promise<void> {
       break
     case "CHI_SQUARE_REQUEST":
       await handleChiSquare(message)
-      break
-    case "CHART_RENDER_REQUEST":
-      await handleChartRender(message)
       break
     default:
       const unknownMessage = message as { type: string; id: string }

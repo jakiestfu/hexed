@@ -15,7 +15,7 @@ export const calculateByteFrequency: ChartCalculationFunction = async (
   endOffset
 ) => {
   // Calculate byte frequency
-  const frequencies = await workerClient.charts.calculateByteFrequency(
+  const frequencies = await workerClient.calculateByteFrequency(
     file,
     onProgress,
     startOffset,

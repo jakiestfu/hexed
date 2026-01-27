@@ -37,7 +37,7 @@ export const VisualizationPlugin: FunctionComponent<
 
   if (!hexedFile || type !== "visualization" || !workerClient) return null
 
-  // Transfer canvas to worker once it's mounted
+  // Transfer canvas to chart worker once it's mounted
   useEffect(() => {
     const canvas = canvasRef.current
     if (!canvas || !workerClient || offscreenCanvasRef.current) return
@@ -110,8 +110,8 @@ export const VisualizationPlugin: FunctionComponent<
           canvasPromise
         ])
 
-        // Render chart
-        await workerClient.charts.render(offscreenCanvas, chartConfig)
+        // Render chart using unified worker client
+        await workerClient.render(offscreenCanvas, chartConfig)
         setProgress(100)
       } catch (err) {
         const error = err instanceof Error ? err : new Error("Failed to render chart")

@@ -136,85 +136,85 @@ export const Editor: FunctionComponent<EditorProps> = ({
     <Card
       className={`p-0 m-0 w-full h-full rounded-none border-none shadow-none overflow-hidden ${className}`}
     >
-      <Tabs
-        value={state.activeTab}
-        onValueChange={state.setActiveTab}
-        className="gap-0 h-full"
-      >
-        <CardHeader className="p-0! gap-0 m-0 bg-muted/30">
-          <HexToolbar
-            plugins={plugins}
-            left={<Logo plugins={plugins} />}
-            file={hexedFile}
-            fileSource={fileSource}
-            isConnected={Boolean(hexedFile?.getHandle())}
-            error={null}
-            onRestartWatching={() => {}}
-            onClose={() => onChangeInput(null)}
-          />
-          {/* <HexToolbarTabs snapshots={snapshots} /> */}
-          <HexToolbarDiff diff={diff} />
-        </CardHeader>
-
-        <CardContent className="grow min-h-0 overflow-auto p-0">
-          {!canRender ? <EmptyState onChangeInput={onChangeInput} /> : null}
-
-          <TabsContent
-            value="0"
-            className={cn("h-full", !canRender && "hidden")}
-          >
-            {sidebarPosition === "left" ? (
-              <>
-                <ResizablePanelGroup
-                  direction="horizontal"
-                  className="h-full"
-                >
-                  {sidebarPanel}
-                  {hasSidebars && (
-                    <ResizableHandle
-                      className={sidebar ? "hidden md:flex" : ""}
-                      withHandle
-                    />
-                  )}
-                  {mainContent}
-                </ResizablePanelGroup>
-              </>
-            ) : (
-              <>
-                <ResizablePanelGroup
-                  direction="horizontal"
-                  className="h-full"
-                >
-                  {mainContent}
-                  {hasSidebars && (
-                    <ResizableHandle
-                      className={sidebar ? "hidden md:flex" : ""}
-                      withHandle
-                    />
-                  )}
-                  {sidebarPanel}
-                </ResizablePanelGroup>
-              </>
-            )}
-          </TabsContent>
-        </CardContent>
-
-        <CardFooter
-          className={cn(
-            "p-0",
-            canRender
-              ? "opacity-100"
-              : "opacity-0 transition-all duration-700 pointer-events-none"
-          )}
+        <Tabs
+          value={state.activeTab}
+          onValueChange={state.setActiveTab}
+          className="gap-0 h-full"
         >
-          <HexFooter
-            totalSize={hexedFile?.size}
-            hasSnapshots={false}
-            paneToggleValue={paneToggleValue}
-            plugins={plugins}
-          />
-        </CardFooter>
-      </Tabs>
-    </Card>
+          <CardHeader className="p-0! gap-0 m-0 bg-muted/30">
+            <HexToolbar
+              plugins={plugins}
+              left={<Logo plugins={plugins} />}
+              file={hexedFile}
+              fileSource={fileSource}
+              isConnected={Boolean(hexedFile?.getHandle())}
+              error={null}
+              onRestartWatching={() => {}}
+              onClose={() => onChangeInput(null)}
+            />
+            {/* <HexToolbarTabs snapshots={snapshots} /> */}
+            <HexToolbarDiff diff={diff} />
+          </CardHeader>
+
+          <CardContent className="grow min-h-0 overflow-auto p-0">
+            {!canRender ? <EmptyState onChangeInput={onChangeInput} /> : null}
+
+            <TabsContent
+              value="0"
+              className={cn("h-full", !canRender && "hidden")}
+            >
+              {sidebarPosition === "left" ? (
+                <>
+                  <ResizablePanelGroup
+                    direction="horizontal"
+                    className="h-full"
+                  >
+                    {sidebarPanel}
+                    {hasSidebars && (
+                      <ResizableHandle
+                        className={sidebar ? "hidden md:flex" : ""}
+                        withHandle
+                      />
+                    )}
+                    {mainContent}
+                  </ResizablePanelGroup>
+                </>
+              ) : (
+                <>
+                  <ResizablePanelGroup
+                    direction="horizontal"
+                    className="h-full"
+                  >
+                    {mainContent}
+                    {hasSidebars && (
+                      <ResizableHandle
+                        className={sidebar ? "hidden md:flex" : ""}
+                        withHandle
+                      />
+                    )}
+                    {sidebarPanel}
+                  </ResizablePanelGroup>
+                </>
+              )}
+            </TabsContent>
+          </CardContent>
+
+          <CardFooter
+            className={cn(
+              "p-0",
+              canRender
+                ? "opacity-100"
+                : "opacity-0 transition-all duration-700 pointer-events-none"
+            )}
+          >
+            <HexFooter
+              totalSize={hexedFile?.size}
+              hasSnapshots={false}
+              paneToggleValue={paneToggleValue}
+              plugins={plugins}
+            />
+          </CardFooter>
+        </Tabs>
+      </Card>
   )
 }

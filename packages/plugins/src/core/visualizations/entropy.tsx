@@ -17,7 +17,7 @@ export const calculateEntropy: ChartCalculationFunction = async (
 ) => {
   // Calculate entropy
   const { entropyValues, offsets, blockSize } =
-    await workerClient.charts.calculateEntropy(
+    await workerClient.calculateEntropy(
       file,
       onProgress,
       startOffset,

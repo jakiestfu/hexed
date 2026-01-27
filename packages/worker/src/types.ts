@@ -161,7 +161,7 @@ export interface SearchMatchEvent extends BaseMessage {
 }
 
 /**
- * Union type of all request messages
+ * Union type of all request messages for the main worker
  */
 export type RequestMessage =
   | SearchRequest
@@ -169,7 +169,11 @@ export type RequestMessage =
   | ByteFrequencyRequest
   | EntropyRequest
   | ChiSquareRequest
-  | ChartRenderRequest
+
+/**
+ * Union type of all request messages (including chart render requests)
+ */
+export type AllRequestMessage = RequestMessage | ChartRenderRequest
 
 /**
  * Union type of all response messages

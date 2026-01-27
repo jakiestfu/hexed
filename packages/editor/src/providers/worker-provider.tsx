@@ -4,6 +4,7 @@ import { createLogger } from "@hexed/logger"
 import { createWorkerClient, type WorkerClient } from "@hexed/worker"
 
 import WorkerConstructor from "../worker"
+import ChartWorkerConstructor from "../chart-worker"
 
 const logger = createLogger("worker-provider")
 
@@ -23,12 +24,15 @@ export function WorkerProvider({ children }: { children: React.ReactNode }) {
   React.useEffect(() => {
     // Initialize worker client once on mount
     if (!clientRef.current) {
-      logger.log("Initializing worker client")
+      logger.log("Initializing unified worker client")
       try {
-        const workerClient = createWorkerClient(WorkerConstructor)
+        const workerClient = createWorkerClient(
+          WorkerConstructor,
+          ChartWorkerConstructor
+        )
         clientRef.current = workerClient
         setClient(workerClient)
-        logger.log("Worker client initialized successfully")
+        logger.log("Unified worker client initialized successfully")
       } catch (error) {
         logger.log("Failed to initialize worker client:", error)
         setClient(null)

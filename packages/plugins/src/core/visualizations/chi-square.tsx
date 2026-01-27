@@ -17,7 +17,7 @@ export const calculateChiSquare: ChartCalculationFunction = async (
 ) => {
   // Calculate chi-square
   const { chiSquareValues, offsets, blockSize } =
-    await workerClient.charts.calculateChiSquare(
+    await workerClient.calculateChiSquare(
       file,
       onProgress,
       startOffset,

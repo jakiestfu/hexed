@@ -5,6 +5,7 @@
 import type { StringEncoding, StringMatch } from "@hexed/file/strings"
 import { createLogger } from "@hexed/logger"
 
+import { generateMessageId } from "./utils"
 import type {
   ByteFrequencyRequest,
   ByteFrequencyResponse,
@@ -29,13 +30,6 @@ import type {
 const logger = createLogger("worker-client")
 
 /**
- * Generate a unique message ID
- */
-function generateMessageId(): string {
-  return `${Date.now()}-${Math.random().toString(36).substr(2, 9)}`
-}
-
-/**
  * Worker client interface
  */
 export interface WorkerClient {
@@ -54,33 +48,31 @@ export interface WorkerClient {
     startOffset?: number,
     endOffset?: number
   ): Promise<StringMatch[]>
-  charts: {
-    calculateByteFrequency(
-      file: File,
-      onProgress?: (progress: number) => void,
-      startOffset?: number,
-      endOffset?: number
-    ): Promise<number[]>
-    calculateEntropy(
-      file: File,
-      onProgress?: (progress: number) => void,
-      startOffset?: number,
-      endOffset?: number,
-      blockSize?: number
-    ): Promise<{ entropyValues: number[]; offsets: number[]; blockSize: number }>
-    calculateChiSquare(
-      file: File,
-      onProgress?: (progress: number) => void,
-      startOffset?: number,
-      endOffset?: number,
-      blockSize?: number
-    ): Promise<{ chiSquareValues: number[]; offsets: number[]; blockSize: number }>
-    render(
-      canvas: OffscreenCanvas,
-      config: unknown,
-      onProgress?: (progress: number) => void
-    ): Promise<void>
-  }
+  calculateByteFrequency(
+    file: File,
+    onProgress?: (progress: number) => void,
+    startOffset?: number,
+    endOffset?: number
+  ): Promise<number[]>
+  calculateEntropy(
+    file: File,
+    onProgress?: (progress: number) => void,
+    startOffset?: number,
+    endOffset?: number,
+    blockSize?: number
+  ): Promise<{ entropyValues: number[]; offsets: number[]; blockSize: number }>
+  calculateChiSquare(
+    file: File,
+    onProgress?: (progress: number) => void,
+    startOffset?: number,
+    endOffset?: number,
+    blockSize?: number
+  ): Promise<{ chiSquareValues: number[]; offsets: number[]; blockSize: number }>
+  render(
+    canvas: OffscreenCanvas,
+    config: unknown,
+    onProgress?: (progress: number) => void
+  ): Promise<void>
   disconnect(): void
 }
 
@@ -94,12 +86,14 @@ interface PendingRequest {
 }
 
 /**
- * Create a worker client connected to the Worker
+ * Create a worker client connected to the Worker(s)
  */
 export function createWorkerClient(
-  WorkerConstructor: new () => Worker
+  mainWorkerConstructor: new () => Worker,
+  chartWorkerConstructor?: new () => Worker
 ): WorkerClient {
-  let worker: Worker | null = null
+  let mainWorker: Worker | null = null
+  let chartWorker: Worker | null = null
   const pendingRequests = new Map<string, PendingRequest>()
   const REQUEST_TIMEOUT = 30000 // 30 seconds
 
@@ -113,103 +107,152 @@ export function createWorkerClient(
   >()
 
   /**
-   * Initialize the Worker connection
+   * Handle messages from any worker
    */
-  function initialize(): Worker {
-    if (worker) {
-      return worker
+  function handleWorkerMessage(
+    message: ResponseMessage | ProgressEvent | SearchMatchEvent | ChartRenderResponse | ConnectedResponse | ErrorResponse
+  ): void {
+    // Handle progress events separately
+    if (message.type === "PROGRESS_EVENT") {
+      const progressEvent = message as ProgressEvent
+      const callback = progressCallbacks.get(progressEvent.requestId)
+      if (callback) {
+        callback(progressEvent.progress)
+      }
+      return
+    }
+
+    // Handle search match events separately
+    if (message.type === "SEARCH_MATCH_EVENT") {
+      const matchEvent = message as SearchMatchEvent
+      const callback = matchCallbacks.get(matchEvent.requestId)
+      if (callback) {
+        callback(matchEvent.matches)
+      }
+      return
+    }
+
+    const pending = pendingRequests.get(message.id)
+
+    if (pending) {
+      clearTimeout(pending.timeout)
+      pendingRequests.delete(message.id)
+
+      if (message.type === "ERROR") {
+        const errorMsg = (message as ErrorResponse).error
+        logger.log(`Error response: ${errorMsg} (request: ${message.id})`)
+        // Clean up callbacks before rejecting
+        progressCallbacks.delete(message.id)
+        matchCallbacks.delete(message.id)
+        pending.reject(new Error(errorMsg))
+      } else {
+        logger.log(
+          `Response received: ${message.type} (request: ${message.id})`
+        )
+        // Delay cleanup slightly to allow any final progress events to be processed
+        // Progress callbacks are also cleaned up in finally blocks, so this is safe
+        setTimeout(() => {
+          progressCallbacks.delete(message.id)
+          matchCallbacks.delete(message.id)
+        }, 0)
+        pending.resolve(message)
+      }
+    } else if (message.type === "CONNECTED") {
+      // Initial connection acknowledgment - no pending request
+      logger.log("Worker connected")
+    } else {
+      logger.log(`Received response for unknown request: ${message.id}`)
+    }
+  }
+
+  /**
+   * Initialize the main Worker connection
+   */
+  function initializeMainWorker(): Worker {
+    if (mainWorker) {
+      return mainWorker
     }
 
     try {
-      worker = new WorkerConstructor()
+      mainWorker = new mainWorkerConstructor()
 
-      // Handle messages from worker
-      worker.onmessage = (
+      // Handle messages from main worker
+      mainWorker.onmessage = (
         event: MessageEvent<ResponseMessage | ProgressEvent | SearchMatchEvent>
       ) => {
-        const message = event.data
-
-        // Handle progress events separately
-        if (message.type === "PROGRESS_EVENT") {
-          const progressEvent = message as ProgressEvent
-          const callback = progressCallbacks.get(progressEvent.requestId)
-          if (callback) {
-            callback(progressEvent.progress)
-          }
-          return
-        }
-
-        // Handle search match events separately
-        if (message.type === "SEARCH_MATCH_EVENT") {
-          const matchEvent = message as SearchMatchEvent
-          const callback = matchCallbacks.get(matchEvent.requestId)
-          if (callback) {
-            callback(matchEvent.matches)
-          }
-          return
-        }
-
-        const pending = pendingRequests.get(message.id)
-
-        if (pending) {
-          clearTimeout(pending.timeout)
-          pendingRequests.delete(message.id)
-
-          if (message.type === "ERROR") {
-            const errorMsg = (message as ErrorResponse).error
-            logger.log(`Error response: ${errorMsg} (request: ${message.id})`)
-            // Clean up callbacks before rejecting
-            progressCallbacks.delete(message.id)
-            matchCallbacks.delete(message.id)
-            pending.reject(new Error(errorMsg))
-          } else {
-            logger.log(
-              `Response received: ${message.type} (request: ${message.id})`
-            )
-            // Delay cleanup slightly to allow any final progress events to be processed
-            // Progress callbacks are also cleaned up in finally blocks, so this is safe
-            setTimeout(() => {
-              progressCallbacks.delete(message.id)
-              matchCallbacks.delete(message.id)
-            }, 0)
-            pending.resolve(message)
-          }
-        } else if (message.type === "CONNECTED") {
-          // Initial connection acknowledgment - no pending request
-          logger.log("Worker connected")
-        } else {
-          logger.log(`Received response for unknown request: ${message.id}`)
-        }
+        handleWorkerMessage(event.data)
       }
 
-      worker.onerror = (error) => {
-        logger.log("Worker error:", error)
+      mainWorker.onerror = (error) => {
+        logger.log("Main worker error:", error)
         // Reject all pending requests
         for (const pending of Array.from(pendingRequests.values())) {
           clearTimeout(pending.timeout)
-          pending.reject(new Error("Worker connection error"))
+          pending.reject(new Error("Main worker connection error"))
         }
         pendingRequests.clear()
         progressCallbacks.clear()
         matchCallbacks.clear()
       }
 
-      return worker
+      return mainWorker
     } catch (error) {
       throw new Error(
-        `Failed to create Worker: ${error instanceof Error ? error.message : "Unknown error"}`
+        `Failed to create Main Worker: ${error instanceof Error ? error.message : "Unknown error"}`
       )
     }
   }
 
   /**
-   * Send a request and wait for response
+   * Initialize the chart Worker connection
    */
-  function sendRequest<T extends ResponseMessage>(
+  function initializeChartWorker(): Worker {
+    if (!chartWorkerConstructor) {
+      throw new Error("Chart worker constructor not provided")
+    }
+
+    if (chartWorker) {
+      return chartWorker
+    }
+
+    try {
+      chartWorker = new chartWorkerConstructor()
+
+      // Handle messages from chart worker
+      chartWorker.onmessage = (
+        event: MessageEvent<ChartRenderResponse | ConnectedResponse | ErrorResponse>
+      ) => {
+        handleWorkerMessage(event.data)
+      }
+
+      chartWorker.onerror = (error) => {
+        logger.log("Chart worker error:", error)
+        // Reject all pending requests
+        for (const pending of Array.from(pendingRequests.values())) {
+          clearTimeout(pending.timeout)
+          pending.reject(new Error("Chart worker connection error"))
+        }
+        pendingRequests.clear()
+        progressCallbacks.clear()
+        matchCallbacks.clear()
+      }
+
+      return chartWorker
+    } catch (error) {
+      throw new Error(
+        `Failed to create Chart Worker: ${error instanceof Error ? error.message : "Unknown error"}`
+      )
+    }
+  }
+
+  /**
+   * Send a request to main worker and wait for response
+   */
+  function sendMainWorkerRequest<T extends ResponseMessage>(
     request: RequestMessage,
     transfer?: Transferable[]
   ): Promise<T> {
-    const worker = initialize()
+    const worker = initializeMainWorker()
     logger.log(`Sending request: ${request.type} (id: ${request.id})`)
 
     return new Promise<T>((resolve, reject) => {
@@ -229,6 +272,50 @@ export function createWorkerClient(
 
       try {
         // File objects are structured cloneable and can be passed via postMessage
+        if (transfer && transfer.length > 0) {
+          worker.postMessage(request, transfer)
+        } else {
+          worker.postMessage(request)
+        }
+      } catch (error) {
+        logger.log(`Failed to send request: ${request.type}`, error)
+        clearTimeout(timeout)
+        pendingRequests.delete(request.id)
+        reject(
+          new Error(
+            `Failed to send request: ${error instanceof Error ? error.message : "Unknown error"}`
+          )
+        )
+      }
+    })
+  }
+
+  /**
+   * Send a request to chart worker and wait for response
+   */
+  function sendChartWorkerRequest<T extends ChartRenderResponse>(
+    request: ChartRenderRequest,
+    transfer?: Transferable[]
+  ): Promise<T> {
+    const worker = initializeChartWorker()
+    logger.log(`Sending request: ${request.type} (id: ${request.id})`)
+
+    return new Promise<T>((resolve, reject) => {
+      const timeout = setTimeout(() => {
+        logger.log(`Request timeout: ${request.type} (id: ${request.id})`)
+        pendingRequests.delete(request.id)
+        reject(new Error(`Request timeout: ${request.type}`))
+      }, REQUEST_TIMEOUT)
+
+      pendingRequests.set(request.id, {
+        resolve: (response: T) => {
+          resolve(response)
+        },
+        reject,
+        timeout
+      })
+
+      try {
         // OffscreenCanvas needs to be transferred via transfer list
         if (transfer && transfer.length > 0) {
           worker.postMessage(request, transfer)
@@ -278,7 +365,7 @@ export function createWorkerClient(
       }
 
       try {
-        const response = await sendRequest<SearchResponse>(request)
+        const response = await sendMainWorkerRequest<SearchResponse>(request)
         logger.log(`Search completed, found ${response.matches.length} matches`)
         return response.matches
       } finally {
@@ -312,7 +399,7 @@ export function createWorkerClient(
       }
 
       try {
-        const response = await sendRequest<StringsResponse>(request)
+        const response = await sendMainWorkerRequest<StringsResponse>(request)
         logger.log(
           `Strings extraction completed, found ${response.matches.length} matches`
         )
@@ -323,151 +410,145 @@ export function createWorkerClient(
       }
     },
 
-    charts: {
-      async calculateByteFrequency(
-        file: File,
-        onProgress?: (progress: number) => void,
-        startOffset?: number,
-        endOffset?: number
-      ): Promise<number[]> {
-        logger.log(`Calculating byte frequency for file: ${file.name}`)
-        const request: ByteFrequencyRequest = {
-          id: generateMessageId(),
-          type: "BYTE_FREQUENCY_REQUEST",
-          file,
-          startOffset,
-          endOffset
-        }
+    async calculateByteFrequency(
+      file: File,
+      onProgress?: (progress: number) => void,
+      startOffset?: number,
+      endOffset?: number
+    ): Promise<number[]> {
+      logger.log(`Calculating byte frequency for file: ${file.name}`)
+      const request: ByteFrequencyRequest = {
+        id: generateMessageId(),
+        type: "BYTE_FREQUENCY_REQUEST",
+        file,
+        startOffset,
+        endOffset
+      }
 
-        // Register progress callback if provided
-        if (onProgress) {
-          progressCallbacks.set(request.id, onProgress)
-        }
+      // Register progress callback if provided
+      if (onProgress) {
+        progressCallbacks.set(request.id, onProgress)
+      }
 
-        try {
-          const response = await sendRequest<ByteFrequencyResponse>(request)
-          logger.log("Byte frequency calculation completed")
-          return response.frequencies
-        } finally {
-          // Clean up progress callback
-          progressCallbacks.delete(request.id)
-        }
-      },
+      try {
+        const response = await sendMainWorkerRequest<ByteFrequencyResponse>(request)
+        logger.log("Byte frequency calculation completed")
+        return response.frequencies
+      } finally {
+        // Clean up progress callback
+        progressCallbacks.delete(request.id)
+      }
+    },
 
-      async calculateEntropy(
-        file: File,
-        onProgress?: (progress: number) => void,
-        startOffset?: number,
-        endOffset?: number,
-        blockSize?: number
-      ): Promise<{ entropyValues: number[]; offsets: number[]; blockSize: number }> {
-        logger.log(`Calculating entropy for file: ${file.name}`)
-        const request: EntropyRequest = {
-          id: generateMessageId(),
-          type: "ENTROPY_REQUEST",
-          file,
-          blockSize,
-          startOffset,
-          endOffset
-        }
+    async calculateEntropy(
+      file: File,
+      onProgress?: (progress: number) => void,
+      startOffset?: number,
+      endOffset?: number,
+      blockSize?: number
+    ): Promise<{ entropyValues: number[]; offsets: number[]; blockSize: number }> {
+      logger.log(`Calculating entropy for file: ${file.name}`)
+      const request: EntropyRequest = {
+        id: generateMessageId(),
+        type: "ENTROPY_REQUEST",
+        file,
+        blockSize,
+        startOffset,
+        endOffset
+      }
 
-        // Register progress callback if provided
-        if (onProgress) {
-          progressCallbacks.set(request.id, onProgress)
-        }
+      // Register progress callback if provided
+      if (onProgress) {
+        progressCallbacks.set(request.id, onProgress)
+      }
 
-        try {
-          const response = await sendRequest<EntropyResponse>(request)
-          logger.log("Entropy calculation completed")
-          return {
-            entropyValues: response.entropyValues,
-            offsets: response.offsets,
-            blockSize: response.blockSize
+      try {
+        const response = await sendMainWorkerRequest<EntropyResponse>(request)
+        logger.log("Entropy calculation completed")
+        return {
+          entropyValues: response.entropyValues,
+          offsets: response.offsets,
+          blockSize: response.blockSize
+        }
+      } finally {
+        // Clean up progress callback
+        progressCallbacks.delete(request.id)
+      }
+    },
+
+    async calculateChiSquare(
+      file: File,
+      onProgress?: (progress: number) => void,
+      startOffset?: number,
+      endOffset?: number,
+      blockSize?: number
+    ): Promise<{ chiSquareValues: number[]; offsets: number[]; blockSize: number }> {
+      logger.log(`Calculating chi-square for file: ${file.name}`)
+      const request: ChiSquareRequest = {
+        id: generateMessageId(),
+        type: "CHI_SQUARE_REQUEST",
+        file,
+        blockSize,
+        startOffset,
+        endOffset
+      }
+
+      // Register progress callback if provided
+      if (onProgress) {
+        progressCallbacks.set(request.id, onProgress)
+      }
+
+      try {
+        const response = await sendMainWorkerRequest<ChiSquareResponse>(request)
+        logger.log("Chi-square calculation completed")
+        return {
+          chiSquareValues: response.chiSquareValues,
+          offsets: response.offsets,
+          blockSize: response.blockSize
+        }
+      } finally {
+        // Clean up progress callback
+        progressCallbacks.delete(request.id)
+      }
+    },
+
+    async render(
+      canvas: OffscreenCanvas,
+      config: unknown,
+      onProgress?: (progress: number) => void
+    ): Promise<void> {
+      if (!chartWorkerConstructor) {
+        throw new Error("Chart worker not available")
+      }
+
+      logger.log("Rendering chart on offscreen canvas")
+      const request: ChartRenderRequest = {
+        id: generateMessageId(),
+        type: "CHART_RENDER_REQUEST",
+        canvas,
+        config
+      }
+
+      try {
+        // Transfer OffscreenCanvas via transfer list
+        // Note: Once transferred, the canvas becomes detached and can't be transferred again
+        // This should only be called once per canvas
+        await sendChartWorkerRequest<ChartRenderResponse>(request, [canvas])
+        logger.log("Chart rendering completed")
+      } catch (error) {
+        // If canvas is already detached, it means we're trying to transfer it again
+        // This shouldn't happen if used correctly, but handle gracefully
+        if (error instanceof Error && error.message.includes("detached")) {
+          logger.log("Canvas already transferred, sending update without transfer")
+          // Send request without transfer list (canvas reference will be null in worker)
+          // Worker should handle this by updating existing chart
+          const updateRequest: ChartRenderRequest = {
+            ...request,
+            canvas: null as unknown as OffscreenCanvas // Send null to indicate update
           }
-        } finally {
-          // Clean up progress callback
-          progressCallbacks.delete(request.id)
-        }
-      },
-
-      async calculateChiSquare(
-        file: File,
-        onProgress?: (progress: number) => void,
-        startOffset?: number,
-        endOffset?: number,
-        blockSize?: number
-      ): Promise<{ chiSquareValues: number[]; offsets: number[]; blockSize: number }> {
-        logger.log(`Calculating chi-square for file: ${file.name}`)
-        const request: ChiSquareRequest = {
-          id: generateMessageId(),
-          type: "CHI_SQUARE_REQUEST",
-          file,
-          blockSize,
-          startOffset,
-          endOffset
-        }
-
-        // Register progress callback if provided
-        if (onProgress) {
-          progressCallbacks.set(request.id, onProgress)
-        }
-
-        try {
-          const response = await sendRequest<ChiSquareResponse>(request)
-          logger.log("Chi-square calculation completed")
-          return {
-            chiSquareValues: response.chiSquareValues,
-            offsets: response.offsets,
-            blockSize: response.blockSize
-          }
-        } finally {
-          // Clean up progress callback
-          progressCallbacks.delete(request.id)
-        }
-      },
-
-      async render(
-        canvas: OffscreenCanvas,
-        config: unknown,
-        onProgress?: (progress: number) => void
-      ): Promise<void> {
-        logger.log("Rendering chart on offscreen canvas")
-        const request: ChartRenderRequest = {
-          id: generateMessageId(),
-          type: "CHART_RENDER_REQUEST",
-          canvas,
-          config
-        }
-
-        // Register progress callback if provided
-        if (onProgress) {
-          progressCallbacks.set(request.id, onProgress)
-        }
-
-        try {
-          // Transfer OffscreenCanvas via transfer list
-          // Note: Once transferred, the canvas becomes detached and can't be transferred again
-          // This should only be called once per canvas
-          await sendRequest<ChartRenderResponse>(request, [canvas])
-          logger.log("Chart rendering completed")
-        } catch (error) {
-          // If canvas is already detached, it means we're trying to transfer it again
-          // This shouldn't happen if used correctly, but handle gracefully
-          if (error instanceof Error && error.message.includes("detached")) {
-            logger.log("Canvas already transferred, sending update without transfer")
-            // Send request without transfer list (canvas reference will be null in worker)
-            // Worker should handle this by updating existing chart
-            const updateRequest: ChartRenderRequest = {
-              ...request,
-              canvas: null as unknown as OffscreenCanvas // Send null to indicate update
-            }
-            await sendRequest<ChartRenderResponse>(updateRequest)
-          } else {
-            throw error
-          }
-        } finally {
-          // Clean up progress callback
-          progressCallbacks.delete(request.id)
+          await sendChartWorkerRequest<ChartRenderResponse>(updateRequest)
+        } else {
+          throw error
         }
       }
     },
@@ -483,9 +564,14 @@ export function createWorkerClient(
       progressCallbacks.clear()
       matchCallbacks.clear()
 
-      if (worker) {
-        worker.terminate()
-        worker = null
+      if (mainWorker) {
+        mainWorker.terminate()
+        mainWorker = null
+      }
+
+      if (chartWorker) {
+        chartWorker.terminate()
+        chartWorker = null
       }
     }
   }

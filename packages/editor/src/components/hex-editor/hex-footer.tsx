@@ -69,7 +69,7 @@ export const HexFooter: FunctionComponent<HexFooterProps> = ({
                     </ToggleGroupItem>
                   </TooltipTrigger>
                   <TooltipContent>
-                    Toggle {plugin.title} visualization
+                    {plugin.title}
                   </TooltipContent>
                 </Tooltip>
               ))}
@@ -79,7 +79,7 @@ export const HexFooter: FunctionComponent<HexFooterProps> = ({
       </div>
 
       {/* center */}
-      <div className="order-last hidden w-full items-center justify-start md:order-none md:w-auto md:flex md:flex-1 md:justify-center h-full">
+      <div className="order-last hidden w-full items-center justify-start md:order-none md:w-auto md:flex md:justify-center h-full">
         <div className="items-center gap-4 font-mono hidden md:flex h-full">
           {visibleLabelPlugins.map((plugin, index) => (
             <Fragment key={plugin.id}>
@@ -113,8 +113,8 @@ export const HexFooter: FunctionComponent<HexFooterProps> = ({
 
           <ToggleGroup
             type="single"
-            value={sidebar}
-            onValueChange={(value) => setSidebar(value || null)}
+            value={sidebar ?? ""}
+            onValueChange={setSidebar}
             variant="outline"
             size="sm"
             className="grow md:grow-0"
@@ -135,7 +135,7 @@ export const HexFooter: FunctionComponent<HexFooterProps> = ({
                       <plugin.icon />
                     </ToggleGroupItem>
                   </TooltipTrigger>
-                  <TooltipContent>Toggle {plugin.title} panel</TooltipContent>
+                  <TooltipContent>{plugin.title}</TooltipContent>
                 </Tooltip>
               ))}
           </ToggleGroup>
