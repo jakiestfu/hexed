@@ -5,7 +5,7 @@ import { createHexedEditorPlugin } from "../../.."
 import { HexedPluginComponent } from "../../../types"
 import { FindInput } from "./find-input"
 
-export const SearchToolbar: HexedPluginComponent = ({
+export const SearchToolbar: HexedPluginComponent<"toolbar"> = ({
   state: { handleMatchFound },
   settings,
   file

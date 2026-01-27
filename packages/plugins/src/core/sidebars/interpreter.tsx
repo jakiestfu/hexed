@@ -68,137 +68,137 @@ const INTERPRETER_READS: Array<{
   format: FormatFn
   endian?: boolean
 }> = [
-  {
-    type: "8-bit Integer",
-    unsigned: (f, o) => f.readUint8(o),
-    signed: (f, o) => f.readInt8(o),
-    format: fmtNum,
-    endian: false
-  },
-  {
-    type: "16-bit Integer",
-    unsigned: (f, o, e) => f.readUint16(o, e!),
-    signed: (f, o, e) => f.readInt16(o, e!),
-    format: fmtNum,
-    endian: true
-  },
-  {
-    type: "24-bit Integer",
-    unsigned: (f, o, e) => f.readUint24(o, e!),
-    signed: (f, o, e) => f.readInt24(o, e!),
-    format: fmtNum,
-    endian: true
-  },
-  {
-    type: "32-bit Integer",
-    unsigned: (f, o, e) => f.readUint32(o, e!),
-    signed: (f, o, e) => f.readInt32(o, e!),
-    format: fmtNum,
-    endian: true
-  },
-  {
-    type: "64-bit Integer (+)",
-    unsigned: (f, o, e) => f.readUint64(o, e!),
-    format: fmtBigInt,
-    endian: true
-  },
-  {
-    type: "64-bit Integer (±)",
-    signed: (f, o, e) => f.readInt64(o, e!),
-    format: fmtBigInt,
-    endian: true
-  },
-  {
-    type: "16-bit Float. P.",
-    unsigned: (f, o, e) => f.readFloat16(o, e!),
-    format: fmtFloat,
-    endian: true
-  },
-  {
-    type: "32-bit Float. P.",
-    unsigned: (f, o, e) => f.readFloat32(o, e!),
-    format: fmtFloat,
-    endian: true
-  },
-  {
-    type: "64-bit Float. P.",
-    unsigned: (f, o, e) => f.readFloat64(o, e!),
-    format: fmtFloat,
-    endian: true
-  },
-  {
-    type: "LEB128 (+)",
-    unsigned: (f, o) => f.readLEB128(o),
-    format: fmtBigInt,
-    endian: false
-  },
-  {
-    type: "LEB128 (±)",
-    signed: (f, o) => f.readSLEB128(o),
-    format: fmtBigInt,
-    endian: false
-  },
-  {
-    type: "Rational (+)",
-    unsigned: (f, o, e) => f.readRational(o, e!),
-    format: fmtStr,
-    endian: true
-  },
-  {
-    type: "SRational (±)",
-    signed: (f, o, e) => f.readSRational(o, e!),
-    format: fmtStr,
-    endian: true
-  },
-  {
-    type: "MS-DOS DateTime",
-    unsigned: (f, o, e) => f.readMSDOSDateTime(o, e!),
-    format: fmtDate,
-    endian: true
-  },
-  {
-    type: "OLE 2.0 DateTime",
-    unsigned: (f, o, e) => f.readOLEDateTime(o, e!),
-    format: fmtDate,
-    endian: true
-  },
-  {
-    type: "UNIX 32-bit DateTime",
-    unsigned: (f, o, e) => f.readUnixDateTime(o, e!),
-    format: fmtDate,
-    endian: true
-  },
-  {
-    type: "Macintosh HFS DateTime",
-    unsigned: (f, o, e) => f.readMacHFSDateTime(o, e!),
-    format: fmtDate,
-    endian: true
-  },
-  {
-    type: "Macintosh HFS+ DateTime",
-    unsigned: (f, o, e) => f.readMacHFSPlusDateTime(o, e!),
-    format: fmtDate,
-    endian: true
-  },
-  {
-    type: "UTF-8 Character",
-    unsigned: (f, o) => f.readUTF8Char(o),
-    format: fmtStr,
-    endian: false
-  },
-  {
-    type: "UTF-16 Character",
-    unsigned: (f, o, e) => f.readUTF16Char(o, e!),
-    format: fmtStr,
-    endian: true
-  },
-  {
-    type: "Binary",
-    unsigned: (f, o) => f.readBinary(o),
-    format: fmtStr,
-    endian: false
-  }
-]
+    {
+      type: "8-bit Integer",
+      unsigned: (f, o) => f.readUint8(o),
+      signed: (f, o) => f.readInt8(o),
+      format: fmtNum,
+      endian: false
+    },
+    {
+      type: "16-bit Integer",
+      unsigned: (f, o, e) => f.readUint16(o, e!),
+      signed: (f, o, e) => f.readInt16(o, e!),
+      format: fmtNum,
+      endian: true
+    },
+    {
+      type: "24-bit Integer",
+      unsigned: (f, o, e) => f.readUint24(o, e!),
+      signed: (f, o, e) => f.readInt24(o, e!),
+      format: fmtNum,
+      endian: true
+    },
+    {
+      type: "32-bit Integer",
+      unsigned: (f, o, e) => f.readUint32(o, e!),
+      signed: (f, o, e) => f.readInt32(o, e!),
+      format: fmtNum,
+      endian: true
+    },
+    {
+      type: "64-bit Integer (+)",
+      unsigned: (f, o, e) => f.readUint64(o, e!),
+      format: fmtBigInt,
+      endian: true
+    },
+    {
+      type: "64-bit Integer (±)",
+      signed: (f, o, e) => f.readInt64(o, e!),
+      format: fmtBigInt,
+      endian: true
+    },
+    {
+      type: "16-bit Float. P.",
+      unsigned: (f, o, e) => f.readFloat16(o, e!),
+      format: fmtFloat,
+      endian: true
+    },
+    {
+      type: "32-bit Float. P.",
+      unsigned: (f, o, e) => f.readFloat32(o, e!),
+      format: fmtFloat,
+      endian: true
+    },
+    {
+      type: "64-bit Float. P.",
+      unsigned: (f, o, e) => f.readFloat64(o, e!),
+      format: fmtFloat,
+      endian: true
+    },
+    {
+      type: "LEB128 (+)",
+      unsigned: (f, o) => f.readLEB128(o),
+      format: fmtBigInt,
+      endian: false
+    },
+    {
+      type: "LEB128 (±)",
+      signed: (f, o) => f.readSLEB128(o),
+      format: fmtBigInt,
+      endian: false
+    },
+    {
+      type: "Rational (+)",
+      unsigned: (f, o, e) => f.readRational(o, e!),
+      format: fmtStr,
+      endian: true
+    },
+    {
+      type: "SRational (±)",
+      signed: (f, o, e) => f.readSRational(o, e!),
+      format: fmtStr,
+      endian: true
+    },
+    {
+      type: "MS-DOS DateTime",
+      unsigned: (f, o, e) => f.readMSDOSDateTime(o, e!),
+      format: fmtDate,
+      endian: true
+    },
+    {
+      type: "OLE 2.0 DateTime",
+      unsigned: (f, o, e) => f.readOLEDateTime(o, e!),
+      format: fmtDate,
+      endian: true
+    },
+    {
+      type: "UNIX 32-bit DateTime",
+      unsigned: (f, o, e) => f.readUnixDateTime(o, e!),
+      format: fmtDate,
+      endian: true
+    },
+    {
+      type: "Macintosh HFS DateTime",
+      unsigned: (f, o, e) => f.readMacHFSDateTime(o, e!),
+      format: fmtDate,
+      endian: true
+    },
+    {
+      type: "Macintosh HFS+ DateTime",
+      unsigned: (f, o, e) => f.readMacHFSPlusDateTime(o, e!),
+      format: fmtDate,
+      endian: true
+    },
+    {
+      type: "UTF-8 Character",
+      unsigned: (f, o) => f.readUTF8Char(o),
+      format: fmtStr,
+      endian: false
+    },
+    {
+      type: "UTF-16 Character",
+      unsigned: (f, o, e) => f.readUTF16Char(o, e!),
+      format: fmtStr,
+      endian: true
+    },
+    {
+      type: "Binary",
+      unsigned: (f, o) => f.readBinary(o),
+      format: fmtStr,
+      endian: false
+    }
+  ]
 
 function buildInterpreterList(
   file: HexedFile,
@@ -227,7 +227,7 @@ function buildInterpreterList(
   })
 }
 
-export const Interpreter: HexedPluginComponent = ({ file, state }) => {
+export const Interpreter: HexedPluginComponent<"sidebar"> = ({ file, state }) => {
   // Extract values from props
   const selectedOffset = state.selectedOffset
   const endianness = state.endianness as Endianness

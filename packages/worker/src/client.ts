@@ -6,6 +6,10 @@ import type { StringEncoding, StringMatch } from "@hexed/file/strings"
 import { createLogger } from "@hexed/logger"
 
 import type {
+  ByteFrequencyRequest,
+  ByteFrequencyResponse,
+  ChartRenderRequest,
+  ChartRenderResponse,
   ConnectedResponse,
   ErrorResponse,
   ProgressEvent,
@@ -46,6 +50,19 @@ export interface WorkerClient {
     startOffset?: number,
     endOffset?: number
   ): Promise<StringMatch[]>
+  charts: {
+    calculateByteFrequency(
+      file: File,
+      onProgress?: (progress: number) => void,
+      startOffset?: number,
+      endOffset?: number
+    ): Promise<number[]>
+    render(
+      canvas: OffscreenCanvas,
+      config: unknown,
+      onProgress?: (progress: number) => void
+    ): Promise<void>
+  }
   disconnect(): void
 }
 
@@ -119,18 +136,24 @@ export function createWorkerClient(
         if (pending) {
           clearTimeout(pending.timeout)
           pendingRequests.delete(message.id)
-          // Clean up progress and match callbacks when request completes
-          progressCallbacks.delete(message.id)
-          matchCallbacks.delete(message.id)
 
           if (message.type === "ERROR") {
             const errorMsg = (message as ErrorResponse).error
             logger.log(`Error response: ${errorMsg} (request: ${message.id})`)
+            // Clean up callbacks before rejecting
+            progressCallbacks.delete(message.id)
+            matchCallbacks.delete(message.id)
             pending.reject(new Error(errorMsg))
           } else {
             logger.log(
               `Response received: ${message.type} (request: ${message.id})`
             )
+            // Delay cleanup slightly to allow any final progress events to be processed
+            // Progress callbacks are also cleaned up in finally blocks, so this is safe
+            setTimeout(() => {
+              progressCallbacks.delete(message.id)
+              matchCallbacks.delete(message.id)
+            }, 0)
             pending.resolve(message)
           }
         } else if (message.type === "CONNECTED") {
@@ -165,7 +188,8 @@ export function createWorkerClient(
    * Send a request and wait for response
    */
   function sendRequest<T extends ResponseMessage>(
-    request: RequestMessage
+    request: RequestMessage,
+    transfer?: Transferable[]
   ): Promise<T> {
     const worker = initialize()
     logger.log(`Sending request: ${request.type} (id: ${request.id})`)
@@ -187,7 +211,12 @@ export function createWorkerClient(
 
       try {
         // File objects are structured cloneable and can be passed via postMessage
-        worker.postMessage(request)
+        // OffscreenCanvas needs to be transferred via transfer list
+        if (transfer && transfer.length > 0) {
+          worker.postMessage(request, transfer)
+        } else {
+          worker.postMessage(request)
+        }
       } catch (error) {
         logger.log(`Failed to send request: ${request.type}`, error)
         clearTimeout(timeout)
@@ -273,6 +302,83 @@ export function createWorkerClient(
       } finally {
         // Clean up progress callback
         progressCallbacks.delete(request.id)
+      }
+    },
+
+    charts: {
+      async calculateByteFrequency(
+        file: File,
+        onProgress?: (progress: number) => void,
+        startOffset?: number,
+        endOffset?: number
+      ): Promise<number[]> {
+        logger.log(`Calculating byte frequency for file: ${file.name}`)
+        const request: ByteFrequencyRequest = {
+          id: generateMessageId(),
+          type: "BYTE_FREQUENCY_REQUEST",
+          file,
+          startOffset,
+          endOffset
+        }
+
+        // Register progress callback if provided
+        if (onProgress) {
+          progressCallbacks.set(request.id, onProgress)
+        }
+
+        try {
+          const response = await sendRequest<ByteFrequencyResponse>(request)
+          logger.log("Byte frequency calculation completed")
+          return response.frequencies
+        } finally {
+          // Clean up progress callback
+          progressCallbacks.delete(request.id)
+        }
+      },
+
+      async render(
+        canvas: OffscreenCanvas,
+        config: unknown,
+        onProgress?: (progress: number) => void
+      ): Promise<void> {
+        logger.log("Rendering chart on offscreen canvas")
+        const request: ChartRenderRequest = {
+          id: generateMessageId(),
+          type: "CHART_RENDER_REQUEST",
+          canvas,
+          config
+        }
+
+        // Register progress callback if provided
+        if (onProgress) {
+          progressCallbacks.set(request.id, onProgress)
+        }
+
+        try {
+          // Transfer OffscreenCanvas via transfer list
+          // Note: Once transferred, the canvas becomes detached and can't be transferred again
+          // This should only be called once per canvas
+          await sendRequest<ChartRenderResponse>(request, [canvas])
+          logger.log("Chart rendering completed")
+        } catch (error) {
+          // If canvas is already detached, it means we're trying to transfer it again
+          // This shouldn't happen if used correctly, but handle gracefully
+          if (error instanceof Error && error.message.includes("detached")) {
+            logger.log("Canvas already transferred, sending update without transfer")
+            // Send request without transfer list (canvas reference will be null in worker)
+            // Worker should handle this by updating existing chart
+            const updateRequest: ChartRenderRequest = {
+              ...request,
+              canvas: null as unknown as OffscreenCanvas // Send null to indicate update
+            }
+            await sendRequest<ChartRenderResponse>(updateRequest)
+          } else {
+            throw error
+          }
+        } finally {
+          // Clean up progress callback
+          progressCallbacks.delete(request.id)
+        }
       }
     },
 

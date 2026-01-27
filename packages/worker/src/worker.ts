@@ -5,7 +5,12 @@
 import { extractStrings, type StringEncoding } from "@hexed/file/strings"
 import { createLogger } from "@hexed/logger"
 
+import { renderChart } from "./chart-worker"
 import type {
+  ByteFrequencyRequest,
+  ByteFrequencyResponse,
+  ChartRenderRequest,
+  ChartRenderResponse,
   ConnectedResponse,
   ErrorResponse,
   ProgressEvent,
@@ -338,6 +343,125 @@ async function handleStrings(request: StringsRequest): Promise<void> {
 }
 
 /**
+ * Handle BYTE_FREQUENCY_REQUEST - Calculate byte frequency distribution
+ */
+async function handleByteFrequency(
+  request: ByteFrequencyRequest
+): Promise<void> {
+  logger.log(`Calculating byte frequency (request: ${request.id})`)
+  try {
+    const fileSize = request.file.size
+    const startOffset = request.startOffset ?? 0
+    const endOffset = request.endOffset ?? fileSize
+    const searchRange = endOffset - startOffset
+
+    // Initialize frequency array (256 elements for bytes 0-255)
+    const frequencies = new Array(256).fill(0)
+
+    // Process file in chunks
+    let bytesRead = 0
+    while (bytesRead < searchRange) {
+      const chunkStart = startOffset + bytesRead
+      const chunkEnd = Math.min(
+        chunkStart + STREAM_CHUNK_SIZE,
+        startOffset + searchRange
+      )
+
+      // Read chunk
+      const chunk = await readByteRange(request.file, chunkStart, chunkEnd)
+
+      // Count byte frequencies in this chunk
+      for (let i = 0; i < chunk.length; i++) {
+        frequencies[chunk[i]]++
+      }
+
+      const chunkSize = chunkEnd - chunkStart
+      bytesRead += chunkSize
+
+      // Calculate progress percentage
+      const progress = Math.min(
+        100,
+        Math.round((bytesRead / searchRange) * 100)
+      )
+
+      // Send progress event
+      const progressEvent: ProgressEvent = {
+        id: generateMessageId(),
+        type: "PROGRESS_EVENT",
+        requestId: request.id,
+        progress,
+        bytesRead: bytesRead,
+        totalBytes: searchRange
+      }
+      sendProgress(progressEvent)
+
+      // Yield to event loop to keep UI responsive
+      await new Promise((resolve) => setTimeout(resolve, 0))
+    }
+
+    logger.log("Byte frequency calculation completed")
+    const response: ByteFrequencyResponse = {
+      id: request.id,
+      type: "BYTE_FREQUENCY_RESPONSE",
+      frequencies
+    }
+    sendResponse(response)
+  } catch (error) {
+    sendError(
+      error instanceof Error
+        ? error.message
+        : "Failed to calculate byte frequency",
+      request.id
+    )
+  }
+}
+
+// Store chart instances by canvas (for updates without re-transferring)
+const chartInstances = new Map<OffscreenCanvas, unknown>()
+
+/**
+ * Handle CHART_RENDER_REQUEST - Render chart on offscreen canvas
+ */
+async function handleChartRender(request: ChartRenderRequest): Promise<void> {
+  logger.log(`Rendering chart (request: ${request.id})`)
+  try {
+    // Check if we already have a chart instance for this canvas
+    const existingChart = chartInstances.get(request.canvas)
+    
+    if (existingChart && request.canvas) {
+      // Update existing chart with new config
+      // Chart.js doesn't have a direct update method, so we'll create a new one
+      // But first, destroy the old one if possible
+      if (typeof (existingChart as any).destroy === "function") {
+        (existingChart as any).destroy()
+      }
+    }
+
+    // Create new chart instance
+    if (request.canvas) {
+      const chart = renderChart(request.canvas, request.config)
+      chartInstances.set(request.canvas, chart)
+    } else {
+      // Canvas is null, which means this is an update request
+      // We can't update without the canvas, so this is an error
+      throw new Error("Canvas is required for chart rendering")
+    }
+
+    const response: ChartRenderResponse = {
+      id: request.id,
+      type: "CHART_RENDER_RESPONSE",
+      success: true
+    }
+    sendResponse(response)
+  } catch (error) {
+    sendError(
+      error instanceof Error ? error.message : "Failed to render chart",
+      request.id
+    )
+  }
+}
+
+/**
  * Route a request message to the appropriate handler
  */
 async function handleRequest(message: RequestMessage): Promise<void> {
@@ -347,6 +471,12 @@ async function handleRequest(message: RequestMessage): Promise<void> {
       break
     case "STRINGS_REQUEST":
       await handleStrings(message)
+      break
+    case "BYTE_FREQUENCY_REQUEST":
+      await handleByteFrequency(message)
+      break
+    case "CHART_RENDER_REQUEST":
+      await handleChartRender(message)
       break
     default:
       const unknownMessage = message as { type: string; id: string }

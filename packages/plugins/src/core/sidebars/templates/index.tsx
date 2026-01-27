@@ -84,7 +84,7 @@ function findTemplate(
   return undefined
 }
 
-export const Templates: HexedPluginComponent = ({ file, state }) => {
+export const Templates: HexedPluginComponent<"sidebar"> = ({ file, state }) => {
   const [commandOpen, setCommandOpen] = useState(false)
   const [templateValue, setTemplateValue] = useState("")
   const [selectedTemplate, setSelectedTemplate] =
@@ -294,8 +294,8 @@ export const Templates: HexedPluginComponent = ({ file, state }) => {
                                   selectedSpec.meta["file-extension"]
                                 )
                                   ? selectedSpec.meta["file-extension"].join(
-                                      ", "
-                                    )
+                                    ", "
+                                  )
                                   : selectedSpec.meta["file-extension"]}
                               </dd>
                             </div>

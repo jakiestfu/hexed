@@ -7,8 +7,12 @@ import type { StringEncoding, StringMatch } from "@hexed/file/strings"
 export type MessageType =
   | "SEARCH_REQUEST"
   | "STRINGS_REQUEST"
+  | "BYTE_FREQUENCY_REQUEST"
+  | "CHART_RENDER_REQUEST"
   | "SEARCH_RESPONSE"
   | "STRINGS_RESPONSE"
+  | "BYTE_FREQUENCY_RESPONSE"
+  | "CHART_RENDER_RESPONSE"
   | "PROGRESS_EVENT"
   | "SEARCH_MATCH_EVENT"
   | "ERROR"
@@ -76,6 +80,33 @@ export interface StringsResponse extends BaseMessage {
 }
 
 /**
+ * Chart Messages
+ */
+
+export interface ByteFrequencyRequest extends BaseMessage {
+  type: "BYTE_FREQUENCY_REQUEST"
+  file: File
+  startOffset?: number
+  endOffset?: number
+}
+
+export interface ByteFrequencyResponse extends BaseMessage {
+  type: "BYTE_FREQUENCY_RESPONSE"
+  frequencies: number[] // Array of 256 numbers representing counts for bytes 0-255
+}
+
+export interface ChartRenderRequest extends BaseMessage {
+  type: "CHART_RENDER_REQUEST"
+  canvas: OffscreenCanvas
+  config: unknown // Chart.js configuration object
+}
+
+export interface ChartRenderResponse extends BaseMessage {
+  type: "CHART_RENDER_RESPONSE"
+  success: boolean
+}
+
+/**
  * Progress Event (not a response, but an event)
  */
 export interface ProgressEvent extends BaseMessage {
@@ -98,7 +129,11 @@ export interface SearchMatchEvent extends BaseMessage {
 /**
  * Union type of all request messages
  */
-export type RequestMessage = SearchRequest | StringsRequest
+export type RequestMessage =
+  | SearchRequest
+  | StringsRequest
+  | ByteFrequencyRequest
+  | ChartRenderRequest
 
 /**
  * Union type of all response messages
@@ -106,6 +141,8 @@ export type RequestMessage = SearchRequest | StringsRequest
 export type ResponseMessage =
   | SearchResponse
   | StringsResponse
+  | ByteFrequencyResponse
+  | ChartRenderResponse
   | ErrorResponse
   | ConnectedResponse
 

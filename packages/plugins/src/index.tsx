@@ -15,8 +15,10 @@ const getComponent = (options: HexedPluginOptions) => {
       return <ToolbarPlugin {...options} />
     case "label":
       return <LabelPlugin {...options} />
-    case "visualization":
+    case "visualization": {
+      // TypeScript narrows to HexedPluginOptionsForVisualization here
       return <VisualizationPlugin {...options} />
+    }
     default:
       return null
   }

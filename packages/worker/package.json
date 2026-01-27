@@ -7,7 +7,8 @@
   "types": "./src/index.ts",
   "exports": {
     ".": "./src/index.ts",
-    "./worker": "./src/worker.ts"
+    "./worker": "./src/worker.ts",
+    "./chart-worker": "./src/chart-worker.ts"
   },
   "scripts": {
     "typecheck": "tsc --noEmit",
@@ -21,7 +22,8 @@
   "dependencies": {
     "@hexed/file": "workspace:*",
     "@hexed/logger": "workspace:*",
-    "@hexed/types": "workspace:*"
+    "@hexed/types": "workspace:*",
+    "chart.js": "^4.4.0"
   },
   "devDependencies": {
     "@hexed/eslint-config": "workspace:*",

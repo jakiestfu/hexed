@@ -29,7 +29,7 @@ import {
 import { createHexedEditorPlugin } from "../.."
 import { HexedPluginComponent } from "../../types"
 
-export const Strings: HexedPluginComponent = ({ file, state }) => {
+export const Strings: HexedPluginComponent<"sidebar"> = ({ file, state }) => {
   const workerClient = useWorkerClient()
   const [minLength, setMinLength] = useState<number>(4)
   const [encoding, setEncoding] = useState<StringEncoding>("ascii")

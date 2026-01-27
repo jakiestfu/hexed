@@ -764,6 +764,13 @@ export class HexedFile extends EventTarget {
   }
 
   /**
+   * Get the File if this instance was created from one
+   */
+  getFile(): File | null {
+    return this.file ?? null
+  }
+
+  /**
    * Cleanup resources
    */
   disconnect(): void {

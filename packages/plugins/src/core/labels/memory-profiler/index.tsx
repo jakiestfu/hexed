@@ -6,12 +6,13 @@ import { Popover, PopoverContent, PopoverTrigger } from "@hexed/ui"
 
 import { createHexedEditorPlugin } from "../../.."
 import { usePerformanceMetrics } from "./use-performance-metrics"
+import { HexedPluginComponent } from "../../../types"
 
 /**
  * Memory profiler component that displays browser memory usage
  * Shows a compact label with detailed information in a popover
  */
-export const MemoryProfiler: FunctionComponent = () => {
+export const MemoryProfiler: HexedPluginComponent<"label"> = () => {
   const performanceMetrics = usePerformanceMetrics()
 
   if (

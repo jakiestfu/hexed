@@ -23,6 +23,8 @@
     "@hexed/file": "workspace:*",
     "@hexed/templates": "workspace:*",
     "@hexed/ui": "workspace:*",
+    "@hexed/worker": "workspace:*",
+    "chart.js": "^4.4.0",
     "lucide-react": "^0.468.0",
     "react-hotkeys-hook": "^4.5.1",
     "react-window": "^1.8.10"
