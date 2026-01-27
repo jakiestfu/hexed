@@ -8,10 +8,12 @@ export type MessageType =
   | "SEARCH_REQUEST"
   | "STRINGS_REQUEST"
   | "BYTE_FREQUENCY_REQUEST"
+  | "ENTROPY_REQUEST"
   | "CHART_RENDER_REQUEST"
   | "SEARCH_RESPONSE"
   | "STRINGS_RESPONSE"
   | "BYTE_FREQUENCY_RESPONSE"
+  | "ENTROPY_RESPONSE"
   | "CHART_RENDER_RESPONSE"
   | "PROGRESS_EVENT"
   | "SEARCH_MATCH_EVENT"
@@ -95,6 +97,21 @@ export interface ByteFrequencyResponse extends BaseMessage {
   frequencies: number[] // Array of 256 numbers representing counts for bytes 0-255
 }
 
+export interface EntropyRequest extends BaseMessage {
+  type: "ENTROPY_REQUEST"
+  file: File
+  blockSize?: number // Default 256
+  startOffset?: number
+  endOffset?: number
+}
+
+export interface EntropyResponse extends BaseMessage {
+  type: "ENTROPY_RESPONSE"
+  entropyValues: number[] // Array of entropy values, one per block
+  blockSize: number
+  offsets: number[] // Array of starting offsets for each block
+}
+
 export interface ChartRenderRequest extends BaseMessage {
   type: "CHART_RENDER_REQUEST"
   canvas: OffscreenCanvas
@@ -133,6 +150,7 @@ export type RequestMessage =
   | SearchRequest
   | StringsRequest
   | ByteFrequencyRequest
+  | EntropyRequest
   | ChartRenderRequest
 
 /**
@@ -142,6 +160,7 @@ export type ResponseMessage =
   | SearchResponse
   | StringsResponse
   | ByteFrequencyResponse
+  | EntropyResponse
   | ChartRenderResponse
   | ErrorResponse
   | ConnectedResponse

@@ -12,6 +12,8 @@ import type {
   ChartRenderRequest,
   ChartRenderResponse,
   ConnectedResponse,
+  EntropyRequest,
+  EntropyResponse,
   ErrorResponse,
   ProgressEvent,
   RequestMessage,
@@ -343,6 +345,175 @@ async function handleStrings(request: StringsRequest): Promise<void> {
 }
 
 /**
+ * Calculate Shannon entropy for a block of bytes
+ * Formula: H(X) = -Σ p(x) * log2(p(x))
+ * @param data - The byte array containing the block
+ * @param start - Start index (inclusive)
+ * @param end - End index (exclusive)
+ */
+function calculateBlockEntropy(
+  data: Uint8Array,
+  start: number = 0,
+  end?: number
+): number {
+  const blockLength = (end ?? data.length) - start
+  if (blockLength === 0) return 0
+
+  // Count byte frequencies
+  const frequencies = new Array(256).fill(0)
+  for (let i = start; i < (end ?? data.length); i++) {
+    frequencies[data[i]]++
+  }
+
+  // Calculate entropy
+  let entropy = 0
+  for (let i = 0; i < 256; i++) {
+    if (frequencies[i] > 0) {
+      const probability = frequencies[i] / blockLength
+      entropy -= probability * Math.log2(probability)
+    }
+  }
+
+  return entropy
+}
+
+/**
+ * Determine optimal block size based on file size for entropy calculation
+ * Smaller files use smaller blocks to get more data points for visualization
+ */
+function getBlockSize(fileSize: number): number {
+  if (fileSize < 1024) return 32 // < 1KB: 32 bytes (~32 points)
+  if (fileSize < 10 * 1024) return 128 // < 10KB: 128 bytes (~80 points)
+  if (fileSize < 100 * 1024) return 512 // < 100KB: 512 bytes (~200 points)
+  if (fileSize < 1024 * 1024) return 2048 // < 1MB: 2KB (~512 points)
+  return STREAM_CHUNK_SIZE // >= 1MB: 1MB chunks
+}
+
+/**
+ * Handle ENTROPY_REQUEST - Calculate entropy per block/chunk across file
+ * Uses adaptive block sizing: smaller blocks for small files, 1MB chunks for large files
+ */
+async function handleEntropy(request: EntropyRequest): Promise<void> {
+  logger.log(`Calculating entropy (request: ${request.id})`)
+  try {
+    const fileSize = request.file.size
+    const startOffset = request.startOffset ?? 0
+    const endOffset = request.endOffset ?? fileSize
+    const searchRange = endOffset - startOffset
+
+    // Determine block size based on file size (or use provided blockSize)
+    const blockSize = request.blockSize ?? getBlockSize(searchRange)
+
+    const entropyValues: number[] = []
+    const offsets: number[] = []
+
+    // For large files (>= 1MB), use efficient chunk-based processing
+    // For small files, process in smaller blocks for better visualization
+    if (blockSize >= STREAM_CHUNK_SIZE) {
+      // Large file: process in 1MB chunks (same pattern as byte frequency)
+      let bytesRead = 0
+      while (bytesRead < searchRange) {
+        const chunkStart = startOffset + bytesRead
+        const chunkEnd = Math.min(
+          chunkStart + STREAM_CHUNK_SIZE,
+          startOffset + searchRange
+        )
+
+        // Read chunk
+        const chunk = await readByteRange(request.file, chunkStart, chunkEnd)
+
+        // Calculate entropy for entire chunk
+        const entropy = calculateBlockEntropy(chunk)
+        entropyValues.push(entropy)
+        offsets.push(chunkStart)
+
+        const chunkSize = chunkEnd - chunkStart
+        bytesRead += chunkSize
+
+        // Calculate progress percentage
+        const progress = Math.min(
+          100,
+          Math.round((bytesRead / searchRange) * 100)
+        )
+
+        // Send progress event
+        const progressEvent: ProgressEvent = {
+          id: generateMessageId(),
+          type: "PROGRESS_EVENT",
+          requestId: request.id,
+          progress,
+          bytesRead: bytesRead,
+          totalBytes: searchRange
+        }
+        sendProgress(progressEvent)
+
+        // Yield to event loop to keep UI responsive
+        await new Promise((resolve) => setTimeout(resolve, 0))
+      }
+    } else {
+      // Small file: process in smaller blocks for better visualization
+      let currentOffset = startOffset
+      let blocksProcessed = 0
+
+      while (currentOffset < endOffset) {
+        const blockEnd = Math.min(currentOffset + blockSize, endOffset)
+
+        // Read block
+        const block = await readByteRange(request.file, currentOffset, blockEnd)
+
+        // Calculate entropy for this block
+        const entropy = calculateBlockEntropy(block)
+        entropyValues.push(entropy)
+        offsets.push(currentOffset)
+
+        blocksProcessed++
+        currentOffset = blockEnd
+
+        // Send progress event periodically (every 10 blocks or at end)
+        if (blocksProcessed % 10 === 0 || currentOffset >= endOffset) {
+          const progress = Math.min(
+            100,
+            Math.round(((currentOffset - startOffset) / searchRange) * 100)
+          )
+
+          const progressEvent: ProgressEvent = {
+            id: generateMessageId(),
+            type: "PROGRESS_EVENT",
+            requestId: request.id,
+            progress,
+            bytesRead: currentOffset - startOffset,
+            totalBytes: searchRange
+          }
+          sendProgress(progressEvent)
+        }
+
+        // Yield to event loop periodically to keep UI responsive
+        if (blocksProcessed % 100 === 0) {
+          await new Promise((resolve) => setTimeout(resolve, 0))
+        }
+      }
+    }
+
+    logger.log(
+      `Entropy calculation completed, processed ${entropyValues.length} blocks`
+    )
+    const response: EntropyResponse = {
+      id: request.id,
+      type: "ENTROPY_RESPONSE",
+      entropyValues,
+      blockSize,
+      offsets
+    }
+    sendResponse(response)
+  } catch (error) {
+    sendError(
+      error instanceof Error ? error.message : "Failed to calculate entropy",
+      request.id
+    )
+  }
+}
+
+/**
  * Handle BYTE_FREQUENCY_REQUEST - Calculate byte frequency distribution
  */
 async function handleByteFrequency(
@@ -474,6 +645,9 @@ async function handleRequest(message: RequestMessage): Promise<void> {
       break
     case "BYTE_FREQUENCY_REQUEST":
       await handleByteFrequency(message)
+      break
+    case "ENTROPY_REQUEST":
+      await handleEntropy(message)
       break
     case "CHART_RENDER_REQUEST":
       await handleChartRender(message)

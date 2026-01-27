@@ -8,6 +8,9 @@ import {
   LinearScale,
   BarElement,
   BarController,
+  LineElement,
+  LineController,
+  PointElement,
   Decimation,
   ChartConfiguration
 } from "chart.js"
@@ -15,7 +18,16 @@ import {
 export type { ChartConfiguration } from "chart.js"
 
 // Register Chart.js components
-Chart.register(CategoryScale, LinearScale, BarElement, BarController, Decimation)
+Chart.register(
+  CategoryScale,
+  LinearScale,
+  BarElement,
+  BarController,
+  LineElement,
+  LineController,
+  PointElement,
+  Decimation
+)
 
 /**
  * Generic chart rendering function

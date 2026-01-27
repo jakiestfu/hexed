@@ -11,6 +11,8 @@ import type {
   ChartRenderRequest,
   ChartRenderResponse,
   ConnectedResponse,
+  EntropyRequest,
+  EntropyResponse,
   ErrorResponse,
   ProgressEvent,
   RequestMessage,
@@ -57,6 +59,13 @@ export interface WorkerClient {
       startOffset?: number,
       endOffset?: number
     ): Promise<number[]>
+    calculateEntropy(
+      file: File,
+      onProgress?: (progress: number) => void,
+      startOffset?: number,
+      endOffset?: number,
+      blockSize?: number
+    ): Promise<{ entropyValues: number[]; offsets: number[]; blockSize: number }>
     render(
       canvas: OffscreenCanvas,
       config: unknown,
@@ -330,6 +339,42 @@ export function createWorkerClient(
           const response = await sendRequest<ByteFrequencyResponse>(request)
           logger.log("Byte frequency calculation completed")
           return response.frequencies
+        } finally {
+          // Clean up progress callback
+          progressCallbacks.delete(request.id)
+        }
+      },
+
+      async calculateEntropy(
+        file: File,
+        onProgress?: (progress: number) => void,
+        startOffset?: number,
+        endOffset?: number,
+        blockSize?: number
+      ): Promise<{ entropyValues: number[]; offsets: number[]; blockSize: number }> {
+        logger.log(`Calculating entropy for file: ${file.name}`)
+        const request: EntropyRequest = {
+          id: generateMessageId(),
+          type: "ENTROPY_REQUEST",
+          file,
+          blockSize,
+          startOffset,
+          endOffset
+        }
+
+        // Register progress callback if provided
+        if (onProgress) {
+          progressCallbacks.set(request.id, onProgress)
+        }
+
+        try {
+          const response = await sendRequest<EntropyResponse>(request)
+          logger.log("Entropy calculation completed")
+          return {
+            entropyValues: response.entropyValues,
+            offsets: response.offsets,
+            blockSize: response.blockSize
+          }
         } finally {
           // Clean up progress callback
           progressCallbacks.delete(request.id)
