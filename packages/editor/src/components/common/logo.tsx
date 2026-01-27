@@ -1,6 +1,7 @@
 import { FunctionComponent, useState } from "react"
 import { MenuIcon } from "lucide-react"
 
+import { HexedPlugin } from "@hexed/plugins/types"
 import { Button, cn, DropdownMenu, DropdownMenuTrigger } from "@hexed/ui"
 
 import packageJson from "../../../../../package.public.json"
@@ -8,7 +9,6 @@ import { OnHexedFileChange } from "../../hooks/use-hexed-file"
 import { useHexedFileContext } from "../../providers/hexed-file-provider"
 import { useHexedStateContext } from "../../providers/hexed-state-provider"
 import { Menu } from "./menu"
-import { HexedPlugin } from "@hexed/plugins/types"
 
 export type { MenuItem } from "./menu"
 
@@ -83,7 +83,7 @@ export const Logo: FunctionComponent<{
   plugins: HexedPlugin[]
 }> = ({ inline = false, plugins }) => {
   const {
-    input: { hexedFile },
+    input: { hexedFile }
   } = useHexedFileContext()
   const { showHistogram, handleToggleHistogram } = useHexedStateContext()
 

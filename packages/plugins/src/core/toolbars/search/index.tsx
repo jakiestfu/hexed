@@ -1,15 +1,12 @@
 import { useEffect, useRef } from "react"
-
-import { FindInput } from "./find-input"
-import { HexedPluginComponent } from "../../types"
-import { createHexedEditorPlugin } from "../.."
 import { Search } from "lucide-react"
 
+import { createHexedEditorPlugin } from "../../.."
+import { HexedPluginComponent } from "../../../types"
+import { FindInput } from "./find-input"
+
 export const SearchToolbar: HexedPluginComponent = ({
-  state: {
-    handleMatchFound,
-    handleCloseSearch
-  },
+  state: { handleMatchFound },
   settings,
   file
 }) => {
@@ -30,7 +27,6 @@ export const SearchToolbar: HexedPluginComponent = ({
       ref={inputRef}
       file={file}
       onMatchFound={handleMatchFound}
-      onClose={handleCloseSearch}
     />
   )
 }

@@ -89,7 +89,6 @@ export const useHexedState = () => {
     setShowHistogram((prev) => !prev)
   }, [])
 
-
   const handleScrollToOffset = useCallback((offset: number) => {
     setScrollToOffset(offset)
     canvasRef.current?.scrollToOffset(offset)

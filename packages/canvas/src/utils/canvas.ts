@@ -431,8 +431,8 @@ export function drawHexCanvas(
       ? Math.ceil(totalSize / layout.bytesPerRow)
       : rows.length > 0
         ? Math.max(
-          ...rows.map((r) => Math.floor(r.endOffset / layout.bytesPerRow))
-        ) + 1
+            ...rows.map((r) => Math.floor(r.endOffset / layout.bytesPerRow))
+          ) + 1
         : 0
 
   // If no rows and no totalSize, nothing to render
@@ -544,11 +544,11 @@ export function drawHexCanvas(
     let hexX = hexColumnStartX
     const bytesToRender = isVirtualRow
       ? Math.min(
-        layout.bytesPerRow,
-        totalSize !== undefined
-          ? totalSize - virtualRowStartOffset
-          : layout.bytesPerRow
-      )
+          layout.bytesPerRow,
+          totalSize !== undefined
+            ? totalSize - virtualRowStartOffset
+            : layout.bytesPerRow
+        )
       : row.hexBytes.length
 
     for (let j = 0; j < bytesToRender; j++) {
@@ -694,8 +694,8 @@ export function drawHexCanvas(
     0,
     Math.floor(
       rowsLength * layout.rowHeight +
-      layout.verticalPadding * 2 -
-      dimensions.height
+        layout.verticalPadding * 2 -
+        dimensions.height
     )
   )
   drawScrollbar(

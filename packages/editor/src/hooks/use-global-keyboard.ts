@@ -38,7 +38,7 @@
 //     sidebar,
 //     setSidebar
 //   } = useHexedSettingsContext()
-  
+
 //   // Get state from context
 //   const {
 //     selectedOffsetRange,

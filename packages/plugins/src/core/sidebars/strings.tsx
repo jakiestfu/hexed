@@ -3,9 +3,9 @@ import type { CSSProperties } from "react"
 import { Search, Type } from "lucide-react"
 import { FixedSizeList } from "react-window"
 
+import { useWorkerClient } from "@hexed/editor"
 import { formatAddress } from "@hexed/file/formatter"
 import type { StringEncoding, StringMatch } from "@hexed/file/strings"
-
 import {
   Button,
   Empty,
@@ -26,9 +26,8 @@ import {
   TableRow
 } from "@hexed/ui"
 
-import { HexedPluginComponent } from "../types"
-import { createHexedEditorPlugin } from "../index"
-import { useWorkerClient } from "@hexed/editor"
+import { createHexedEditorPlugin } from "../.."
+import { HexedPluginComponent } from "../../types"
 
 export const Strings: HexedPluginComponent = ({ file, state }) => {
   const workerClient = useWorkerClient()
@@ -179,7 +178,10 @@ export const Strings: HexedPluginComponent = ({ file, state }) => {
               </SelectTrigger>
               <SelectContent className="w-full">
                 {minLengthOptions.map((length) => (
-                  <SelectItem key={length} value={length.toString()}>
+                  <SelectItem
+                    key={length}
+                    value={length.toString()}
+                  >
                     {length} characters
                   </SelectItem>
                 ))}
@@ -231,7 +233,10 @@ export const Strings: HexedPluginComponent = ({ file, state }) => {
       {isSearching && (
         <div className="flex p-4 h-full justify-center items-center">
           <div className="space-y-2 w-4/5">
-            <Progress value={searchProgress} className="h-2" />
+            <Progress
+              value={searchProgress}
+              className="h-2"
+            />
             <div className="flex items-center justify-between text-xs text-muted-foreground">
               <span>Extracting strings...</span>
               <span>{searchProgress}%</span>

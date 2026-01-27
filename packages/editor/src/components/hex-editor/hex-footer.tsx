@@ -1,31 +1,12 @@
 import { Fragment, type FunctionComponent } from "react"
 import {
-  BarChart3,
-  Binary,
-  CaseSensitive,
-  ChevronDownIcon,
-  FileText,
-  Type
+  CaseSensitive
 } from "lucide-react"
 
-import { formatFileSize } from "@hexed/file/formatter"
-import type { BinarySnapshot } from "@hexed/types"
+// import { MemoryProfiler } from "../common/memory-profiler"
+import { HexedPlugin } from "@hexed/plugins/types"
 import {
-  Button,
   cn,
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuGroup,
-  DropdownMenuLabel,
-  DropdownMenuRadioGroup,
-  DropdownMenuRadioItem,
-  DropdownMenuSeparator,
-  DropdownMenuTrigger,
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
   Separator,
   Toggle,
   ToggleGroup,
@@ -35,111 +16,65 @@ import {
   TooltipTrigger
 } from "@hexed/ui"
 
-import { useHexedSettings, type Sidebar } from "../../hooks/use-hexed-settings"
 import { useHexedSettingsContext } from "../../providers/hexed-settings-provider"
-import { useHexedStateContext } from "../../providers/hexed-state-provider"
-// import { MemoryProfiler } from "../common/memory-profiler"
-import { HexedPlugin } from "@hexed/plugins/types"
 
 export type HexFooterProps = {
-  totalSize: number | undefined
-  hasSnapshots: boolean
-  paneToggleValue: string
   plugins: HexedPlugin[]
 }
 
 export const HexFooter: FunctionComponent<HexFooterProps> = ({
-  totalSize,
-  hasSnapshots,
-  paneToggleValue,
-  plugins,
+  plugins
 }) => {
-  const { showAscii, setShowAscii, visibleLabels, setSidebar } =
-    useHexedSettingsContext()
   const {
-    dataType,
-    setDataType,
-    endianness,
-    setEndianness,
-    numberFormat,
-    setNumberFormat,
-    selectedOffset,
-    handleToggleHistogram,
-  } = useHexedStateContext()
+    showAscii,
+    setShowAscii,
+    visibleLabels,
+    sidebar,
+    setSidebar,
+    visualization,
+    setVisualization
+  } = useHexedSettingsContext()
 
-  const visibleLabelPlugins = plugins.filter((plugin) => visibleLabels.includes(plugin.id))
-
+  const visibleLabelPlugins = plugins.filter((plugin) =>
+    visibleLabels.includes(plugin.id)
+  )
 
   return (
     <div className="flex w-full flex-col gap-3 border-t bg-muted/30 p-4 md:flex-row md:items-center md:justify-between md:gap-4 h-auto md:h-[66px]">
       {/* left */}
       <div className="flex w-full min-w-0 md:w-auto md:flex-1">
         <div className="flex w-full grow items-center gap-2">
-          <Select
-            value={dataType}
-            onValueChange={setDataType}
+          <ToggleGroup
+            type="single"
+            value={visualization ?? ""}
+            onValueChange={(value) => setVisualization(value)}
+            variant="outline"
+            size="sm"
+            className="grow md:grow-0"
           >
-            <SelectTrigger
-              size="sm"
-              className="grow md:grow-0"
-            >
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="Signed Int">Signed Int</SelectItem>
-              <SelectItem value="Unsigned Int">Unsigned Int</SelectItem>
-              <SelectItem value="Floats">Floats</SelectItem>
-              <SelectItem value="UTF-8">UTF-8</SelectItem>
-              <SelectItem value="SLEB128">SLEB128</SelectItem>
-              <SelectItem value="ULEB128">ULEB128</SelectItem>
-              <SelectItem value="Binary">Binary</SelectItem>
-            </SelectContent>
-          </Select>
+            {plugins
+              .filter((plugin) => plugin.type === "visualization")
+              .map((plugin) => (
+                <Tooltip key={plugin.id}>
+                  <TooltipTrigger asChild>
+                    <ToggleGroupItem
+                      value={plugin.id}
+                      aria-label={`Toggle ${plugin.title} visualization`}
+                      className={cn(
+                        "grow md:grow-0",
+                        visualization === plugin.id ? "bg-accent" : ""
+                      )}
+                    >
+                      <plugin.icon />
+                    </ToggleGroupItem>
+                  </TooltipTrigger>
+                  <TooltipContent>
+                    Toggle {plugin.title} visualization
+                  </TooltipContent>
+                </Tooltip>
+              ))}
+          </ToggleGroup>
 
-          <DropdownMenu>
-            <DropdownMenuTrigger asChild>
-              <Button
-                variant="outline"
-                size="sm"
-                className="justify-between font-mono grow md:grow-0"
-              >
-                {endianness}, {numberFormat}
-                <ChevronDownIcon className="ml-2 h-4 w-4 opacity-50" />
-              </Button>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent
-              align="start"
-              className="w-48"
-            >
-              <DropdownMenuGroup>
-                <DropdownMenuLabel>Endianness</DropdownMenuLabel>
-                <DropdownMenuRadioGroup
-                  value={endianness}
-                  onValueChange={setEndianness}
-                >
-                  <DropdownMenuRadioItem value="le">
-                    little
-                  </DropdownMenuRadioItem>
-                  <DropdownMenuRadioItem value="be">big</DropdownMenuRadioItem>
-                </DropdownMenuRadioGroup>
-              </DropdownMenuGroup>
-              <DropdownMenuSeparator />
-              <DropdownMenuGroup>
-                <DropdownMenuLabel>Format</DropdownMenuLabel>
-                <DropdownMenuRadioGroup
-                  value={numberFormat}
-                  onValueChange={setNumberFormat}
-                >
-                  <DropdownMenuRadioItem value="dec">
-                    decimal
-                  </DropdownMenuRadioItem>
-                  <DropdownMenuRadioItem value="hex">
-                    hexadecimal
-                  </DropdownMenuRadioItem>
-                </DropdownMenuRadioGroup>
-              </DropdownMenuGroup>
-            </DropdownMenuContent>
-          </DropdownMenu>
         </div>
       </div>
 
@@ -148,10 +83,10 @@ export const HexFooter: FunctionComponent<HexFooterProps> = ({
         <div className="items-center gap-4 font-mono hidden md:flex h-full">
           {visibleLabelPlugins.map((plugin, index) => (
             <Fragment key={plugin.id}>
-              <span className="flex items-center">
-                {plugin.component}
-              </span>
-              {index < visibleLabelPlugins.length - 1 && <Separator orientation="vertical" />}
+              <span className="flex items-center">{plugin.component}</span>
+              {index < visibleLabelPlugins.length - 1 && (
+                <Separator orientation="vertical" />
+              )}
             </Fragment>
           ))}
         </div>
@@ -176,48 +111,33 @@ export const HexFooter: FunctionComponent<HexFooterProps> = ({
             <TooltipContent>Toggle ASCII view</TooltipContent>
           </Tooltip>
 
-          <Tooltip>
-            <TooltipTrigger asChild>
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={handleToggleHistogram}
-                disabled={!hasSnapshots}
-                aria-label="Show histogram"
-                className="grow md:grow-0"
-              >
-                <BarChart3 className="h-4 w-4" />
-              </Button>
-            </TooltipTrigger>
-            <TooltipContent>Show Histogram</TooltipContent>
-          </Tooltip>
-
           <ToggleGroup
             type="single"
-            value={paneToggleValue}
-            onValueChange={(value) => setSidebar((value || null) as Sidebar)}
+            value={sidebar}
+            onValueChange={(value) => setSidebar(value || null)}
             variant="outline"
             size="sm"
             className="grow md:grow-0"
           >
-
-            {plugins.filter((plugin) => plugin.type === "sidebar").map((plugin) => (
-              <Tooltip key={plugin.id}>
-                <TooltipTrigger asChild>
-                  <ToggleGroupItem
-                    value={plugin.id}
-                    aria-label={`Toggle ${plugin.title} panel`}
-                    className={cn(
-                      "grow md:grow-0",
-                      paneToggleValue === plugin.id ? "bg-accent" : ""
-                    )}
-                  >
-                    <plugin.icon />
-                  </ToggleGroupItem>
-                </TooltipTrigger>
-                <TooltipContent>Toggle {plugin.title} panel</TooltipContent>
-              </Tooltip>
-            ))}
+            {plugins
+              .filter((plugin) => plugin.type === "sidebar")
+              .map((plugin) => (
+                <Tooltip key={plugin.id}>
+                  <TooltipTrigger asChild>
+                    <ToggleGroupItem
+                      value={plugin.id}
+                      aria-label={`Toggle ${plugin.title}`}
+                      className={cn(
+                        "grow md:grow-0",
+                        sidebar === plugin.id ? "bg-accent" : ""
+                      )}
+                    >
+                      <plugin.icon />
+                    </ToggleGroupItem>
+                  </TooltipTrigger>
+                  <TooltipContent>Toggle {plugin.title} panel</TooltipContent>
+                </Tooltip>
+              ))}
           </ToggleGroup>
         </div>
       </div>

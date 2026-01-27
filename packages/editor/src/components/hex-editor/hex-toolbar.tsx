@@ -2,16 +2,24 @@ import { useEffect, useState } from "react"
 import type { CSSProperties, FunctionComponent, ReactNode } from "react"
 
 import { HexedFile } from "@hexed/file"
-import { Button, cn, ToggleGroup, ToggleGroupItem, Tooltip, TooltipContent, TooltipTrigger } from "@hexed/ui"
+import { HexedPlugin } from "@hexed/plugins/types"
+import {
+  Button,
+  cn,
+  ToggleGroup,
+  ToggleGroupItem,
+  Tooltip,
+  TooltipContent,
+  TooltipTrigger
+} from "@hexed/ui"
 
+import { Sidebar } from "../../hooks/use-hexed-settings"
+import { useHexedSettingsContext } from "../../providers/hexed-settings-provider"
 import type { FileSource } from "../../types"
 import { formatFilenameForDisplay } from "../../utils"
 import { Brand } from "../common/logo"
 import { FileSourceIcon } from "../file/file-source-icon"
 import { FileStatusPopover } from "../file/file-status-popover"
-import { HexedPlugin } from "@hexed/plugins/types"
-import { useHexedSettingsContext } from "../../providers/hexed-settings-provider"
-import { Sidebar } from "../../hooks/use-hexed-settings"
 
 export type HexToolbarProps = {
   left?: ReactNode
@@ -31,7 +39,7 @@ export const HexToolbar: FunctionComponent<HexToolbarProps> = ({
   isConnected = false,
   error = null,
   onRestartWatching,
-  plugins,
+  plugins
 }) => {
   const { toolbar, setToolbar } = useHexedSettingsContext()
   const center = !file ? (
@@ -59,29 +67,29 @@ export const HexToolbar: FunctionComponent<HexToolbarProps> = ({
           {formatFilenameForDisplay(file.name!)}
         </span>
         <div
-          className={`inline-flex h-2 w-2 rounded-full shrink-0 ${isConnected ? "bg-green-500" : "bg-gray-500"
-            }`}
+          className={`inline-flex h-2 w-2 rounded-full shrink-0 ${
+            isConnected ? "bg-green-500" : "bg-gray-500"
+          }`}
         />
       </div>
     </FileStatusPopover>
   )
 
-
-  const right =
-    file ? (
-      <ToggleGroup
-        type="single"
-        value={toolbar || ""}
-        onValueChange={(value) => {
-          console.log('value', value)
-          setToolbar(value === toolbar ? null : value)
-        }}
-        variant="outline"
-        size="sm"
-        className="grow md:grow-0"
-      >
-
-        {plugins.filter((plugin) => plugin.type === "toolbar").map((plugin) => (
+  const right = file ? (
+    <ToggleGroup
+      type="single"
+      value={toolbar || ""}
+      onValueChange={(value) => {
+        console.log("value", value)
+        setToolbar(value === toolbar ? null : value)
+      }}
+      variant="outline"
+      size="sm"
+      className="grow md:grow-0"
+    >
+      {plugins
+        .filter((plugin) => plugin.type === "toolbar")
+        .map((plugin) => (
           <Tooltip key={plugin.id}>
             <TooltipTrigger asChild>
               <ToggleGroupItem
@@ -98,12 +106,13 @@ export const HexToolbar: FunctionComponent<HexToolbarProps> = ({
             <TooltipContent>Toggle {plugin.title}</TooltipContent>
           </Tooltip>
         ))}
-      </ToggleGroup>
-    ) : (
-      <span />
-    )
+    </ToggleGroup>
+  ) : (
+    <span />
+  )
 
-  const toolbarPlugin = file && toolbar ? plugins.find((plugin) => plugin.id === toolbar) : null
+  const toolbarPlugin =
+    file && toolbar ? plugins.find((plugin) => plugin.id === toolbar) : null
 
   return (
     <>

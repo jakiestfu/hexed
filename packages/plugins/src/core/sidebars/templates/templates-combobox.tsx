@@ -163,25 +163,25 @@ export const TemplatesCombobox: FunctionComponent<TemplatesComboboxProps> = ({
 
   const selectedTemplate = value
     ? (() => {
-      // Find template by name in manifest
-      for (const entry of manifest) {
-        if (isTemplate(entry) && entry.name === value) {
-          return {
-            name: entry.name,
-            title: entry.title,
-            path: entry.path,
-            extension: entry.extension
+        // Find template by name in manifest
+        for (const entry of manifest) {
+          if (isTemplate(entry) && entry.name === value) {
+            return {
+              name: entry.name,
+              title: entry.title,
+              path: entry.path,
+              extension: entry.extension
+            }
+          }
+          if (isCategory(entry)) {
+            const found = findTemplateInCategory(entry.children, value)
+            if (found) {
+              return found
+            }
           }
         }
-        if (isCategory(entry)) {
-          const found = findTemplateInCategory(entry.children, value)
-          if (found) {
-            return found
-          }
-        }
-      }
-      return undefined
-    })()
+        return undefined
+      })()
     : undefined
 
   // Helper function to recursively find a template by name

@@ -1,8 +1,9 @@
-import { formatFileSize } from "@hexed/file/formatter";
-import { HexedPluginComponent } from "../types";
-import { createHexedEditorPlugin } from "..";
-import { FileDigit } from "lucide-react";
+import { FileDigit } from "lucide-react"
 
+import { formatFileSize } from "@hexed/file/formatter"
+
+import { createHexedEditorPlugin } from "../.."
+import { HexedPluginComponent } from "../../types"
 
 export const FileSize: HexedPluginComponent = ({ file }) => (
   <div className="items-center gap-2 font-mono hidden md:flex flex-col">

@@ -16,8 +16,8 @@ import {
   TabsTrigger
 } from "@hexed/ui"
 
-import type { HexedPluginComponent } from "../../types"
-import { createHexedEditorPlugin } from "../../index"
+import { createHexedEditorPlugin } from "../../../index"
+import type { HexedPluginComponent } from "../../../types"
 import { ObjectTree } from "./object-tree"
 import { TemplatesCombobox } from "./templates-combobox"
 
@@ -152,7 +152,11 @@ export const Templates: HexedPluginComponent = ({ file, state }) => {
       return
     }
 
-    const { parsedData: result, spec, error } = await parse(entry.path, fileData)
+    const {
+      parsedData: result,
+      spec,
+      error
+    } = await parse(entry.path, fileData)
 
     if (spec) {
       setSelectedSpec(spec)
@@ -214,9 +218,7 @@ export const Templates: HexedPluginComponent = ({ file, state }) => {
         >
           <TabsList className="w-full border">
             <TabsTrigger value="object-tree">Object Tree</TabsTrigger>
-            {selectedSpec && (
-              <TabsTrigger value="details">Details</TabsTrigger>
-            )}
+            {selectedSpec && <TabsTrigger value="details">Details</TabsTrigger>}
           </TabsList>
           <TabsContent
             value="object-tree"
@@ -276,8 +278,7 @@ export const Templates: HexedPluginComponent = ({ file, state }) => {
                                 Endian
                               </dt>
                               <dd className="mt-1">
-                                {typeof selectedSpec.meta.endian ===
-                                  "string"
+                                {typeof selectedSpec.meta.endian === "string"
                                   ? selectedSpec.meta.endian.toUpperCase()
                                   : "Conditional"}
                               </dd>
@@ -292,9 +293,9 @@ export const Templates: HexedPluginComponent = ({ file, state }) => {
                                 {Array.isArray(
                                   selectedSpec.meta["file-extension"]
                                 )
-                                  ? selectedSpec.meta[
-                                    "file-extension"
-                                  ].join(", ")
+                                  ? selectedSpec.meta["file-extension"].join(
+                                      ", "
+                                    )
                                   : selectedSpec.meta["file-extension"]}
                               </dd>
                             </div>
@@ -325,9 +326,7 @@ export const Templates: HexedPluginComponent = ({ file, state }) => {
                                 Application
                               </dt>
                               <dd className="mt-1">
-                                {Array.isArray(
-                                  selectedSpec.meta.application
-                                )
+                                {Array.isArray(selectedSpec.meta.application)
                                   ? selectedSpec.meta.application.join(", ")
                                   : selectedSpec.meta.application}
                               </dd>

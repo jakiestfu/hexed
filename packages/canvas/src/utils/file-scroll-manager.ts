@@ -278,11 +278,11 @@ export class FileScrollManager {
     // This ensures consistency and prevents missing bytes
     const rangeToUse = this.lastLoadedRange || this.visibleByteRangeRef.current
     const { start, end } = rangeToUse
-    
+
     // Read bytes directly from HexedFile
     const bytes = this.hexedFile.readBytes(start, end - start)
     const newBytes = bytes || new Uint8Array(0)
-    
+
     // Only increment version if bytes actually changed
     const bytesChanged =
       newBytes.length !== this.loadedBytesRef.current.length ||

@@ -2,8 +2,15 @@
 
 import type { FunctionComponent, PropsWithChildren } from "react"
 
-import { OnHexedFileChange, useHexedFile, UseHexedFile } from "../../hooks/use-hexed-file"
-import { useHexedSettings, UseHexedSettings } from "../../hooks/use-hexed-settings"
+import {
+  OnHexedFileChange,
+  useHexedFile,
+  UseHexedFile
+} from "../../hooks/use-hexed-file"
+import {
+  useHexedSettings,
+  UseHexedSettings
+} from "../../hooks/use-hexed-settings"
 import { HexedState, useHexedState } from "../../hooks/use-hexed-state"
 import { HexedProviders } from "../../providers"
 import type { EditorProps } from "../../types"

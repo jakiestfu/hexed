@@ -4,6 +4,8 @@ import { useEffect, useMemo, useRef } from "react"
 import type { FunctionComponent } from "react"
 
 import { HexCanvasReact } from "@hexed/canvas-react"
+// import { HexToolbarSearch } from "./hex-toolbar-search"
+import { plugins } from "@hexed/plugins/core"
 import {
   Card,
   CardContent,
@@ -28,8 +30,6 @@ import { HexFooter } from "./hex-footer"
 import { HexSidebar } from "./hex-sidebar"
 import { HexToolbar } from "./hex-toolbar"
 import { HexToolbarDiff } from "./hex-toolbar-diff"
-// import { HexToolbarSearch } from "./hex-toolbar-search"
-import { plugins } from "@hexed/plugins/core"
 
 export const Editor: FunctionComponent<EditorProps> = ({
   className = "",
@@ -39,7 +39,8 @@ export const Editor: FunctionComponent<EditorProps> = ({
     input: { hexedFile, handleId },
     onChangeInput
   } = useHexedFileContext()
-  const { showAscii, sidebar, sidebarPosition } = useHexedSettingsContext()
+  const { showAscii, sidebar, sidebarPosition, visualization } =
+    useHexedSettingsContext()
   const state = useHexedStateContext()
 
   const canRender = Boolean(hexedFile)
@@ -123,6 +124,14 @@ export const Editor: FunctionComponent<EditorProps> = ({
       />
     ) : null
 
+  const visualizationPlugin = plugins.find(
+    (plugin) => plugin.id === visualization
+  )
+
+  const mainContent = visualizationPlugin
+    ? visualizationPlugin.component
+    : hexCanvasPanel
+
   return (
     <Card
       className={`p-0 m-0 w-full h-full rounded-none border-none shadow-none overflow-hidden ${className}`}
@@ -135,16 +144,12 @@ export const Editor: FunctionComponent<EditorProps> = ({
         <CardHeader className="p-0! gap-0 m-0 bg-muted/30">
           <HexToolbar
             plugins={plugins}
-            left={
-              <Logo
-                plugins={plugins}
-              />
-            }
+            left={<Logo plugins={plugins} />}
             file={hexedFile}
             fileSource={fileSource}
             isConnected={Boolean(hexedFile?.getHandle())}
             error={null}
-            onRestartWatching={() => { }}
+            onRestartWatching={() => {}}
             onClose={() => onChangeInput(null)}
           />
           {/* <HexToolbarTabs snapshots={snapshots} /> */}
@@ -165,8 +170,13 @@ export const Editor: FunctionComponent<EditorProps> = ({
                   className="h-full"
                 >
                   {sidebarPanel}
-                  {hasSidebars && <ResizableHandle className={sidebar ? "hidden md:flex" : ""} withHandle />}
-                  {hexCanvasPanel}
+                  {hasSidebars && (
+                    <ResizableHandle
+                      className={sidebar ? "hidden md:flex" : ""}
+                      withHandle
+                    />
+                  )}
+                  {mainContent}
                 </ResizablePanelGroup>
               </>
             ) : (
@@ -175,8 +185,13 @@ export const Editor: FunctionComponent<EditorProps> = ({
                   direction="horizontal"
                   className="h-full"
                 >
-                  {hexCanvasPanel}
-                  {hasSidebars && <ResizableHandle className={sidebar ? "hidden md:flex" : ""} withHandle />}
+                  {mainContent}
+                  {hasSidebars && (
+                    <ResizableHandle
+                      className={sidebar ? "hidden md:flex" : ""}
+                      withHandle
+                    />
+                  )}
                   {sidebarPanel}
                 </ResizablePanelGroup>
               </>

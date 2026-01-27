@@ -1,9 +1,11 @@
-import { formatHotkey } from "@hexed/editor";
-import { plugins } from "./core";
-import { SidebarPlugin } from "./sidebar-plugin";
-import { HexedPlugin, HexedPluginOptions } from "./types";
-import { ToolbarPlugin } from "./toolbar-plugin";
-import { LabelPlugin } from "./label-plugin";
+import { formatHotkey } from "@hexed/editor"
+
+import { plugins } from "./core"
+import { LabelPlugin } from "./label-plugin"
+import { SidebarPlugin } from "./sidebar-plugin"
+import { ToolbarPlugin } from "./toolbar-plugin"
+import { HexedPlugin, HexedPluginOptions } from "./types"
+import { VisualizationPlugin } from "./visualization-plugin"
 
 const getComponent = (options: HexedPluginOptions) => {
   switch (options.type) {
@@ -13,8 +15,10 @@ const getComponent = (options: HexedPluginOptions) => {
       return <ToolbarPlugin {...options} />
     case "label":
       return <LabelPlugin {...options} />
+    case "visualization":
+      return <VisualizationPlugin {...options} />
     default:
-      return null;
+      return null
   }
 }
 
@@ -27,11 +31,11 @@ export const createHexedEditorPlugin = (options: HexedPluginOptions) => {
 }
 
 export const pluginsWithHotkeys = (plugins: HexedPlugin[]) => {
-  let autoKey = 0;
+  let autoKey = 0
 
   return plugins.map((plugin) => {
     if (plugin.type === "sidebar" && !plugin.hotkey) {
-      autoKey++;
+      autoKey++
       return {
         ...plugin,
         hotkey: {
@@ -40,6 +44,6 @@ export const pluginsWithHotkeys = (plugins: HexedPlugin[]) => {
         }
       }
     }
-    return plugin;
+    return plugin
   })
 }

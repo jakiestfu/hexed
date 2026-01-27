@@ -1,6 +1,7 @@
 "use client"
 
 import { useEffect, useState } from "react"
+
 import { Theme } from "../providers/theme-provider"
 import { useLocalStorage } from "./use-local-storage"
 
@@ -12,7 +13,7 @@ export const STORAGE_KEYS = {
   SIDEBAR_POSITION: "hexed:sidebar-position",
   MEMORY_PROFILER: "hexed:show-memory-profiler",
   THEME: "hexed:theme",
-  VISIBLE_LABELS: "hexed:visible-labels",
+  VISIBLE_LABELS: "hexed:visible-labels"
 }
 
 export type HexedSettings = {
@@ -23,6 +24,7 @@ export type HexedSettings = {
   sidebarPosition: SidebarPosition
   showMemoryProfiler: boolean
   toolbar: string | null
+  visualization: string | null
   visibleLabels: string[]
 }
 
@@ -36,7 +38,6 @@ export type UseHexedSettings = ReturnType<typeof useHexedSettings>
  * @returns An object containing all settings and their setters
  */
 export function useHexedSettings(overrides: Partial<HexedSettings> = {}) {
-
   const [theme, setTheme] = useLocalStorage(
     STORAGE_KEYS.THEME,
     "system",
@@ -61,6 +62,9 @@ export function useHexedSettings(overrides: Partial<HexedSettings> = {}) {
     setToolbar(overrides.toolbar ?? null)
   }, [overrides.toolbar])
 
+  const [visualization, setVisualization] = useState<string | null>(
+    overrides.visualization ?? null
+  )
 
   const [sidebar, setSidebar] = useLocalStorage<string | null>(
     STORAGE_KEYS.SIDEBAR,
@@ -119,5 +123,8 @@ export function useHexedSettings(overrides: Partial<HexedSettings> = {}) {
 
     visibleLabels,
     setVisibleLabels,
+
+    visualization,
+    setVisualization
   }
 }

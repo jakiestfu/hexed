@@ -2,8 +2,8 @@ import { forwardRef, useEffect, useRef } from "react"
 
 import {
   HexCanvasEventCallbacks,
-  useHexedCanvas,
   useHexCanvasEvent,
+  useHexedCanvas,
   UseHexedCanvasOptions,
   type HexCanvasHandle
 } from "./use-hexed-canvas"

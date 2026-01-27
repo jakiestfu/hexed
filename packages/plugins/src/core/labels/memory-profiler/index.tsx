@@ -1,11 +1,11 @@
 import type { FunctionComponent } from "react"
+import { MemoryStick } from "lucide-react"
 
 import { formatBytes } from "@hexed/file/formatter"
 import { Popover, PopoverContent, PopoverTrigger } from "@hexed/ui"
 
+import { createHexedEditorPlugin } from "../../.."
 import { usePerformanceMetrics } from "./use-performance-metrics"
-import { createHexedEditorPlugin } from "../.."
-import { MemoryStick } from "lucide-react"
 
 /**
  * Memory profiler component that displays browser memory usage

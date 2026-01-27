@@ -27,6 +27,7 @@ import {
   useHexedSettingsContext,
   useRecentFiles
 } from "@hexed/editor"
+import { HexedPlugin } from "@hexed/plugins/types"
 import {
   Button,
   Dialog,
@@ -49,7 +50,6 @@ import {
 
 import { Theme } from "../../providers/theme-provider"
 import { AboutDialog } from "../dialogs/about-dialog"
-import { HexedPlugin } from "@hexed/plugins/types"
 
 export type MenuItem = {
   label: string
@@ -65,12 +65,7 @@ export type MenuProps = {
   plugins: HexedPlugin[]
 }
 
-export const Menu: FunctionComponent<MenuProps> = ({
-  // currentSnapshot,
-  showHistogram,
-  onShowHistogramChange,
-  plugins,
-}) => {
+export const Menu: FunctionComponent<MenuProps> = ({ plugins }) => {
   const { onChangeInput } = useHexedFileContext()
   const { recentFiles, clearRecentFiles, removeRecentFile } = useRecentFiles()
   const {
@@ -82,12 +77,11 @@ export const Menu: FunctionComponent<MenuProps> = ({
     setShowChecksums,
     sidebarPosition,
     setSidebarPosition,
-    showMemoryProfiler,
-    setShowMemoryProfiler,
+    setVisualization,
     theme,
     setTheme,
     visibleLabels,
-    setVisibleLabels,
+    setVisibleLabels
   } = useHexedSettingsContext()
   const [showClientFileDialog, setShowClientFileDialog] = useState(false)
   const [clickedClientFileHandleId, setClickedClientFileHandleId] = useState<
@@ -226,13 +220,6 @@ export const Menu: FunctionComponent<MenuProps> = ({
                 {Hotkeys.toggleChecksums()}
               </DropdownMenuShortcut>
             </DropdownMenuCheckboxItem>
-            <DropdownMenuCheckboxItem
-              checked={showMemoryProfiler}
-              onCheckedChange={setShowMemoryProfiler}
-              className="cursor-pointer"
-            >
-              Show Memory Profiler
-            </DropdownMenuCheckboxItem>
           </DropdownMenuSubContent>
         </DropdownMenuSub>
         <DropdownMenuSub>
@@ -241,16 +228,21 @@ export const Menu: FunctionComponent<MenuProps> = ({
             Visualize
           </DropdownMenuSubTrigger>
           <DropdownMenuSubContent>
-            <DropdownMenuItem
-              onClick={() => onShowHistogramChange(true)}
-              className="cursor-pointer"
-            >
-              <BarChart3 className="mr-2 h-4 w-4" />
-              Show Histogram
-              <DropdownMenuShortcut>
-                {Hotkeys.toggleHistogram()}
-              </DropdownMenuShortcut>
-            </DropdownMenuItem>
+            {plugins
+              .filter((plugin) => plugin.type === "visualization")
+              .map((plugin) => (
+                <DropdownMenuItem
+                  key={plugin.id}
+                  className="cursor-pointer"
+                  onClick={() => setVisualization(plugin.id)}
+                >
+                  <plugin.icon className="mr-2 h-4 w-4" />
+                  {plugin.title}
+                  <DropdownMenuShortcut>
+                    {plugin.hotkey?.formatted}
+                  </DropdownMenuShortcut>
+                </DropdownMenuItem>
+              ))}
           </DropdownMenuSubContent>
         </DropdownMenuSub>
 
@@ -262,22 +254,25 @@ export const Menu: FunctionComponent<MenuProps> = ({
           <DropdownMenuSubContent>
             <DropdownMenuRadioGroup
               value={String(sidebar)}
-              onValueChange={(v) => setSidebar(sidebar === v ? null : v as Sidebar)}
+              onValueChange={(v) =>
+                setSidebar(sidebar === v ? null : (v as Sidebar))
+              }
             >
-              {plugins.filter((plugin) => plugin.type === "sidebar").map((plugin) => (
-                <DropdownMenuRadioItem
-                  key={plugin.id}
-                  value={plugin.id}
-                  className="cursor-pointer"
-                >
-                  <plugin.icon className="mr-2 h-4 w-4" />
-                  {plugin.title}
-                  <DropdownMenuShortcut>
-                    {plugin.hotkey?.formatted}
-                  </DropdownMenuShortcut>
-                </DropdownMenuRadioItem>
-              ))}
-
+              {plugins
+                .filter((plugin) => plugin.type === "sidebar")
+                .map((plugin) => (
+                  <DropdownMenuRadioItem
+                    key={plugin.id}
+                    value={plugin.id}
+                    className="cursor-pointer"
+                  >
+                    <plugin.icon className="mr-2 h-4 w-4" />
+                    {plugin.title}
+                    <DropdownMenuShortcut>
+                      {plugin.hotkey?.formatted}
+                    </DropdownMenuShortcut>
+                  </DropdownMenuRadioItem>
+                ))}
             </DropdownMenuRadioGroup>
             <DropdownMenuSeparator />
             <DropdownMenuRadioGroup
@@ -318,27 +313,30 @@ export const Menu: FunctionComponent<MenuProps> = ({
             // value={visibleLabels}
             // onValueChange={(v) => setV(sidebar === v ? null : v as Sidebar)}
             >
-              {plugins.filter((plugin) => plugin.type === "label").map((plugin) => (
-                <DropdownMenuCheckboxItem
-                  key={plugin.id}
-                  checked={visibleLabels.includes(plugin.id)}
-                  onCheckedChange={(checked) => {
-                    if (checked) {
-                      setVisibleLabels([...visibleLabels, plugin.id])
-                    } else {
-                      setVisibleLabels(visibleLabels.filter((id) => id !== plugin.id))
-                    }
-                  }}
-                  className="cursor-pointer"
-                >
-                  <plugin.icon className="mr-2 h-4 w-4" />
-                  {plugin.title}
-                  <DropdownMenuShortcut>
-                    {plugin.hotkey?.formatted}
-                  </DropdownMenuShortcut>
-                </DropdownMenuCheckboxItem>
-              ))}
-
+              {plugins
+                .filter((plugin) => plugin.type === "label")
+                .map((plugin) => (
+                  <DropdownMenuCheckboxItem
+                    key={plugin.id}
+                    checked={visibleLabels.includes(plugin.id)}
+                    onCheckedChange={(checked) => {
+                      if (checked) {
+                        setVisibleLabels([...visibleLabels, plugin.id])
+                      } else {
+                        setVisibleLabels(
+                          visibleLabels.filter((id) => id !== plugin.id)
+                        )
+                      }
+                    }}
+                    className="cursor-pointer"
+                  >
+                    <plugin.icon className="mr-2 h-4 w-4" />
+                    {plugin.title}
+                    <DropdownMenuShortcut>
+                      {plugin.hotkey?.formatted}
+                    </DropdownMenuShortcut>
+                  </DropdownMenuCheckboxItem>
+                ))}
             </DropdownMenuGroup>
           </DropdownMenuSubContent>
         </DropdownMenuSub>

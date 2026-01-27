@@ -1,11 +1,7 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest"
 
 import { createWorkerClient, type WorkerClient } from "./client"
-import {
-  createMockFile,
-  createMockWorker,
-  createTestData
-} from "./test-utils"
+import { createMockFile, createMockWorker, createTestData } from "./test-utils"
 import type {
   ConnectedResponse,
   ErrorResponse,

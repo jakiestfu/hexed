@@ -232,9 +232,7 @@ export function createWorkerClient(
 
       try {
         const response = await sendRequest<SearchResponse>(request)
-        logger.log(
-          `Search completed, found ${response.matches.length} matches`
-        )
+        logger.log(`Search completed, found ${response.matches.length} matches`)
         return response.matches
       } finally {
         // Clean up callbacks

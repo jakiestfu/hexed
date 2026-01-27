@@ -2,10 +2,7 @@
  * Worker entry point for file access
  */
 
-import {
-  extractStrings,
-  type StringEncoding
-} from "@hexed/file/strings"
+import { extractStrings, type StringEncoding } from "@hexed/file/strings"
 import { createLogger } from "@hexed/logger"
 
 import type {

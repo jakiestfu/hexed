@@ -1,15 +1,36 @@
-import { Card, CardHeader, CardTitle, TooltipTrigger, Button, TooltipContent, CardContent, Tooltip } from "@hexed/ui";
-import { ArrowLeftRight, X } from "lucide-react";
+import { FunctionComponent } from "react"
+import { ArrowLeftRight, X } from "lucide-react"
 
-import { HexedPluginOptions } from "./types";
-import { FunctionComponent } from "react";
-import { useHexedSettingsContext, useHexedStateContext, useHexedFileContext } from "@hexed/editor";
+import {
+  useHexedFileContext,
+  useHexedSettingsContext,
+  useHexedStateContext
+} from "@hexed/editor"
+import {
+  Button,
+  Card,
+  CardContent,
+  CardHeader,
+  CardTitle,
+  Tooltip,
+  TooltipContent,
+  TooltipTrigger
+} from "@hexed/ui"
 
-export const SidebarPlugin: FunctionComponent<HexedPluginOptions> = ({ title, icon: Icon, component: Component }) => {
+import { HexedPluginOptions } from "./types"
+
+export const SidebarPlugin: FunctionComponent<HexedPluginOptions> = ({
+  type,
+  title,
+  icon: Icon,
+  component: Component
+}) => {
   const settings = useHexedSettingsContext()
   const state = useHexedStateContext()
-  const { input: { hexedFile } } = useHexedFileContext()
-  if (!hexedFile) return null
+  const {
+    input: { hexedFile }
+  } = useHexedFileContext()
+  if (!hexedFile || type !== "sidebar") return null
   return (
     <div className="h-full">
       <Card className="h-full flex flex-col p-0 rounded-none border-none bg-sidebar overflow-hidden gap-0">
@@ -51,7 +72,11 @@ export const SidebarPlugin: FunctionComponent<HexedPluginOptions> = ({ title, ic
           </div>
         </CardHeader>
         <CardContent className="p-0 flex-1 overflow-y-auto">
-          <Component file={hexedFile} state={state} settings={settings} />
+          <Component
+            file={hexedFile}
+            state={state}
+            settings={settings}
+          />
         </CardContent>
       </Card>
     </div>

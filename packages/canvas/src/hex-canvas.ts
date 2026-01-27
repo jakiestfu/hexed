@@ -1,6 +1,6 @@
+import { HexedFile } from "@hexed/file"
 import { formatDataIntoRows } from "@hexed/file/formatter"
 import type { FormattedRow } from "@hexed/file/formatter"
-import { HexedFile } from "@hexed/file"
 import type { DiffResult } from "@hexed/types"
 
 import {
@@ -20,8 +20,8 @@ import {
   type LayoutMetrics
 } from "./utils/coordinates"
 import {
-  getPointerEventData,
   getDistance,
+  getPointerEventData,
   type PointerEventData
 } from "./utils/pointer-events"
 
@@ -97,7 +97,8 @@ export class HexCanvas extends EventTarget {
   private scrollbarDragStartScrollTop: number = 0
 
   // Touch state
-  private touchStartPosition: { x: number; y: number; time: number } | null = null
+  private touchStartPosition: { x: number; y: number; time: number } | null =
+    null
   private touchStartOffset: number | null = null
   private isTouchDragging: boolean = false
   private touchDragThreshold: number = 5 // pixels to move before considering it a drag
@@ -280,9 +281,13 @@ export class HexCanvas extends EventTarget {
     this.canvas.addEventListener("mouseleave", this.handleMouseLeave.bind(this))
 
     // Touch events
-    this.canvas.addEventListener("touchstart", this.handleTouchStart.bind(this), {
-      passive: false
-    })
+    this.canvas.addEventListener(
+      "touchstart",
+      this.handleTouchStart.bind(this),
+      {
+        passive: false
+      }
+    )
     this.canvas.addEventListener("touchmove", this.handleTouchMove.bind(this), {
       passive: false
     })
@@ -564,7 +569,8 @@ export class HexCanvas extends EventTarget {
 
     // Determine if this is a scroll gesture or selection drag
     // If vertical movement is greater than horizontal, treat as scroll
-    const isVerticalScroll = Math.abs(deltaY) > Math.abs(deltaX) && Math.abs(deltaY) > 5
+    const isVerticalScroll =
+      Math.abs(deltaY) > Math.abs(deltaX) && Math.abs(deltaY) > 5
 
     if (isVerticalScroll) {
       // Touch scrolling
@@ -765,7 +771,10 @@ export class HexCanvas extends EventTarget {
       lastTime = currentTime
 
       // Apply deceleration
-      this.inertialScrollVelocity *= Math.pow(decelerationFactor, deltaTime / 16.67) // Normalize to 60fps
+      this.inertialScrollVelocity *= Math.pow(
+        decelerationFactor,
+        deltaTime / 16.67
+      ) // Normalize to 60fps
 
       // Update scroll position
       // Velocity is the rate of change of scrollTop (scrollTop per millisecond)
@@ -1092,7 +1101,7 @@ export class HexCanvas extends EventTarget {
     const scrollPositionForThumb = this.pendingScrollTop ?? this.scrollTop
     const thumbY =
       (scrollPositionForThumb / this.maxScrollTop) *
-      (trackHeight - thumbHeight) +
+        (trackHeight - thumbHeight) +
       trackY
 
     return {
@@ -1273,7 +1282,10 @@ export class HexCanvas extends EventTarget {
     )
 
     const startByte = startRow * this.layout.bytesPerRow
-    const endByte = Math.min(endRow * this.layout.bytesPerRow, this.hexedFile.size)
+    const endByte = Math.min(
+      endRow * this.layout.bytesPerRow,
+      this.hexedFile.size
+    )
 
     return { start: startByte, end: endByte }
   }

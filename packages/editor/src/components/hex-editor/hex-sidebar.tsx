@@ -2,8 +2,8 @@
 
 import type { FunctionComponent } from "react"
 
-import { ResizablePanel } from "@hexed/ui"
 import { HexedPlugin } from "@hexed/plugins/types"
+import { ResizablePanel } from "@hexed/ui"
 
 import { useHexedSettingsContext } from "../../providers/hexed-settings-provider"
 
@@ -17,7 +17,7 @@ export type HexSidebarProps = {
 export const HexSidebar: FunctionComponent<HexSidebarProps> = ({
   defaultSize,
   minSize,
-  plugins,
+  plugins
 }) => {
   const settings = useHexedSettingsContext()
   const { sidebar } = settings
@@ -27,7 +27,7 @@ export const HexSidebar: FunctionComponent<HexSidebarProps> = ({
   }
 
   const plugin = plugins.find((plugin) => plugin.id === sidebar)
-  if (!plugin) return null;
+  if (!plugin) return null
 
   return (
     <ResizablePanel
@@ -36,9 +36,7 @@ export const HexSidebar: FunctionComponent<HexSidebarProps> = ({
       minSize={minSize}
       collapsible
     >
-      <div className="h-full overflow-auto">
-        {plugin.component}
-      </div>
+      <div className="h-full overflow-auto">{plugin.component}</div>
     </ResizablePanel>
   )
 }
