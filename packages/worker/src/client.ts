@@ -10,6 +10,8 @@ import type {
   ByteFrequencyResponse,
   ChartRenderRequest,
   ChartRenderResponse,
+  ChiSquareRequest,
+  ChiSquareResponse,
   ConnectedResponse,
   EntropyRequest,
   EntropyResponse,
@@ -66,6 +68,13 @@ export interface WorkerClient {
       endOffset?: number,
       blockSize?: number
     ): Promise<{ entropyValues: number[]; offsets: number[]; blockSize: number }>
+    calculateChiSquare(
+      file: File,
+      onProgress?: (progress: number) => void,
+      startOffset?: number,
+      endOffset?: number,
+      blockSize?: number
+    ): Promise<{ chiSquareValues: number[]; offsets: number[]; blockSize: number }>
     render(
       canvas: OffscreenCanvas,
       config: unknown,
@@ -372,6 +381,42 @@ export function createWorkerClient(
           logger.log("Entropy calculation completed")
           return {
             entropyValues: response.entropyValues,
+            offsets: response.offsets,
+            blockSize: response.blockSize
+          }
+        } finally {
+          // Clean up progress callback
+          progressCallbacks.delete(request.id)
+        }
+      },
+
+      async calculateChiSquare(
+        file: File,
+        onProgress?: (progress: number) => void,
+        startOffset?: number,
+        endOffset?: number,
+        blockSize?: number
+      ): Promise<{ chiSquareValues: number[]; offsets: number[]; blockSize: number }> {
+        logger.log(`Calculating chi-square for file: ${file.name}`)
+        const request: ChiSquareRequest = {
+          id: generateMessageId(),
+          type: "CHI_SQUARE_REQUEST",
+          file,
+          blockSize,
+          startOffset,
+          endOffset
+        }
+
+        // Register progress callback if provided
+        if (onProgress) {
+          progressCallbacks.set(request.id, onProgress)
+        }
+
+        try {
+          const response = await sendRequest<ChiSquareResponse>(request)
+          logger.log("Chi-square calculation completed")
+          return {
+            chiSquareValues: response.chiSquareValues,
             offsets: response.offsets,
             blockSize: response.blockSize
           }

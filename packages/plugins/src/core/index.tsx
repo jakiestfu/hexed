@@ -7,6 +7,7 @@ import { stringsPlugin } from "./sidebars/strings"
 import { templatesPlugin } from "./sidebars/templates"
 import { searchPlugin } from "./toolbars/search"
 import { byteFrequencyPlugin } from "./visualizations/byte-frequency"
+import { chiSquarePlugin } from "./visualizations/chi-square"
 import { entropyPlugin } from "./visualizations/entropy"
 
 export const plugins: HexedPlugin[] = pluginsWithHotkeys([
@@ -17,5 +18,6 @@ export const plugins: HexedPlugin[] = pluginsWithHotkeys([
   fileSizePlugin,
   memoryProfilerPlugin,
   byteFrequencyPlugin,
-  entropyPlugin
+  entropyPlugin,
+  chiSquarePlugin
 ])

@@ -9,11 +9,13 @@ export type MessageType =
   | "STRINGS_REQUEST"
   | "BYTE_FREQUENCY_REQUEST"
   | "ENTROPY_REQUEST"
+  | "CHI_SQUARE_REQUEST"
   | "CHART_RENDER_REQUEST"
   | "SEARCH_RESPONSE"
   | "STRINGS_RESPONSE"
   | "BYTE_FREQUENCY_RESPONSE"
   | "ENTROPY_RESPONSE"
+  | "CHI_SQUARE_RESPONSE"
   | "CHART_RENDER_RESPONSE"
   | "PROGRESS_EVENT"
   | "SEARCH_MATCH_EVENT"
@@ -112,6 +114,21 @@ export interface EntropyResponse extends BaseMessage {
   offsets: number[] // Array of starting offsets for each block
 }
 
+export interface ChiSquareRequest extends BaseMessage {
+  type: "CHI_SQUARE_REQUEST"
+  file: File
+  blockSize?: number // Default determined by getBlockSize()
+  startOffset?: number
+  endOffset?: number
+}
+
+export interface ChiSquareResponse extends BaseMessage {
+  type: "CHI_SQUARE_RESPONSE"
+  chiSquareValues: number[] // Array of chi-square values, one per block
+  blockSize: number
+  offsets: number[] // Array of starting offsets for each block
+}
+
 export interface ChartRenderRequest extends BaseMessage {
   type: "CHART_RENDER_REQUEST"
   canvas: OffscreenCanvas
@@ -151,6 +168,7 @@ export type RequestMessage =
   | StringsRequest
   | ByteFrequencyRequest
   | EntropyRequest
+  | ChiSquareRequest
   | ChartRenderRequest
 
 /**
@@ -161,6 +179,7 @@ export type ResponseMessage =
   | StringsResponse
   | ByteFrequencyResponse
   | EntropyResponse
+  | ChiSquareResponse
   | ChartRenderResponse
   | ErrorResponse
   | ConnectedResponse

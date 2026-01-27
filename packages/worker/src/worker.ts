@@ -11,6 +11,8 @@ import type {
   ByteFrequencyResponse,
   ChartRenderRequest,
   ChartRenderResponse,
+  ChiSquareRequest,
+  ChiSquareResponse,
   ConnectedResponse,
   EntropyRequest,
   EntropyResponse,
@@ -378,15 +380,53 @@ function calculateBlockEntropy(
 }
 
 /**
- * Determine optimal block size based on file size for entropy calculation
+ * Determine optimal block size based on file size for block-based calculations
  * Smaller files use smaller blocks to get more data points for visualization
  */
 function getBlockSize(fileSize: number): number {
-  if (fileSize < 1024) return 32 // < 1KB: 32 bytes (~32 points)
-  if (fileSize < 10 * 1024) return 128 // < 10KB: 128 bytes (~80 points)
-  if (fileSize < 100 * 1024) return 512 // < 100KB: 512 bytes (~200 points)
+  // return 32;
+  // if (fileSize < 1024) return 32 // < 1KB: 32 bytes (~32 points)
+  // if (fileSize < 10 * 1024) return 128 // < 10KB: 128 bytes (~80 points)
+  if (fileSize < 100 * 1024) return 32 // < 100KB: 512 bytes (~200 points)
   if (fileSize < 1024 * 1024) return 2048 // < 1MB: 2KB (~512 points)
   return STREAM_CHUNK_SIZE // >= 1MB: 1MB chunks
+}
+
+/**
+ * Calculate chi-square statistic for a block of bytes
+ * Formula: χ² = Σ((observed - expected)² / expected)
+ * Tests how well the byte distribution matches a uniform distribution
+ * Lower values indicate randomness, higher values indicate structure/patterns
+ * @param data - The byte array containing the block
+ * @param start - Start index (inclusive)
+ * @param end - End index (exclusive)
+ */
+function calculateBlockChiSquare(
+  data: Uint8Array,
+  start: number = 0,
+  end?: number
+): number {
+  const blockLength = (end ?? data.length) - start
+  if (blockLength === 0) return 0
+
+  // Expected frequency for uniform distribution: blockLength / 256
+  const expected = blockLength / 256
+
+  // Count byte frequencies
+  const frequencies = new Array(256).fill(0)
+  for (let i = start; i < (end ?? data.length); i++) {
+    frequencies[data[i]]++
+  }
+
+  // Calculate chi-square statistic
+  let chiSquare = 0
+  for (let i = 0; i < 256; i++) {
+    const observed = frequencies[i]
+    const diff = observed - expected
+    chiSquare += (diff * diff) / expected
+  }
+
+  return chiSquare
 }
 
 /**
@@ -514,6 +554,130 @@ async function handleEntropy(request: EntropyRequest): Promise<void> {
 }
 
 /**
+ * Handle CHI_SQUARE_REQUEST - Calculate chi-square per block/chunk across file
+ * Uses adaptive block sizing: smaller blocks for small files, 1MB chunks for large files
+ */
+async function handleChiSquare(request: ChiSquareRequest): Promise<void> {
+  logger.log(`Calculating chi-square (request: ${request.id})`)
+  try {
+    const fileSize = request.file.size
+    const startOffset = request.startOffset ?? 0
+    const endOffset = request.endOffset ?? fileSize
+    const searchRange = endOffset - startOffset
+
+    // Determine block size based on file size (or use provided blockSize)
+    const blockSize = request.blockSize ?? getBlockSize(searchRange)
+
+    const chiSquareValues: number[] = []
+    const offsets: number[] = []
+
+    // For large files (>= 1MB), use efficient chunk-based processing
+    // For small files, process in smaller blocks for better visualization
+    if (blockSize >= STREAM_CHUNK_SIZE) {
+      // Large file: process in 1MB chunks (same pattern as entropy)
+      let bytesRead = 0
+      while (bytesRead < searchRange) {
+        const chunkStart = startOffset + bytesRead
+        const chunkEnd = Math.min(
+          chunkStart + STREAM_CHUNK_SIZE,
+          startOffset + searchRange
+        )
+
+        // Read chunk
+        const chunk = await readByteRange(request.file, chunkStart, chunkEnd)
+
+        // Calculate chi-square for entire chunk
+        const chiSquare = calculateBlockChiSquare(chunk)
+        chiSquareValues.push(chiSquare)
+        offsets.push(chunkStart)
+
+        const chunkSize = chunkEnd - chunkStart
+        bytesRead += chunkSize
+
+        // Calculate progress percentage
+        const progress = Math.min(
+          100,
+          Math.round((bytesRead / searchRange) * 100)
+        )
+
+        // Send progress event
+        const progressEvent: ProgressEvent = {
+          id: generateMessageId(),
+          type: "PROGRESS_EVENT",
+          requestId: request.id,
+          progress,
+          bytesRead: bytesRead,
+          totalBytes: searchRange
+        }
+        sendProgress(progressEvent)
+
+        // Yield to event loop to keep UI responsive
+        await new Promise((resolve) => setTimeout(resolve, 0))
+      }
+    } else {
+      // Small file: process in smaller blocks for better visualization
+      let currentOffset = startOffset
+      let blocksProcessed = 0
+
+      while (currentOffset < endOffset) {
+        const blockEnd = Math.min(currentOffset + blockSize, endOffset)
+
+        // Read block
+        const block = await readByteRange(request.file, currentOffset, blockEnd)
+
+        // Calculate chi-square for this block
+        const chiSquare = calculateBlockChiSquare(block)
+        chiSquareValues.push(chiSquare)
+        offsets.push(currentOffset)
+
+        blocksProcessed++
+        currentOffset = blockEnd
+
+        // Send progress event periodically (every 10 blocks or at end)
+        if (blocksProcessed % 10 === 0 || currentOffset >= endOffset) {
+          const progress = Math.min(
+            100,
+            Math.round(((currentOffset - startOffset) / searchRange) * 100)
+          )
+
+          const progressEvent: ProgressEvent = {
+            id: generateMessageId(),
+            type: "PROGRESS_EVENT",
+            requestId: request.id,
+            progress,
+            bytesRead: currentOffset - startOffset,
+            totalBytes: searchRange
+          }
+          sendProgress(progressEvent)
+        }
+
+        // Yield to event loop periodically to keep UI responsive
+        if (blocksProcessed % 100 === 0) {
+          await new Promise((resolve) => setTimeout(resolve, 0))
+        }
+      }
+    }
+
+    logger.log(
+      `Chi-square calculation completed, processed ${chiSquareValues.length} blocks`
+    )
+    const response: ChiSquareResponse = {
+      id: request.id,
+      type: "CHI_SQUARE_RESPONSE",
+      chiSquareValues,
+      blockSize,
+      offsets
+    }
+    sendResponse(response)
+  } catch (error) {
+    sendError(
+      error instanceof Error ? error.message : "Failed to calculate chi-square",
+      request.id
+    )
+  }
+}
+
+/**
  * Handle BYTE_FREQUENCY_REQUEST - Calculate byte frequency distribution
  */
 async function handleByteFrequency(
@@ -598,7 +762,7 @@ async function handleChartRender(request: ChartRenderRequest): Promise<void> {
   try {
     // Check if we already have a chart instance for this canvas
     const existingChart = chartInstances.get(request.canvas)
-    
+
     if (existingChart && request.canvas) {
       // Update existing chart with new config
       // Chart.js doesn't have a direct update method, so we'll create a new one
@@ -648,6 +812,9 @@ async function handleRequest(message: RequestMessage): Promise<void> {
       break
     case "ENTROPY_REQUEST":
       await handleEntropy(message)
+      break
+    case "CHI_SQUARE_REQUEST":
+      await handleChiSquare(message)
       break
     case "CHART_RENDER_REQUEST":
       await handleChartRender(message)
