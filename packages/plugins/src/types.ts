@@ -42,6 +42,7 @@ export type HexedPluginOptionsForType<
   type: PluginType
   id: string
   title: string
+  info?: undefined;
   icon: LucideIcon
   component: HexedPluginComponent<PluginType, T>
   hotkey?: {
@@ -55,6 +56,7 @@ export type HexedPluginOptionsForVisualization = {
   id: string
   title: string
   icon: LucideIcon
+  info?: ReactNode | undefined;
   chart: ChartCalculationFunction
   hotkey?: {
     formatted: string

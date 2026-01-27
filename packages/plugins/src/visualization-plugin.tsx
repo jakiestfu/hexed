@@ -1,5 +1,5 @@
 import { FunctionComponent, useEffect, useRef, useState } from "react"
-import { X } from "lucide-react"
+import { Info, X } from "lucide-react"
 
 import {
   useHexedFileContext,
@@ -7,13 +7,13 @@ import {
   useHexedStateContext,
   useWorkerClient
 } from "@hexed/editor"
-import { Button, cn, Progress } from "@hexed/ui"
+import { Button, cn, Popover, PopoverContent, PopoverTrigger, Progress } from "@hexed/ui"
 
-import { HexedPluginOptionsForVisualization } from "../types"
+import { HexedPluginOptionsForVisualization } from "./types"
 
 export const VisualizationPlugin: FunctionComponent<
   HexedPluginOptionsForVisualization
-> = ({ type, title, icon: Icon, chart: chartFunction }) => {
+> = ({ type, title, icon: Icon, chart: chartFunction, info }) => {
   const settings = useHexedSettingsContext()
   const {
     input: { hexedFile }
@@ -129,7 +129,24 @@ export const VisualizationPlugin: FunctionComponent<
   return (
     <div className="flex flex-col h-full w-full relative">
       <div className="flex items-center justify-between p-4">
-        <h2 className="text-lg font-bold">{title}</h2>
+        <div className="flex items-center gap-2">
+          <h2 className="text-lg font-bold">
+            {title}
+          </h2>
+          {info ? (
+            // Create a popover
+            <Popover>
+              <PopoverTrigger asChild>
+                <Button variant="ghost" size="icon">
+                  <Info className="size-4" />
+                </Button>
+              </PopoverTrigger>
+              <PopoverContent align="start" className="text-sm text-muted-foreground">
+                {info}
+              </PopoverContent>
+            </Popover>
+          ) : null}
+        </div>
         <Button
           onClick={() => settings.setVisualization(null)}
           variant="ghost"

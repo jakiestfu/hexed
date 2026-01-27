@@ -16,7 +16,6 @@ const getComponent = (options: HexedPluginOptions) => {
     case "label":
       return <LabelPlugin {...options} />
     case "visualization": {
-      // TypeScript narrows to HexedPluginOptionsForVisualization here
       return <VisualizationPlugin {...options} />
     }
     default:

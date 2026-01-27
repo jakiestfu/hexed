@@ -102,6 +102,29 @@ export const entropyPlugin = createHexedEditorPlugin({
   type: "visualization",
   id: "entropy",
   title: "Entropy",
+  info: (
+    <div className="space-y-2">
+      <p>
+        This visualization measures <strong>how random or structured</strong> the selected bytes are.
+        Higher entropy means the data looks more random; lower entropy suggests patterns,
+        repetition, or human-readable structure.
+      </p>
+      <p>
+        Entropy is computed using the <strong>Shannon entropy</strong> formula, commonly used in
+        compression, cryptography, and binary analysis.
+      </p>
+      <p>
+        <a
+          href="https://en.wikipedia.org/wiki/Entropy_(information_theory)"
+          target="_blank"
+          rel="noopener noreferrer"
+          className="underline text-primary"
+        >
+          Learn more about Shannon entropy
+        </a>
+      </p>
+    </div>
+  ),
   icon: Activity,
   chart: calculateEntropy
 })
