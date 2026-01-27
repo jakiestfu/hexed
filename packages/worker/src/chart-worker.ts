@@ -11,6 +11,7 @@ import {
   LineElement,
   LineController,
   PointElement,
+  ScatterController,
   Decimation,
   ChartConfiguration
 } from "chart.js"
@@ -50,6 +51,7 @@ Chart.register(
   LineElement,
   LineController,
   PointElement,
+  ScatterController,
   Decimation
 )
 

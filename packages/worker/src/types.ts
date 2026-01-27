@@ -10,12 +10,16 @@ export type MessageType =
   | "BYTE_FREQUENCY_REQUEST"
   | "ENTROPY_REQUEST"
   | "CHI_SQUARE_REQUEST"
+  | "AUTOCORRELATION_REQUEST"
+  | "BYTE_SCATTER_REQUEST"
   | "CHART_RENDER_REQUEST"
   | "SEARCH_RESPONSE"
   | "STRINGS_RESPONSE"
   | "BYTE_FREQUENCY_RESPONSE"
   | "ENTROPY_RESPONSE"
   | "CHI_SQUARE_RESPONSE"
+  | "AUTOCORRELATION_RESPONSE"
+  | "BYTE_SCATTER_RESPONSE"
   | "CHART_RENDER_RESPONSE"
   | "PROGRESS_EVENT"
   | "SEARCH_MATCH_EVENT"
@@ -129,6 +133,33 @@ export interface ChiSquareResponse extends BaseMessage {
   offsets: number[] // Array of starting offsets for each block
 }
 
+export interface AutocorrelationRequest extends BaseMessage {
+  type: "AUTOCORRELATION_REQUEST"
+  file: File
+  maxLag?: number // Default 256
+  startOffset?: number
+  endOffset?: number
+}
+
+export interface AutocorrelationResponse extends BaseMessage {
+  type: "AUTOCORRELATION_RESPONSE"
+  autocorrelationValues: number[] // Array of autocorrelation values, one per lag
+  lags: number[] // Array of lag offsets used
+}
+
+export interface ByteScatterRequest extends BaseMessage {
+  type: "BYTE_SCATTER_REQUEST"
+  file: File
+  maxPoints?: number // Default 10000 for performance
+  startOffset?: number
+  endOffset?: number
+}
+
+export interface ByteScatterResponse extends BaseMessage {
+  type: "BYTE_SCATTER_RESPONSE"
+  points: Array<{ x: number; y: number }> // x = offset, y = byte value
+}
+
 export interface ChartRenderRequest extends BaseMessage {
   type: "CHART_RENDER_REQUEST"
   canvas: OffscreenCanvas
@@ -169,6 +200,8 @@ export type RequestMessage =
   | ByteFrequencyRequest
   | EntropyRequest
   | ChiSquareRequest
+  | AutocorrelationRequest
+  | ByteScatterRequest
 
 /**
  * Union type of all request messages (including chart render requests)
@@ -184,6 +217,8 @@ export type ResponseMessage =
   | ByteFrequencyResponse
   | EntropyResponse
   | ChiSquareResponse
+  | AutocorrelationResponse
+  | ByteScatterResponse
   | ChartRenderResponse
   | ErrorResponse
   | ConnectedResponse

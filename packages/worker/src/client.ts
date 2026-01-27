@@ -7,8 +7,12 @@ import { createLogger } from "@hexed/logger"
 
 import { generateMessageId } from "./utils"
 import type {
+  AutocorrelationRequest,
+  AutocorrelationResponse,
   ByteFrequencyRequest,
   ByteFrequencyResponse,
+  ByteScatterRequest,
+  ByteScatterResponse,
   ChartRenderRequest,
   ChartRenderResponse,
   ChiSquareRequest,
@@ -68,6 +72,20 @@ export interface WorkerClient {
     endOffset?: number,
     blockSize?: number
   ): Promise<{ chiSquareValues: number[]; offsets: number[]; blockSize: number }>
+  calculateAutocorrelation(
+    file: File,
+    onProgress?: (progress: number) => void,
+    startOffset?: number,
+    endOffset?: number,
+    maxLag?: number
+  ): Promise<{ autocorrelationValues: number[]; lags: number[] }>
+  calculateByteScatter(
+    file: File,
+    onProgress?: (progress: number) => void,
+    startOffset?: number,
+    endOffset?: number,
+    maxPoints?: number
+  ): Promise<{ points: Array<{ x: number; y: number }> }>
   render(
     canvas: OffscreenCanvas,
     config: unknown,
@@ -505,6 +523,75 @@ export function createWorkerClient(
           chiSquareValues: response.chiSquareValues,
           offsets: response.offsets,
           blockSize: response.blockSize
+        }
+      } finally {
+        // Clean up progress callback
+        progressCallbacks.delete(request.id)
+      }
+    },
+
+    async calculateAutocorrelation(
+      file: File,
+      onProgress?: (progress: number) => void,
+      startOffset?: number,
+      endOffset?: number,
+      maxLag?: number
+    ): Promise<{ autocorrelationValues: number[]; lags: number[] }> {
+      logger.log(`Calculating autocorrelation for file: ${file.name}`)
+      const request: AutocorrelationRequest = {
+        id: generateMessageId(),
+        type: "AUTOCORRELATION_REQUEST",
+        file,
+        maxLag,
+        startOffset,
+        endOffset
+      }
+
+      // Register progress callback if provided
+      if (onProgress) {
+        progressCallbacks.set(request.id, onProgress)
+      }
+
+      try {
+        const response = await sendMainWorkerRequest<AutocorrelationResponse>(request)
+        logger.log("Autocorrelation calculation completed")
+        return {
+          autocorrelationValues: response.autocorrelationValues,
+          lags: response.lags
+        }
+      } finally {
+        // Clean up progress callback
+        progressCallbacks.delete(request.id)
+      }
+    },
+
+    async calculateByteScatter(
+      file: File,
+      onProgress?: (progress: number) => void,
+      startOffset?: number,
+      endOffset?: number,
+      maxPoints?: number
+    ): Promise<{ points: Array<{ x: number; y: number }> }> {
+      logger.log(`Calculating byte scatter for file: ${file.name}`)
+      const request: ByteScatterRequest = {
+        id: generateMessageId(),
+        type: "BYTE_SCATTER_REQUEST",
+        file,
+        maxPoints,
+        startOffset,
+        endOffset
+      }
+
+      // Register progress callback if provided
+      if (onProgress) {
+        progressCallbacks.set(request.id, onProgress)
+      }
+
+      try {
+        const response = await sendMainWorkerRequest<ByteScatterResponse>(request)
+        logger.log("Byte scatter calculation completed")
+        return {
+          points: response.points
         }
       } finally {
         // Clean up progress callback

@@ -13,8 +13,12 @@ import {
   sendSearchMatch
 } from "./utils"
 import type {
+  AutocorrelationRequest,
+  AutocorrelationResponse,
   ByteFrequencyRequest,
   ByteFrequencyResponse,
+  ByteScatterRequest,
+  ByteScatterResponse,
   ChiSquareRequest,
   ChiSquareResponse,
   ConnectedResponse,
@@ -391,6 +395,63 @@ function calculateBlockChiSquare(
 }
 
 /**
+ * Calculate autocorrelation for a data array at different lag values
+ * Autocorrelation measures how correlated the data is with itself at different offsets
+ * Formula: r(k) = Σ((x[i] - mean) * (x[i+k] - mean)) / Σ((x[i] - mean)^2)
+ * Returns values between -1 and 1, where:
+ *   1 = perfect positive correlation
+ *   -1 = perfect negative correlation
+ *   0 = no correlation
+ * @param data - The byte array to analyze
+ * @param maxLag - Maximum lag to calculate (default 256)
+ * @returns Array of autocorrelation values, one per lag from 1 to maxLag
+ */
+function calculateAutocorrelation(
+  data: Uint8Array,
+  maxLag: number = 256
+): number[] {
+  const n = data.length
+  if (n < 2) return []
+
+  // Calculate mean
+  let sum = 0
+  for (let i = 0; i < n; i++) {
+    sum += data[i]
+  }
+  const mean = sum / n
+
+  // Calculate variance (denominator for normalization)
+  let variance = 0
+  for (let i = 0; i < n; i++) {
+    const diff = data[i] - mean
+    variance += diff * diff
+  }
+
+  if (variance === 0) {
+    // All values are the same, return zeros
+    return new Array(Math.min(maxLag, n - 1)).fill(0)
+  }
+
+  // Calculate autocorrelation for each lag
+  const autocorrelations: number[] = []
+  const actualMaxLag = Math.min(maxLag, n - 1)
+
+  for (let k = 1; k <= actualMaxLag; k++) {
+    let correlation = 0
+    const validPairs = n - k
+
+    for (let i = 0; i < validPairs; i++) {
+      correlation += (data[i] - mean) * (data[i + k] - mean)
+    }
+
+    // Normalize by variance
+    autocorrelations.push(correlation / variance)
+  }
+
+  return autocorrelations
+}
+
+/**
  * Handle ENTROPY_REQUEST - Calculate entropy per block/chunk across file
  * Uses adaptive block sizing: smaller blocks for small files, 1MB chunks for large files
  */
@@ -713,6 +774,275 @@ async function handleByteFrequency(
 }
 
 /**
+ * Maximum data size to process for autocorrelation (10MB)
+ * For larger files, we'll sample the data to avoid memory issues
+ */
+const MAX_AUTOCORRELATION_SIZE = 10 * 1024 * 1024
+
+/**
+ * Handle AUTOCORRELATION_REQUEST - Calculate autocorrelation across file
+ * For large files, samples the data to avoid memory issues and improve performance
+ */
+async function handleAutocorrelation(
+  request: AutocorrelationRequest
+): Promise<void> {
+  logger.log(`Calculating autocorrelation (request: ${request.id})`)
+  try {
+    const fileSize = request.file.size
+    const startOffset = request.startOffset ?? 0
+    const endOffset = request.endOffset ?? fileSize
+    const searchRange = endOffset - startOffset
+    const maxLag = request.maxLag ?? 256
+
+    // Determine if we need to sample the data
+    const needsSampling = searchRange > MAX_AUTOCORRELATION_SIZE
+    const targetSize = needsSampling
+      ? MAX_AUTOCORRELATION_SIZE
+      : searchRange
+    const sampleStep = needsSampling
+      ? Math.floor(searchRange / targetSize)
+      : 1
+
+    logger.log(
+      `Processing autocorrelation: range=${searchRange}, sampling=${needsSampling}, step=${sampleStep}, targetSize=${targetSize}`
+    )
+
+    // Read and sample data uniformly across the entire range
+    const data = new Uint8Array(targetSize)
+    let dataIndex = 0
+    let bytesRead = 0
+    let nextSamplePosition = 0 // Absolute position for next sample
+
+    while (bytesRead < searchRange && dataIndex < targetSize) {
+      const chunkStart = startOffset + bytesRead
+      const chunkEnd = Math.min(
+        chunkStart + STREAM_CHUNK_SIZE,
+        startOffset + searchRange
+      )
+
+      // Read chunk
+      const chunk = await readByteRange(request.file, chunkStart, chunkEnd)
+
+      if (needsSampling) {
+        // Sample uniformly across the entire file range
+        // Find which bytes in this chunk should be sampled
+        const chunkStartAbsolute = chunkStart - startOffset
+        const chunkEndAbsolute = chunkEnd - startOffset
+
+        // Find the first sample position in or after this chunk
+        while (
+          nextSamplePosition < chunkStartAbsolute &&
+          dataIndex < targetSize
+        ) {
+          nextSamplePosition += sampleStep
+        }
+
+        // Sample bytes in this chunk
+        while (
+          nextSamplePosition >= chunkStartAbsolute &&
+          nextSamplePosition < chunkEndAbsolute &&
+          dataIndex < targetSize
+        ) {
+          const offsetInChunk = nextSamplePosition - chunkStartAbsolute
+          if (offsetInChunk < chunk.length) {
+            data[dataIndex++] = chunk[offsetInChunk]
+          }
+          nextSamplePosition += sampleStep
+        }
+      } else {
+        // Use all data
+        const copyLength = Math.min(chunk.length, targetSize - dataIndex)
+        data.set(chunk.subarray(0, copyLength), dataIndex)
+        dataIndex += copyLength
+      }
+
+      const chunkSize = chunkEnd - chunkStart
+      bytesRead += chunkSize
+
+      // Calculate progress percentage
+      const progress = Math.min(
+        100,
+        Math.round((bytesRead / searchRange) * 100)
+      )
+
+      // Send progress event
+      const progressEvent: ProgressEvent = {
+        id: generateMessageId(),
+        type: "PROGRESS_EVENT",
+        requestId: request.id,
+        progress,
+        bytesRead: bytesRead,
+        totalBytes: searchRange
+      }
+      sendProgress(progressEvent)
+
+      // Yield to event loop to keep UI responsive
+      await new Promise((resolve) => setTimeout(resolve, 0))
+    }
+
+    // Use only the data we actually filled
+    const actualData = data.subarray(0, dataIndex)
+
+    // Calculate autocorrelation
+    const autocorrelationValues = calculateAutocorrelation(actualData, maxLag)
+
+    // Generate lag array
+    const lags = Array.from(
+      { length: autocorrelationValues.length },
+      (_, i) => i + 1
+    )
+
+    logger.log(
+      `Autocorrelation calculation completed: processed ${actualData.length} bytes (${needsSampling ? `sampled from ${searchRange}` : "full range"}), calculated ${autocorrelationValues.length} lags`
+    )
+    const response: AutocorrelationResponse = {
+      id: request.id,
+      type: "AUTOCORRELATION_RESPONSE",
+      autocorrelationValues,
+      lags
+    }
+    sendResponse(response)
+  } catch (error) {
+    sendError(
+      error instanceof Error
+        ? error.message
+        : "Failed to calculate autocorrelation",
+      request.id
+    )
+  }
+}
+
+/**
+ * Maximum points to display in scatter plot (default 10000)
+ * For larger files, we'll sample the data uniformly
+ */
+const DEFAULT_MAX_SCATTER_POINTS = 10000
+
+/**
+ * Handle BYTE_SCATTER_REQUEST - Create scatter plot of offset vs byte values
+ * Samples data uniformly if file is large to ensure performance
+ */
+async function handleByteScatter(
+  request: ByteScatterRequest
+): Promise<void> {
+  logger.log(`Calculating byte scatter (request: ${request.id})`)
+  try {
+    const fileSize = request.file.size
+    const startOffset = request.startOffset ?? 0
+    const endOffset = request.endOffset ?? fileSize
+    const searchRange = endOffset - startOffset
+    const maxPoints = request.maxPoints ?? DEFAULT_MAX_SCATTER_POINTS
+
+    // Determine if we need to sample the data
+    const needsSampling = searchRange > maxPoints
+    const targetPoints = Math.min(searchRange, maxPoints)
+    const sampleStep = needsSampling
+      ? Math.floor(searchRange / targetPoints)
+      : 1
+
+    logger.log(
+      `Processing byte scatter: range=${searchRange}, sampling=${needsSampling}, step=${sampleStep}, targetPoints=${targetPoints}`
+    )
+
+    // Collect points
+    const points: Array<{ x: number; y: number }> = []
+    let bytesRead = 0
+    let nextSamplePosition = 0 // Absolute position for next sample
+
+    while (bytesRead < searchRange && points.length < targetPoints) {
+      const chunkStart = startOffset + bytesRead
+      const chunkEnd = Math.min(
+        chunkStart + STREAM_CHUNK_SIZE,
+        startOffset + searchRange
+      )
+
+      // Read chunk
+      const chunk = await readByteRange(request.file, chunkStart, chunkEnd)
+
+      if (needsSampling) {
+        // Sample uniformly across the entire file range
+        const chunkStartAbsolute = chunkStart - startOffset
+        const chunkEndAbsolute = chunkEnd - startOffset
+
+        // Find the first sample position in or after this chunk
+        while (
+          nextSamplePosition < chunkStartAbsolute &&
+          points.length < targetPoints
+        ) {
+          nextSamplePosition += sampleStep
+        }
+
+        // Sample bytes in this chunk
+        while (
+          nextSamplePosition >= chunkStartAbsolute &&
+          nextSamplePosition < chunkEndAbsolute &&
+          points.length < targetPoints
+        ) {
+          const offsetInChunk = nextSamplePosition - chunkStartAbsolute
+          if (offsetInChunk < chunk.length) {
+            const absoluteOffset = startOffset + nextSamplePosition
+            points.push({
+              x: absoluteOffset,
+              y: chunk[offsetInChunk]
+            })
+          }
+          nextSamplePosition += sampleStep
+        }
+      } else {
+        // Use all data
+        for (let i = 0; i < chunk.length && points.length < targetPoints; i++) {
+          const absoluteOffset = chunkStart + i
+          points.push({
+            x: absoluteOffset,
+            y: chunk[i]
+          })
+        }
+      }
+
+      const chunkSize = chunkEnd - chunkStart
+      bytesRead += chunkSize
+
+      // Calculate progress percentage
+      const progress = Math.min(
+        100,
+        Math.round((bytesRead / searchRange) * 100)
+      )
+
+      // Send progress event
+      const progressEvent: ProgressEvent = {
+        id: generateMessageId(),
+        type: "PROGRESS_EVENT",
+        requestId: request.id,
+        progress,
+        bytesRead: bytesRead,
+        totalBytes: searchRange
+      }
+      sendProgress(progressEvent)
+
+      // Yield to event loop to keep UI responsive
+      await new Promise((resolve) => setTimeout(resolve, 0))
+    }
+
+    logger.log(
+      `Byte scatter calculation completed: processed ${points.length} points (${needsSampling ? `sampled from ${searchRange} bytes` : "full range"})`
+    )
+    const response: ByteScatterResponse = {
+      id: request.id,
+      type: "BYTE_SCATTER_RESPONSE",
+      points
+    }
+    sendResponse(response)
+  } catch (error) {
+    sendError(
+      error instanceof Error
+        ? error.message
+        : "Failed to calculate byte scatter",
+      request.id
+    )
+  }
+}
+
+/**
  * Route a request message to the appropriate handler
  */
 async function handleRequest(message: RequestMessage): Promise<void> {
@@ -731,6 +1061,12 @@ async function handleRequest(message: RequestMessage): Promise<void> {
       break
     case "CHI_SQUARE_REQUEST":
       await handleChiSquare(message)
+      break
+    case "AUTOCORRELATION_REQUEST":
+      await handleAutocorrelation(message)
+      break
+    case "BYTE_SCATTER_REQUEST":
+      await handleByteScatter(message)
       break
     default:
       const unknownMessage = message as { type: string; id: string }
