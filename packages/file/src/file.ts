@@ -771,6 +771,53 @@ export class HexedFile extends EventTarget {
   }
 
   /**
+   * Get file size (method form for consistency in worker context)
+   */
+  fileSize(): number {
+    return this.size
+  }
+
+  /**
+   * Iterate over file in chunks, calling callback for each chunk
+   */
+  async forEachChunk(
+    chunkSize: number,
+    callback: (chunk: Uint8Array) => void | Promise<void>,
+    options?: { signal?: AbortSignal }
+  ): Promise<void> {
+    const size = this.size
+    let offset = 0
+
+    while (offset < size) {
+      // Check abort signal
+      if (options?.signal?.aborted) {
+        throw new DOMException("Aborted", "AbortError")
+      }
+
+      const end = Math.min(offset + chunkSize, size)
+      const range = { start: offset, end }
+
+      // Ensure range is loaded
+      if (!this.isRangeLoaded(range)) {
+        await this.ensureRange(range, { signal: options?.signal })
+      }
+
+      // Read chunk
+      const chunk = this.getDataAtRange(range)
+      if (chunk && chunk.length > 0) {
+        await callback(chunk)
+      }
+
+      offset = end
+
+      // Yield to event loop periodically for responsiveness
+      if (offset % (chunkSize * 10) === 0) {
+        await new Promise((resolve) => setTimeout(resolve, 0))
+      }
+    }
+  }
+
+  /**
    * Cleanup resources
    */
   disconnect(): void {

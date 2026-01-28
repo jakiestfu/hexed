@@ -3,31 +3,28 @@
  */
 
 import {
-  Chart,
-  CategoryScale,
-  LinearScale,
-  BarElement,
   BarController,
-  LineElement,
-  LineController,
-  PointElement,
-  ScatterController,
+  BarElement,
+  CategoryScale,
+  Chart,
+  ChartConfiguration,
   Decimation,
-  ChartConfiguration
+  LinearScale,
+  LineController,
+  LineElement,
+  PointElement,
+  ScatterController
 } from "chart.js"
+
 import { createLogger } from "@hexed/logger"
 
-import {
-  generateMessageId,
-  sendError,
-  sendResponse
-} from "./utils"
 import type {
   ChartRenderRequest,
   ChartRenderResponse,
   ConnectedResponse,
   ErrorResponse
 } from "./types"
+import { generateMessageId, sendError, sendResponse } from "./utils"
 
 /**
  * Union type of all messages for the chart worker
@@ -90,13 +87,16 @@ async function handleChartRender(request: ChartRenderRequest): Promise<void> {
       // Chart.js doesn't have a direct update method, so we'll create a new one
       // But first, destroy the old one if possible
       if (typeof (existingChart as any).destroy === "function") {
-        (existingChart as any).destroy()
+        ;(existingChart as any).destroy()
       }
     }
 
     // Create new chart instance
     if (request.canvas) {
-      const chart = renderChart(request.canvas, request.config as ChartConfiguration)
+      const chart = renderChart(
+        request.canvas,
+        request.config as ChartConfiguration
+      )
       chartInstances.set(request.canvas, chart)
     } else {
       // Canvas is null, which means this is an update request
@@ -141,7 +141,7 @@ if (typeof self !== "undefined") {
     ) {
       return
     }
-    
+
     // Handle chart render requests (only remaining type after filtering)
     if (message.type === "CHART_RENDER_REQUEST") {
       logger.log(`Received request: ${message.type} (id: ${message.id})`)

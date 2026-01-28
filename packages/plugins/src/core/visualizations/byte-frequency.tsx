@@ -3,6 +3,7 @@ import { BarChart } from "lucide-react"
 import { createHexedEditorPlugin } from "../.."
 import type { ChartCalculationFunction } from "../../types"
 import type { ChartConfiguration } from "@hexed/worker/chart-worker"
+import { HexedFile } from "@hexed/file"
 
 /**
  * Calculate byte frequency and return chart configuration
@@ -14,6 +15,13 @@ export const calculateByteFrequency: ChartCalculationFunction = async (
   startOffset,
   endOffset
 ) => {
+
+  const foo = await workerClient.$evaluate(file, async (hexedFile, api) => ({
+    foo: hexedFile.fileSize(),
+    hello: api.context.test.split("").reverse().join(""),
+    test: api.context,
+  }), { context: { test: "test" } })
+
   // Calculate byte frequency
   const frequencies = await workerClient.calculateByteFrequency(
     file,

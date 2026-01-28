@@ -2,16 +2,10 @@
  * Worker entry point for file access
  */
 
+import { HexedFile } from "@hexed/file"
 import { extractStrings, type StringEncoding } from "@hexed/file/strings"
 import { createLogger } from "@hexed/logger"
 
-import {
-  generateMessageId,
-  sendError,
-  sendProgress,
-  sendResponse,
-  sendSearchMatch
-} from "./utils"
 import type {
   AutocorrelationRequest,
   AutocorrelationResponse,
@@ -25,6 +19,9 @@ import type {
   EntropyRequest,
   EntropyResponse,
   ErrorResponse,
+  EvaluateAbort,
+  EvaluateRequest,
+  EvaluateResponse,
   ProgressEvent,
   RequestMessage,
   ResponseMessage,
@@ -35,11 +32,32 @@ import type {
   StringsResponse,
   WorkerMessage
 } from "./types"
+import {
+  generateMessageId,
+  sendError,
+  sendProgress,
+  sendResponse,
+  sendSearchMatch
+} from "./utils"
 
 const logger = createLogger("worker")
 
 // Chunk size for streaming (1MB)
 const STREAM_CHUNK_SIZE = 1024 * 1024
+
+/**
+ * Track abort state for evaluate requests
+ */
+const abortStates = new Map<string, boolean>()
+
+/**
+ * EvaluateAPI type for use in evaluated functions
+ */
+export type EvaluateAPI<TContext = undefined> = {
+  emitProgress: (p: { processed: number; size: number }) => void
+  throwIfAborted: () => void
+  context: TContext
+}
 
 /**
  * Read a byte range from a File object
@@ -53,7 +71,6 @@ async function readByteRange(
   const arrayBuffer = await blob.arrayBuffer()
   return new Uint8Array(arrayBuffer)
 }
-
 
 /**
  * Handle SEARCH_REQUEST - Search for pattern in file with progress updates
@@ -351,10 +368,7 @@ export const getBlockSize = (fileSize: number): number => {
   // round to nice powers of two
   const pow2 = Math.pow(2, Math.round(Math.log2(raw)))
 
-  return Math.max(
-    MIN_BLOCK,
-    Math.min(pow2, MAX_BLOCK)
-  )
+  return Math.max(MIN_BLOCK, Math.min(pow2, MAX_BLOCK))
 }
 
 /**
@@ -796,12 +810,8 @@ async function handleAutocorrelation(
 
     // Determine if we need to sample the data
     const needsSampling = searchRange > MAX_AUTOCORRELATION_SIZE
-    const targetSize = needsSampling
-      ? MAX_AUTOCORRELATION_SIZE
-      : searchRange
-    const sampleStep = needsSampling
-      ? Math.floor(searchRange / targetSize)
-      : 1
+    const targetSize = needsSampling ? MAX_AUTOCORRELATION_SIZE : searchRange
+    const sampleStep = needsSampling ? Math.floor(searchRange / targetSize) : 1
 
     logger.log(
       `Processing autocorrelation: range=${searchRange}, sampling=${needsSampling}, step=${sampleStep}, targetSize=${targetSize}`
@@ -922,9 +932,7 @@ const DEFAULT_MAX_SCATTER_POINTS = 10000
  * Handle BYTE_SCATTER_REQUEST - Create scatter plot of offset vs byte values
  * Samples data uniformly if file is large to ensure performance
  */
-async function handleByteScatter(
-  request: ByteScatterRequest
-): Promise<void> {
+async function handleByteScatter(request: ByteScatterRequest): Promise<void> {
   logger.log(`Calculating byte scatter (request: ${request.id})`)
   try {
     const fileSize = request.file.size
@@ -1043,6 +1051,117 @@ async function handleByteScatter(
 }
 
 /**
+ * Handle EVALUATE_REQUEST - Execute serialized function in worker context
+ */
+async function handleEvaluate(request: EvaluateRequest): Promise<void> {
+  logger.log(`Evaluating function (request: ${request.id})`)
+  try {
+    const { file, functionCode, signalId, context } = request
+    // console.log("functionCode", functionCode)
+    // Initialize abort state if signalId provided
+    if (signalId) {
+      abortStates.set(signalId, false)
+    }
+
+    // Create abort signal for HexedFile
+    const abortController = new AbortController()
+    const signal = abortController.signal
+
+    // Create API object with abort and progress methods
+    const api: Omit<EvaluateAPI, "context"> = {
+      throwIfAborted(): void {
+        if (signalId && abortStates.get(signalId)) {
+          abortController.abort()
+          throw new DOMException("Aborted", "AbortError")
+        }
+        if (signal.aborted) {
+          throw new DOMException("Aborted", "AbortError")
+        }
+      },
+      emitProgress(data: { processed: number; size: number }): void {
+        const progress = Math.min(
+          100,
+          Math.round((data.processed / data.size) * 100)
+        )
+        const progressEvent: ProgressEvent = {
+          id: generateMessageId(),
+          type: "PROGRESS_EVENT",
+          requestId: request.id,
+          progress,
+          bytesRead: data.processed,
+          totalBytes: data.size
+        }
+        sendProgress(progressEvent)
+      }
+    }
+
+    // Create HexedFile instance
+    const hexedFile = new HexedFile(file)
+
+    // Check abort state before execution
+    api.throwIfAborted()
+
+    const code = `
+"use strict";
+
+const __fn = (${functionCode});
+
+return (async () => {
+  try {
+    return await __fn(file, api);
+  } catch (error) {
+    // Pass AbortError through untouched
+    if (
+      error &&
+      typeof error === "object" &&
+      error.name === "AbortError"
+    ) {
+      throw error;
+    }
+
+    throw error;
+  }
+})();
+`
+
+    // Create function in worker context
+    // Use Function constructor to create a function that receives file and api
+    const fn = new Function("file", "api", "context", code)
+
+    const result = await Promise.resolve(fn(hexedFile, {
+      ...api,
+      context,
+    }))
+    // Clean up abort state
+    if (signalId) {
+      abortStates.delete(signalId)
+    }
+
+    // Send response
+    const response: EvaluateResponse = {
+      id: request.id,
+      type: "EVALUATE_RESPONSE",
+      result
+    }
+    sendResponse(response)
+  } catch (error) {
+    // Clean up abort state on error
+    if (request.signalId) {
+      abortStates.delete(request.signalId)
+    }
+
+    if (error instanceof DOMException && error.name === "AbortError") {
+      sendError("Operation aborted", request.id)
+    } else {
+      sendError(
+        error instanceof Error ? error.message : "Failed to evaluate function",
+        request.id
+      )
+    }
+  }
+}
+
+/**
  * Route a request message to the appropriate handler
  */
 async function handleRequest(message: RequestMessage): Promise<void> {
@@ -1067,6 +1186,9 @@ async function handleRequest(message: RequestMessage): Promise<void> {
       break
     case "BYTE_SCATTER_REQUEST":
       await handleByteScatter(message)
+      break
+    case "EVALUATE_REQUEST":
+      await handleEvaluate(message)
       break
     default:
       const unknownMessage = message as { type: string; id: string }
@@ -1101,6 +1223,18 @@ if (typeof self !== "undefined") {
     ) {
       return
     }
+
+    // Handle abort messages separately
+    if (message.type === "EVALUATE_ABORT") {
+      const abortMessage = message as EvaluateAbort
+      // The requestId in abort message is the signalId
+      abortStates.set(abortMessage.requestId, true)
+      logger.log(
+        `Abort signal received for signalId: ${abortMessage.requestId}`
+      )
+      return
+    }
+
     logger.log(`Received request: ${message.type} (id: ${message.id})`)
     handleRequest(message as RequestMessage).catch((error) => {
       logger.log("Unhandled error in request handler:", error)

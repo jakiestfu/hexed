@@ -2,6 +2,7 @@
  * Client-side API for interacting with the Worker
  */
 
+import type { HexedFile } from "@hexed/file"
 import type { StringEncoding, StringMatch } from "@hexed/file/strings"
 import { createLogger } from "@hexed/logger"
 
@@ -21,6 +22,9 @@ import type {
   EntropyRequest,
   EntropyResponse,
   ErrorResponse,
+  EvaluateAbort,
+  EvaluateRequest,
+  EvaluateResponse,
   ProgressEvent,
   RequestMessage,
   ResponseMessage,
@@ -33,66 +37,86 @@ import type {
 
 const logger = createLogger("worker-client")
 
+type EvaluateOptionsBase = {
+  signal?: AbortSignal
+  onProgress?: (progress: { processed: number; size: number }) => void
+}
+
+type EvaluateAPI<TContext = undefined> = {
+  throwIfAborted(): void
+  emitProgress(data: { processed: number; size: number }): void
+  context: TContext
+}
 /**
  * Worker client interface
  */
-export interface WorkerClient {
-  search(
-    file: File,
-    pattern: Uint8Array,
-    onProgress?: (progress: number) => void,
-    onMatch?: (matches: Array<{ offset: number; length: number }>) => void,
-    startOffset?: number,
-    endOffset?: number
-  ): Promise<Array<{ offset: number; length: number }>>
-  strings(
-    file: File,
-    options: { minLength: number; encoding: StringEncoding },
-    onProgress?: (progress: number) => void,
-    startOffset?: number,
-    endOffset?: number
-  ): Promise<StringMatch[]>
-  calculateByteFrequency(
-    file: File,
-    onProgress?: (progress: number) => void,
-    startOffset?: number,
-    endOffset?: number
-  ): Promise<number[]>
-  calculateEntropy(
-    file: File,
-    onProgress?: (progress: number) => void,
-    startOffset?: number,
-    endOffset?: number,
-    blockSize?: number
-  ): Promise<{ entropyValues: number[]; offsets: number[]; blockSize: number }>
-  calculateChiSquare(
-    file: File,
-    onProgress?: (progress: number) => void,
-    startOffset?: number,
-    endOffset?: number,
-    blockSize?: number
-  ): Promise<{ chiSquareValues: number[]; offsets: number[]; blockSize: number }>
-  calculateAutocorrelation(
-    file: File,
-    onProgress?: (progress: number) => void,
-    startOffset?: number,
-    endOffset?: number,
-    maxLag?: number
-  ): Promise<{ autocorrelationValues: number[]; lags: number[] }>
-  calculateByteScatter(
-    file: File,
-    onProgress?: (progress: number) => void,
-    startOffset?: number,
-    endOffset?: number,
-    maxPoints?: number
-  ): Promise<{ points: Array<{ x: number; y: number }> }>
-  render(
-    canvas: OffscreenCanvas,
-    config: unknown,
-    onProgress?: (progress: number) => void
-  ): Promise<void>
-  disconnect(): void
-}
+// export interface WorkerClient {
+//   search(
+//     file: File,
+//     pattern: Uint8Array,
+//     onProgress?: (progress: number) => void,
+//     onMatch?: (matches: Array<{ offset: number; length: number }>) => void,
+//     startOffset?: number,
+//     endOffset?: number
+//   ): Promise<Array<{ offset: number; length: number }>>
+//   strings(
+//     file: File,
+//     options: { minLength: number; encoding: StringEncoding },
+//     onProgress?: (progress: number) => void,
+//     startOffset?: number,
+//     endOffset?: number
+//   ): Promise<StringMatch[]>
+//   calculateByteFrequency(
+//     file: File,
+//     onProgress?: (progress: number) => void,
+//     startOffset?: number,
+//     endOffset?: number
+//   ): Promise<number[]>
+//   calculateEntropy(
+//     file: File,
+//     onProgress?: (progress: number) => void,
+//     startOffset?: number,
+//     endOffset?: number,
+//     blockSize?: number
+//   ): Promise<{ entropyValues: number[]; offsets: number[]; blockSize: number }>
+//   calculateChiSquare(
+//     file: File,
+//     onProgress?: (progress: number) => void,
+//     startOffset?: number,
+//     endOffset?: number,
+//     blockSize?: number
+//   ): Promise<{ chiSquareValues: number[]; offsets: number[]; blockSize: number }>
+//   calculateAutocorrelation(
+//     file: File,
+//     onProgress?: (progress: number) => void,
+//     startOffset?: number,
+//     endOffset?: number,
+//     maxLag?: number
+//   ): Promise<{ autocorrelationValues: number[]; lags: number[] }>
+//   calculateByteScatter(
+//     file: File,
+//     onProgress?: (progress: number) => void,
+//     startOffset?: number,
+//     endOffset?: number,
+//     maxPoints?: number
+//   ): Promise<{ points: Array<{ x: number; y: number }> }>
+//   render(
+//     canvas: OffscreenCanvas,
+//     config: unknown,
+//     onProgress?: (progress: number) => void
+//   ): Promise<void>
+//   $evaluate<TResult, T extends Record<string, unknown> = {}>(
+//     file: File,
+//     fn: (file: HexedFile, api: EvaluateAPI<T>) => TResult | Promise<TResult>,
+//     options?: {
+//       signal?: AbortSignal
+//       onProgress?: (progress: { processed: number; size: number }) => void
+//       context?: T
+//     },
+//   ): Promise<TResult>
+//   disconnect(): void
+// }
+export type WorkerClient = ReturnType<typeof createWorkerClient>
 
 /**
  * Pending request tracking
@@ -109,7 +133,7 @@ interface PendingRequest {
 export function createWorkerClient(
   mainWorkerConstructor: new () => Worker,
   chartWorkerConstructor?: new () => Worker
-): WorkerClient {
+) {
   let mainWorker: Worker | null = null
   let chartWorker: Worker | null = null
   const pendingRequests = new Map<string, PendingRequest>()
@@ -118,11 +142,20 @@ export function createWorkerClient(
   // Progress callbacks mapped by request ID
   const progressCallbacks = new Map<string, (progress: number) => void>()
 
+  // Evaluate progress callbacks mapped by request ID (custom data structure)
+  const evaluateProgressCallbacks = new Map<
+    string,
+    (progress: { processed: number; size: number }) => void
+  >()
+
   // Match callbacks mapped by request ID
   const matchCallbacks = new Map<
     string,
     (matches: Array<{ offset: number; length: number }>) => void
   >()
+
+  // Abort signal handlers mapped by request ID
+  const abortSignalHandlers = new Map<string, () => void>()
 
   /**
    * Handle messages from any worker
@@ -133,9 +166,19 @@ export function createWorkerClient(
     // Handle progress events separately
     if (message.type === "PROGRESS_EVENT") {
       const progressEvent = message as ProgressEvent
-      const callback = progressCallbacks.get(progressEvent.requestId)
-      if (callback) {
-        callback(progressEvent.progress)
+      // Check if this is an evaluate progress event (has custom data)
+      const evaluateCallback = evaluateProgressCallbacks.get(progressEvent.requestId)
+      if (evaluateCallback) {
+        evaluateCallback({
+          processed: progressEvent.bytesRead,
+          size: progressEvent.totalBytes
+        })
+      } else {
+        // Regular progress callback
+        const callback = progressCallbacks.get(progressEvent.requestId)
+        if (callback) {
+          callback(progressEvent.progress)
+        }
       }
       return
     }
@@ -161,7 +204,9 @@ export function createWorkerClient(
         logger.log(`Error response: ${errorMsg} (request: ${message.id})`)
         // Clean up callbacks before rejecting
         progressCallbacks.delete(message.id)
+        evaluateProgressCallbacks.delete(message.id)
         matchCallbacks.delete(message.id)
+        abortSignalHandlers.delete(message.id)
         pending.reject(new Error(errorMsg))
       } else {
         logger.log(
@@ -171,7 +216,9 @@ export function createWorkerClient(
         // Progress callbacks are also cleaned up in finally blocks, so this is safe
         setTimeout(() => {
           progressCallbacks.delete(message.id)
+          evaluateProgressCallbacks.delete(message.id)
           matchCallbacks.delete(message.id)
+          abortSignalHandlers.delete(message.id)
         }, 0)
         pending.resolve(message)
       }
@@ -351,6 +398,72 @@ export function createWorkerClient(
         )
       }
     })
+  }
+
+  const $evaluate = async <
+    TResult,
+    TContext extends Record<string, unknown> | undefined = undefined
+  >(
+    file: File,
+    fn: (file: HexedFile, api: EvaluateAPI<TContext>) => TResult | Promise<TResult>,
+    options?: EvaluateOptionsBase & (TContext extends undefined ? {} : { context: TContext })
+  ): Promise<TResult> => {
+    const worker = initializeMainWorker()
+    // Serialize function to string
+    const functionCode = fn.toString()
+
+    // Generate request ID and signal ID
+    const requestId = generateMessageId()
+    const signalId = options?.signal ? `${requestId}-signal` : undefined
+
+    logger.log(`Evaluating function (request: ${requestId})`)
+
+    // Set up abort signal listener if provided
+    let abortHandler: (() => void) | undefined
+    if (options?.signal && signalId) {
+      abortHandler = () => {
+        logger.log(`Abort signal fired for request: ${requestId}`)
+        const abortMessage: EvaluateAbort = {
+          id: generateMessageId(),
+          type: "EVALUATE_ABORT",
+          requestId: signalId,
+        }
+        try {
+          worker.postMessage(abortMessage)
+        } catch (error) {
+          logger.log("Failed to send abort message:", error)
+        }
+      }
+      options.signal.addEventListener("abort", abortHandler)
+      abortSignalHandlers.set(requestId, abortHandler)
+    }
+
+    // Register progress callback if provided
+    if (options?.onProgress) {
+      evaluateProgressCallbacks.set(requestId, options.onProgress)
+    }
+
+    const request: EvaluateRequest = {
+      id: requestId,
+      type: "EVALUATE_REQUEST",
+      file,
+      functionCode,
+      signalId,
+      ...(options && 'context' in options ? { context: options.context } : {})
+    }
+
+    try {
+      const response = await sendMainWorkerRequest<EvaluateResponse>(request)
+      logger.log(`Function evaluation completed (request: ${requestId})`)
+      return response.result as TResult
+    } finally {
+      // Clean up
+      if (abortHandler && options?.signal) {
+        options.signal.removeEventListener("abort", abortHandler)
+      }
+      abortSignalHandlers.delete(requestId)
+      evaluateProgressCallbacks.delete(requestId)
+    }
   }
 
   return {
@@ -640,6 +753,8 @@ export function createWorkerClient(
       }
     },
 
+    $evaluate,
+
     disconnect(): void {
       logger.log("Disconnecting worker client")
       // Reject all pending requests
@@ -649,7 +764,9 @@ export function createWorkerClient(
       }
       pendingRequests.clear()
       progressCallbacks.clear()
+      evaluateProgressCallbacks.clear()
       matchCallbacks.clear()
+      abortSignalHandlers.clear()
 
       if (mainWorker) {
         mainWorker.terminate()

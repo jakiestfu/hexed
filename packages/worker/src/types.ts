@@ -13,6 +13,8 @@ export type MessageType =
   | "AUTOCORRELATION_REQUEST"
   | "BYTE_SCATTER_REQUEST"
   | "CHART_RENDER_REQUEST"
+  | "EVALUATE_REQUEST"
+  | "EVALUATE_ABORT"
   | "SEARCH_RESPONSE"
   | "STRINGS_RESPONSE"
   | "BYTE_FREQUENCY_RESPONSE"
@@ -21,6 +23,7 @@ export type MessageType =
   | "AUTOCORRELATION_RESPONSE"
   | "BYTE_SCATTER_RESPONSE"
   | "CHART_RENDER_RESPONSE"
+  | "EVALUATE_RESPONSE"
   | "PROGRESS_EVENT"
   | "SEARCH_MATCH_EVENT"
   | "ERROR"
@@ -172,6 +175,28 @@ export interface ChartRenderResponse extends BaseMessage {
 }
 
 /**
+ * Evaluate Messages
+ */
+
+export interface EvaluateRequest extends BaseMessage {
+  type: "EVALUATE_REQUEST"
+  file: File
+  functionCode: string
+  signalId?: string
+  context?: Record<string, unknown>
+}
+
+export interface EvaluateAbort extends BaseMessage {
+  type: "EVALUATE_ABORT"
+  requestId: string
+}
+
+export interface EvaluateResponse extends BaseMessage {
+  type: "EVALUATE_RESPONSE"
+  result: unknown
+}
+
+/**
  * Progress Event (not a response, but an event)
  */
 export interface ProgressEvent extends BaseMessage {
@@ -202,6 +227,7 @@ export type RequestMessage =
   | ChiSquareRequest
   | AutocorrelationRequest
   | ByteScatterRequest
+  | EvaluateRequest
 
 /**
  * Union type of all request messages (including chart render requests)
@@ -220,6 +246,7 @@ export type ResponseMessage =
   | AutocorrelationResponse
   | ByteScatterResponse
   | ChartRenderResponse
+  | EvaluateResponse
   | ErrorResponse
   | ConnectedResponse
 
@@ -231,3 +258,4 @@ export type WorkerMessage =
   | ResponseMessage
   | ProgressEvent
   | SearchMatchEvent
+  | EvaluateAbort
