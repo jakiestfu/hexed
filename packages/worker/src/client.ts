@@ -13,8 +13,10 @@ import type {
   ConnectedResponse,
   ErrorResponse,
   EvaluateAbort,
+  EvaluateAPI,
   EvaluateRequest,
   EvaluateResponse,
+  EvaluateResultEvent,
   ProgressEvent,
   RequestMessage,
   ResponseMessage,
@@ -27,15 +29,10 @@ import type {
 
 const logger = createLogger("worker-client")
 
-type EvaluateOptionsBase = {
+type EvaluateOptionsBase<TResult = unknown> = {
   signal?: AbortSignal
   onProgress?: (progress: { processed: number; size: number }) => void
-}
-
-type EvaluateAPI<TContext = undefined> = {
-  throwIfAborted(): void
-  emitProgress(data: { processed: number; size: number }): void
-  context: TContext
+  onResult?: (result: TResult) => void
 }
 
 export type WorkerClient = ReturnType<typeof createWorkerClient>
@@ -68,6 +65,9 @@ export function createWorkerClient(
     (progress: { processed: number; size: number }) => void
   >()
 
+  // Evaluate result callbacks mapped by request ID
+  const evaluateResultCallbacks = new Map<string, (result: unknown) => void>()
+
   // Match callbacks mapped by request ID
   const matchCallbacks = new Map<
     string,
@@ -81,7 +81,7 @@ export function createWorkerClient(
    * Handle messages from any worker
    */
   function handleWorkerMessage(
-    message: ResponseMessage | ProgressEvent | SearchMatchEvent | ChartRenderResponse | ConnectedResponse | ErrorResponse
+    message: ResponseMessage | ProgressEvent | EvaluateResultEvent | SearchMatchEvent | ChartRenderResponse | ConnectedResponse | ErrorResponse
   ): void {
     // Handle progress events separately
     if (message.type === "PROGRESS_EVENT") {
@@ -99,6 +99,16 @@ export function createWorkerClient(
         if (callback) {
           callback(progressEvent.progress)
         }
+      }
+      return
+    }
+
+    // Handle evaluate result events separately
+    if (message.type === "EVALUATE_RESULT_EVENT") {
+      const resultEvent = message as EvaluateResultEvent
+      const callback = evaluateResultCallbacks.get(resultEvent.requestId)
+      if (callback) {
+        callback(resultEvent.result)
       }
       return
     }
@@ -125,6 +135,7 @@ export function createWorkerClient(
         // Clean up callbacks before rejecting
         progressCallbacks.delete(message.id)
         evaluateProgressCallbacks.delete(message.id)
+        evaluateResultCallbacks.delete(message.id)
         matchCallbacks.delete(message.id)
         abortSignalHandlers.delete(message.id)
         pending.reject(new Error(errorMsg))
@@ -137,6 +148,7 @@ export function createWorkerClient(
         setTimeout(() => {
           progressCallbacks.delete(message.id)
           evaluateProgressCallbacks.delete(message.id)
+          evaluateResultCallbacks.delete(message.id)
           matchCallbacks.delete(message.id)
           abortSignalHandlers.delete(message.id)
         }, 0)
@@ -268,8 +280,8 @@ export function createWorkerClient(
     TContext extends Record<string, unknown> | undefined = undefined
   >(
     file: HexedFile,
-    fn: (file: HexedFile, api: EvaluateAPI<TContext>) => TResult | Promise<TResult>,
-    options?: EvaluateOptionsBase & (TContext extends undefined ? {} : { context: TContext })
+    fn: EvaluateAPI<TResult, TContext>,
+    options?: EvaluateOptionsBase<TResult> & (TContext extends undefined ? {} : { context: TContext })
   ): Promise<TResult> => {
     const worker = initializeMainWorker()
     // Serialize function to string
@@ -306,6 +318,11 @@ export function createWorkerClient(
       evaluateProgressCallbacks.set(requestId, options.onProgress)
     }
 
+    // Register result callback if provided
+    if (options?.onResult) {
+      evaluateResultCallbacks.set(requestId, options.onResult as (result: unknown) => void)
+    }
+
     const request: EvaluateRequest = {
       id: requestId,
       type: "EVALUATE_REQUEST",
@@ -326,6 +343,7 @@ export function createWorkerClient(
       }
       abortSignalHandlers.delete(requestId)
       evaluateProgressCallbacks.delete(requestId)
+      evaluateResultCallbacks.delete(requestId)
     }
   }
 
@@ -453,6 +471,7 @@ export function createWorkerClient(
       pendingRequests.clear()
       progressCallbacks.clear()
       evaluateProgressCallbacks.clear()
+      evaluateResultCallbacks.clear()
       matchCallbacks.clear()
       abortSignalHandlers.clear()
 

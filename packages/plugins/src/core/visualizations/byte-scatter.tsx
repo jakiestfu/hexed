@@ -2,21 +2,17 @@ import { Grid3x3 } from "lucide-react"
 
 import { createHexedEditorPlugin } from "../.."
 import type { ChartCalculationFunction } from "../../types"
-import type { ChartConfiguration } from "@hexed/worker"
+import type { ChartConfiguration, EvaluateAPI } from "@hexed/worker"
 import { HexedFile } from "@hexed/file"
 
 /**
  * Pure function to calculate byte scatter
  * This function runs in the worker context via $evaluate
  */
-const calculateByteScatterImpl = async (
-  hexedFile: HexedFile,
-  api: {
-    throwIfAborted: () => void
-    emitProgress: (data: { processed: number; size: number }) => void
-    context: { startOffset?: number; endOffset?: number; maxPoints?: number }
-  }
-): Promise<{ points: Array<{ x: number; y: number }> }> => {
+const calculateByteScatterImpl: EvaluateAPI<
+  { points: Array<{ x: number; y: number }> },
+  { startOffset?: number; endOffset?: number; maxPoints?: number }
+> = async (hexedFile, api) => {
   // Chunk size for streaming (1MB)
   const STREAM_CHUNK_SIZE = 1024 * 1024
   // Maximum points to display in scatter plot (default 10000)

@@ -6,6 +6,7 @@ import { createLogger } from "@hexed/logger"
 
 import type {
   ErrorResponse,
+  EvaluateResultEvent,
   ProgressEvent,
   ResponseMessage,
   SearchMatchEvent
@@ -50,6 +51,17 @@ export function sendSearchMatch(event: SearchMatchEvent): void {
     self.postMessage(event)
   } catch (error) {
     console.error("Error sending search match event:", error)
+  }
+}
+
+/**
+ * Send an evaluate result event
+ */
+export function sendEvaluateResult(event: EvaluateResultEvent): void {
+  try {
+    self.postMessage(event)
+  } catch (error) {
+    console.error("Error sending evaluate result event:", error)
   }
 }
 

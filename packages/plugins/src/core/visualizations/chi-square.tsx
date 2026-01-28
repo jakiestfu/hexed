@@ -2,21 +2,17 @@ import { TrendingUp } from "lucide-react"
 
 import { createHexedEditorPlugin } from "../.."
 import type { ChartCalculationFunction } from "../../types"
-import type { ChartConfiguration } from "@hexed/worker"
+import type { ChartConfiguration, EvaluateAPI } from "@hexed/worker"
 import { formatAddress, HexedFile } from "@hexed/file"
 
 /**
  * Pure function to calculate chi-square
  * This function runs in the worker context via $evaluate
  */
-const calculateChiSquareImpl = async (
-  hexedFile: HexedFile,
-  api: {
-    throwIfAborted: () => void
-    emitProgress: (data: { processed: number; size: number }) => void
-    context: { startOffset?: number; endOffset?: number; blockSize?: number }
-  }
-): Promise<{ chiSquareValues: number[]; offsets: number[]; blockSize: number }> => {
+const calculateChiSquareImpl: EvaluateAPI<
+  { chiSquareValues: number[]; offsets: number[]; blockSize: number },
+  { startOffset?: number; endOffset?: number; blockSize?: number }
+> = async (hexedFile, api) => {
   // Chunk size for streaming (1MB)
   const STREAM_CHUNK_SIZE = 1024 * 1024
   // Block size calculation constants

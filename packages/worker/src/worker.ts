@@ -26,6 +26,7 @@ import type {
   ConnectedResponse,
   ErrorResponse,
   EvaluateAbort,
+  EvaluateAPIOptions,
   EvaluateRequest,
   EvaluateResponse,
   ProgressEvent,
@@ -57,6 +58,7 @@ Chart.register(
 import {
   generateMessageId,
   sendError,
+  sendEvaluateResult,
   sendProgress,
   sendResponse,
   sendSearchMatch
@@ -71,15 +73,6 @@ const STREAM_CHUNK_SIZE = 1024 * 1024
  * Track abort state for evaluate requests
  */
 const abortStates = new Map<string, boolean>()
-
-/**
- * EvaluateAPI type for use in evaluated functions
- */
-export type EvaluateAPI<TContext = undefined> = {
-  emitProgress: (p: { processed: number; size: number }) => void
-  throwIfAborted: () => void
-  context: TContext
-}
 
 /**
  * Read a byte range from a File object
@@ -373,7 +366,7 @@ async function handleChartRender(request: ChartRenderRequest): Promise<void> {
       // Chart.js doesn't have a direct update method, so we'll create a new one
       // But first, destroy the old one if possible
       if (typeof (existingChart as any).destroy === "function") {
-        ;(existingChart as any).destroy()
+        ; (existingChart as any).destroy()
       }
     }
 
@@ -421,8 +414,8 @@ async function handleEvaluate(request: EvaluateRequest): Promise<void> {
     const abortController = new AbortController()
     const signal = abortController.signal
 
-    // Create API object with abort and progress methods
-    const api: Omit<EvaluateAPI, "context"> = {
+    // Create API object with abort, progress, and result methods
+    const api: Omit<EvaluateAPIOptions<unknown, unknown>, "context"> = {
       throwIfAborted(): void {
         if (signalId && abortStates.get(signalId)) {
           abortController.abort()
@@ -446,6 +439,15 @@ async function handleEvaluate(request: EvaluateRequest): Promise<void> {
           totalBytes: data.size
         }
         sendProgress(progressEvent)
+      },
+      emitResult(result: unknown): void {
+        const resultEvent = {
+          id: generateMessageId(),
+          type: "EVALUATE_RESULT_EVENT" as const,
+          requestId: request.id,
+          result
+        }
+        sendEvaluateResult(resultEvent)
       }
     }
 
@@ -561,7 +563,8 @@ if (typeof self !== "undefined") {
       message.type === "CONNECTED" ||
       message.type.startsWith("RESPONSE") ||
       message.type === "PROGRESS_EVENT" ||
-      message.type === "SEARCH_MATCH_EVENT"
+      message.type === "SEARCH_MATCH_EVENT" ||
+      message.type === "EVALUATE_RESULT_EVENT"
     ) {
       return
     }

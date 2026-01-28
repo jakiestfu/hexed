@@ -2,21 +2,17 @@ import { Repeat } from "lucide-react"
 
 import { createHexedEditorPlugin } from "../.."
 import type { ChartCalculationFunction } from "../../types"
-import type { ChartConfiguration } from "@hexed/worker"
+import type { ChartConfiguration, EvaluateAPI } from "@hexed/worker"
 import { HexedFile } from "@hexed/file"
 
 /**
  * Pure function to calculate autocorrelation
  * This function runs in the worker context via $evaluate
  */
-const calculateAutocorrelationImpl = async (
-  hexedFile: HexedFile,
-  api: {
-    throwIfAborted: () => void
-    emitProgress: (data: { processed: number; size: number }) => void
-    context: { startOffset?: number; endOffset?: number; maxLag?: number }
-  }
-): Promise<{ autocorrelationValues: number[]; lags: number[] }> => {
+const calculateAutocorrelationImpl: EvaluateAPI<
+  { autocorrelationValues: number[]; lags: number[] },
+  { startOffset?: number; endOffset?: number; maxLag?: number }
+> = async (hexedFile, api) => {
 
   // Chunk size for streaming (1MB)
   const STREAM_CHUNK_SIZE = 1024 * 1024

@@ -2,6 +2,7 @@
  * Message protocol for worker communication
  */
 
+import type { HexedFile } from "@hexed/file"
 import type { StringEncoding, StringMatch } from "@hexed/file/strings"
 
 export type MessageType =
@@ -16,6 +17,7 @@ export type MessageType =
   | "EVALUATE_RESPONSE"
   | "PROGRESS_EVENT"
   | "SEARCH_MATCH_EVENT"
+  | "EVALUATE_RESULT_EVENT"
   | "ERROR"
   | "CONNECTED"
 
@@ -138,6 +140,37 @@ export interface SearchMatchEvent extends BaseMessage {
 }
 
 /**
+ * Evaluate Result Event - streams results as they're computed
+ */
+export interface EvaluateResultEvent extends BaseMessage {
+  type: "EVALUATE_RESULT_EVENT"
+  requestId: string
+  result: unknown
+}
+
+/**
+ * EvaluateAPIOptions type for the API object passed to evaluated functions
+ * TResult: The type of result that can be emitted and returned
+ * TContext: The type of context passed to the function
+ */
+export type EvaluateAPIOptions<TResult = unknown, TContext = undefined> = {
+  throwIfAborted(): void
+  emitProgress(data: { processed: number; size: number }): void
+  emitResult(result: TResult): void
+  context: TContext
+}
+
+/**
+ * EvaluateAPI type for evaluated functions
+ * TResult: The type of result that can be emitted and returned
+ * TContext: The type of context passed to the function
+ */
+export type EvaluateAPI<TResult = unknown, TContext = undefined> = (
+  hexedFile: HexedFile,
+  api: EvaluateAPIOptions<TResult, TContext>
+) => Promise<TResult>
+
+/**
  * Union type of all request messages for the main worker
  */
 export type RequestMessage =
@@ -170,4 +203,5 @@ export type WorkerMessage =
   | ResponseMessage
   | ProgressEvent
   | SearchMatchEvent
+  | EvaluateResultEvent
   | EvaluateAbort

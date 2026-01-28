@@ -2,7 +2,7 @@ import { BarChart } from "lucide-react"
 
 import { createHexedEditorPlugin } from "../.."
 import type { ChartCalculationFunction } from "../../types"
-import type { ChartConfiguration } from "@hexed/worker"
+import type { ChartConfiguration, EvaluateAPI } from "@hexed/worker"
 import { HexedFile } from "@hexed/file"
 
 // Chunk size for streaming (1MB)
@@ -11,14 +11,10 @@ import { HexedFile } from "@hexed/file"
  * Pure function to calculate byte frequency distribution
  * This function runs in the worker context via $evaluate
 */
-const calculateByteFrequencyImpl = async (
-  hexedFile: HexedFile,
-  api: {
-    throwIfAborted: () => void
-    emitProgress: (data: { processed: number; size: number }) => void
-    context: { startOffset?: number; endOffset?: number }
-  }
-): Promise<number[]> => {
+const calculateByteFrequencyImpl: EvaluateAPI<
+  number[],
+  { startOffset?: number; endOffset?: number }
+> = async (hexedFile, api) => {
   const STREAM_CHUNK_SIZE = 1024 * 1024
   const fileSize = hexedFile.size
   const startOffset = api.context?.startOffset ?? 0
