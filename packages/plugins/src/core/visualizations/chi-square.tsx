@@ -2,8 +2,158 @@ import { TrendingUp } from "lucide-react"
 
 import { createHexedEditorPlugin } from "../.."
 import type { ChartCalculationFunction } from "../../types"
-import type { ChartConfiguration } from "@hexed/worker/chart-worker"
-import { formatAddress } from "@hexed/file"
+import type { ChartConfiguration } from "@hexed/worker"
+import { formatAddress, HexedFile } from "@hexed/file"
+
+/**
+ * Pure function to calculate chi-square
+ * This function runs in the worker context via $evaluate
+ */
+const calculateChiSquareImpl = async (
+  hexedFile: HexedFile,
+  api: {
+    throwIfAborted: () => void
+    emitProgress: (data: { processed: number; size: number }) => void
+    context: { startOffset?: number; endOffset?: number; blockSize?: number }
+  }
+): Promise<{ chiSquareValues: number[]; offsets: number[]; blockSize: number }> => {
+  // Chunk size for streaming (1MB)
+  const STREAM_CHUNK_SIZE = 1024 * 1024
+  // Block size calculation constants
+  const TARGET_POINTS = 512
+  const MIN_BLOCK = 32
+  const MAX_BLOCK = 1024 * 1024
+
+  /**
+   * Determine optimal block size based on file size for block-based calculations
+   * Smaller files use smaller blocks to get more data points for visualization
+   */
+  const getBlockSize = (fileSize: number): number => {
+    const raw = Math.floor(fileSize / TARGET_POINTS)
+
+    // round to nice powers of two
+    const pow2 = Math.pow(2, Math.round(Math.log2(raw)))
+
+    return Math.max(MIN_BLOCK, Math.min(pow2, MAX_BLOCK))
+  }
+
+  /**
+   * Calculate chi-square statistic for a block of bytes
+   * Formula: χ² = Σ((observed - expected)² / expected)
+   * Tests how well the byte distribution matches a uniform distribution
+   */
+  const calculateBlockChiSquare = (
+    data: Uint8Array,
+    start: number = 0,
+    end?: number
+  ): number => {
+    const blockLength = (end ?? data.length) - start
+    if (blockLength === 0) return 0
+
+    // Expected frequency for uniform distribution: blockLength / 256
+    const expected = blockLength / 256
+
+    // Count byte frequencies
+    const frequencies = new Array(256).fill(0)
+    for (let i = start; i < (end ?? data.length); i++) {
+      frequencies[data[i]]++
+    }
+
+    // Calculate chi-square statistic
+    let chiSquare = 0
+    for (let i = 0; i < 256; i++) {
+      const observed = frequencies[i]
+      const diff = observed - expected
+      chiSquare += (diff * diff) / expected
+    }
+
+    return chiSquare
+  }
+
+  const fileSize = hexedFile.size
+  const startOffset = api.context?.startOffset ?? 0
+  const endOffset = api.context?.endOffset ?? fileSize
+  const searchRange = endOffset - startOffset
+
+  // Determine block size based on file size (or use provided blockSize)
+  const blockSize = api.context?.blockSize ?? getBlockSize(searchRange)
+
+  const chiSquareValues: number[] = []
+  const offsets: number[] = []
+
+  // For large files (>= 1MB), use efficient chunk-based processing
+  // For small files, process in smaller blocks for better visualization
+  if (blockSize >= STREAM_CHUNK_SIZE) {
+    // Large file: process in 1MB chunks (same pattern as entropy)
+    let bytesRead = 0
+    while (bytesRead < searchRange) {
+      api.throwIfAborted()
+      const chunkStart = startOffset + bytesRead
+      const chunkEnd = Math.min(
+        chunkStart + STREAM_CHUNK_SIZE,
+        startOffset + searchRange
+      )
+
+      // Ensure range is loaded and read chunk
+      await hexedFile.ensureRange({ start: chunkStart, end: chunkEnd })
+      const chunk = hexedFile.readBytes(chunkStart, chunkEnd - chunkStart)
+
+      if (chunk) {
+        // Calculate chi-square for entire chunk
+        const chiSquare = calculateBlockChiSquare(chunk)
+        chiSquareValues.push(chiSquare)
+        offsets.push(chunkStart)
+      }
+
+      const chunkSize = chunkEnd - chunkStart
+      bytesRead += chunkSize
+
+      // Emit progress
+      api.emitProgress({ processed: bytesRead, size: searchRange })
+
+      // Yield to event loop to keep UI responsive
+      await new Promise((resolve) => setTimeout(resolve, 0))
+    }
+  } else {
+    // Small file: process in smaller blocks for better visualization
+    let currentOffset = startOffset
+    let blocksProcessed = 0
+
+    while (currentOffset < endOffset) {
+      api.throwIfAborted()
+      const blockEnd = Math.min(currentOffset + blockSize, endOffset)
+
+      // Ensure range is loaded and read block
+      await hexedFile.ensureRange({ start: currentOffset, end: blockEnd })
+      const block = hexedFile.readBytes(currentOffset, blockEnd - currentOffset)
+
+      if (block) {
+        // Calculate chi-square for this block
+        const chiSquare = calculateBlockChiSquare(block)
+        chiSquareValues.push(chiSquare)
+        offsets.push(currentOffset)
+      }
+
+      blocksProcessed++
+      currentOffset = blockEnd
+
+      // Emit progress periodically (every 10 blocks or at end)
+      if (blocksProcessed % 10 === 0 || currentOffset >= endOffset) {
+        api.emitProgress({
+          processed: currentOffset - startOffset,
+          size: searchRange
+        })
+      }
+
+      // Yield to event loop periodically to keep UI responsive
+      if (blocksProcessed % 100 === 0) {
+        await new Promise((resolve) => setTimeout(resolve, 0))
+      }
+    }
+  }
+
+  return { chiSquareValues, offsets, blockSize }
+}
 
 /**
  * Calculate chi-square and return chart configuration
@@ -15,14 +165,22 @@ export const calculateChiSquare: ChartCalculationFunction = async (
   startOffset,
   endOffset
 ) => {
-  // Calculate chi-square
-  const { chiSquareValues, offsets, blockSize } =
-    await workerClient.calculateChiSquare(
-      file,
-      onProgress,
-      startOffset,
-      endOffset
-    )
+  // Calculate chi-square using $evaluate
+  const { chiSquareValues, offsets, blockSize } = await workerClient.$evaluate(
+    file,
+    calculateChiSquareImpl,
+    {
+      context: { startOffset, endOffset },
+      onProgress: onProgress
+        ? (progress) => {
+            const percentage = Math.round(
+              (progress.processed / progress.size) * 100
+            )
+            onProgress(percentage)
+          }
+        : undefined
+    }
+  )
 
   // Create chart configuration
   // Format offsets as hex addresses

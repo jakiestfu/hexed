@@ -2,7 +2,165 @@ import { Repeat } from "lucide-react"
 
 import { createHexedEditorPlugin } from "../.."
 import type { ChartCalculationFunction } from "../../types"
-import type { ChartConfiguration } from "@hexed/worker/chart-worker"
+import type { ChartConfiguration } from "@hexed/worker"
+import { HexedFile } from "@hexed/file"
+
+/**
+ * Pure function to calculate autocorrelation
+ * This function runs in the worker context via $evaluate
+ */
+const calculateAutocorrelationImpl = async (
+  hexedFile: HexedFile,
+  api: {
+    throwIfAborted: () => void
+    emitProgress: (data: { processed: number; size: number }) => void
+    context: { startOffset?: number; endOffset?: number; maxLag?: number }
+  }
+): Promise<{ autocorrelationValues: number[]; lags: number[] }> => {
+
+  // Chunk size for streaming (1MB)
+  const STREAM_CHUNK_SIZE = 1024 * 1024
+  // Maximum data size to process for autocorrelation (10MB)
+  const MAX_AUTOCORRELATION_SIZE = 10 * 1024 * 1024
+
+  /**
+   * Pure function to calculate autocorrelation from data array
+   * This function runs in the worker context via $evaluate
+   */
+  const calculateAutocorrelationPure = (
+    data: Uint8Array,
+    maxLag: number = 256
+  ): number[] => {
+    const n = data.length
+    if (n < 2) return []
+
+    // Calculate mean
+    let sum = 0
+    for (let i = 0; i < n; i++) {
+      sum += data[i]
+    }
+    const mean = sum / n
+
+    // Calculate variance (denominator for normalization)
+    let variance = 0
+    for (let i = 0; i < n; i++) {
+      const diff = data[i] - mean
+      variance += diff * diff
+    }
+
+    if (variance === 0) {
+      // All values are the same, return zeros
+      return new Array(Math.min(maxLag, n - 1)).fill(0)
+    }
+
+    // Calculate autocorrelation for each lag
+    const autocorrelations: number[] = []
+    const actualMaxLag = Math.min(maxLag, n - 1)
+
+    for (let k = 1; k <= actualMaxLag; k++) {
+      let correlation = 0
+      const validPairs = n - k
+
+      for (let i = 0; i < validPairs; i++) {
+        correlation += (data[i] - mean) * (data[i + k] - mean)
+      }
+
+      // Normalize by variance
+      autocorrelations.push(correlation / variance)
+    }
+
+    return autocorrelations
+  }
+
+
+  const fileSize = hexedFile.size
+  const startOffset = api.context?.startOffset ?? 0
+  const endOffset = api.context?.endOffset ?? fileSize
+  const searchRange = endOffset - startOffset
+  const maxLag = api.context?.maxLag ?? 256
+
+  // Determine if we need to sample the data
+  const needsSampling = searchRange > MAX_AUTOCORRELATION_SIZE
+  const targetSize = needsSampling ? MAX_AUTOCORRELATION_SIZE : searchRange
+  const sampleStep = needsSampling ? Math.floor(searchRange / targetSize) : 1
+
+  // Read and sample data uniformly across the entire range
+  const data = new Uint8Array(targetSize)
+  let dataIndex = 0
+  let bytesRead = 0
+  let nextSamplePosition = 0 // Absolute position for next sample
+
+  while (bytesRead < searchRange && dataIndex < targetSize) {
+    api.throwIfAborted()
+    const chunkStart = startOffset + bytesRead
+    const chunkEnd = Math.min(
+      chunkStart + STREAM_CHUNK_SIZE,
+      startOffset + searchRange
+    )
+
+    // Ensure range is loaded and read chunk
+    await hexedFile.ensureRange({ start: chunkStart, end: chunkEnd })
+    const chunk = hexedFile.readBytes(chunkStart, chunkEnd - chunkStart)
+
+    if (chunk) {
+      if (needsSampling) {
+        // Sample uniformly across the entire file range
+        // Find which bytes in this chunk should be sampled
+        const chunkStartAbsolute = chunkStart - startOffset
+        const chunkEndAbsolute = chunkEnd - startOffset
+
+        // Find the first sample position in or after this chunk
+        while (
+          nextSamplePosition < chunkStartAbsolute &&
+          dataIndex < targetSize
+        ) {
+          nextSamplePosition += sampleStep
+        }
+
+        // Sample bytes in this chunk
+        while (
+          nextSamplePosition >= chunkStartAbsolute &&
+          nextSamplePosition < chunkEndAbsolute &&
+          dataIndex < targetSize
+        ) {
+          const offsetInChunk = nextSamplePosition - chunkStartAbsolute
+          if (offsetInChunk < chunk.length) {
+            data[dataIndex++] = chunk[offsetInChunk]
+          }
+          nextSamplePosition += sampleStep
+        }
+      } else {
+        // Use all data
+        const copyLength = Math.min(chunk.length, targetSize - dataIndex)
+        data.set(chunk.subarray(0, copyLength), dataIndex)
+        dataIndex += copyLength
+      }
+    }
+
+    const chunkSize = chunkEnd - chunkStart
+    bytesRead += chunkSize
+
+    // Emit progress
+    api.emitProgress({ processed: bytesRead, size: searchRange })
+
+    // Yield to event loop to keep UI responsive
+    await new Promise((resolve) => setTimeout(resolve, 0))
+  }
+
+  // Use only the data we actually filled
+  const actualData = data.subarray(0, dataIndex)
+
+  // Calculate autocorrelation
+  const autocorrelationValues = calculateAutocorrelationPure(actualData, maxLag)
+
+  // Generate lag array
+  const lags = Array.from(
+    { length: autocorrelationValues.length },
+    (_, i) => i + 1
+  )
+
+  return { autocorrelationValues, lags }
+}
 
 /**
  * Calculate autocorrelation and return chart configuration
@@ -14,14 +172,22 @@ export const calculateAutocorrelation: ChartCalculationFunction = async (
   startOffset,
   endOffset
 ) => {
-  // Calculate autocorrelation
-  const { autocorrelationValues, lags } =
-    await workerClient.calculateAutocorrelation(
-      file,
-      onProgress,
-      startOffset,
-      endOffset
-    )
+  // Calculate autocorrelation using $evaluate
+  const { autocorrelationValues, lags } = await workerClient.$evaluate(
+    file,
+    calculateAutocorrelationImpl,
+    {
+      context: { startOffset, endOffset, maxLag: 256 },
+      onProgress: onProgress
+        ? (progress) => {
+          const percentage = Math.round(
+            (progress.processed / progress.size) * 100
+          )
+          onProgress(percentage)
+        }
+        : undefined
+    }
+  )
 
   // Create chart configuration
   // Format lag labels

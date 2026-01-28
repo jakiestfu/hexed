@@ -97,7 +97,7 @@ export const VisualizationPlugin: FunctionComponent<
 
         // Call chart function to get chart config
         const chartConfigPromise = chartFunction(
-          file,
+          hexedFile,
           workerClient,
           (progressValue) => {
             setProgress(progressValue)

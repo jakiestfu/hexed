@@ -5,7 +5,7 @@ import { Keys } from "react-hotkeys-hook"
 import type { HexedState, UseHexedSettings } from "@hexed/editor"
 import type { HexedFile } from "@hexed/file"
 import type { WorkerClient } from "@hexed/worker"
-import type { ChartConfiguration } from "@hexed/worker/chart-worker"
+import type { ChartConfiguration } from "@hexed/worker"
 
 export type HexedPluginType = "sidebar" | "toolbar" | "visualization" | "label"
 
@@ -28,7 +28,7 @@ export type HexedPluginComponent<
  * Returns a promise that resolves to a Chart.js configuration object
  */
 export type ChartCalculationFunction = (
-  file: File,
+  file: HexedFile,
   workerClient: WorkerClient,
   onProgress: (progress: number) => void,
   startOffset?: number,

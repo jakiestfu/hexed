@@ -2,12 +2,15 @@
  * @hexed/worker - Worker-based file reading with windowed loading
  */
 
-// Client API (unified client for both main and chart workers)
+// Client API
 export { createWorkerClient, type WorkerClient } from "./client"
 
 export * from "./types"
+
+// Export ChartConfiguration type for use by plugins
+export type { ChartConfiguration } from "./worker"
+
 // Note: worker.ts is the Worker entry point
 // It should be bundled separately and served as a static asset
 // Import path: "./worker" or "@hexed/worker/worker"
-// Note: chart-worker.ts is the Chart Worker entry point
-// Import path: "./chart-worker" or "@hexed/worker/chart-worker"
+// Chart rendering is now handled by the main worker

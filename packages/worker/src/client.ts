@@ -8,19 +8,9 @@ import { createLogger } from "@hexed/logger"
 
 import { generateMessageId } from "./utils"
 import type {
-  AutocorrelationRequest,
-  AutocorrelationResponse,
-  ByteFrequencyRequest,
-  ByteFrequencyResponse,
-  ByteScatterRequest,
-  ByteScatterResponse,
   ChartRenderRequest,
   ChartRenderResponse,
-  ChiSquareRequest,
-  ChiSquareResponse,
   ConnectedResponse,
-  EntropyRequest,
-  EntropyResponse,
   ErrorResponse,
   EvaluateAbort,
   EvaluateRequest,
@@ -47,75 +37,7 @@ type EvaluateAPI<TContext = undefined> = {
   emitProgress(data: { processed: number; size: number }): void
   context: TContext
 }
-/**
- * Worker client interface
- */
-// export interface WorkerClient {
-//   search(
-//     file: File,
-//     pattern: Uint8Array,
-//     onProgress?: (progress: number) => void,
-//     onMatch?: (matches: Array<{ offset: number; length: number }>) => void,
-//     startOffset?: number,
-//     endOffset?: number
-//   ): Promise<Array<{ offset: number; length: number }>>
-//   strings(
-//     file: File,
-//     options: { minLength: number; encoding: StringEncoding },
-//     onProgress?: (progress: number) => void,
-//     startOffset?: number,
-//     endOffset?: number
-//   ): Promise<StringMatch[]>
-//   calculateByteFrequency(
-//     file: File,
-//     onProgress?: (progress: number) => void,
-//     startOffset?: number,
-//     endOffset?: number
-//   ): Promise<number[]>
-//   calculateEntropy(
-//     file: File,
-//     onProgress?: (progress: number) => void,
-//     startOffset?: number,
-//     endOffset?: number,
-//     blockSize?: number
-//   ): Promise<{ entropyValues: number[]; offsets: number[]; blockSize: number }>
-//   calculateChiSquare(
-//     file: File,
-//     onProgress?: (progress: number) => void,
-//     startOffset?: number,
-//     endOffset?: number,
-//     blockSize?: number
-//   ): Promise<{ chiSquareValues: number[]; offsets: number[]; blockSize: number }>
-//   calculateAutocorrelation(
-//     file: File,
-//     onProgress?: (progress: number) => void,
-//     startOffset?: number,
-//     endOffset?: number,
-//     maxLag?: number
-//   ): Promise<{ autocorrelationValues: number[]; lags: number[] }>
-//   calculateByteScatter(
-//     file: File,
-//     onProgress?: (progress: number) => void,
-//     startOffset?: number,
-//     endOffset?: number,
-//     maxPoints?: number
-//   ): Promise<{ points: Array<{ x: number; y: number }> }>
-//   render(
-//     canvas: OffscreenCanvas,
-//     config: unknown,
-//     onProgress?: (progress: number) => void
-//   ): Promise<void>
-//   $evaluate<TResult, T extends Record<string, unknown> = {}>(
-//     file: File,
-//     fn: (file: HexedFile, api: EvaluateAPI<T>) => TResult | Promise<TResult>,
-//     options?: {
-//       signal?: AbortSignal
-//       onProgress?: (progress: { processed: number; size: number }) => void
-//       context?: T
-//     },
-//   ): Promise<TResult>
-//   disconnect(): void
-// }
+
 export type WorkerClient = ReturnType<typeof createWorkerClient>
 
 /**
@@ -128,14 +50,12 @@ interface PendingRequest {
 }
 
 /**
- * Create a worker client connected to the Worker(s)
+ * Create a worker client connected to the Worker
  */
 export function createWorkerClient(
-  mainWorkerConstructor: new () => Worker,
-  chartWorkerConstructor?: new () => Worker
+  mainWorkerConstructor: new () => Worker
 ) {
   let mainWorker: Worker | null = null
-  let chartWorker: Worker | null = null
   const pendingRequests = new Map<string, PendingRequest>()
   const REQUEST_TIMEOUT = 30000 // 30 seconds
 
@@ -269,48 +189,6 @@ export function createWorkerClient(
   }
 
   /**
-   * Initialize the chart Worker connection
-   */
-  function initializeChartWorker(): Worker {
-    if (!chartWorkerConstructor) {
-      throw new Error("Chart worker constructor not provided")
-    }
-
-    if (chartWorker) {
-      return chartWorker
-    }
-
-    try {
-      chartWorker = new chartWorkerConstructor()
-
-      // Handle messages from chart worker
-      chartWorker.onmessage = (
-        event: MessageEvent<ChartRenderResponse | ConnectedResponse | ErrorResponse>
-      ) => {
-        handleWorkerMessage(event.data)
-      }
-
-      chartWorker.onerror = (error) => {
-        logger.log("Chart worker error:", error)
-        // Reject all pending requests
-        for (const pending of Array.from(pendingRequests.values())) {
-          clearTimeout(pending.timeout)
-          pending.reject(new Error("Chart worker connection error"))
-        }
-        pendingRequests.clear()
-        progressCallbacks.clear()
-        matchCallbacks.clear()
-      }
-
-      return chartWorker
-    } catch (error) {
-      throw new Error(
-        `Failed to create Chart Worker: ${error instanceof Error ? error.message : "Unknown error"}`
-      )
-    }
-  }
-
-  /**
    * Send a request to main worker and wait for response
    */
   function sendMainWorkerRequest<T extends ResponseMessage>(
@@ -356,55 +234,40 @@ export function createWorkerClient(
   }
 
   /**
-   * Send a request to chart worker and wait for response
+   * NOTE FOR PLUGIN AUTHORS / AI CODEGEN:
+   *
+   * The function passed to `$evaluate` is STRINGIFIED and EXECUTED INSIDE A WEB WORKER.
+   * It does NOT run in the host JS environment.
+   *
+   * When writing the `fn` callback:
+   * - ✅ Only use:
+   *   - the `file` argument
+   *   - the `api` argument (including `api.context` if provided)
+   *   - local variables declared inside the function
+   *
+   * - ❌ Do NOT:
+   *   - import modules or use `require`
+   *   - reference variables from outer scope (closures WILL be lost)
+   *   - access DOM / window / document / globalThis
+   *   - rely on `this`
+   *   - use TypeScript-only syntax (types, generics, `as`, enums, etc.)
+   *
+   * - ⚠️ Execution details:
+   *   - The function may be `async` or sync
+   *   - It may be aborted via `AbortSignal`; long loops should check for abort via `api.throwIfAborted()`
+   *   - Progress updates should be reported via `api.emitProgress(...)`
+   *
+   * - 📦 Data constraints:
+   *   - The return value must be structured-cloneable
+   *   - `api.context` (if provided) is structured-cloned into the worker
+   *
+   * Write this function as if it lives in a standalone `.js` file with NO imports.
    */
-  function sendChartWorkerRequest<T extends ChartRenderResponse>(
-    request: ChartRenderRequest,
-    transfer?: Transferable[]
-  ): Promise<T> {
-    const worker = initializeChartWorker()
-    logger.log(`Sending request: ${request.type} (id: ${request.id})`)
-
-    return new Promise<T>((resolve, reject) => {
-      const timeout = setTimeout(() => {
-        logger.log(`Request timeout: ${request.type} (id: ${request.id})`)
-        pendingRequests.delete(request.id)
-        reject(new Error(`Request timeout: ${request.type}`))
-      }, REQUEST_TIMEOUT)
-
-      pendingRequests.set(request.id, {
-        resolve: (response: T) => {
-          resolve(response)
-        },
-        reject,
-        timeout
-      })
-
-      try {
-        // OffscreenCanvas needs to be transferred via transfer list
-        if (transfer && transfer.length > 0) {
-          worker.postMessage(request, transfer)
-        } else {
-          worker.postMessage(request)
-        }
-      } catch (error) {
-        logger.log(`Failed to send request: ${request.type}`, error)
-        clearTimeout(timeout)
-        pendingRequests.delete(request.id)
-        reject(
-          new Error(
-            `Failed to send request: ${error instanceof Error ? error.message : "Unknown error"}`
-          )
-        )
-      }
-    })
-  }
-
   const $evaluate = async <
     TResult,
     TContext extends Record<string, unknown> | undefined = undefined
   >(
-    file: File,
+    file: HexedFile,
     fn: (file: HexedFile, api: EvaluateAPI<TContext>) => TResult | Promise<TResult>,
     options?: EvaluateOptionsBase & (TContext extends undefined ? {} : { context: TContext })
   ): Promise<TResult> => {
@@ -446,7 +309,7 @@ export function createWorkerClient(
     const request: EvaluateRequest = {
       id: requestId,
       type: "EVALUATE_REQUEST",
-      file,
+      file: file.getFile()!,
       functionCode,
       signalId,
       ...(options && 'context' in options ? { context: options.context } : {})
@@ -541,186 +404,11 @@ export function createWorkerClient(
       }
     },
 
-    async calculateByteFrequency(
-      file: File,
-      onProgress?: (progress: number) => void,
-      startOffset?: number,
-      endOffset?: number
-    ): Promise<number[]> {
-      logger.log(`Calculating byte frequency for file: ${file.name}`)
-      const request: ByteFrequencyRequest = {
-        id: generateMessageId(),
-        type: "BYTE_FREQUENCY_REQUEST",
-        file,
-        startOffset,
-        endOffset
-      }
-
-      // Register progress callback if provided
-      if (onProgress) {
-        progressCallbacks.set(request.id, onProgress)
-      }
-
-      try {
-        const response = await sendMainWorkerRequest<ByteFrequencyResponse>(request)
-        logger.log("Byte frequency calculation completed")
-        return response.frequencies
-      } finally {
-        // Clean up progress callback
-        progressCallbacks.delete(request.id)
-      }
-    },
-
-    async calculateEntropy(
-      file: File,
-      onProgress?: (progress: number) => void,
-      startOffset?: number,
-      endOffset?: number,
-      blockSize?: number
-    ): Promise<{ entropyValues: number[]; offsets: number[]; blockSize: number }> {
-      logger.log(`Calculating entropy for file: ${file.name}`)
-      const request: EntropyRequest = {
-        id: generateMessageId(),
-        type: "ENTROPY_REQUEST",
-        file,
-        blockSize,
-        startOffset,
-        endOffset
-      }
-
-      // Register progress callback if provided
-      if (onProgress) {
-        progressCallbacks.set(request.id, onProgress)
-      }
-
-      try {
-        const response = await sendMainWorkerRequest<EntropyResponse>(request)
-        logger.log("Entropy calculation completed")
-        return {
-          entropyValues: response.entropyValues,
-          offsets: response.offsets,
-          blockSize: response.blockSize
-        }
-      } finally {
-        // Clean up progress callback
-        progressCallbacks.delete(request.id)
-      }
-    },
-
-    async calculateChiSquare(
-      file: File,
-      onProgress?: (progress: number) => void,
-      startOffset?: number,
-      endOffset?: number,
-      blockSize?: number
-    ): Promise<{ chiSquareValues: number[]; offsets: number[]; blockSize: number }> {
-      logger.log(`Calculating chi-square for file: ${file.name}`)
-      const request: ChiSquareRequest = {
-        id: generateMessageId(),
-        type: "CHI_SQUARE_REQUEST",
-        file,
-        blockSize,
-        startOffset,
-        endOffset
-      }
-
-      // Register progress callback if provided
-      if (onProgress) {
-        progressCallbacks.set(request.id, onProgress)
-      }
-
-      try {
-        const response = await sendMainWorkerRequest<ChiSquareResponse>(request)
-        logger.log("Chi-square calculation completed")
-        return {
-          chiSquareValues: response.chiSquareValues,
-          offsets: response.offsets,
-          blockSize: response.blockSize
-        }
-      } finally {
-        // Clean up progress callback
-        progressCallbacks.delete(request.id)
-      }
-    },
-
-    async calculateAutocorrelation(
-      file: File,
-      onProgress?: (progress: number) => void,
-      startOffset?: number,
-      endOffset?: number,
-      maxLag?: number
-    ): Promise<{ autocorrelationValues: number[]; lags: number[] }> {
-      logger.log(`Calculating autocorrelation for file: ${file.name}`)
-      const request: AutocorrelationRequest = {
-        id: generateMessageId(),
-        type: "AUTOCORRELATION_REQUEST",
-        file,
-        maxLag,
-        startOffset,
-        endOffset
-      }
-
-      // Register progress callback if provided
-      if (onProgress) {
-        progressCallbacks.set(request.id, onProgress)
-      }
-
-      try {
-        const response = await sendMainWorkerRequest<AutocorrelationResponse>(request)
-        logger.log("Autocorrelation calculation completed")
-        return {
-          autocorrelationValues: response.autocorrelationValues,
-          lags: response.lags
-        }
-      } finally {
-        // Clean up progress callback
-        progressCallbacks.delete(request.id)
-      }
-    },
-
-    async calculateByteScatter(
-      file: File,
-      onProgress?: (progress: number) => void,
-      startOffset?: number,
-      endOffset?: number,
-      maxPoints?: number
-    ): Promise<{ points: Array<{ x: number; y: number }> }> {
-      logger.log(`Calculating byte scatter for file: ${file.name}`)
-      const request: ByteScatterRequest = {
-        id: generateMessageId(),
-        type: "BYTE_SCATTER_REQUEST",
-        file,
-        maxPoints,
-        startOffset,
-        endOffset
-      }
-
-      // Register progress callback if provided
-      if (onProgress) {
-        progressCallbacks.set(request.id, onProgress)
-      }
-
-      try {
-        const response = await sendMainWorkerRequest<ByteScatterResponse>(request)
-        logger.log("Byte scatter calculation completed")
-        return {
-          points: response.points
-        }
-      } finally {
-        // Clean up progress callback
-        progressCallbacks.delete(request.id)
-      }
-    },
-
     async render(
       canvas: OffscreenCanvas,
       config: unknown,
       onProgress?: (progress: number) => void
     ): Promise<void> {
-      if (!chartWorkerConstructor) {
-        throw new Error("Chart worker not available")
-      }
-
       logger.log("Rendering chart on offscreen canvas")
       const request: ChartRenderRequest = {
         id: generateMessageId(),
@@ -733,7 +421,7 @@ export function createWorkerClient(
         // Transfer OffscreenCanvas via transfer list
         // Note: Once transferred, the canvas becomes detached and can't be transferred again
         // This should only be called once per canvas
-        await sendChartWorkerRequest<ChartRenderResponse>(request, [canvas])
+        await sendMainWorkerRequest<ChartRenderResponse>(request, [canvas])
         logger.log("Chart rendering completed")
       } catch (error) {
         // If canvas is already detached, it means we're trying to transfer it again
@@ -746,7 +434,7 @@ export function createWorkerClient(
             ...request,
             canvas: null as unknown as OffscreenCanvas // Send null to indicate update
           }
-          await sendChartWorkerRequest<ChartRenderResponse>(updateRequest)
+          await sendMainWorkerRequest<ChartRenderResponse>(updateRequest)
         } else {
           throw error
         }
@@ -771,11 +459,6 @@ export function createWorkerClient(
       if (mainWorker) {
         mainWorker.terminate()
         mainWorker = null
-      }
-
-      if (chartWorker) {
-        chartWorker.terminate()
-        chartWorker = null
       }
     }
   }

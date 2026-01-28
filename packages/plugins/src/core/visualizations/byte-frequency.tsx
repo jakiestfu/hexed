@@ -2,8 +2,64 @@ import { BarChart } from "lucide-react"
 
 import { createHexedEditorPlugin } from "../.."
 import type { ChartCalculationFunction } from "../../types"
-import type { ChartConfiguration } from "@hexed/worker/chart-worker"
+import type { ChartConfiguration } from "@hexed/worker"
 import { HexedFile } from "@hexed/file"
+
+// Chunk size for streaming (1MB)
+
+/**
+ * Pure function to calculate byte frequency distribution
+ * This function runs in the worker context via $evaluate
+*/
+const calculateByteFrequencyImpl = async (
+  hexedFile: HexedFile,
+  api: {
+    throwIfAborted: () => void
+    emitProgress: (data: { processed: number; size: number }) => void
+    context: { startOffset?: number; endOffset?: number }
+  }
+): Promise<number[]> => {
+  const STREAM_CHUNK_SIZE = 1024 * 1024
+  const fileSize = hexedFile.size
+  const startOffset = api.context?.startOffset ?? 0
+  const endOffset = api.context?.endOffset ?? fileSize
+  const searchRange = endOffset - startOffset
+
+  // Initialize frequency array (256 elements for bytes 0-255)
+  const frequencies = new Array(256).fill(0)
+  let bytesRead = 0
+
+  while (bytesRead < searchRange) {
+    api.throwIfAborted()
+    const chunkStart = startOffset + bytesRead
+    const chunkEnd = Math.min(
+      chunkStart + STREAM_CHUNK_SIZE,
+      startOffset + searchRange
+    )
+
+    // Ensure range is loaded and read chunk
+    await hexedFile.ensureRange({ start: chunkStart, end: chunkEnd })
+    const chunk = hexedFile.readBytes(chunkStart, chunkEnd - chunkStart)
+
+    if (chunk) {
+      // Count byte frequencies in this chunk
+      for (let i = 0; i < chunk.length; i++) {
+        frequencies[chunk[i]]++
+      }
+    }
+
+    const chunkSize = chunkEnd - chunkStart
+    bytesRead += chunkSize
+
+    // Emit progress
+    api.emitProgress({ processed: bytesRead, size: searchRange })
+
+    // Yield to event loop to keep UI responsive
+    await new Promise((resolve) => setTimeout(resolve, 0))
+  }
+
+  return frequencies
+}
 
 /**
  * Calculate byte frequency and return chart configuration
@@ -15,20 +71,30 @@ export const calculateByteFrequency: ChartCalculationFunction = async (
   startOffset,
   endOffset
 ) => {
-
-  const foo = await workerClient.$evaluate(file, async (hexedFile, api) => ({
-    foo: hexedFile.fileSize(),
-    hello: api.context.test.split("").reverse().join(""),
-    test: api.context,
-  }), { context: { test: "test" } })
-
-  // Calculate byte frequency
-  const frequencies = await workerClient.calculateByteFrequency(
+  // Calculate byte frequency using $evaluate
+  const frequencies = await workerClient.$evaluate(
     file,
-    onProgress,
-    startOffset,
-    endOffset
+    calculateByteFrequencyImpl,
+    {
+      context: { startOffset, endOffset },
+      onProgress: onProgress
+        ? (progress) => {
+          const percentage = Math.round(
+            (progress.processed / progress.size) * 100
+          )
+          onProgress(percentage)
+        }
+        : undefined
+    }
   )
+
+  // const frequencies = await calculateByteFrequencyImpl(file, {
+  //   throwIfAborted: () => { },
+  //   emitProgress: (progress) => {
+  //     onProgress(Math.round((progress.processed / progress.size) * 100))
+  //   },
+  //   context: { startOffset, endOffset }
+  // })
 
   // Create chart configuration
   const labels = Array.from({ length: 256 }, (_, i) => {

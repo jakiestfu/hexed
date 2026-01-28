@@ -7,8 +7,7 @@
   "types": "./src/index.ts",
   "exports": {
     ".": "./src/index.ts",
-    "./worker": "./src/worker.ts",
-    "./chart-worker": "./src/chart-worker.ts"
+    "./worker": "./src/worker.ts"
   },
   "scripts": {
     "typecheck": "tsc --noEmit",

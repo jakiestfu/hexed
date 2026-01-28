@@ -2,22 +2,28 @@
  * Worker entry point for file access
  */
 
+import {
+  BarController,
+  BarElement,
+  CategoryScale,
+  Chart,
+  ChartConfiguration,
+  Decimation,
+  LinearScale,
+  LineController,
+  LineElement,
+  PointElement,
+  ScatterController
+} from "chart.js"
+
 import { HexedFile } from "@hexed/file"
 import { extractStrings, type StringEncoding } from "@hexed/file/strings"
 import { createLogger } from "@hexed/logger"
 
 import type {
-  AutocorrelationRequest,
-  AutocorrelationResponse,
-  ByteFrequencyRequest,
-  ByteFrequencyResponse,
-  ByteScatterRequest,
-  ByteScatterResponse,
-  ChiSquareRequest,
-  ChiSquareResponse,
+  ChartRenderRequest,
+  ChartRenderResponse,
   ConnectedResponse,
-  EntropyRequest,
-  EntropyResponse,
   ErrorResponse,
   EvaluateAbort,
   EvaluateRequest,
@@ -32,6 +38,22 @@ import type {
   StringsResponse,
   WorkerMessage
 } from "./types"
+
+// Export ChartConfiguration type for use by plugins
+export type { ChartConfiguration }
+
+// Register Chart.js components
+Chart.register(
+  CategoryScale,
+  LinearScale,
+  BarElement,
+  BarController,
+  LineElement,
+  LineController,
+  PointElement,
+  ScatterController,
+  Decimation
+)
 import {
   generateMessageId,
   sendError,
@@ -315,736 +337,68 @@ async function handleStrings(request: StringsRequest): Promise<void> {
 }
 
 /**
- * Calculate Shannon entropy for a block of bytes
- * Formula: H(X) = -Σ p(x) * log2(p(x))
- * @param data - The byte array containing the block
- * @param start - Start index (inclusive)
- * @param end - End index (exclusive)
+ * Store chart instances by canvas (for updates without re-transferring)
  */
-function calculateBlockEntropy(
-  data: Uint8Array,
-  start: number = 0,
-  end?: number
-): number {
-  const blockLength = (end ?? data.length) - start
-  if (blockLength === 0) return 0
+const chartInstances = new Map<OffscreenCanvas, unknown>()
 
-  // Count byte frequencies
-  const frequencies = new Array(256).fill(0)
-  for (let i = start; i < (end ?? data.length); i++) {
-    frequencies[data[i]]++
+/**
+ * Generic chart rendering function
+ * @param canvas - Offscreen canvas to render on
+ * @param config - Chart.js configuration object
+ * @returns Chart instance
+ */
+function renderChart(
+  canvas: OffscreenCanvas,
+  config: ChartConfiguration
+): Chart {
+  // Validate config structure
+  if (!config || typeof config !== "object") {
+    throw new Error("Invalid chart configuration")
   }
 
-  // Calculate entropy
-  let entropy = 0
-  for (let i = 0; i < 256; i++) {
-    if (frequencies[i] > 0) {
-      const probability = frequencies[i] / blockLength
-      entropy -= probability * Math.log2(probability)
-    }
-  }
-
-  return entropy
+  return new Chart(canvas, config)
 }
 
 /**
- * Determine optimal block size based on file size for block-based calculations
- * Smaller files use smaller blocks to get more data points for visualization
+ * Handle CHART_RENDER_REQUEST - Render chart on offscreen canvas
  */
-// function getBlockSize(fileSize: number): number {
-//   // return 32;
-//   // if (fileSize < 1024) return 32 // < 1KB: 32 bytes (~32 points)
-//   // if (fileSize < 10 * 1024) return 128 // < 10KB: 128 bytes (~80 points)
-//   if (fileSize < 100 * 1024) return 32 // < 100KB: 512 bytes (~200 points)
-//   if (fileSize < 1024 * 1024) return 2048 // < 1MB: 2KB (~512 points)
-//   return STREAM_CHUNK_SIZE // >= 1MB: 1MB chunks
-// }
-const TARGET_POINTS = 512
-const MIN_BLOCK = 32
-const MAX_BLOCK = 1024 * 1024
-export const getBlockSize = (fileSize: number): number => {
-  const raw = Math.floor(fileSize / TARGET_POINTS)
-
-  // round to nice powers of two
-  const pow2 = Math.pow(2, Math.round(Math.log2(raw)))
-
-  return Math.max(MIN_BLOCK, Math.min(pow2, MAX_BLOCK))
-}
-
-/**
- * Calculate chi-square statistic for a block of bytes
- * Formula: χ² = Σ((observed - expected)² / expected)
- * Tests how well the byte distribution matches a uniform distribution
- * Lower values indicate randomness, higher values indicate structure/patterns
- * @param data - The byte array containing the block
- * @param start - Start index (inclusive)
- * @param end - End index (exclusive)
- */
-function calculateBlockChiSquare(
-  data: Uint8Array,
-  start: number = 0,
-  end?: number
-): number {
-  const blockLength = (end ?? data.length) - start
-  if (blockLength === 0) return 0
-
-  // Expected frequency for uniform distribution: blockLength / 256
-  const expected = blockLength / 256
-
-  // Count byte frequencies
-  const frequencies = new Array(256).fill(0)
-  for (let i = start; i < (end ?? data.length); i++) {
-    frequencies[data[i]]++
-  }
-
-  // Calculate chi-square statistic
-  let chiSquare = 0
-  for (let i = 0; i < 256; i++) {
-    const observed = frequencies[i]
-    const diff = observed - expected
-    chiSquare += (diff * diff) / expected
-  }
-
-  return chiSquare
-}
-
-/**
- * Calculate autocorrelation for a data array at different lag values
- * Autocorrelation measures how correlated the data is with itself at different offsets
- * Formula: r(k) = Σ((x[i] - mean) * (x[i+k] - mean)) / Σ((x[i] - mean)^2)
- * Returns values between -1 and 1, where:
- *   1 = perfect positive correlation
- *   -1 = perfect negative correlation
- *   0 = no correlation
- * @param data - The byte array to analyze
- * @param maxLag - Maximum lag to calculate (default 256)
- * @returns Array of autocorrelation values, one per lag from 1 to maxLag
- */
-function calculateAutocorrelation(
-  data: Uint8Array,
-  maxLag: number = 256
-): number[] {
-  const n = data.length
-  if (n < 2) return []
-
-  // Calculate mean
-  let sum = 0
-  for (let i = 0; i < n; i++) {
-    sum += data[i]
-  }
-  const mean = sum / n
-
-  // Calculate variance (denominator for normalization)
-  let variance = 0
-  for (let i = 0; i < n; i++) {
-    const diff = data[i] - mean
-    variance += diff * diff
-  }
-
-  if (variance === 0) {
-    // All values are the same, return zeros
-    return new Array(Math.min(maxLag, n - 1)).fill(0)
-  }
-
-  // Calculate autocorrelation for each lag
-  const autocorrelations: number[] = []
-  const actualMaxLag = Math.min(maxLag, n - 1)
-
-  for (let k = 1; k <= actualMaxLag; k++) {
-    let correlation = 0
-    const validPairs = n - k
-
-    for (let i = 0; i < validPairs; i++) {
-      correlation += (data[i] - mean) * (data[i + k] - mean)
-    }
-
-    // Normalize by variance
-    autocorrelations.push(correlation / variance)
-  }
-
-  return autocorrelations
-}
-
-/**
- * Handle ENTROPY_REQUEST - Calculate entropy per block/chunk across file
- * Uses adaptive block sizing: smaller blocks for small files, 1MB chunks for large files
- */
-async function handleEntropy(request: EntropyRequest): Promise<void> {
-  logger.log(`Calculating entropy (request: ${request.id})`)
+async function handleChartRender(request: ChartRenderRequest): Promise<void> {
+  logger.log(`Rendering chart (request: ${request.id})`)
   try {
-    const fileSize = request.file.size
-    const startOffset = request.startOffset ?? 0
-    const endOffset = request.endOffset ?? fileSize
-    const searchRange = endOffset - startOffset
+    // Check if we already have a chart instance for this canvas
+    const existingChart = chartInstances.get(request.canvas)
 
-    // Determine block size based on file size (or use provided blockSize)
-    const blockSize = request.blockSize ?? getBlockSize(searchRange)
-
-    const entropyValues: number[] = []
-    const offsets: number[] = []
-
-    // For large files (>= 1MB), use efficient chunk-based processing
-    // For small files, process in smaller blocks for better visualization
-    if (blockSize >= STREAM_CHUNK_SIZE) {
-      // Large file: process in 1MB chunks (same pattern as byte frequency)
-      let bytesRead = 0
-      while (bytesRead < searchRange) {
-        const chunkStart = startOffset + bytesRead
-        const chunkEnd = Math.min(
-          chunkStart + STREAM_CHUNK_SIZE,
-          startOffset + searchRange
-        )
-
-        // Read chunk
-        const chunk = await readByteRange(request.file, chunkStart, chunkEnd)
-
-        // Calculate entropy for entire chunk
-        const entropy = calculateBlockEntropy(chunk)
-        entropyValues.push(entropy)
-        offsets.push(chunkStart)
-
-        const chunkSize = chunkEnd - chunkStart
-        bytesRead += chunkSize
-
-        // Calculate progress percentage
-        const progress = Math.min(
-          100,
-          Math.round((bytesRead / searchRange) * 100)
-        )
-
-        // Send progress event
-        const progressEvent: ProgressEvent = {
-          id: generateMessageId(),
-          type: "PROGRESS_EVENT",
-          requestId: request.id,
-          progress,
-          bytesRead: bytesRead,
-          totalBytes: searchRange
-        }
-        sendProgress(progressEvent)
-
-        // Yield to event loop to keep UI responsive
-        await new Promise((resolve) => setTimeout(resolve, 0))
+    if (existingChart && request.canvas) {
+      // Update existing chart with new config
+      // Chart.js doesn't have a direct update method, so we'll create a new one
+      // But first, destroy the old one if possible
+      if (typeof (existingChart as any).destroy === "function") {
+        ;(existingChart as any).destroy()
       }
+    }
+
+    // Create new chart instance
+    if (request.canvas) {
+      const chart = renderChart(
+        request.canvas,
+        request.config as ChartConfiguration
+      )
+      chartInstances.set(request.canvas, chart)
     } else {
-      // Small file: process in smaller blocks for better visualization
-      let currentOffset = startOffset
-      let blocksProcessed = 0
-
-      while (currentOffset < endOffset) {
-        const blockEnd = Math.min(currentOffset + blockSize, endOffset)
-
-        // Read block
-        const block = await readByteRange(request.file, currentOffset, blockEnd)
-
-        // Calculate entropy for this block
-        const entropy = calculateBlockEntropy(block)
-        entropyValues.push(entropy)
-        offsets.push(currentOffset)
-
-        blocksProcessed++
-        currentOffset = blockEnd
-
-        // Send progress event periodically (every 10 blocks or at end)
-        if (blocksProcessed % 10 === 0 || currentOffset >= endOffset) {
-          const progress = Math.min(
-            100,
-            Math.round(((currentOffset - startOffset) / searchRange) * 100)
-          )
-
-          const progressEvent: ProgressEvent = {
-            id: generateMessageId(),
-            type: "PROGRESS_EVENT",
-            requestId: request.id,
-            progress,
-            bytesRead: currentOffset - startOffset,
-            totalBytes: searchRange
-          }
-          sendProgress(progressEvent)
-        }
-
-        // Yield to event loop periodically to keep UI responsive
-        if (blocksProcessed % 100 === 0) {
-          await new Promise((resolve) => setTimeout(resolve, 0))
-        }
-      }
+      // Canvas is null, which means this is an update request
+      // We can't update without the canvas, so this is an error
+      throw new Error("Canvas is required for chart rendering")
     }
 
-    logger.log(
-      `Entropy calculation completed, processed ${entropyValues.length} blocks`
-    )
-    const response: EntropyResponse = {
+    const response: ChartRenderResponse = {
       id: request.id,
-      type: "ENTROPY_RESPONSE",
-      entropyValues,
-      blockSize,
-      offsets
+      type: "CHART_RENDER_RESPONSE",
+      success: true
     }
     sendResponse(response)
   } catch (error) {
     sendError(
-      error instanceof Error ? error.message : "Failed to calculate entropy",
-      request.id
-    )
-  }
-}
-
-/**
- * Handle CHI_SQUARE_REQUEST - Calculate chi-square per block/chunk across file
- * Uses adaptive block sizing: smaller blocks for small files, 1MB chunks for large files
- */
-async function handleChiSquare(request: ChiSquareRequest): Promise<void> {
-  logger.log(`Calculating chi-square (request: ${request.id})`)
-  try {
-    const fileSize = request.file.size
-    const startOffset = request.startOffset ?? 0
-    const endOffset = request.endOffset ?? fileSize
-    const searchRange = endOffset - startOffset
-
-    // Determine block size based on file size (or use provided blockSize)
-    const blockSize = request.blockSize ?? getBlockSize(searchRange)
-
-    const chiSquareValues: number[] = []
-    const offsets: number[] = []
-
-    // For large files (>= 1MB), use efficient chunk-based processing
-    // For small files, process in smaller blocks for better visualization
-    if (blockSize >= STREAM_CHUNK_SIZE) {
-      // Large file: process in 1MB chunks (same pattern as entropy)
-      let bytesRead = 0
-      while (bytesRead < searchRange) {
-        const chunkStart = startOffset + bytesRead
-        const chunkEnd = Math.min(
-          chunkStart + STREAM_CHUNK_SIZE,
-          startOffset + searchRange
-        )
-
-        // Read chunk
-        const chunk = await readByteRange(request.file, chunkStart, chunkEnd)
-
-        // Calculate chi-square for entire chunk
-        const chiSquare = calculateBlockChiSquare(chunk)
-        chiSquareValues.push(chiSquare)
-        offsets.push(chunkStart)
-
-        const chunkSize = chunkEnd - chunkStart
-        bytesRead += chunkSize
-
-        // Calculate progress percentage
-        const progress = Math.min(
-          100,
-          Math.round((bytesRead / searchRange) * 100)
-        )
-
-        // Send progress event
-        const progressEvent: ProgressEvent = {
-          id: generateMessageId(),
-          type: "PROGRESS_EVENT",
-          requestId: request.id,
-          progress,
-          bytesRead: bytesRead,
-          totalBytes: searchRange
-        }
-        sendProgress(progressEvent)
-
-        // Yield to event loop to keep UI responsive
-        await new Promise((resolve) => setTimeout(resolve, 0))
-      }
-    } else {
-      // Small file: process in smaller blocks for better visualization
-      let currentOffset = startOffset
-      let blocksProcessed = 0
-
-      while (currentOffset < endOffset) {
-        const blockEnd = Math.min(currentOffset + blockSize, endOffset)
-
-        // Read block
-        const block = await readByteRange(request.file, currentOffset, blockEnd)
-
-        // Calculate chi-square for this block
-        const chiSquare = calculateBlockChiSquare(block)
-        chiSquareValues.push(chiSquare)
-        offsets.push(currentOffset)
-
-        blocksProcessed++
-        currentOffset = blockEnd
-
-        // Send progress event periodically (every 10 blocks or at end)
-        if (blocksProcessed % 10 === 0 || currentOffset >= endOffset) {
-          const progress = Math.min(
-            100,
-            Math.round(((currentOffset - startOffset) / searchRange) * 100)
-          )
-
-          const progressEvent: ProgressEvent = {
-            id: generateMessageId(),
-            type: "PROGRESS_EVENT",
-            requestId: request.id,
-            progress,
-            bytesRead: currentOffset - startOffset,
-            totalBytes: searchRange
-          }
-          sendProgress(progressEvent)
-        }
-
-        // Yield to event loop periodically to keep UI responsive
-        if (blocksProcessed % 100 === 0) {
-          await new Promise((resolve) => setTimeout(resolve, 0))
-        }
-      }
-    }
-
-    logger.log(
-      `Chi-square calculation completed, processed ${chiSquareValues.length} blocks`
-    )
-    const response: ChiSquareResponse = {
-      id: request.id,
-      type: "CHI_SQUARE_RESPONSE",
-      chiSquareValues,
-      blockSize,
-      offsets
-    }
-    sendResponse(response)
-  } catch (error) {
-    sendError(
-      error instanceof Error ? error.message : "Failed to calculate chi-square",
-      request.id
-    )
-  }
-}
-
-/**
- * Handle BYTE_FREQUENCY_REQUEST - Calculate byte frequency distribution
- */
-async function handleByteFrequency(
-  request: ByteFrequencyRequest
-): Promise<void> {
-  logger.log(`Calculating byte frequency (request: ${request.id})`)
-  try {
-    const fileSize = request.file.size
-    const startOffset = request.startOffset ?? 0
-    const endOffset = request.endOffset ?? fileSize
-    const searchRange = endOffset - startOffset
-
-    // Initialize frequency array (256 elements for bytes 0-255)
-    const frequencies = new Array(256).fill(0)
-
-    // Process file in chunks
-    let bytesRead = 0
-    while (bytesRead < searchRange) {
-      const chunkStart = startOffset + bytesRead
-      const chunkEnd = Math.min(
-        chunkStart + STREAM_CHUNK_SIZE,
-        startOffset + searchRange
-      )
-
-      // Read chunk
-      const chunk = await readByteRange(request.file, chunkStart, chunkEnd)
-
-      // Count byte frequencies in this chunk
-      for (let i = 0; i < chunk.length; i++) {
-        frequencies[chunk[i]]++
-      }
-
-      const chunkSize = chunkEnd - chunkStart
-      bytesRead += chunkSize
-
-      // Calculate progress percentage
-      const progress = Math.min(
-        100,
-        Math.round((bytesRead / searchRange) * 100)
-      )
-
-      // Send progress event
-      const progressEvent: ProgressEvent = {
-        id: generateMessageId(),
-        type: "PROGRESS_EVENT",
-        requestId: request.id,
-        progress,
-        bytesRead: bytesRead,
-        totalBytes: searchRange
-      }
-      sendProgress(progressEvent)
-
-      // Yield to event loop to keep UI responsive
-      await new Promise((resolve) => setTimeout(resolve, 0))
-    }
-
-    logger.log("Byte frequency calculation completed")
-    const response: ByteFrequencyResponse = {
-      id: request.id,
-      type: "BYTE_FREQUENCY_RESPONSE",
-      frequencies
-    }
-    sendResponse(response)
-  } catch (error) {
-    sendError(
-      error instanceof Error
-        ? error.message
-        : "Failed to calculate byte frequency",
-      request.id
-    )
-  }
-}
-
-/**
- * Maximum data size to process for autocorrelation (10MB)
- * For larger files, we'll sample the data to avoid memory issues
- */
-const MAX_AUTOCORRELATION_SIZE = 10 * 1024 * 1024
-
-/**
- * Handle AUTOCORRELATION_REQUEST - Calculate autocorrelation across file
- * For large files, samples the data to avoid memory issues and improve performance
- */
-async function handleAutocorrelation(
-  request: AutocorrelationRequest
-): Promise<void> {
-  logger.log(`Calculating autocorrelation (request: ${request.id})`)
-  try {
-    const fileSize = request.file.size
-    const startOffset = request.startOffset ?? 0
-    const endOffset = request.endOffset ?? fileSize
-    const searchRange = endOffset - startOffset
-    const maxLag = request.maxLag ?? 256
-
-    // Determine if we need to sample the data
-    const needsSampling = searchRange > MAX_AUTOCORRELATION_SIZE
-    const targetSize = needsSampling ? MAX_AUTOCORRELATION_SIZE : searchRange
-    const sampleStep = needsSampling ? Math.floor(searchRange / targetSize) : 1
-
-    logger.log(
-      `Processing autocorrelation: range=${searchRange}, sampling=${needsSampling}, step=${sampleStep}, targetSize=${targetSize}`
-    )
-
-    // Read and sample data uniformly across the entire range
-    const data = new Uint8Array(targetSize)
-    let dataIndex = 0
-    let bytesRead = 0
-    let nextSamplePosition = 0 // Absolute position for next sample
-
-    while (bytesRead < searchRange && dataIndex < targetSize) {
-      const chunkStart = startOffset + bytesRead
-      const chunkEnd = Math.min(
-        chunkStart + STREAM_CHUNK_SIZE,
-        startOffset + searchRange
-      )
-
-      // Read chunk
-      const chunk = await readByteRange(request.file, chunkStart, chunkEnd)
-
-      if (needsSampling) {
-        // Sample uniformly across the entire file range
-        // Find which bytes in this chunk should be sampled
-        const chunkStartAbsolute = chunkStart - startOffset
-        const chunkEndAbsolute = chunkEnd - startOffset
-
-        // Find the first sample position in or after this chunk
-        while (
-          nextSamplePosition < chunkStartAbsolute &&
-          dataIndex < targetSize
-        ) {
-          nextSamplePosition += sampleStep
-        }
-
-        // Sample bytes in this chunk
-        while (
-          nextSamplePosition >= chunkStartAbsolute &&
-          nextSamplePosition < chunkEndAbsolute &&
-          dataIndex < targetSize
-        ) {
-          const offsetInChunk = nextSamplePosition - chunkStartAbsolute
-          if (offsetInChunk < chunk.length) {
-            data[dataIndex++] = chunk[offsetInChunk]
-          }
-          nextSamplePosition += sampleStep
-        }
-      } else {
-        // Use all data
-        const copyLength = Math.min(chunk.length, targetSize - dataIndex)
-        data.set(chunk.subarray(0, copyLength), dataIndex)
-        dataIndex += copyLength
-      }
-
-      const chunkSize = chunkEnd - chunkStart
-      bytesRead += chunkSize
-
-      // Calculate progress percentage
-      const progress = Math.min(
-        100,
-        Math.round((bytesRead / searchRange) * 100)
-      )
-
-      // Send progress event
-      const progressEvent: ProgressEvent = {
-        id: generateMessageId(),
-        type: "PROGRESS_EVENT",
-        requestId: request.id,
-        progress,
-        bytesRead: bytesRead,
-        totalBytes: searchRange
-      }
-      sendProgress(progressEvent)
-
-      // Yield to event loop to keep UI responsive
-      await new Promise((resolve) => setTimeout(resolve, 0))
-    }
-
-    // Use only the data we actually filled
-    const actualData = data.subarray(0, dataIndex)
-
-    // Calculate autocorrelation
-    const autocorrelationValues = calculateAutocorrelation(actualData, maxLag)
-
-    // Generate lag array
-    const lags = Array.from(
-      { length: autocorrelationValues.length },
-      (_, i) => i + 1
-    )
-
-    logger.log(
-      `Autocorrelation calculation completed: processed ${actualData.length} bytes (${needsSampling ? `sampled from ${searchRange}` : "full range"}), calculated ${autocorrelationValues.length} lags`
-    )
-    const response: AutocorrelationResponse = {
-      id: request.id,
-      type: "AUTOCORRELATION_RESPONSE",
-      autocorrelationValues,
-      lags
-    }
-    sendResponse(response)
-  } catch (error) {
-    sendError(
-      error instanceof Error
-        ? error.message
-        : "Failed to calculate autocorrelation",
-      request.id
-    )
-  }
-}
-
-/**
- * Maximum points to display in scatter plot (default 10000)
- * For larger files, we'll sample the data uniformly
- */
-const DEFAULT_MAX_SCATTER_POINTS = 10000
-
-/**
- * Handle BYTE_SCATTER_REQUEST - Create scatter plot of offset vs byte values
- * Samples data uniformly if file is large to ensure performance
- */
-async function handleByteScatter(request: ByteScatterRequest): Promise<void> {
-  logger.log(`Calculating byte scatter (request: ${request.id})`)
-  try {
-    const fileSize = request.file.size
-    const startOffset = request.startOffset ?? 0
-    const endOffset = request.endOffset ?? fileSize
-    const searchRange = endOffset - startOffset
-    const maxPoints = request.maxPoints ?? DEFAULT_MAX_SCATTER_POINTS
-
-    // Determine if we need to sample the data
-    const needsSampling = searchRange > maxPoints
-    const targetPoints = Math.min(searchRange, maxPoints)
-    const sampleStep = needsSampling
-      ? Math.floor(searchRange / targetPoints)
-      : 1
-
-    logger.log(
-      `Processing byte scatter: range=${searchRange}, sampling=${needsSampling}, step=${sampleStep}, targetPoints=${targetPoints}`
-    )
-
-    // Collect points
-    const points: Array<{ x: number; y: number }> = []
-    let bytesRead = 0
-    let nextSamplePosition = 0 // Absolute position for next sample
-
-    while (bytesRead < searchRange && points.length < targetPoints) {
-      const chunkStart = startOffset + bytesRead
-      const chunkEnd = Math.min(
-        chunkStart + STREAM_CHUNK_SIZE,
-        startOffset + searchRange
-      )
-
-      // Read chunk
-      const chunk = await readByteRange(request.file, chunkStart, chunkEnd)
-
-      if (needsSampling) {
-        // Sample uniformly across the entire file range
-        const chunkStartAbsolute = chunkStart - startOffset
-        const chunkEndAbsolute = chunkEnd - startOffset
-
-        // Find the first sample position in or after this chunk
-        while (
-          nextSamplePosition < chunkStartAbsolute &&
-          points.length < targetPoints
-        ) {
-          nextSamplePosition += sampleStep
-        }
-
-        // Sample bytes in this chunk
-        while (
-          nextSamplePosition >= chunkStartAbsolute &&
-          nextSamplePosition < chunkEndAbsolute &&
-          points.length < targetPoints
-        ) {
-          const offsetInChunk = nextSamplePosition - chunkStartAbsolute
-          if (offsetInChunk < chunk.length) {
-            const absoluteOffset = startOffset + nextSamplePosition
-            points.push({
-              x: absoluteOffset,
-              y: chunk[offsetInChunk]
-            })
-          }
-          nextSamplePosition += sampleStep
-        }
-      } else {
-        // Use all data
-        for (let i = 0; i < chunk.length && points.length < targetPoints; i++) {
-          const absoluteOffset = chunkStart + i
-          points.push({
-            x: absoluteOffset,
-            y: chunk[i]
-          })
-        }
-      }
-
-      const chunkSize = chunkEnd - chunkStart
-      bytesRead += chunkSize
-
-      // Calculate progress percentage
-      const progress = Math.min(
-        100,
-        Math.round((bytesRead / searchRange) * 100)
-      )
-
-      // Send progress event
-      const progressEvent: ProgressEvent = {
-        id: generateMessageId(),
-        type: "PROGRESS_EVENT",
-        requestId: request.id,
-        progress,
-        bytesRead: bytesRead,
-        totalBytes: searchRange
-      }
-      sendProgress(progressEvent)
-
-      // Yield to event loop to keep UI responsive
-      await new Promise((resolve) => setTimeout(resolve, 0))
-    }
-
-    logger.log(
-      `Byte scatter calculation completed: processed ${points.length} points (${needsSampling ? `sampled from ${searchRange} bytes` : "full range"})`
-    )
-    const response: ByteScatterResponse = {
-      id: request.id,
-      type: "BYTE_SCATTER_RESPONSE",
-      points
-    }
-    sendResponse(response)
-  } catch (error) {
-    sendError(
-      error instanceof Error
-        ? error.message
-        : "Failed to calculate byte scatter",
+      error instanceof Error ? error.message : "Failed to render chart",
       request.id
     )
   }
@@ -1172,20 +526,8 @@ async function handleRequest(message: RequestMessage): Promise<void> {
     case "STRINGS_REQUEST":
       await handleStrings(message)
       break
-    case "BYTE_FREQUENCY_REQUEST":
-      await handleByteFrequency(message)
-      break
-    case "ENTROPY_REQUEST":
-      await handleEntropy(message)
-      break
-    case "CHI_SQUARE_REQUEST":
-      await handleChiSquare(message)
-      break
-    case "AUTOCORRELATION_REQUEST":
-      await handleAutocorrelation(message)
-      break
-    case "BYTE_SCATTER_REQUEST":
-      await handleByteScatter(message)
+    case "CHART_RENDER_REQUEST":
+      await handleChartRender(message)
       break
     case "EVALUATE_REQUEST":
       await handleEvaluate(message)
