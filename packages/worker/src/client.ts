@@ -20,9 +20,6 @@ import type {
   ProgressEvent,
   RequestMessage,
   ResponseMessage,
-  SearchMatchEvent,
-  SearchRequest,
-  SearchResponse,
   StringsRequest,
   StringsResponse
 } from "./types"
@@ -68,12 +65,6 @@ export function createWorkerClient(
   // Evaluate result callbacks mapped by request ID
   const evaluateResultCallbacks = new Map<string, (result: unknown) => void>()
 
-  // Match callbacks mapped by request ID
-  const matchCallbacks = new Map<
-    string,
-    (matches: Array<{ offset: number; length: number }>) => void
-  >()
-
   // Abort signal handlers mapped by request ID
   const abortSignalHandlers = new Map<string, () => void>()
 
@@ -81,7 +72,7 @@ export function createWorkerClient(
    * Handle messages from any worker
    */
   function handleWorkerMessage(
-    message: ResponseMessage | ProgressEvent | EvaluateResultEvent | SearchMatchEvent | ChartRenderResponse | ConnectedResponse | ErrorResponse
+    message: ResponseMessage | ProgressEvent | EvaluateResultEvent | ChartRenderResponse | ConnectedResponse | ErrorResponse
   ): void {
     // Handle progress events separately
     if (message.type === "PROGRESS_EVENT") {
@@ -113,16 +104,6 @@ export function createWorkerClient(
       return
     }
 
-    // Handle search match events separately
-    if (message.type === "SEARCH_MATCH_EVENT") {
-      const matchEvent = message as SearchMatchEvent
-      const callback = matchCallbacks.get(matchEvent.requestId)
-      if (callback) {
-        callback(matchEvent.matches)
-      }
-      return
-    }
-
     const pending = pendingRequests.get(message.id)
 
     if (pending) {
@@ -136,7 +117,6 @@ export function createWorkerClient(
         progressCallbacks.delete(message.id)
         evaluateProgressCallbacks.delete(message.id)
         evaluateResultCallbacks.delete(message.id)
-        matchCallbacks.delete(message.id)
         abortSignalHandlers.delete(message.id)
         pending.reject(new Error(errorMsg))
       } else {
@@ -149,7 +129,6 @@ export function createWorkerClient(
           progressCallbacks.delete(message.id)
           evaluateProgressCallbacks.delete(message.id)
           evaluateResultCallbacks.delete(message.id)
-          matchCallbacks.delete(message.id)
           abortSignalHandlers.delete(message.id)
         }, 0)
         pending.resolve(message)
@@ -175,7 +154,7 @@ export function createWorkerClient(
 
       // Handle messages from main worker
       mainWorker.onmessage = (
-        event: MessageEvent<ResponseMessage | ProgressEvent | SearchMatchEvent>
+        event: MessageEvent<ResponseMessage | ProgressEvent | EvaluateResultEvent>
       ) => {
         handleWorkerMessage(event.data)
       }
@@ -189,7 +168,6 @@ export function createWorkerClient(
         }
         pendingRequests.clear()
         progressCallbacks.clear()
-        matchCallbacks.clear()
       }
 
       return mainWorker
@@ -348,45 +326,6 @@ export function createWorkerClient(
   }
 
   return {
-    async search(
-      file: File,
-      pattern: Uint8Array,
-      onProgress?: (progress: number) => void,
-      onMatch?: (matches: Array<{ offset: number; length: number }>) => void,
-      startOffset?: number,
-      endOffset?: number
-    ): Promise<Array<{ offset: number; length: number }>> {
-      logger.log(`Searching file: ${file.name}`)
-      const request: SearchRequest = {
-        id: generateMessageId(),
-        type: "SEARCH_REQUEST",
-        file,
-        pattern,
-        startOffset,
-        endOffset
-      }
-
-      // Register progress callback if provided
-      if (onProgress) {
-        progressCallbacks.set(request.id, onProgress)
-      }
-
-      // Register match callback if provided
-      if (onMatch) {
-        matchCallbacks.set(request.id, onMatch)
-      }
-
-      try {
-        const response = await sendMainWorkerRequest<SearchResponse>(request)
-        logger.log(`Search completed, found ${response.matches.length} matches`)
-        return response.matches
-      } finally {
-        // Clean up callbacks
-        progressCallbacks.delete(request.id)
-        matchCallbacks.delete(request.id)
-      }
-    },
-
     async strings(
       file: File,
       options: { minLength: number; encoding: StringEncoding },
@@ -472,7 +411,6 @@ export function createWorkerClient(
       progressCallbacks.clear()
       evaluateProgressCallbacks.clear()
       evaluateResultCallbacks.clear()
-      matchCallbacks.clear()
       abortSignalHandlers.clear()
 
       if (mainWorker) {

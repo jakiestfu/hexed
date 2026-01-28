@@ -10,13 +10,13 @@ import {
   InputGroup,
   InputGroupAddon,
   InputGroupButton,
-  InputGroupInput
+  InputGroupInput,
+  Progress
 } from "@hexed/ui"
 
 import { useHexadecimalFormatting } from "./use-hexadecimal-formatting"
-
-// import { useHexedFileContext } from "../../providers/hexed-file-provider"
-// import { useWorkerClient } from "../../providers/worker-provider"
+import { searchImpl } from "./search-impl"
+import type { SearchMatch } from "./types"
 
 export const FindInput = forwardRef<
   HTMLInputElement,
@@ -31,11 +31,10 @@ export const FindInput = forwardRef<
     "hexed:find-input-mode",
     "text"
   )
-  const [matches, setMatches] = useState<
-    Array<{ offset: number; length: number }>
-  >([])
+  const [matches, setMatches] = useState<SearchMatch[]>([])
   const [currentMatchIndex, setCurrentMatchIndex] = useState(0)
   const [isSearching, setIsSearching] = useState(false)
+  const [searchProgress, setSearchProgress] = useState(0)
   const internalInputRef = useRef<HTMLInputElement>(null)
   const onMatchFoundRef = useRef(onMatchFound)
 
@@ -83,16 +82,16 @@ export const FindInput = forwardRef<
       currentSearchRequestIdRef.current = null
     }
 
-    const fileHandle = hexedFile?.getHandle()
     if (
       !searchQuery.trim() ||
-      !fileHandle ||
+      !hexedFile ||
       !workerClient ||
       bytes.length === 0
     ) {
       setMatches([])
       setCurrentMatchIndex(0)
       setIsSearching(false)
+      setSearchProgress(0)
       return
     }
 
@@ -103,12 +102,10 @@ export const FindInput = forwardRef<
     setIsSearching(true)
     setMatches([])
     setCurrentMatchIndex(0)
+    setSearchProgress(0)
 
     const performSearch = async () => {
       try {
-        // Get File object from handle
-        const fileObj = await fileHandle.getFile()
-
         // Convert search query to pattern bytes
         let pattern: Uint8Array
         if (searchMode === "hex") {
@@ -124,36 +121,53 @@ export const FindInput = forwardRef<
           setMatches([])
           setCurrentMatchIndex(0)
           setIsSearching(false)
+          setSearchProgress(0)
           return
         }
 
         // Accumulate matches as they stream in
-        const accumulatedMatches: Array<{ offset: number; length: number }> = []
+        const accumulatedMatches: SearchMatch[] = []
 
-        // Perform search with streaming matches
-        await workerClient.search(
-          fileObj,
-          pattern,
-          undefined, // onProgress - not needed for now
-          (streamedMatches) => {
-            // Check if this search was cancelled
-            if (cancelledRequestIdsRef.current.has(requestId)) {
-              return
-            }
+        // Perform search with streaming matches using $evaluate
+        await workerClient.$evaluate(
+          hexedFile,
+          searchImpl,
+          {
+            context: {
+              pattern
+            },
+            onProgress: (progress) => {
+              // Check if this search was cancelled
+              if (cancelledRequestIdsRef.current.has(requestId)) {
+                return
+              }
 
-            // Add new matches to accumulated list
-            accumulatedMatches.push(...streamedMatches)
-            setMatches([...accumulatedMatches])
-
-            // Highlight first match if this is the first batch
-            if (
-              accumulatedMatches.length === streamedMatches.length &&
-              streamedMatches.length > 0
-            ) {
-              onMatchFoundRef.current?.(
-                streamedMatches[0].offset,
-                streamedMatches[0].length
+              // Calculate percentage
+              const percentage = Math.round(
+                (progress.processed / progress.size) * 100
               )
+              setSearchProgress(percentage)
+            },
+            onResult: (streamedMatches: SearchMatch[]) => {
+              // Check if this search was cancelled
+              if (cancelledRequestIdsRef.current.has(requestId)) {
+                return
+              }
+
+              // Add new matches to accumulated list
+              accumulatedMatches.push(...streamedMatches)
+              setMatches([...accumulatedMatches])
+
+              // Highlight first match if this is the first batch
+              if (
+                accumulatedMatches.length === streamedMatches.length &&
+                streamedMatches.length > 0
+              ) {
+                onMatchFoundRef.current?.(
+                  streamedMatches[0].offset,
+                  streamedMatches[0].length
+                )
+              }
             }
           }
         )
@@ -161,15 +175,18 @@ export const FindInput = forwardRef<
         // Check if search was cancelled before updating state
         if (cancelledRequestIdsRef.current.has(requestId)) {
           setIsSearching(false)
+          setSearchProgress(0)
           return
         }
 
         // Search completed - final matches are already in state from streaming
         setIsSearching(false)
+        setSearchProgress(100)
       } catch (error) {
         // Check if search was cancelled
         if (cancelledRequestIdsRef.current.has(requestId)) {
           setIsSearching(false)
+          setSearchProgress(0)
           return
         }
 
@@ -177,6 +194,7 @@ export const FindInput = forwardRef<
         setMatches([])
         setCurrentMatchIndex(0)
         setIsSearching(false)
+        setSearchProgress(0)
       } finally {
         // Clean up cancelled request tracking
         cancelledRequestIdsRef.current.delete(requestId)
@@ -198,6 +216,7 @@ export const FindInput = forwardRef<
         cancelledRequestIdsRef.current.add(requestId)
         currentSearchRequestIdRef.current = null
         setIsSearching(false)
+        setSearchProgress(0)
       }
     }
   }, [searchQuery, searchMode, hexedFile, workerClient, bytes])
@@ -261,80 +280,91 @@ export const FindInput = forwardRef<
   }
 
   return (
-    <div className="flex items-center gap-2 w-full">
-      <InputGroup className="flex-1">
-        <InputGroupAddon align="inline-start">
-          <InputGroupButton
-            variant="ghost"
-            className={cn(
-              "w-12",
-              searchMode === "text"
-                ? "bg-sky-100 text-sky-600 hover:bg-sky-200 hover:text-sky-700"
-                : "bg-orange-100 text-orange-600 hover:bg-orange-200 hover:text-orange-700"
-            )}
-            onClick={() => {
-              setSearchMode(searchMode === "hex" ? "text" : "hex")
-            }}
-          >
-            {searchMode === "text" ? "Text" : "Hex"}
-          </InputGroupButton>
-          <Search className="h-4 w-4" />
-        </InputGroupAddon>
-        <InputGroupInput
-          ref={setRef}
-          placeholder={
-            searchMode === "hex" ? "Search hex..." : "Search text..."
-          }
-          value={searchQuery}
-          onChange={handleChange}
-          onKeyDown={handleKeyDown}
-          onPaste={handlePaste}
-          className={cn(searchMode === "hex" ? "font-mono" : "")}
-        />
-        <InputGroupAddon align="inline-end">
-          <div className="flex items-center gap-1">
-            {matches.length > 0 ? (
-              <>
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  onClick={handlePrevious}
-                  disabled={matches.length === 0}
-                  className="h-6 w-6"
-                  aria-label="Previous match"
-                >
-                  <ChevronLeft className="h-3 w-3" />
-                </Button>
-                <span className="text-xs text-muted-foreground min-w-[80px] text-center">
-                  {currentMatchIndex + 1} of {matches.length} result
-                  {matches.length !== 1 ? "s" : ""}
-                </span>
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  onClick={handleNext}
-                  disabled={matches.length === 0}
-                  className="h-6 w-6"
-                  aria-label="Next match"
-                >
-                  <ChevronRight className="h-3 w-3" />
-                </Button>
-              </>
-            ) : searchQuery.trim() ? (
-              isSearching ? (
-                <span className="text-xs text-muted-foreground">
-                  Searching...
-                </span>
-              ) : (
-                <span className="text-xs text-muted-foreground">
-                  No results
-                </span>
-              )
-            ) : null}
-          </div>
-        </InputGroupAddon>
-      </InputGroup>
-      {/* <Button
+    <>
+      <div
+        className={cn(
+          "absolute top-[-2px] left-0 right-0 transition-opacity duration-300 bg-background",
+          searchProgress === 100 || searchProgress === 0 ? "opacity-0" : "opacity-100"
+        )}
+      >
+        <Progress value={searchProgress} className="h-[3px] rounded-none" />
+      </div>
+      <div className="flex flex-col gap-2 w-full relative">
+        {/* Progress Bar */}
+        <div className="flex items-center gap-2 w-full relative">
+          <InputGroup className="flex-1">
+            <InputGroupAddon align="inline-start">
+              <InputGroupButton
+                variant="ghost"
+                className={cn(
+                  "w-12",
+                  searchMode === "text"
+                    ? "bg-sky-100 text-sky-600 hover:bg-sky-200 hover:text-sky-700"
+                    : "bg-orange-100 text-orange-600 hover:bg-orange-200 hover:text-orange-700"
+                )}
+                onClick={() => {
+                  setSearchMode(searchMode === "hex" ? "text" : "hex")
+                }}
+              >
+                {searchMode === "text" ? "Text" : "Hex"}
+              </InputGroupButton>
+              <Search className="h-4 w-4" />
+            </InputGroupAddon>
+            <InputGroupInput
+              ref={setRef}
+              placeholder={
+                searchMode === "hex" ? "Search hex..." : "Search text..."
+              }
+              value={searchQuery}
+              onChange={handleChange}
+              onKeyDown={handleKeyDown}
+              onPaste={handlePaste}
+              className={cn(searchMode === "hex" ? "font-mono" : "")}
+            />
+            <InputGroupAddon align="inline-end">
+              <div className="flex items-center gap-1">
+                {matches.length > 0 ? (
+                  <>
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      onClick={handlePrevious}
+                      disabled={matches.length === 0}
+                      className="h-6 w-6"
+                      aria-label="Previous match"
+                    >
+                      <ChevronLeft className="h-3 w-3" />
+                    </Button>
+                    <span className="text-xs text-muted-foreground min-w-[80px] text-center">
+                      {(currentMatchIndex + 1).toLocaleString()} of {matches.length.toLocaleString()} result
+                      {matches.length !== 1 ? "s" : ""}
+                    </span>
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      onClick={handleNext}
+                      disabled={matches.length === 0}
+                      className="h-6 w-6"
+                      aria-label="Next match"
+                    >
+                      <ChevronRight className="h-3 w-3" />
+                    </Button>
+                  </>
+                ) : searchQuery.trim() ? (
+                  isSearching ? (
+                    <span className="text-xs text-muted-foreground">
+                      Searching...
+                    </span>
+                  ) : (
+                    <span className="text-xs text-muted-foreground">
+                      No results
+                    </span>
+                  )
+                ) : null}
+              </div>
+            </InputGroupAddon>
+          </InputGroup>
+          {/* <Button
           variant="ghost"
           size="icon"
           onClick={handleClose}
@@ -343,7 +373,9 @@ export const FindInput = forwardRef<
         >
           <X className="h-4 w-4" />
         </Button> */}
-    </div>
+        </div>
+      </div>
+    </>
   )
 })
 

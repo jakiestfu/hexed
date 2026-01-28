@@ -6,17 +6,14 @@ import type { HexedFile } from "@hexed/file"
 import type { StringEncoding, StringMatch } from "@hexed/file/strings"
 
 export type MessageType =
-  | "SEARCH_REQUEST"
   | "STRINGS_REQUEST"
   | "CHART_RENDER_REQUEST"
   | "EVALUATE_REQUEST"
   | "EVALUATE_ABORT"
-  | "SEARCH_RESPONSE"
   | "STRINGS_RESPONSE"
   | "CHART_RENDER_RESPONSE"
   | "EVALUATE_RESPONSE"
   | "PROGRESS_EVENT"
-  | "SEARCH_MATCH_EVENT"
   | "EVALUATE_RESULT_EVENT"
   | "ERROR"
   | "CONNECTED"
@@ -45,23 +42,6 @@ export interface ErrorResponse extends BaseMessage {
 
 export interface ConnectedResponse extends BaseMessage {
   type: "CONNECTED"
-}
-
-/**
- * Search Messages
- */
-
-export interface SearchRequest extends BaseMessage {
-  type: "SEARCH_REQUEST"
-  file: File
-  pattern: Uint8Array
-  startOffset?: number
-  endOffset?: number
-}
-
-export interface SearchResponse extends BaseMessage {
-  type: "SEARCH_RESPONSE"
-  matches: Array<{ offset: number; length: number }>
 }
 
 /**
@@ -131,15 +111,6 @@ export interface ProgressEvent extends BaseMessage {
 }
 
 /**
- * Search Match Event - streams matches as they're found
- */
-export interface SearchMatchEvent extends BaseMessage {
-  type: "SEARCH_MATCH_EVENT"
-  requestId: string
-  matches: Array<{ offset: number; length: number }>
-}
-
-/**
  * Evaluate Result Event - streams results as they're computed
  */
 export interface EvaluateResultEvent extends BaseMessage {
@@ -174,7 +145,6 @@ export type EvaluateAPI<TResult = unknown, TContext = undefined> = (
  * Union type of all request messages for the main worker
  */
 export type RequestMessage =
-  | SearchRequest
   | StringsRequest
   | ChartRenderRequest
   | EvaluateRequest
@@ -188,7 +158,6 @@ export type AllRequestMessage = RequestMessage | ChartRenderRequest
  * Union type of all response messages
  */
 export type ResponseMessage =
-  | SearchResponse
   | StringsResponse
   | ChartRenderResponse
   | EvaluateResponse
@@ -202,6 +171,5 @@ export type WorkerMessage =
   | RequestMessage
   | ResponseMessage
   | ProgressEvent
-  | SearchMatchEvent
   | EvaluateResultEvent
   | EvaluateAbort

@@ -32,9 +32,6 @@ import type {
   ProgressEvent,
   RequestMessage,
   ResponseMessage,
-  SearchMatchEvent,
-  SearchRequest,
-  SearchResponse,
   StringsRequest,
   StringsResponse,
   WorkerMessage
@@ -60,8 +57,7 @@ import {
   sendError,
   sendEvaluateResult,
   sendProgress,
-  sendResponse,
-  sendSearchMatch
+  sendResponse
 } from "./utils"
 
 const logger = createLogger("worker")
@@ -85,104 +81,6 @@ async function readByteRange(
   const blob = file.slice(start, end)
   const arrayBuffer = await blob.arrayBuffer()
   return new Uint8Array(arrayBuffer)
-}
-
-/**
- * Handle SEARCH_REQUEST - Search for pattern in file with progress updates
- */
-async function handleSearch(request: SearchRequest): Promise<void> {
-  logger.log(`Searching file (request: ${request.id})`)
-  try {
-    const fileSize = request.file.size
-    const startOffset = request.startOffset ?? 0
-    const endOffset = request.endOffset ?? fileSize
-    const searchRange = endOffset - startOffset
-    const pattern = request.pattern
-    const matches: Array<{ offset: number; length: number }> = []
-
-    // Search through file in chunks
-    let currentOffset = startOffset
-    let bytesSearched = 0
-
-    while (currentOffset < endOffset) {
-      const chunkEnd = Math.min(
-        currentOffset + STREAM_CHUNK_SIZE + pattern.length - 1,
-        endOffset
-      )
-
-      // Read chunk for searching
-      const chunk = await readByteRange(request.file, currentOffset, chunkEnd)
-
-      // Track matches found in this chunk
-      const chunkMatches: Array<{ offset: number; length: number }> = []
-
-      // Search for pattern in chunk
-      for (let i = 0; i <= chunk.length - pattern.length; i++) {
-        let match = true
-        for (let j = 0; j < pattern.length; j++) {
-          if (chunk[i + j] !== pattern[j]) {
-            match = false
-            break
-          }
-        }
-        if (match) {
-          const matchData = {
-            offset: currentOffset + i,
-            length: pattern.length
-          }
-          matches.push(matchData)
-          chunkMatches.push(matchData)
-        }
-      }
-
-      // Send matches found in this chunk immediately
-      if (chunkMatches.length > 0) {
-        const matchEvent: SearchMatchEvent = {
-          id: generateMessageId(),
-          type: "SEARCH_MATCH_EVENT",
-          requestId: request.id,
-          matches: chunkMatches
-        }
-        sendSearchMatch(matchEvent)
-      }
-
-      bytesSearched = Math.min(chunkEnd - startOffset, searchRange)
-      currentOffset = chunkEnd - pattern.length + 1 // Overlap to catch matches at boundaries
-
-      // Calculate progress percentage
-      const progress = Math.min(
-        100,
-        Math.round((bytesSearched / searchRange) * 100)
-      )
-
-      // Send progress event
-      const progressEvent: ProgressEvent = {
-        id: generateMessageId(),
-        type: "PROGRESS_EVENT",
-        requestId: request.id,
-        progress,
-        bytesRead: bytesSearched,
-        totalBytes: searchRange
-      }
-      sendProgress(progressEvent)
-
-      // Yield to event loop to keep UI responsive
-      await new Promise((resolve) => setTimeout(resolve, 0))
-    }
-
-    logger.log(`Search completed, found ${matches.length} matches`)
-    const response: SearchResponse = {
-      id: request.id,
-      type: "SEARCH_RESPONSE",
-      matches
-    }
-    sendResponse(response)
-  } catch (error) {
-    sendError(
-      error instanceof Error ? error.message : "Failed to search file",
-      request.id
-    )
-  }
 }
 
 /**
@@ -522,9 +420,6 @@ return (async () => {
  */
 async function handleRequest(message: RequestMessage): Promise<void> {
   switch (message.type) {
-    case "SEARCH_REQUEST":
-      await handleSearch(message)
-      break
     case "STRINGS_REQUEST":
       await handleStrings(message)
       break
@@ -563,7 +458,6 @@ if (typeof self !== "undefined") {
       message.type === "CONNECTED" ||
       message.type.startsWith("RESPONSE") ||
       message.type === "PROGRESS_EVENT" ||
-      message.type === "SEARCH_MATCH_EVENT" ||
       message.type === "EVALUATE_RESULT_EVENT"
     ) {
       return

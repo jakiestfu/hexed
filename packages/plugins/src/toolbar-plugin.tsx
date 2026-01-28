@@ -25,9 +25,8 @@ export const ToolbarPlugin: FunctionComponent<HexedPluginOptions> = ({
       className="border-b"
       title={title}
     >
-      <div className="p-4">
+      <div className="p-4 relative">
         <Component
-          // foo="bar"
           file={hexedFile}
           state={state}
           settings={settings}

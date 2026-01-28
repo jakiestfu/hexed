@@ -8,8 +8,7 @@ import type {
   ErrorResponse,
   EvaluateResultEvent,
   ProgressEvent,
-  ResponseMessage,
-  SearchMatchEvent
+  ResponseMessage
 } from "./types"
 
 const logger = createLogger("worker-utils")
@@ -40,17 +39,6 @@ export function sendProgress(event: ProgressEvent): void {
     self.postMessage(event)
   } catch (error) {
     console.error("Error sending progress event:", error)
-  }
-}
-
-/**
- * Send a search match event
- */
-export function sendSearchMatch(event: SearchMatchEvent): void {
-  try {
-    self.postMessage(event)
-  } catch (error) {
-    console.error("Error sending search match event:", error)
   }
 }
 
