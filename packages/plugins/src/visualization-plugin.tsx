@@ -68,8 +68,9 @@ export const VisualizationPlugin: FunctionComponent<
 
     // Set canvas size to display dimensions
     // Chart.js will handle devicePixelRatio scaling internally
-    canvas.width = displayWidth
-    canvas.height = displayHeight
+    const devicePixelRatio = window.devicePixelRatio || 1
+    canvas.width = displayWidth / devicePixelRatio
+    canvas.height = displayHeight / devicePixelRatio
 
     // Set CSS size to maintain correct display size
     canvas.style.width = `${displayWidth}px`
@@ -116,7 +117,7 @@ export const VisualizationPlugin: FunctionComponent<
         // Call chart function to get chart config
         const chartConfigPromise = chartFunction(
           hexedFile,
-          hexedFile.worker,
+          hexedFile.worker!,
           (progressValue) => {
             setProgress(progressValue)
           }
@@ -132,7 +133,7 @@ export const VisualizationPlugin: FunctionComponent<
         const dpr = window.devicePixelRatio || 1
 
         // Render chart using unified worker client
-        await hexedFile.worker.render(offscreenCanvas, chartConfig, dpr)
+        await hexedFile.worker!.render(offscreenCanvas, chartConfig, dpr)
         setProgress(100)
       } catch (err) {
         const error =
