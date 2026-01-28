@@ -31,7 +31,6 @@ export * from "./hooks/use-hexed-file"
 
 // Providers
 export * from "./providers/index"
-export * from "./providers/worker-provider"
 export * from "./providers/drag-drop-provider"
 export * from "./providers/hexed-file-provider"
 export * from "./providers/hexed-settings-provider"

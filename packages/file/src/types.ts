@@ -21,6 +21,11 @@ export type HexedFileOptions = {
    * Used for chunked loading of File and FileSystemFileHandle inputs
    */
   chunkSize?: number
+  /**
+   * Worker constructor to create a worker client for this file instance
+   * If provided, a worker client will be created and accessible via hexedFile.worker
+   */
+  workerConstructor?: new () => Worker
 }
 
 export type ByteRange = { start: number; end: number }

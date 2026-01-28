@@ -3,7 +3,6 @@ import type { CSSProperties } from "react"
 import { Search, Type } from "lucide-react"
 import { FixedSizeList } from "react-window"
 
-import { useWorkerClient } from "@hexed/editor"
 import { formatAddress } from "@hexed/file/formatter"
 import type { StringEncoding, StringMatch } from "@hexed/file/strings"
 import {
@@ -690,7 +689,6 @@ const extractStringsImpl: EvaluateAPI<
 }
 
 export const Strings: HexedPluginComponent<"sidebar"> = ({ file, state }) => {
-  const workerClient = useWorkerClient()
   const [minLength, setMinLength] = useState<number>(4)
   const [encoding, setEncoding] = useState<StringEncoding>("ascii")
   const [isSearching, setIsSearching] = useState<boolean>(false)
@@ -703,7 +701,7 @@ export const Strings: HexedPluginComponent<"sidebar"> = ({ file, state }) => {
   const minLengthOptions: readonly number[] = [4, 8, 10, 12, 24, 36]
 
   const handleSearch = useCallback(async () => {
-    if (!workerClient || !file) {
+    if (!file?.worker || !file) {
       return
     }
 
@@ -712,7 +710,7 @@ export const Strings: HexedPluginComponent<"sidebar"> = ({ file, state }) => {
     setExtractedStrings([])
 
     try {
-      const matches = await workerClient.$evaluate(file, extractStringsImpl, {
+      const matches = await file.worker.$evaluate(file, extractStringsImpl, {
         context: { minLength, encoding },
         onProgress: (progress) => {
           const percentage = Math.round(
@@ -729,7 +727,7 @@ export const Strings: HexedPluginComponent<"sidebar"> = ({ file, state }) => {
       setIsSearching(false)
       setSearchProgress(0)
     }
-  }, [workerClient, file, minLength, encoding])
+  }, [file, minLength, encoding])
 
   // Calculate available height for the virtualized list
   useEffect(() => {
@@ -868,7 +866,7 @@ export const Strings: HexedPluginComponent<"sidebar"> = ({ file, state }) => {
 
           <Button
             onClick={handleSearch}
-            disabled={isSearching || !workerClient || !file}
+            disabled={isSearching || !file?.worker || !file}
             size="icon"
           >
             {isSearching ? <Spinner /> : <Search />}

@@ -20,7 +20,8 @@
     "clean": "rm -rf dist node_modules"
   },
   "dependencies": {
-    "@hexed/types": "workspace:*"
+    "@hexed/types": "workspace:*",
+    "@hexed/worker": "workspace:*"
   },
   "devDependencies": {
     "@hexed/eslint-config": "workspace:*",

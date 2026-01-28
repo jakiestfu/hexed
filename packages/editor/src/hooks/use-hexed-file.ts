@@ -3,6 +3,7 @@ import { useEffect, useState } from "react"
 import { HexedFile } from "@hexed/file"
 
 import { HexedFileInput } from "../types"
+import HexedWorkerConstructor from "@hexed/worker/worker?worker"
 import { useResolveHandle } from "./use-resolve-handle"
 
 export type OnHexedFileChange = (input: HexedFileInput) => void
@@ -60,7 +61,10 @@ export const useHexedFile = (defaultInput?: HexedFileInput) => {
     }
 
     try {
-      const newHexedFile = new HexedFile(actualInput, { watchChanges: true })
+      const newHexedFile = new HexedFile(actualInput, {
+        watchChanges: true,
+        workerConstructor: HexedWorkerConstructor
+      })
       setHexedFile(newHexedFile)
       setError(null)
 

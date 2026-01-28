@@ -271,22 +271,21 @@ const MyPlugin: HexedPluginComponent = ({ file, state }) => {
 If your plugin needs to perform heavy computations, you can use the worker client:
 
 ```tsx
-import { useWorkerClient } from "@hexed/editor"
-
 const MyPlugin: HexedPluginComponent = ({ file }) => {
-  const workerClient = useWorkerClient()
-
   const handleProcess = async () => {
     const fileHandle = file.getHandle()
-    if (!workerClient || !fileHandle) return
+    if (!file?.worker || !fileHandle) return
 
     const fileObj = await fileHandle.getFile()
-    // Use workerClient methods for heavy operations
+    // Use file.worker methods for heavy operations
+    await file.worker.$evaluate(file, someFunction, { ... })
   }
 
   return <button onClick={handleProcess}>Process File</button>
 }
 ```
+
+The worker client is automatically created when a `HexedFile` is instantiated with a `workerConstructor` option, and is accessible via `file.worker`.
 
 ## Best Practices
 

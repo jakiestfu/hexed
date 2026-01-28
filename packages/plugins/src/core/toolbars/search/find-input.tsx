@@ -2,7 +2,7 @@ import { forwardRef, useEffect, useRef, useState } from "react"
 import type { FunctionComponent, MutableRefObject } from "react"
 import { ChevronLeft, ChevronRight, Search, X } from "lucide-react"
 
-import { useLocalStorage, useWorkerClient } from "@hexed/editor"
+import { useLocalStorage } from "@hexed/editor"
 import { HexedFile } from "@hexed/file"
 import {
   Button,
@@ -26,7 +26,6 @@ export const FindInput = forwardRef<
     onClose?: () => void
   }
 >(({ onMatchFound, onClose, file: hexedFile }, ref) => {
-  const workerClient = useWorkerClient()
   const [searchMode, setSearchMode] = useLocalStorage<"hex" | "text">(
     "hexed:find-input-mode",
     "text"
@@ -85,7 +84,7 @@ export const FindInput = forwardRef<
     if (
       !searchQuery.trim() ||
       !hexedFile ||
-      !workerClient ||
+      !hexedFile.worker ||
       bytes.length === 0
     ) {
       setMatches([])
@@ -129,7 +128,7 @@ export const FindInput = forwardRef<
         const accumulatedMatches: SearchMatch[] = []
 
         // Perform search with streaming matches using $evaluate
-        await workerClient.$evaluate(hexedFile, searchImpl, {
+        await hexedFile.worker.$evaluate(hexedFile, searchImpl, {
           context: {
             pattern
           },
@@ -215,7 +214,7 @@ export const FindInput = forwardRef<
         setSearchProgress(0)
       }
     }
-  }, [searchQuery, searchMode, hexedFile, workerClient, bytes])
+  }, [searchQuery, searchMode, hexedFile, bytes])
 
   // Navigate to match at current index
   useEffect(() => {

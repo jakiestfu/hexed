@@ -264,6 +264,9 @@ importers:
       '@hexed/types':
         specifier: workspace:*
         version: link:../types
+      '@hexed/worker':
+        specifier: workspace:*
+        version: link:../worker
     devDependencies:
       '@hexed/eslint-config':
         specifier: workspace:*

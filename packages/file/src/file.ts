@@ -27,6 +27,8 @@ import {
   readUTF16Char as readUTF16CharImpl,
   readBinary as readBinaryImpl
 } from "./interpreter"
+import type { WorkerClient } from "@hexed/worker"
+import { createWorkerClient } from "@hexed/worker"
 import type { ByteRange, HexedFileInput, HexedFileOptions } from "./types"
 
 type FileSystemObserver = {
@@ -53,9 +55,11 @@ export class HexedFile extends EventTarget {
   readonly name: string
   readonly size: number
   readonly type: string | null
+  readonly worker?: WorkerClient
 
   private input: HexedFileInput
-  private options: Required<HexedFileOptions>
+  private options: Required<Omit<HexedFileOptions, "workerConstructor">> &
+    Pick<HexedFileOptions, "workerConstructor">
   private file: File | null = null
   private fileHandle: FileSystemFileHandle | null = null
   private buffer: Uint8Array | null = null
@@ -69,7 +73,13 @@ export class HexedFile extends EventTarget {
     this.input = input
     this.options = {
       watchChanges: options?.watchChanges ?? false,
-      chunkSize: options?.chunkSize ?? 64 * 1024
+      chunkSize: options?.chunkSize ?? 64 * 1024,
+      workerConstructor: options?.workerConstructor
+    }
+
+    // Create worker client if workerConstructor is provided
+    if (options?.workerConstructor) {
+      this.worker = createWorkerClient(options.workerConstructor)
     }
 
     // Initialize based on input type
@@ -828,6 +838,9 @@ export class HexedFile extends EventTarget {
     if (this.abortController) {
       this.abortController.abort()
       this.abortController = null
+    }
+    if (this.worker) {
+      this.worker.disconnect()
     }
   }
 }

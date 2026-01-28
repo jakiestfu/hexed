@@ -4,8 +4,7 @@ import { Info, X } from "lucide-react"
 import {
   useHexedFileContext,
   useHexedSettingsContext,
-  useHexedStateContext,
-  useWorkerClient
+  useHexedStateContext
 } from "@hexed/editor"
 import {
   Button,
@@ -25,7 +24,6 @@ export const VisualizationPlugin: FunctionComponent<
   const {
     input: { hexedFile }
   } = useHexedFileContext()
-  const workerClient = useWorkerClient()
   const containerRef = useRef<HTMLDivElement>(null)
   const canvasRef = useRef<HTMLCanvasElement>(null)
   const [progress, setProgress] = useState(0)
@@ -42,12 +40,12 @@ export const VisualizationPlugin: FunctionComponent<
     })
   )
 
-  if (!hexedFile || type !== "visualization" || !workerClient) return null
+  if (!hexedFile || type !== "visualization" || !hexedFile.worker) return null
 
   // Transfer canvas to chart worker once it's mounted
   useEffect(() => {
     const canvas = canvasRef.current
-    if (!canvas || !workerClient || offscreenCanvasRef.current) return
+    if (!canvas || !hexedFile?.worker || offscreenCanvasRef.current) return
 
     if (typeof OffscreenCanvas === "undefined") {
       setError(new Error("OffscreenCanvas is not supported"))
@@ -91,12 +89,12 @@ export const VisualizationPlugin: FunctionComponent<
         err instanceof Error ? err : new Error("Failed to transfer canvas")
       setError(error)
     }
-  }, [workerClient])
+  }, [hexedFile?.worker])
 
   // Calculate and render chart when file changes
   useEffect(() => {
     const file = hexedFile?.getFile()
-    if (!file || !workerClient || isProcessing) return
+    if (!file || !hexedFile?.worker || isProcessing) return
 
     const loadData = async () => {
       try {
@@ -118,7 +116,7 @@ export const VisualizationPlugin: FunctionComponent<
         // Call chart function to get chart config
         const chartConfigPromise = chartFunction(
           hexedFile,
-          workerClient,
+          hexedFile.worker,
           (progressValue) => {
             setProgress(progressValue)
           }
@@ -134,7 +132,7 @@ export const VisualizationPlugin: FunctionComponent<
         const dpr = window.devicePixelRatio || 1
 
         // Render chart using unified worker client
-        await workerClient.render(offscreenCanvas, chartConfig, dpr)
+        await hexedFile.worker.render(offscreenCanvas, chartConfig, dpr)
         setProgress(100)
       } catch (err) {
         const error =
@@ -148,7 +146,7 @@ export const VisualizationPlugin: FunctionComponent<
     }
 
     loadData()
-  }, [hexedFile, workerClient, chartFunction, isProcessing])
+  }, [hexedFile, chartFunction, isProcessing])
 
   return (
     <div className="flex flex-col h-full w-full relative">
