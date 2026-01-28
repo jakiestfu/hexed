@@ -17,7 +17,6 @@ import {
 } from "chart.js"
 
 import { HexedFile } from "@hexed/file"
-import { extractStrings, type StringEncoding } from "@hexed/file/strings"
 import { createLogger } from "@hexed/logger"
 
 import type {
@@ -32,8 +31,6 @@ import type {
   ProgressEvent,
   RequestMessage,
   ResponseMessage,
-  StringsRequest,
-  StringsResponse,
   WorkerMessage
 } from "./types"
 
@@ -62,170 +59,10 @@ import {
 
 const logger = createLogger("worker")
 
-// Chunk size for streaming (1MB)
-const STREAM_CHUNK_SIZE = 1024 * 1024
-
 /**
  * Track abort state for evaluate requests
  */
 const abortStates = new Map<string, boolean>()
-
-/**
- * Read a byte range from a File object
- */
-async function readByteRange(
-  file: File,
-  start: number,
-  end: number
-): Promise<Uint8Array> {
-  const blob = file.slice(start, end)
-  const arrayBuffer = await blob.arrayBuffer()
-  return new Uint8Array(arrayBuffer)
-}
-
-/**
- * Get the overlap buffer size needed for a given encoding
- */
-function getOverlapSize(encoding: string): number {
-  switch (encoding) {
-    case "ascii":
-      return 0 // No multi-byte sequences
-    case "utf8":
-      return 3 // Max UTF-8 sequence is 4 bytes, need 3 to detect incomplete sequences
-    case "utf16le":
-    case "utf16be":
-      return 1 // 2-byte units, need 1 byte to detect incomplete unit
-    case "utf32le":
-    case "utf32be":
-      return 3 // 4-byte units, need 3 bytes to detect incomplete unit
-    default:
-      return 3 // Default to safe value for unknown encodings
-  }
-}
-
-/**
- * Handle STRINGS_REQUEST - Extract strings from file with progress updates
- */
-async function handleStrings(request: StringsRequest): Promise<void> {
-  logger.log(`Extracting strings from file (request: ${request.id})`)
-  try {
-    const fileSize = request.file.size
-    const startOffset = request.startOffset ?? 0
-    const endOffset = request.endOffset ?? fileSize
-    const searchRange = endOffset - startOffset
-    const encoding = request.encoding ?? "ascii"
-    const overlapSize = getOverlapSize(encoding)
-
-    // Accumulate matches as we process chunks
-    const allMatches: Array<{
-      offset: number
-      length: number
-      encoding: StringEncoding
-      text: string
-    }> = []
-
-    // Overlap buffer from previous chunk
-    let overlapBuffer = new Uint8Array(0)
-
-    // Read and process the file in chunks
-    let bytesRead = 0
-    while (bytesRead < searchRange) {
-      const chunkStart = startOffset + bytesRead
-      const chunkEnd = Math.min(
-        chunkStart + STREAM_CHUNK_SIZE,
-        startOffset + searchRange
-      )
-
-      // Read chunk
-      const chunk = await readByteRange(request.file, chunkStart, chunkEnd)
-
-      // Combine overlap buffer with current chunk
-      const combinedLength = overlapBuffer.length + chunk.length
-      const combinedData = new Uint8Array(combinedLength)
-      combinedData.set(overlapBuffer, 0)
-      combinedData.set(chunk, overlapBuffer.length)
-
-      // Extract strings from combined data
-      const chunkMatches = extractStrings(combinedData, {
-        minLength: request.minLength,
-        encoding: request.encoding
-      })
-
-      // Adjust offsets and filter out matches in overlap region
-      for (const match of chunkMatches) {
-        // Filter out matches that are entirely within the overlap region
-        if (match.offset < overlapBuffer.length) {
-          // Check if match extends beyond overlap region
-          const matchEnd = match.offset + match.length
-          if (matchEnd <= overlapBuffer.length) {
-            // Match is entirely in overlap, skip (already processed in previous chunk)
-            continue
-          }
-          // Match spans overlap boundary - it starts in overlap but extends into current chunk
-          // The match was already reported in the previous chunk, so skip it
-          continue
-        } else {
-          // Match is entirely in current chunk (or starts at overlap boundary)
-          // Adjust offset: subtract overlap length to get position relative to chunk start,
-          // then add absolute chunk start position
-          const adjustedOffset =
-            chunkStart + (match.offset - overlapBuffer.length)
-          allMatches.push({
-            ...match,
-            offset: adjustedOffset
-          })
-        }
-      }
-
-      // Save last few bytes as overlap for next chunk
-      // Take last overlapSize bytes from combined buffer (or all if combined is smaller)
-      const overlapLength = Math.min(overlapSize, combinedData.length)
-      if (overlapLength > 0) {
-        overlapBuffer = combinedData.slice(combinedData.length - overlapLength)
-      } else {
-        overlapBuffer = new Uint8Array(0)
-      }
-
-      const chunkSize = chunkEnd - chunkStart
-      bytesRead += chunkSize
-
-      // Calculate progress percentage
-      const progress = Math.min(
-        100,
-        Math.round((bytesRead / searchRange) * 100)
-      )
-
-      // Send progress event
-      const progressEvent: ProgressEvent = {
-        id: generateMessageId(),
-        type: "PROGRESS_EVENT",
-        requestId: request.id,
-        progress,
-        bytesRead: bytesRead,
-        totalBytes: searchRange
-      }
-      sendProgress(progressEvent)
-
-      // Yield to event loop to keep UI responsive
-      await new Promise((resolve) => setTimeout(resolve, 0))
-    }
-
-    logger.log(
-      `Strings extraction completed, found ${allMatches.length} matches`
-    )
-    const response: StringsResponse = {
-      id: request.id,
-      type: "STRINGS_RESPONSE",
-      matches: allMatches
-    }
-    sendResponse(response)
-  } catch (error) {
-    sendError(
-      error instanceof Error ? error.message : "Failed to extract strings",
-      request.id
-    )
-  }
-}
 
 /**
  * Store chart instances by canvas (for updates without re-transferring)
@@ -420,9 +257,6 @@ return (async () => {
  */
 async function handleRequest(message: RequestMessage): Promise<void> {
   switch (message.type) {
-    case "STRINGS_REQUEST":
-      await handleStrings(message)
-      break
     case "CHART_RENDER_REQUEST":
       await handleChartRender(message)
       break

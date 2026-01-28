@@ -3,14 +3,11 @@
  */
 
 import type { HexedFile } from "@hexed/file"
-import type { StringEncoding, StringMatch } from "@hexed/file/strings"
 
 export type MessageType =
-  | "STRINGS_REQUEST"
   | "CHART_RENDER_REQUEST"
   | "EVALUATE_REQUEST"
   | "EVALUATE_ABORT"
-  | "STRINGS_RESPONSE"
   | "CHART_RENDER_RESPONSE"
   | "EVALUATE_RESPONSE"
   | "PROGRESS_EVENT"
@@ -42,24 +39,6 @@ export interface ErrorResponse extends BaseMessage {
 
 export interface ConnectedResponse extends BaseMessage {
   type: "CONNECTED"
-}
-
-/**
- * Strings Messages
- */
-
-export interface StringsRequest extends BaseMessage {
-  type: "STRINGS_REQUEST"
-  file: File
-  minLength: number
-  encoding: StringEncoding
-  startOffset?: number
-  endOffset?: number
-}
-
-export interface StringsResponse extends BaseMessage {
-  type: "STRINGS_RESPONSE"
-  matches: StringMatch[]
 }
 
 /**
@@ -145,7 +124,6 @@ export type EvaluateAPI<TResult = unknown, TContext = undefined> = (
  * Union type of all request messages for the main worker
  */
 export type RequestMessage =
-  | StringsRequest
   | ChartRenderRequest
   | EvaluateRequest
 
@@ -158,7 +136,6 @@ export type AllRequestMessage = RequestMessage | ChartRenderRequest
  * Union type of all response messages
  */
 export type ResponseMessage =
-  | StringsResponse
   | ChartRenderResponse
   | EvaluateResponse
   | ErrorResponse

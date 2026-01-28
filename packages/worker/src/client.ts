@@ -3,7 +3,6 @@
  */
 
 import type { HexedFile } from "@hexed/file"
-import type { StringEncoding, StringMatch } from "@hexed/file/strings"
 import { createLogger } from "@hexed/logger"
 
 import { generateMessageId } from "./utils"
@@ -19,9 +18,7 @@ import type {
   EvaluateResultEvent,
   ProgressEvent,
   RequestMessage,
-  ResponseMessage,
-  StringsRequest,
-  StringsResponse
+  ResponseMessage
 } from "./types"
 
 const logger = createLogger("worker-client")
@@ -34,7 +31,7 @@ type EvaluateOptionsBase<TResult = unknown> = {
 
 export type WorkerClient = ReturnType<typeof createWorkerClient>
 
-/**
+/**git sta
  * Pending request tracking
  */
 interface PendingRequest {
@@ -326,41 +323,6 @@ export function createWorkerClient(
   }
 
   return {
-    async strings(
-      file: File,
-      options: { minLength: number; encoding: StringEncoding },
-      onProgress?: (progress: number) => void,
-      startOffset?: number,
-      endOffset?: number
-    ): Promise<StringMatch[]> {
-      logger.log(`Extracting strings from file: ${file.name}`)
-      const request: StringsRequest = {
-        id: generateMessageId(),
-        type: "STRINGS_REQUEST",
-        file,
-        minLength: options.minLength,
-        encoding: options.encoding,
-        startOffset,
-        endOffset
-      }
-
-      // Register progress callback if provided
-      if (onProgress) {
-        progressCallbacks.set(request.id, onProgress)
-      }
-
-      try {
-        const response = await sendMainWorkerRequest<StringsResponse>(request)
-        logger.log(
-          `Strings extraction completed, found ${response.matches.length} matches`
-        )
-        return response.matches
-      } finally {
-        // Clean up progress callback
-        progressCallbacks.delete(request.id)
-      }
-    },
-
     async render(
       canvas: OffscreenCanvas,
       config: unknown,
