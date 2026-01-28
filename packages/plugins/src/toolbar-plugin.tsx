@@ -12,7 +12,7 @@ export const ToolbarPlugin: FunctionComponent<HexedPluginOptions> = ({
   type,
   title,
   icon: Icon,
-  component: Component,
+  component: Component
 }) => {
   const settings = useHexedSettingsContext()
   const state = useHexedStateContext()

@@ -5,7 +5,6 @@
 import type { HexedFile } from "@hexed/file"
 import { createLogger } from "@hexed/logger"
 
-import { generateMessageId } from "./utils"
 import type {
   ChartRenderRequest,
   ChartRenderResponse,
@@ -20,6 +19,7 @@ import type {
   RequestMessage,
   ResponseMessage
 } from "./types"
+import { generateMessageId } from "./utils"
 
 const logger = createLogger("worker-client")
 
@@ -43,9 +43,7 @@ interface PendingRequest {
 /**
  * Create a worker client connected to the Worker
  */
-export function createWorkerClient(
-  mainWorkerConstructor: new () => Worker
-) {
+export function createWorkerClient(mainWorkerConstructor: new () => Worker) {
   let mainWorker: Worker | null = null
   const pendingRequests = new Map<string, PendingRequest>()
   const REQUEST_TIMEOUT = 30000 // 30 seconds
@@ -69,13 +67,21 @@ export function createWorkerClient(
    * Handle messages from any worker
    */
   function handleWorkerMessage(
-    message: ResponseMessage | ProgressEvent | EvaluateResultEvent | ChartRenderResponse | ConnectedResponse | ErrorResponse
+    message:
+      | ResponseMessage
+      | ProgressEvent
+      | EvaluateResultEvent
+      | ChartRenderResponse
+      | ConnectedResponse
+      | ErrorResponse
   ): void {
     // Handle progress events separately
     if (message.type === "PROGRESS_EVENT") {
       const progressEvent = message as ProgressEvent
       // Check if this is an evaluate progress event (has custom data)
-      const evaluateCallback = evaluateProgressCallbacks.get(progressEvent.requestId)
+      const evaluateCallback = evaluateProgressCallbacks.get(
+        progressEvent.requestId
+      )
       if (evaluateCallback) {
         evaluateCallback({
           processed: progressEvent.bytesRead,
@@ -151,7 +157,9 @@ export function createWorkerClient(
 
       // Handle messages from main worker
       mainWorker.onmessage = (
-        event: MessageEvent<ResponseMessage | ProgressEvent | EvaluateResultEvent>
+        event: MessageEvent<
+          ResponseMessage | ProgressEvent | EvaluateResultEvent
+        >
       ) => {
         handleWorkerMessage(event.data)
       }
@@ -256,7 +264,8 @@ export function createWorkerClient(
   >(
     file: HexedFile,
     fn: EvaluateAPI<TResult, TContext>,
-    options?: EvaluateOptionsBase<TResult> & (TContext extends undefined ? {} : { context: TContext })
+    options?: EvaluateOptionsBase<TResult> &
+      (TContext extends undefined ? {} : { context: TContext })
   ): Promise<TResult> => {
     const worker = initializeMainWorker()
     // Serialize function to string
@@ -276,7 +285,7 @@ export function createWorkerClient(
         const abortMessage: EvaluateAbort = {
           id: generateMessageId(),
           type: "EVALUATE_ABORT",
-          requestId: signalId,
+          requestId: signalId
         }
         try {
           worker.postMessage(abortMessage)
@@ -295,7 +304,10 @@ export function createWorkerClient(
 
     // Register result callback if provided
     if (options?.onResult) {
-      evaluateResultCallbacks.set(requestId, options.onResult as (result: unknown) => void)
+      evaluateResultCallbacks.set(
+        requestId,
+        options.onResult as (result: unknown) => void
+      )
     }
 
     const request: EvaluateRequest = {
@@ -304,7 +316,7 @@ export function createWorkerClient(
       file: file.getFile()!,
       functionCode,
       signalId,
-      ...(options && 'context' in options ? { context: options.context } : {})
+      ...(options && "context" in options ? { context: options.context } : {})
     }
 
     try {
@@ -326,14 +338,15 @@ export function createWorkerClient(
     async render(
       canvas: OffscreenCanvas,
       config: unknown,
-      onProgress?: (progress: number) => void
+      devicePixelRatio?: number
     ): Promise<void> {
       logger.log("Rendering chart on offscreen canvas")
       const request: ChartRenderRequest = {
         id: generateMessageId(),
         type: "CHART_RENDER_REQUEST",
         canvas,
-        config
+        config,
+        devicePixelRatio
       }
 
       try {
@@ -346,7 +359,9 @@ export function createWorkerClient(
         // If canvas is already detached, it means we're trying to transfer it again
         // This shouldn't happen if used correctly, but handle gracefully
         if (error instanceof Error && error.message.includes("detached")) {
-          logger.log("Canvas already transferred, sending update without transfer")
+          logger.log(
+            "Canvas already transferred, sending update without transfer"
+          )
           // Send request without transfer list (canvas reference will be null in worker)
           // Worker should handle this by updating existing chart
           const updateRequest: ChartRenderRequest = {

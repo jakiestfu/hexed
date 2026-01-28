@@ -1,9 +1,10 @@
 import { Repeat } from "lucide-react"
 
+import { HexedFile } from "@hexed/file"
+import type { ChartConfiguration, EvaluateAPI } from "@hexed/worker"
+
 import { createHexedEditorPlugin } from "../.."
 import type { ChartCalculationFunction } from "../../types"
-import type { ChartConfiguration, EvaluateAPI } from "@hexed/worker"
-import { HexedFile } from "@hexed/file"
 
 /**
  * Pure function to calculate autocorrelation
@@ -13,7 +14,6 @@ const calculateAutocorrelationImpl: EvaluateAPI<
   { autocorrelationValues: number[]; lags: number[] },
   { startOffset?: number; endOffset?: number; maxLag?: number }
 > = async (hexedFile, api) => {
-
   // Chunk size for streaming (1MB)
   const STREAM_CHUNK_SIZE = 1024 * 1024
   // Maximum data size to process for autocorrelation (10MB)
@@ -67,7 +67,6 @@ const calculateAutocorrelationImpl: EvaluateAPI<
 
     return autocorrelations
   }
-
 
   const fileSize = hexedFile.size
   const startOffset = api.context?.startOffset ?? 0
@@ -176,11 +175,11 @@ export const calculateAutocorrelation: ChartCalculationFunction = async (
       context: { startOffset, endOffset, maxLag: 256 },
       onProgress: onProgress
         ? (progress) => {
-          const percentage = Math.round(
-            (progress.processed / progress.size) * 100
-          )
-          onProgress(percentage)
-        }
+            const percentage = Math.round(
+              (progress.processed / progress.size) * 100
+            )
+            onProgress(percentage)
+          }
         : undefined
     }
   )
@@ -264,22 +263,32 @@ export const autocorrelationPlugin = createHexedEditorPlugin({
   info: (
     <div className="space-y-2">
       <p>
-        This visualization measures <strong>how correlated the data is with itself</strong> at different lag offsets.
-        Autocorrelation helps identify repeating patterns, periodic structures, encryption, compression, and structured data regions.
+        This visualization measures{" "}
+        <strong>how correlated the data is with itself</strong> at different lag
+        offsets. Autocorrelation helps identify repeating patterns, periodic
+        structures, encryption, compression, and structured data regions.
       </p>
       <p>
-        Autocorrelation is calculated as the correlation between the data and a shifted copy of itself.
-        Values range from <strong>-1 to 1</strong>, where:
+        Autocorrelation is calculated as the correlation between the data and a
+        shifted copy of itself. Values range from <strong>-1 to 1</strong>,
+        where:
       </p>
       <ul className="list-disc list-inside space-y-1 ml-4">
-        <li><strong>1</strong> = perfect positive correlation (repeating pattern)</li>
-        <li><strong>-1</strong> = perfect negative correlation (alternating pattern)</li>
-        <li><strong>0</strong> = no correlation (random data)</li>
+        <li>
+          <strong>1</strong> = perfect positive correlation (repeating pattern)
+        </li>
+        <li>
+          <strong>-1</strong> = perfect negative correlation (alternating
+          pattern)
+        </li>
+        <li>
+          <strong>0</strong> = no correlation (random data)
+        </li>
       </ul>
       <p>
-        High autocorrelation at specific lags indicates repeating patterns at those offsets.
-        This is commonly used in binary analysis and forensics to detect encryption, compression,
-        or structured data formats.
+        High autocorrelation at specific lags indicates repeating patterns at
+        those offsets. This is commonly used in binary analysis and forensics to
+        detect encryption, compression, or structured data formats.
       </p>
       <p>
         <a

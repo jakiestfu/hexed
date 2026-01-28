@@ -49,6 +49,7 @@ export interface ChartRenderRequest extends BaseMessage {
   type: "CHART_RENDER_REQUEST"
   canvas: OffscreenCanvas
   config: unknown // Chart.js configuration object
+  devicePixelRatio?: number // Device pixel ratio for retina displays
 }
 
 export interface ChartRenderResponse extends BaseMessage {
@@ -123,9 +124,7 @@ export type EvaluateAPI<TResult = unknown, TContext = undefined> = (
 /**
  * Union type of all request messages for the main worker
  */
-export type RequestMessage =
-  | ChartRenderRequest
-  | EvaluateRequest
+export type RequestMessage = ChartRenderRequest | EvaluateRequest
 
 /**
  * Union type of all request messages (including chart render requests)

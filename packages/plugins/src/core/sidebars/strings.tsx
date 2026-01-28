@@ -6,7 +6,6 @@ import { FixedSizeList } from "react-window"
 import { useWorkerClient } from "@hexed/editor"
 import { formatAddress } from "@hexed/file/formatter"
 import type { StringEncoding, StringMatch } from "@hexed/file/strings"
-import type { EvaluateAPI } from "@hexed/worker"
 import {
   Button,
   Empty,
@@ -26,6 +25,7 @@ import {
   TableHeader,
   TableRow
 } from "@hexed/ui"
+import type { EvaluateAPI } from "@hexed/worker"
 
 import { createHexedEditorPlugin } from "../.."
 import { HexedPluginComponent } from "../../types"
@@ -36,7 +36,12 @@ import { HexedPluginComponent } from "../../types"
  */
 const extractStringsImpl: EvaluateAPI<
   StringMatch[],
-  { minLength: number; encoding: StringEncoding; startOffset?: number; endOffset?: number }
+  {
+    minLength: number
+    encoding: StringEncoding
+    startOffset?: number
+    endOffset?: number
+  }
 > = async (hexedFile, api) => {
   // Chunk size for streaming (1MB)
   const STREAM_CHUNK_SIZE = 1024 * 1024
@@ -71,7 +76,10 @@ const extractStringsImpl: EvaluateAPI<
   /**
    * Check if a UTF-8 sequence is valid and printable
    */
-  const isValidUtf8Char = (bytes: Uint8Array, offset: number): {
+  const isValidUtf8Char = (
+    bytes: Uint8Array,
+    offset: number
+  ): {
     valid: boolean
     length: number
     char: string | null
@@ -88,7 +96,7 @@ const extractStringsImpl: EvaluateAPI<
         return {
           valid: true,
           length: 1,
-          char: String.fromCharCode(byte0),
+          char: String.fromCharCode(byte0)
         }
       }
       return { valid: false, length: 1, char: null }
@@ -150,7 +158,7 @@ const extractStringsImpl: EvaluateAPI<
             offset: start,
             length,
             encoding: "ascii",
-            text,
+            text
           })
         }
         start = -1
@@ -167,7 +175,7 @@ const extractStringsImpl: EvaluateAPI<
         offset: start,
         length,
         encoding: "ascii",
-        text,
+        text
       })
     }
 
@@ -208,7 +216,7 @@ const extractStringsImpl: EvaluateAPI<
               offset: start,
               length,
               encoding: "utf8",
-              text,
+              text
             })
           } catch {
             // Skip invalid UTF-8 sequences
@@ -230,7 +238,7 @@ const extractStringsImpl: EvaluateAPI<
           offset: start,
           length,
           encoding: "utf8",
-          text,
+          text
         })
       } catch {
         // Skip invalid UTF-8 sequences
@@ -318,7 +326,7 @@ const extractStringsImpl: EvaluateAPI<
               offset: start,
               length: byteLength,
               encoding: littleEndian ? "utf16le" : "utf16be",
-              text,
+              text
             })
           } catch {
             // Skip invalid sequences
@@ -345,7 +353,7 @@ const extractStringsImpl: EvaluateAPI<
                 offset: start,
                 length: byteLength,
                 encoding: littleEndian ? "utf16le" : "utf16be",
-                text,
+                text
               })
             } catch {
               // Skip invalid sequences
@@ -397,7 +405,7 @@ const extractStringsImpl: EvaluateAPI<
               offset: start,
               length: byteLength,
               encoding: littleEndian ? "utf16le" : "utf16be",
-              text,
+              text
             })
           } catch {
             // Skip invalid sequences
@@ -421,7 +429,7 @@ const extractStringsImpl: EvaluateAPI<
           offset: start,
           length: byteLength,
           encoding: littleEndian ? "utf16le" : "utf16be",
-          text,
+          text
         })
       } catch {
         // Skip invalid sequences
@@ -476,7 +484,7 @@ const extractStringsImpl: EvaluateAPI<
               offset: start,
               length: byteLength,
               encoding: littleEndian ? "utf32le" : "utf32be",
-              text,
+              text
             })
           } catch {
             // Skip invalid sequences
@@ -524,7 +532,7 @@ const extractStringsImpl: EvaluateAPI<
               offset: start,
               length: byteLength,
               encoding: littleEndian ? "utf32le" : "utf32be",
-              text,
+              text
             })
           } catch {
             // Skip invalid sequences
@@ -556,7 +564,7 @@ const extractStringsImpl: EvaluateAPI<
           offset: start,
           length: byteLength,
           encoding: littleEndian ? "utf32le" : "utf32be",
-          text,
+          text
         })
       } catch {
         // Skip invalid sequences
@@ -653,7 +661,7 @@ const extractStringsImpl: EvaluateAPI<
             chunkStart + (match.offset - overlapBuffer.length)
           allMatches.push({
             ...match,
-            offset: adjustedOffset,
+            offset: adjustedOffset
           })
         }
       }
@@ -704,19 +712,15 @@ export const Strings: HexedPluginComponent<"sidebar"> = ({ file, state }) => {
     setExtractedStrings([])
 
     try {
-      const matches = await workerClient.$evaluate(
-        file,
-        extractStringsImpl,
-        {
-          context: { minLength, encoding },
-          onProgress: (progress) => {
-            const percentage = Math.round(
-              (progress.processed / progress.size) * 100
-            )
-            setSearchProgress(percentage)
-          }
+      const matches = await workerClient.$evaluate(file, extractStringsImpl, {
+        context: { minLength, encoding },
+        onProgress: (progress) => {
+          const percentage = Math.round(
+            (progress.processed / progress.size) * 100
+          )
+          setSearchProgress(percentage)
         }
-      )
+      })
       setExtractedStrings(matches)
     } catch (error) {
       console.error("Failed to extract strings:", error)

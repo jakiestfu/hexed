@@ -5,8 +5,8 @@ import { formatBytes } from "@hexed/file/formatter"
 import { Popover, PopoverContent, PopoverTrigger } from "@hexed/ui"
 
 import { createHexedEditorPlugin } from "../../.."
-import { usePerformanceMetrics } from "./use-performance-metrics"
 import { HexedPluginComponent } from "../../../types"
+import { usePerformanceMetrics } from "./use-performance-metrics"
 
 /**
  * Memory profiler component that displays browser memory usage

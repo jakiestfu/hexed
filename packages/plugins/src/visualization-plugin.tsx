@@ -7,7 +7,14 @@ import {
   useHexedStateContext,
   useWorkerClient
 } from "@hexed/editor"
-import { Button, cn, Popover, PopoverContent, PopoverTrigger, Progress } from "@hexed/ui"
+import {
+  Button,
+  cn,
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+  Progress
+} from "@hexed/ui"
 
 import { HexedPluginOptionsForVisualization } from "./types"
 
@@ -26,9 +33,9 @@ export const VisualizationPlugin: FunctionComponent<
   const [error, setError] = useState<Error | null>(null)
   const fileProcessedRef = useRef<string | null>(null)
   const offscreenCanvasRef = useRef<OffscreenCanvas | null>(null)
-  const canvasReadyResolveRef = useRef<((canvas: OffscreenCanvas) => void) | null>(
-    null
-  )
+  const canvasReadyResolveRef = useRef<
+    ((canvas: OffscreenCanvas) => void) | null
+  >(null)
   const canvasReadyPromiseRef = useRef<Promise<OffscreenCanvas>>(
     new Promise<OffscreenCanvas>((resolve) => {
       canvasReadyResolveRef.current = resolve
@@ -49,14 +56,26 @@ export const VisualizationPlugin: FunctionComponent<
 
     // Set dimensions
     const container = containerRef?.current
+    let displayWidth: number
+    let displayHeight: number
+
     if (container) {
       const rect = container.getBoundingClientRect()
-      canvas.width = rect.width || 800
-      canvas.height = rect.height || 600
+      displayWidth = rect.width || 800
+      displayHeight = rect.height || 600
     } else {
-      canvas.width = 800
-      canvas.height = 600
+      displayWidth = 800
+      displayHeight = 600
     }
+
+    // Set canvas size to display dimensions
+    // Chart.js will handle devicePixelRatio scaling internally
+    canvas.width = displayWidth
+    canvas.height = displayHeight
+
+    // Set CSS size to maintain correct display size
+    canvas.style.width = `${displayWidth}px`
+    canvas.style.height = `${displayHeight}px`
 
     // Transfer canvas
     try {
@@ -68,7 +87,8 @@ export const VisualizationPlugin: FunctionComponent<
         canvasReadyResolveRef.current = null
       }
     } catch (err) {
-      const error = err instanceof Error ? err : new Error("Failed to transfer canvas")
+      const error =
+        err instanceof Error ? err : new Error("Failed to transfer canvas")
       setError(error)
     }
   }, [workerClient])
@@ -110,11 +130,15 @@ export const VisualizationPlugin: FunctionComponent<
           canvasPromise
         ])
 
+        // Get devicePixelRatio for Chart.js config
+        const dpr = window.devicePixelRatio || 1
+
         // Render chart using unified worker client
-        await workerClient.render(offscreenCanvas, chartConfig)
+        await workerClient.render(offscreenCanvas, chartConfig, dpr)
         setProgress(100)
       } catch (err) {
-        const error = err instanceof Error ? err : new Error("Failed to render chart")
+        const error =
+          err instanceof Error ? err : new Error("Failed to render chart")
         console.error("Failed to render chart:", err)
         setError(error)
         fileProcessedRef.current = null
@@ -130,18 +154,22 @@ export const VisualizationPlugin: FunctionComponent<
     <div className="flex flex-col h-full w-full relative">
       <div className="flex items-center justify-between p-4">
         <div className="flex items-center gap-2">
-          <h2 className="text-lg font-bold">
-            {title}
-          </h2>
+          <h2 className="text-lg font-bold">{title}</h2>
           {info ? (
             // Create a popover
             <Popover>
               <PopoverTrigger asChild>
-                <Button variant="ghost" size="icon">
+                <Button
+                  variant="ghost"
+                  size="icon"
+                >
                   <Info className="size-4" />
                 </Button>
               </PopoverTrigger>
-              <PopoverContent align="start" className="text-sm text-muted-foreground">
+              <PopoverContent
+                align="start"
+                className="text-sm text-muted-foreground"
+              >
                 {info}
               </PopoverContent>
             </Popover>
@@ -164,11 +192,22 @@ export const VisualizationPlugin: FunctionComponent<
       )}
 
       {/* Chart Canvas */}
-      <div ref={containerRef} className="flex-1 relative min-h-0 m-4 mt-0">
+      <div
+        ref={containerRef}
+        className="flex-1 relative min-h-0 m-4 mt-0"
+      >
         {/* Progress Bar */}
-        <div className={cn("absolute inset-0 flex items-center justify-center pointer-events-none transition-opacity duration-300 z-10", isProcessing ? "opacity-100" : "opacity-0")}>
+        <div
+          className={cn(
+            "absolute inset-0 flex items-center justify-center pointer-events-none transition-opacity duration-300 z-10",
+            isProcessing ? "opacity-100" : "opacity-0"
+          )}
+        >
           <div className="space-y-2 w-full max-w-lg px-4">
-            <Progress value={progress} className="h-2" />
+            <Progress
+              value={progress}
+              className="h-2"
+            />
             <div className="flex items-center justify-between text-xs text-muted-foreground">
               <span className="animate-pulse">Calculating chart data...</span>
               <span>{Math.round(progress)}%</span>
@@ -178,7 +217,10 @@ export const VisualizationPlugin: FunctionComponent<
 
         <canvas
           ref={canvasRef}
-          className={cn("w-full h-full transition-opacity duration-300", isProcessing ? "opacity-0" : "opacity-100")}
+          className={cn(
+            "w-full h-full transition-opacity duration-300",
+            isProcessing ? "opacity-0" : "opacity-100"
+          )}
           style={{ display: "block" }}
         />
       </div>

@@ -14,9 +14,9 @@ import {
   Progress
 } from "@hexed/ui"
 
-import { useHexadecimalFormatting } from "./use-hexadecimal-formatting"
 import { searchImpl } from "./search-impl"
 import type { SearchMatch } from "./types"
+import { useHexadecimalFormatting } from "./use-hexadecimal-formatting"
 
 export const FindInput = forwardRef<
   HTMLInputElement,
@@ -44,7 +44,7 @@ export const FindInput = forwardRef<
     if (typeof ref === "function") {
       ref(element)
     } else if (ref) {
-      ; (ref as MutableRefObject<HTMLInputElement | null>).current = element
+      ;(ref as MutableRefObject<HTMLInputElement | null>).current = element
     }
   }
 
@@ -129,48 +129,44 @@ export const FindInput = forwardRef<
         const accumulatedMatches: SearchMatch[] = []
 
         // Perform search with streaming matches using $evaluate
-        await workerClient.$evaluate(
-          hexedFile,
-          searchImpl,
-          {
-            context: {
-              pattern
-            },
-            onProgress: (progress) => {
-              // Check if this search was cancelled
-              if (cancelledRequestIdsRef.current.has(requestId)) {
-                return
-              }
+        await workerClient.$evaluate(hexedFile, searchImpl, {
+          context: {
+            pattern
+          },
+          onProgress: (progress) => {
+            // Check if this search was cancelled
+            if (cancelledRequestIdsRef.current.has(requestId)) {
+              return
+            }
 
-              // Calculate percentage
-              const percentage = Math.round(
-                (progress.processed / progress.size) * 100
+            // Calculate percentage
+            const percentage = Math.round(
+              (progress.processed / progress.size) * 100
+            )
+            setSearchProgress(percentage)
+          },
+          onResult: (streamedMatches: SearchMatch[]) => {
+            // Check if this search was cancelled
+            if (cancelledRequestIdsRef.current.has(requestId)) {
+              return
+            }
+
+            // Add new matches to accumulated list
+            accumulatedMatches.push(...streamedMatches)
+            setMatches([...accumulatedMatches])
+
+            // Highlight first match if this is the first batch
+            if (
+              accumulatedMatches.length === streamedMatches.length &&
+              streamedMatches.length > 0
+            ) {
+              onMatchFoundRef.current?.(
+                streamedMatches[0].offset,
+                streamedMatches[0].length
               )
-              setSearchProgress(percentage)
-            },
-            onResult: (streamedMatches: SearchMatch[]) => {
-              // Check if this search was cancelled
-              if (cancelledRequestIdsRef.current.has(requestId)) {
-                return
-              }
-
-              // Add new matches to accumulated list
-              accumulatedMatches.push(...streamedMatches)
-              setMatches([...accumulatedMatches])
-
-              // Highlight first match if this is the first batch
-              if (
-                accumulatedMatches.length === streamedMatches.length &&
-                streamedMatches.length > 0
-              ) {
-                onMatchFoundRef.current?.(
-                  streamedMatches[0].offset,
-                  streamedMatches[0].length
-                )
-              }
             }
           }
-        )
+        })
 
         // Check if search was cancelled before updating state
         if (cancelledRequestIdsRef.current.has(requestId)) {
@@ -284,10 +280,15 @@ export const FindInput = forwardRef<
       <div
         className={cn(
           "absolute top-[-2px] left-0 right-0 transition-opacity duration-300 bg-background",
-          searchProgress === 100 || searchProgress === 0 ? "opacity-0" : "opacity-100"
+          searchProgress === 100 || searchProgress === 0
+            ? "opacity-0"
+            : "opacity-100"
         )}
       >
-        <Progress value={searchProgress} className="h-[3px] rounded-none" />
+        <Progress
+          value={searchProgress}
+          className="h-[3px] rounded-none"
+        />
       </div>
       <div className="flex flex-col gap-2 w-full relative">
         {/* Progress Bar */}
@@ -336,7 +337,8 @@ export const FindInput = forwardRef<
                       <ChevronLeft className="h-3 w-3" />
                     </Button>
                     <span className="text-xs text-muted-foreground min-w-[80px] text-center">
-                      {(currentMatchIndex + 1).toLocaleString()} of {matches.length.toLocaleString()} result
+                      {(currentMatchIndex + 1).toLocaleString()} of{" "}
+                      {matches.length.toLocaleString()} result
                       {matches.length !== 1 ? "s" : ""}
                     </span>
                     <Button

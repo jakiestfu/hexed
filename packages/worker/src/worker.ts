@@ -33,6 +33,13 @@ import type {
   ResponseMessage,
   WorkerMessage
 } from "./types"
+import {
+  generateMessageId,
+  sendError,
+  sendEvaluateResult,
+  sendProgress,
+  sendResponse
+} from "./utils"
 
 // Export ChartConfiguration type for use by plugins
 export type { ChartConfiguration }
@@ -49,13 +56,6 @@ Chart.register(
   ScatterController,
   Decimation
 )
-import {
-  generateMessageId,
-  sendError,
-  sendEvaluateResult,
-  sendProgress,
-  sendResponse
-} from "./utils"
 
 const logger = createLogger("worker")
 
@@ -101,16 +101,25 @@ async function handleChartRender(request: ChartRenderRequest): Promise<void> {
       // Chart.js doesn't have a direct update method, so we'll create a new one
       // But first, destroy the old one if possible
       if (typeof (existingChart as any).destroy === "function") {
-        ; (existingChart as any).destroy()
+        ;(existingChart as any).destroy()
       }
     }
 
     // Create new chart instance
     if (request.canvas) {
-      const chart = renderChart(
-        request.canvas,
-        request.config as ChartConfiguration
-      )
+      // Merge devicePixelRatio into chart config if provided
+      const baseConfig = request.config as ChartConfiguration
+      const chartConfig: ChartConfiguration = {
+        ...baseConfig,
+        options: {
+          ...(baseConfig.options || {}),
+          ...(request.devicePixelRatio !== undefined
+            ? { devicePixelRatio: request.devicePixelRatio }
+            : {})
+        }
+      }
+
+      const chart = renderChart(request.canvas, chartConfig)
       chartInstances.set(request.canvas, chart)
     } else {
       // Canvas is null, which means this is an update request
@@ -219,10 +228,12 @@ return (async () => {
     // Use Function constructor to create a function that receives file and api
     const fn = new Function("file", "api", "context", code)
 
-    const result = await Promise.resolve(fn(hexedFile, {
-      ...api,
-      context,
-    }))
+    const result = await Promise.resolve(
+      fn(hexedFile, {
+        ...api,
+        context
+      })
+    )
     // Clean up abort state
     if (signalId) {
       abortStates.delete(signalId)

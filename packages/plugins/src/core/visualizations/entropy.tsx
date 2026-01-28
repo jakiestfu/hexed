@@ -1,9 +1,10 @@
 import { Activity } from "lucide-react"
 
+import { formatAddress, HexedFile } from "@hexed/file"
+import type { ChartConfiguration, EvaluateAPI } from "@hexed/worker"
+
 import { createHexedEditorPlugin } from "../.."
 import type { ChartCalculationFunction } from "../../types"
-import type { ChartConfiguration, EvaluateAPI } from "@hexed/worker"
-import { formatAddress, HexedFile } from "@hexed/file"
 
 /**
  * Pure function to calculate entropy
@@ -177,7 +178,7 @@ export const calculateEntropy: ChartCalculationFunction = async (
   // Create chart configuration
   // Format offsets as hex addresses
   const labels = offsets.map((offset) => {
-    return formatAddress(offset)//`0x${offset.toString(16).padStart(8, "0").toUpperCase()}`
+    return formatAddress(offset) //`0x${offset.toString(16).padStart(8, "0").toUpperCase()}`
   })
 
   // For small datasets, show points and disable decimation
@@ -255,13 +256,14 @@ export const entropyPlugin = createHexedEditorPlugin({
   info: (
     <div className="space-y-2">
       <p>
-        This visualization measures <strong>how random or structured</strong> the selected bytes are.
-        Higher entropy means the data looks more random; lower entropy suggests patterns,
-        repetition, or human-readable structure.
+        This visualization measures <strong>how random or structured</strong>{" "}
+        the selected bytes are. Higher entropy means the data looks more random;
+        lower entropy suggests patterns, repetition, or human-readable
+        structure.
       </p>
       <p>
-        Entropy is computed using the <strong>Shannon entropy</strong> formula, commonly used in
-        compression, cryptography, and binary analysis.
+        Entropy is computed using the <strong>Shannon entropy</strong> formula,
+        commonly used in compression, cryptography, and binary analysis.
       </p>
       <p>
         <a

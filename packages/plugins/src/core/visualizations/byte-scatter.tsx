@@ -1,9 +1,10 @@
 import { Grid3x3 } from "lucide-react"
 
+import { HexedFile } from "@hexed/file"
+import type { ChartConfiguration, EvaluateAPI } from "@hexed/worker"
+
 import { createHexedEditorPlugin } from "../.."
 import type { ChartCalculationFunction } from "../../types"
-import type { ChartConfiguration, EvaluateAPI } from "@hexed/worker"
-import { HexedFile } from "@hexed/file"
 
 /**
  * Pure function to calculate byte scatter
@@ -27,9 +28,7 @@ const calculateByteScatterImpl: EvaluateAPI<
   // Determine if we need to sample the data
   const needsSampling = searchRange > maxPoints
   const targetPoints = Math.min(searchRange, maxPoints)
-  const sampleStep = needsSampling
-    ? Math.floor(searchRange / targetPoints)
-    : 1
+  const sampleStep = needsSampling ? Math.floor(searchRange / targetPoints) : 1
 
   // Collect points
   const points: Array<{ x: number; y: number }> = []
@@ -188,23 +187,37 @@ export const byteScatterPlugin = createHexedEditorPlugin({
   info: (
     <div className="space-y-2">
       <p>
-        This visualization displays a <strong>scatter plot</strong> of file offset (X-axis) versus byte value (Y-axis).
-        Each point represents a byte at a specific position in the file, helping reveal binary file structure,
-        patterns, headers, and data organization.
+        This visualization displays a <strong>scatter plot</strong> of file
+        offset (X-axis) versus byte value (Y-axis). Each point represents a byte
+        at a specific position in the file, helping reveal binary file
+        structure, patterns, headers, and data organization.
       </p>
-      <p>
-        The scatter plot can reveal:
-      </p>
+      <p>The scatter plot can reveal:</p>
       <ul className="list-disc list-inside space-y-1 ml-4">
-        <li><strong>File headers</strong> - Distinct byte patterns at the beginning</li>
-        <li><strong>Data structures</strong> - Clustered byte values indicating structured data</li>
-        <li><strong>Patterns</strong> - Repeating sequences or regular byte distributions</li>
-        <li><strong>Transitions</strong> - Changes between different data regions</li>
-        <li><strong>Empty regions</strong> - Areas with consistent zero or padding values</li>
+        <li>
+          <strong>File headers</strong> - Distinct byte patterns at the
+          beginning
+        </li>
+        <li>
+          <strong>Data structures</strong> - Clustered byte values indicating
+          structured data
+        </li>
+        <li>
+          <strong>Patterns</strong> - Repeating sequences or regular byte
+          distributions
+        </li>
+        <li>
+          <strong>Transitions</strong> - Changes between different data regions
+        </li>
+        <li>
+          <strong>Empty regions</strong> - Areas with consistent zero or padding
+          values
+        </li>
       </ul>
       <p>
-        For large files, the data is automatically sampled to maintain performance while preserving
-        pattern visibility. Hover over points to see the exact offset and byte value.
+        For large files, the data is automatically sampled to maintain
+        performance while preserving pattern visibility. Hover over points to
+        see the exact offset and byte value.
       </p>
     </div>
   ),

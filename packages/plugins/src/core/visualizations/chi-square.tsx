@@ -1,9 +1,10 @@
 import { TrendingUp } from "lucide-react"
 
+import { formatAddress, HexedFile } from "@hexed/file"
+import type { ChartConfiguration, EvaluateAPI } from "@hexed/worker"
+
 import { createHexedEditorPlugin } from "../.."
 import type { ChartCalculationFunction } from "../../types"
-import type { ChartConfiguration, EvaluateAPI } from "@hexed/worker"
-import { formatAddress, HexedFile } from "@hexed/file"
 
 /**
  * Pure function to calculate chi-square

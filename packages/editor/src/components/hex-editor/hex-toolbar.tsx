@@ -67,8 +67,9 @@ export const HexToolbar: FunctionComponent<HexToolbarProps> = ({
           {formatFilenameForDisplay(file.name!)}
         </span>
         <div
-          className={`inline-flex h-2 w-2 rounded-full shrink-0 ${isConnected ? "bg-green-500" : "bg-gray-500"
-            }`}
+          className={`inline-flex h-2 w-2 rounded-full shrink-0 ${
+            isConnected ? "bg-green-500" : "bg-gray-500"
+          }`}
         />
       </div>
     </FileStatusPopover>

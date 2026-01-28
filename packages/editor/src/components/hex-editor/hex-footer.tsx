@@ -1,7 +1,5 @@
 import { Fragment, type FunctionComponent } from "react"
-import {
-  CaseSensitive
-} from "lucide-react"
+import { CaseSensitive } from "lucide-react"
 
 // import { MemoryProfiler } from "../common/memory-profiler"
 import { HexedPlugin } from "@hexed/plugins/types"
@@ -22,9 +20,7 @@ export type HexFooterProps = {
   plugins: HexedPlugin[]
 }
 
-export const HexFooter: FunctionComponent<HexFooterProps> = ({
-  plugins
-}) => {
+export const HexFooter: FunctionComponent<HexFooterProps> = ({ plugins }) => {
   const {
     showAscii,
     setShowAscii,
@@ -68,13 +64,10 @@ export const HexFooter: FunctionComponent<HexFooterProps> = ({
                       <plugin.icon />
                     </ToggleGroupItem>
                   </TooltipTrigger>
-                  <TooltipContent>
-                    {plugin.title}
-                  </TooltipContent>
+                  <TooltipContent>{plugin.title}</TooltipContent>
                 </Tooltip>
               ))}
           </ToggleGroup>
-
         </div>
       </div>
 

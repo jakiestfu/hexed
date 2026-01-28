@@ -149,7 +149,7 @@ export const Editor: FunctionComponent<EditorProps> = ({
             fileSource={fileSource}
             isConnected={Boolean(hexedFile?.getHandle())}
             error={null}
-            onRestartWatching={() => { }}
+            onRestartWatching={() => {}}
             onClose={() => onChangeInput(null)}
           />
           {/* <HexToolbarTabs snapshots={snapshots} /> */}

@@ -294,8 +294,8 @@ export const Templates: HexedPluginComponent<"sidebar"> = ({ file, state }) => {
                                   selectedSpec.meta["file-extension"]
                                 )
                                   ? selectedSpec.meta["file-extension"].join(
-                                    ", "
-                                  )
+                                      ", "
+                                    )
                                   : selectedSpec.meta["file-extension"]}
                               </dd>
                             </div>

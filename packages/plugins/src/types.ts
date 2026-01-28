@@ -4,8 +4,7 @@ import { Keys } from "react-hotkeys-hook"
 
 import type { HexedState, UseHexedSettings } from "@hexed/editor"
 import type { HexedFile } from "@hexed/file"
-import type { WorkerClient } from "@hexed/worker"
-import type { ChartConfiguration } from "@hexed/worker"
+import type { ChartConfiguration, WorkerClient } from "@hexed/worker"
 
 export type HexedPluginType = "sidebar" | "toolbar" | "visualization" | "label"
 
@@ -42,7 +41,7 @@ export type HexedPluginOptionsForType<
   type: PluginType
   id: string
   title: string
-  info?: undefined;
+  info?: undefined
   icon: LucideIcon
   component: HexedPluginComponent<PluginType, T>
   hotkey?: {
@@ -56,7 +55,7 @@ export type HexedPluginOptionsForVisualization = {
   id: string
   title: string
   icon: LucideIcon
-  info?: ReactNode | undefined;
+  info?: ReactNode | undefined
   chart: ChartCalculationFunction
   hotkey?: {
     formatted: string
