@@ -1,7 +1,6 @@
 import { HexedFile } from "@hexed/file"
 import { formatDataIntoRows } from "@hexed/file/formatter"
 import type { FormattedRow } from "@hexed/file/formatter"
-import type { DiffResult } from "@hexed/types"
 
 import {
   calculateLayout,
@@ -29,7 +28,6 @@ export type HexCanvasOptions = {
   windowSize?: number // bytes (default: 128KB)
   showAscii?: boolean
   colors?: Partial<HexCanvasColors>
-  diff?: DiffResult | null
   bytesPerRow?: number // optional override
 }
 
@@ -50,7 +48,6 @@ export class HexCanvas extends EventTarget {
     windowSize: 128 * 1024, // 128KB default
     showAscii: true,
     colors: {},
-    diff: null,
     bytesPerRow: 16
   }
 
@@ -1101,7 +1098,7 @@ export class HexCanvas extends EventTarget {
     const scrollPositionForThumb = this.pendingScrollTop ?? this.scrollTop
     const thumbY =
       (scrollPositionForThumb / this.maxScrollTop) *
-        (trackHeight - thumbHeight) +
+      (trackHeight - thumbHeight) +
       trackY
 
     return {
@@ -1425,7 +1422,6 @@ export class HexCanvas extends EventTarget {
         this.scrollTop,
         this.options.showAscii,
         colors,
-        this.options.diff,
         this.highlightedOffset,
         this.selectedOffsetRange,
         this.hoveredRow,
@@ -1446,15 +1442,6 @@ export class HexCanvas extends EventTarget {
     return {
       ...defaults,
       ...this.options.colors,
-      diffAdded: { ...defaults.diffAdded, ...this.options.colors?.diffAdded },
-      diffRemoved: {
-        ...defaults.diffRemoved,
-        ...this.options.colors?.diffRemoved
-      },
-      diffModified: {
-        ...defaults.diffModified,
-        ...this.options.colors?.diffModified
-      },
       highlight: { ...defaults.highlight, ...this.options.colors?.highlight },
       byteHover: { ...defaults.byteHover, ...this.options.colors?.byteHover },
       selection: { ...defaults.selection, ...this.options.colors?.selection }

@@ -84,6 +84,7 @@ function renderChart(
     throw new Error("Invalid chart configuration")
   }
 
+  // @ts-ignore
   return new Chart(canvas, config)
 }
 
@@ -101,7 +102,7 @@ async function handleChartRender(request: ChartRenderRequest): Promise<void> {
       // Chart.js doesn't have a direct update method, so we'll create a new one
       // But first, destroy the old one if possible
       if (typeof (existingChart as any).destroy === "function") {
-        ;(existingChart as any).destroy()
+        ; (existingChart as any).destroy()
       }
     }
 
@@ -327,6 +328,7 @@ if (typeof self !== "undefined") {
   }
 
   // Handle worker errors
+  // @ts-ignore
   self.onerror = (error: ErrorEvent) => {
     logger.log("Worker error:", error)
   }

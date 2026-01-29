@@ -1,6 +1,5 @@
 import type { FunctionComponent } from "react"
 
-import type { BinarySnapshot } from "@hexed/types"
 import { TabsList, TabsTrigger } from "@hexed/ui"
 
 import { useHexedSettings } from "../../hooks/use-hexed-settings"

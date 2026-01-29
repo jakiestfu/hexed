@@ -15,8 +15,7 @@
     "format:fix": "prettier --write \"**/*.{js,cjs,mjs,ts,tsx,mdx}\" --ignore-path=\"../../.prettierignore\""
   },
   "dependencies": {
-    "@hexed/file": "workspace:*",
-    "@hexed/types": "workspace:*"
+    "@hexed/file": "workspace:*"
   },
   "devDependencies": {
     "@hexed/eslint-config": "workspace:*",

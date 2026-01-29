@@ -3,14 +3,11 @@
 import { useCallback, useMemo, useRef, useState } from "react"
 import type React from "react"
 
-import type { DiffViewMode } from "@hexed/types"
-
 import type { SelectionRange } from "../types"
 
 export type HexedState = {
   // State values
   activeTab: string
-  diffMode: DiffViewMode
   dataType: string
   endianness: string
   numberFormat: string
@@ -50,7 +47,6 @@ export type HexedState = {
  */
 export const useHexedState = () => {
   const [activeTab, setActiveTab] = useState<string>("0")
-  const [diffMode] = useState<DiffViewMode>("inline")
   const [dataType, setDataType] = useState<string>("Signed Int")
   const [endianness, setEndianness] = useState<string>("le")
   const [numberFormat, setNumberFormat] = useState<string>("dec")
@@ -106,7 +102,6 @@ export const useHexedState = () => {
   const state: HexedState = {
     // State values
     activeTab,
-    diffMode,
     dataType,
     endianness,
     numberFormat,

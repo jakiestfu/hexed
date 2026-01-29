@@ -10,7 +10,6 @@ import {
 } from "@hexed/ui"
 
 import packageJson from "../../../../../package.public.json"
-import { Ascii } from "../common/ascii"
 import { Brand } from "../common/logo"
 
 export const AboutDialog: FunctionComponent<{

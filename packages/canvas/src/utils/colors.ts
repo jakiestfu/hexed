@@ -48,11 +48,10 @@ export function getDefaultColors(container: HTMLElement) {
   const accent = getCSSVariable(container, "--accent")
   const destructive = getCSSVariable(container, "--destructive")
 
-  // Try to get chart colors for diff, fallback to defaults
-  const chart1 = getCSSVariable(container, "--chart-1")
+  // Try to get chart colors, fallback to defaults
   const chart4 = getCSSVariable(container, "--chart-4")
 
-  const diffModified = {
+  const selectionColor = {
     bg: addOpacity(chart4, 0.2),
     text: chart4
   }
@@ -66,27 +65,18 @@ export function getDefaultColors(container: HTMLElement) {
     byteText: foreground,
     asciiText: mutedForeground,
     border: border,
-    diffAdded: {
-      bg: addOpacity(chart1, 0.2),
-      text: chart1
-    },
-    diffRemoved: {
-      bg: addOpacity(destructive, 0.2),
-      text: destructive
-    },
-    diffModified,
     highlight: {
       bg: addOpacity(primary, 0.2),
       border: primary
     },
     rowHover: addOpacity(muted, 0.5),
     byteHover: {
-      bg: diffModified.bg,
-      border: diffModified.bg
+      bg: selectionColor.bg,
+      border: selectionColor.bg
     },
     selection: {
-      bg: diffModified.bg,
-      border: diffModified.text
+      bg: selectionColor.bg,
+      border: selectionColor.text
     },
     scrollbarThumb,
     scrollbarTrack

@@ -1,5 +1,5 @@
 {
-  "name": "@hexed/types",
+  "name": "@hexed/workbench",
   "version": "0.0.1",
   "private": true,
   "type": "module",
@@ -12,11 +12,25 @@
     "typecheck": "tsc --noEmit",
     "clean": "rm -rf dist node_modules"
   },
+  "dependencies": {
+    "@hexed/file": "workspace:*",
+    "@monaco-editor/react": "^4.7.0",
+    "constrained-editor-plugin": "^1.4.0"
+  },
   "devDependencies": {
     "@hexed/eslint-config": "workspace:*",
     "@hexed/prettier-config": "workspace:*",
     "@hexed/typescript-config": "workspace:*",
+    "@types/react": "^19.2.3",
+    "@types/react-dom": "^19.2.3",
+    "react": "^19.2.3",
+    "react-dom": "^19.2.3",
     "typescript": "^5.7.2"
+  },
+  "peerDependencies": {
+    "monaco-editor": "^0.55.1",
+    "react": "^19.2.3",
+    "react-dom": "^19.2.3"
   },
   "prettier": "@hexed/prettier-config"
 }

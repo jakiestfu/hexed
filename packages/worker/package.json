@@ -4,12 +4,14 @@
   "private": true,
   "type": "module",
   "main": "./src/index.ts",
-  "types": "./src/index.ts",
+  "types": "./dist/index.d.ts",
   "exports": {
     ".": "./src/index.ts",
     "./worker": "./src/worker.ts"
   },
   "scripts": {
+    "prebuild": "rm -rf ./tsconfig.declarations.tsbuildinfo",
+    "build": "tsc -p tsconfig.declarations.json",
     "typecheck": "tsc --noEmit",
     "test": "vitest run",
     "test:watch": "vitest",
@@ -21,7 +23,6 @@
   "dependencies": {
     "@hexed/file": "workspace:*",
     "@hexed/logger": "workspace:*",
-    "@hexed/types": "workspace:*",
     "chart.js": "^4.4.0"
   },
   "devDependencies": {

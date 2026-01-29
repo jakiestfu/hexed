@@ -4,7 +4,7 @@
   "private": true,
   "type": "module",
   "main": "./src/index.ts",
-  "types": "./src/index.ts",
+  "_types": "./src/index.ts",
   "exports": {
     ".": "./src/index.ts"
   },
@@ -22,8 +22,8 @@
     "@hexed/canvas-react": "workspace:*",
     "@hexed/logger": "workspace:*",
     "@hexed/plugins": "workspace:*",
-    "@hexed/types": "workspace:*",
     "@hexed/ui": "workspace:*",
+    "@hexed/workbench": "workspace:*",
     "@hexed/worker": "workspace:*",
     "lucide-react": "^0.468.0",
     "react-hotkeys-hook": "^4.5.1",

@@ -1,6 +1,3 @@
-// Differ
-export { computeDiff, hasDiffAtOffset, getDiffAtOffset } from './differ';
-
 // Formatter
 export {
   byteToHex,
@@ -14,10 +11,7 @@ export {
   formatHex,
   formatBytesPreview,
   type FormattedRow
-} from './formatter';
-
-// Storage
-export { InMemoryStorage, createStorageAdapter } from './storage';
+} from '@hexed/file/formatter';
 
 // Interpreter
 export {
@@ -49,7 +43,7 @@ export {
   readBinary,
   type Endianness,
   type NumberFormat,
-} from './interpreter';
+} from '@hexed/file/interpreter';
 
 // Strings
 export {
@@ -57,7 +51,7 @@ export {
   type StringMatch,
   type StringEncoding,
   type StringsOptions,
-} from './strings';
+} from '@hexed/file/strings';
 
 // Search
 export {
@@ -66,8 +60,8 @@ export {
   searchHexAll,
   searchTextAll,
   parseHexString,
-} from './search';
+} from '@hexed/file/search';
 
 // File
-export { HexedFile } from './file';
-export type { HexedFileInput, HexedFileOptions, ByteRange } from './types';
+export { HexedFile } from '@hexed/file/file';
+export type { HexedFileInput, HexedFileOptions, ByteRange } from '@hexed/file/types';

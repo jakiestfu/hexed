@@ -4,7 +4,6 @@ import type { Ref, RefObject } from "react"
 import { HexCanvas, type HexCanvasOptions } from "@hexed/canvas"
 import type { HexCanvasColors, SelectionRange } from "@hexed/canvas"
 import { HexedFile } from "@hexed/file"
-import type { DiffResult } from "@hexed/types"
 
 type ToOnHandlers<T> = Partial<{
   [K in keyof T as `on${Capitalize<string & K>}`]: (payload: T[K]) => void
@@ -25,7 +24,6 @@ export type UseHexedCanvasOptions = {
   hexedFile: HexedFile | null
   showAscii?: boolean
   colors?: Partial<HexCanvasColors>
-  diff?: DiffResult | null
   windowSize?: number
   selectedOffsetRange?: SelectionRange
 }
@@ -103,7 +101,6 @@ export function useHexedCanvas(
     hexedFile,
     showAscii = true,
     colors,
-    diff = null,
     windowSize = 128 * 1024,
     selectedOffsetRange
   } = options
@@ -118,7 +115,6 @@ export function useHexedCanvas(
       windowSize,
       showAscii,
       colors,
-      diff
     }
 
     canvasInstanceRef.current = new HexCanvas(
@@ -141,11 +137,10 @@ export function useHexedCanvas(
       canvasInstanceRef.current.setOptions({
         showAscii,
         colors,
-        diff,
         windowSize
       })
     }
-  }, [showAscii, colors, diff, windowSize])
+  }, [showAscii, colors, windowSize])
 
   // Sync selectedOffsetRange prop to canvas instance
   useEffect(() => {

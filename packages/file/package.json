@@ -7,27 +7,31 @@
   "types": "./src/index.ts",
   "exports": {
     ".": "./src/index.ts",
-    "./differ": "./src/differ.ts",
     "./formatter": "./src/formatter.ts",
     "./interpreter": "./src/interpreter.ts",
     "./storage": "./src/storage.ts",
     "./strings": "./src/strings.ts",
     "./search": "./src/search.ts",
-    "./file": "./src/file.ts"
+    "./file": "./src/file.ts",
+    "./types": "./src/types.ts"
   },
   "scripts": {
     "typecheck": "tsc --noEmit",
-    "clean": "rm -rf dist node_modules"
+    "build": "tsc -p tsconfig.declarations.json",
+    "postbuild": "dts-bundle-generator --project ./tsconfig.declarations.json -o ./dist/file.d.ts ./dist/types/index.d.ts",
+    "postpostbuild": "rm -rf ./dist/types",
+    "clean": "rm -rf dist node_modules types"
   },
   "dependencies": {
-    "@hexed/types": "workspace:*",
     "@hexed/worker": "workspace:*"
   },
   "devDependencies": {
     "@hexed/eslint-config": "workspace:*",
     "@hexed/prettier-config": "workspace:*",
     "@hexed/typescript-config": "workspace:*",
+    "@microsoft/api-extractor": "^7.47.9",
     "@types/node": "^25.0.3",
+    "dts-bundle-generator": "^9.5.1",
     "typescript": "^5.7.2"
   },
   "prettier": "@hexed/prettier-config"

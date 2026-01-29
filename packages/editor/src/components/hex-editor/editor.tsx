@@ -1,11 +1,12 @@
 "use client"
 
-import { useEffect, useMemo, useRef } from "react"
+import { useEffect, useRef, useState } from "react"
 import type { FunctionComponent } from "react"
 
 import { HexCanvasReact } from "@hexed/canvas-react"
 // import { HexToolbarSearch } from "./hex-toolbar-search"
 import { plugins } from "@hexed/plugins/core"
+import { Workbench, template as workbenchTemplate } from "@hexed/workbench"
 import {
   Card,
   CardContent,
@@ -29,7 +30,6 @@ import { EmptyState } from "../file/empty-state"
 import { HexFooter } from "./hex-footer"
 import { HexSidebar } from "./hex-sidebar"
 import { HexToolbar } from "./hex-toolbar"
-import { HexToolbarDiff } from "./hex-toolbar-diff"
 
 export const Editor: FunctionComponent<EditorProps> = ({
   className = "",
@@ -39,17 +39,11 @@ export const Editor: FunctionComponent<EditorProps> = ({
     input: { hexedFile, handleId },
     onChangeInput
   } = useHexedFileContext()
-  const { showAscii, sidebar, sidebarPosition, visualization } =
+  const { showAscii, sidebar, sidebarPosition, visualization, theme } =
     useHexedSettingsContext()
   const state = useHexedStateContext()
 
   const canRender = Boolean(hexedFile)
-
-  // Diff is disabled since we don't have multiple snapshots
-  const diff = useMemo(() => {
-    if (state.diffMode === "none") return null
-    return null
-  }, [state.diffMode])
 
   // Global keyboard shortcuts
   // useGlobalKeyboard({
@@ -87,6 +81,29 @@ export const Editor: FunctionComponent<EditorProps> = ({
 
   const hasSidebars = sidebar !== null
 
+
+  // Handle workbench content changes
+  const [workbenchValue, setWorkbenchValue] = useState<string>(() => workbenchTemplate)
+
+  const workbenchPanel = (
+    <ResizablePanel
+      id="workbench"
+      defaultSize={70}
+      minSize={20}
+      className={sidebar ? "hidden md:flex" : ""}
+    >
+      <div className="h-full w-full">
+        <Workbench
+          value={workbenchValue}
+          onChange={(v) => setWorkbenchValue(v ?? "")}
+          height="100%"
+          className="h-full"
+          theme={theme === "dark" ? "vs-dark" : "vs"}
+        />
+      </div>
+    </ResizablePanel>
+  )
+
   const hexCanvasPanel = (
     <ResizablePanel
       id="hex-canvas"
@@ -102,7 +119,6 @@ export const Editor: FunctionComponent<EditorProps> = ({
           ref={state.canvasRef}
           hexedFile={hexedFile}
           showAscii={showAscii}
-          diff={diff}
           windowSize={windowSize}
           selectedOffsetRange={state.selectedOffsetRange}
           onSelectionChange={(payload) => {
@@ -128,9 +144,12 @@ export const Editor: FunctionComponent<EditorProps> = ({
     (plugin) => plugin.id === visualization
   )
 
-  const mainContent = visualizationPlugin
-    ? visualizationPlugin.component
-    : hexCanvasPanel
+  const mainContent =
+    visualization === "workbench"
+      ? workbenchPanel
+      : visualizationPlugin
+        ? visualizationPlugin.component
+        : hexCanvasPanel
 
   return (
     <Card
@@ -149,11 +168,10 @@ export const Editor: FunctionComponent<EditorProps> = ({
             fileSource={fileSource}
             isConnected={Boolean(hexedFile?.getHandle())}
             error={null}
-            onRestartWatching={() => {}}
+            onRestartWatching={() => { }}
             onClose={() => onChangeInput(null)}
           />
           {/* <HexToolbarTabs snapshots={snapshots} /> */}
-          <HexToolbarDiff diff={diff} />
         </CardHeader>
 
         <CardContent className="grow min-h-0 overflow-auto p-0">
@@ -207,12 +225,7 @@ export const Editor: FunctionComponent<EditorProps> = ({
               : "opacity-0 transition-all duration-700 pointer-events-none"
           )}
         >
-          <HexFooter
-            totalSize={hexedFile?.size}
-            hasSnapshots={false}
-            paneToggleValue={paneToggleValue}
-            plugins={plugins}
-          />
+          <HexFooter plugins={plugins} />
         </CardFooter>
       </Tabs>
     </Card>

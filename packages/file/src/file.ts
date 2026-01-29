@@ -53,8 +53,8 @@ const clampRange = (r: ByteRange, size: number): ByteRange => ({
  */
 export class HexedFile extends EventTarget {
   readonly name: string
-  readonly size: number
-  readonly type: string | null
+  size: number
+  type: string | null
   readonly worker?: WorkerClient
 
   private input: HexedFileInput
@@ -155,7 +155,7 @@ export class HexedFile extends EventTarget {
   }
 
   private setupFileWatcher(): void {
-    if (!this.fileHandle || typeof FileSystemObserver === "undefined") {
+    if (!this.fileHandle) {
       return
     }
 

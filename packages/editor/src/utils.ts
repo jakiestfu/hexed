@@ -1,5 +1,3 @@
-import type { BinarySnapshot } from "@hexed/types"
-
 /**
  * Remove query parameters from a path or URL
  */
@@ -43,62 +41,6 @@ export async function calculateChecksum(data: Uint8Array): Promise<string> {
   const hashBuffer = await crypto.subtle.digest("SHA-256", buffer)
   const hashArray = Array.from(new Uint8Array(hashBuffer))
   return hashArray.map((b) => b.toString(16).padStart(2, "0")).join("")
-}
-
-/**
- * Create snapshot from ArrayBuffer
- */
-export function createSnapshotFromArrayBuffer(
-  buffer: ArrayBuffer,
-  source: string
-): BinarySnapshot {
-  const data = new Uint8Array(buffer)
-  const timestamp = Date.now()
-  return {
-    id: `${timestamp}-0`,
-    filePath: source,
-    data,
-    timestamp,
-    index: 0,
-    label: "Baseline"
-  }
-}
-
-/**
- * Type guard to check if input is a FileSystemFileHandle
- */
-function isFileSystemFileHandle(
-  input: File | FileSystemFileHandle
-): input is FileSystemFileHandle {
-  return "kind" in input && input.kind === "file"
-}
-
-/**
- * Create snapshot from File object or FileSystemFileHandle using direct file reading
- */
-export async function createSnapshotFromFile(
-  file: File | FileSystemFileHandle
-): Promise<BinarySnapshot> {
-  // Handle FileSystemFileHandle - get File and read directly
-  if (isFileSystemFileHandle(file)) {
-    const fileObj = await file.getFile()
-    const arrayBuffer = await fileObj.arrayBuffer()
-    const snapshot = createSnapshotFromArrayBuffer(
-      arrayBuffer,
-      file.name || "file"
-    )
-    snapshot.md5 = await calculateChecksum(snapshot.data)
-    return snapshot
-  }
-
-  // Handle File object - read directly
-  const arrayBuffer = await file.arrayBuffer()
-  const snapshot = createSnapshotFromArrayBuffer(
-    arrayBuffer,
-    file.name || "file"
-  )
-  snapshot.md5 = await calculateChecksum(snapshot.data)
-  return snapshot
 }
 
 /**

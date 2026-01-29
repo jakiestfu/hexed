@@ -27,17 +27,16 @@ export const queryParamsToOptions = (queryParams: QueryParams) => {
         break
 
       case "sidebar":
-        if (isSidebar(value)) {
-          temp.sidebar = value as Sidebar
-          break
-        }
+        temp.sidebar = value
         break
       case "sidebarPosition":
         if (isSidebarPosition(value)) {
           temp.sidebarPosition = value
         }
         break
-
+      case "visualization":
+        temp.visualization = value
+        break
       default:
         break
     }

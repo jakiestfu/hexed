@@ -1,7 +1,5 @@
-import { getDiffAtOffset } from "@hexed/file/differ"
 import { formatAddress } from "@hexed/file/formatter"
 import type { FormattedRow } from "@hexed/file/formatter"
-import type { DiffResult } from "@hexed/types"
 
 import type { HexCanvasColors } from "./colors"
 import {
@@ -237,27 +235,9 @@ export function didDragOccur(
 }
 
 /**
- * Get diff color based on diff type
- */
-export function getDiffColor(
-  diffType: "added" | "removed" | "modified",
-  colors: HexCanvasColors
-): { bg: string; text: string } {
-  switch (diffType) {
-    case "added":
-      return colors.diffAdded
-    case "removed":
-      return colors.diffRemoved
-    case "modified":
-      return colors.diffModified
-  }
-}
-
-/**
  * Get cell fill and stroke styles based on state
  */
 export function getCellStyles(
-  byteDiff: ReturnType<typeof getDiffAtOffset> | null,
   isHighlighted: boolean,
   isSelected: boolean,
   isByteHovered: boolean,
@@ -271,11 +251,8 @@ export function getCellStyles(
   let strokeStyle: string | null = null
   let strokeWidth = 0
 
-  // Determine fill style (priority: diff > highlight > selection > hover)
-  if (byteDiff) {
-    const diffColor = getDiffColor(byteDiff.type, colors)
-    fillStyle = diffColor.bg
-  } else if (isHighlighted) {
+  // Determine fill style (priority: highlight > selection > hover)
+  if (isHighlighted) {
     fillStyle = colors.selection.bg
   } else if (isSelected) {
     fillStyle = colors.selection.bg
@@ -384,7 +361,6 @@ export function drawHexCanvas(
   scrollTop: number,
   showAscii: boolean,
   colors: HexCanvasColors,
-  diff: DiffResult | null,
   highlightedOffset: number | null,
   selectedRange: SelectionRange,
   hoveredRow: number | null,
@@ -431,8 +407,8 @@ export function drawHexCanvas(
       ? Math.ceil(totalSize / layout.bytesPerRow)
       : rows.length > 0
         ? Math.max(
-            ...rows.map((r) => Math.floor(r.endOffset / layout.bytesPerRow))
-          ) + 1
+          ...rows.map((r) => Math.floor(r.endOffset / layout.bytesPerRow))
+        ) + 1
         : 0
 
   // If no rows and no totalSize, nothing to render
@@ -544,11 +520,11 @@ export function drawHexCanvas(
     let hexX = hexColumnStartX
     const bytesToRender = isVirtualRow
       ? Math.min(
-          layout.bytesPerRow,
-          totalSize !== undefined
-            ? totalSize - virtualRowStartOffset
-            : layout.bytesPerRow
-        )
+        layout.bytesPerRow,
+        totalSize !== undefined
+          ? totalSize - virtualRowStartOffset
+          : layout.bytesPerRow
+      )
       : row.hexBytes.length
 
     for (let j = 0; j < bytesToRender; j++) {
@@ -557,7 +533,6 @@ export function drawHexCanvas(
       // Skip if outside totalSize bounds
       if (totalSize !== undefined && offset >= totalSize) break
 
-      const byteDiff = diff ? getDiffAtOffset(diff, offset) : null
       const isHighlighted = highlightedOffset === offset
       const isSelected = isOffsetInRange(offset, selectedRange)
       const isByteHovered = hoveredOffset === offset
@@ -572,7 +547,6 @@ export function drawHexCanvas(
 
       // Get cell styles and draw
       const styles = getCellStyles(
-        byteDiff,
         isHighlighted,
         isSelected,
         isByteHovered,
@@ -604,12 +578,7 @@ export function drawHexCanvas(
       if (!isVirtualRow && row.hexBytes[j] !== "") {
         ctx.textAlign = "center" // Center hex bytes in their cells
         const textX = hexX + layout.cellWidth / 2
-        if (byteDiff) {
-          const diffColor = getDiffColor(byteDiff.type, colors)
-          ctx.fillStyle = diffColor.text
-        } else {
-          ctx.fillStyle = colors.byteText
-        }
+        ctx.fillStyle = colors.byteText
         ctx.fillText(row.hexBytes[j], textX, y + layout.rowHeight / 2)
       }
       hexX += layout.cellWidth
@@ -625,7 +594,6 @@ export function drawHexCanvas(
         // Skip if outside totalSize bounds
         if (totalSize !== undefined && offset >= totalSize) break
 
-        const byteDiff = diff ? getDiffAtOffset(diff, offset) : null
         const isHighlighted = highlightedOffset === offset
         const isSelected = isOffsetInRange(offset, selectedRange)
         const isByteHovered = hoveredOffset === offset
@@ -642,7 +610,6 @@ export function drawHexCanvas(
 
         // Get cell styles and draw
         const styles = getCellStyles(
-          byteDiff,
           isHighlighted,
           isSelected,
           isByteHovered,
@@ -676,12 +643,7 @@ export function drawHexCanvas(
           if (asciiChar !== " " && asciiChar !== "") {
             ctx.textAlign = "center" // Center text within each cell
             const textX = charX + layout.asciiCellWidth / 2
-            if (byteDiff) {
-              const diffColor = getDiffColor(byteDiff.type, colors)
-              ctx.fillStyle = diffColor.text
-            } else {
-              ctx.fillStyle = colors.asciiText
-            }
+            ctx.fillStyle = colors.asciiText
             ctx.fillText(asciiChar, textX, y + layout.rowHeight / 2)
           }
         }
@@ -694,8 +656,8 @@ export function drawHexCanvas(
     0,
     Math.floor(
       rowsLength * layout.rowHeight +
-        layout.verticalPadding * 2 -
-        dimensions.height
+      layout.verticalPadding * 2 -
+      dimensions.height
     )
   )
   drawScrollbar(

@@ -1,9 +1,10 @@
 import { Fragment, type FunctionComponent } from "react"
-import { CaseSensitive } from "lucide-react"
+import { CaseSensitive, Plus } from "lucide-react"
 
 // import { MemoryProfiler } from "../common/memory-profiler"
 import { HexedPlugin } from "@hexed/plugins/types"
 import {
+  Button,
   cn,
   Separator,
   Toggle,
@@ -68,6 +69,23 @@ export const HexFooter: FunctionComponent<HexFooterProps> = ({ plugins }) => {
                 </Tooltip>
               ))}
           </ToggleGroup>
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => setVisualization("workbench")}
+                aria-label="Open Workbench"
+                className={cn(
+                  "grow md:grow-0",
+                  visualization === "workbench" ? "bg-accent" : ""
+                )}
+              >
+                <Plus />
+              </Button>
+            </TooltipTrigger>
+            <TooltipContent>Open Workbench</TooltipContent>
+          </Tooltip>
         </div>
       </div>
 

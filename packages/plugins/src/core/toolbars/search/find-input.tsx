@@ -43,7 +43,7 @@ export const FindInput = forwardRef<
     if (typeof ref === "function") {
       ref(element)
     } else if (ref) {
-      ;(ref as MutableRefObject<HTMLInputElement | null>).current = element
+      ; (ref as MutableRefObject<HTMLInputElement | null>).current = element
     }
   }
 
@@ -128,7 +128,7 @@ export const FindInput = forwardRef<
         const accumulatedMatches: SearchMatch[] = []
 
         // Perform search with streaming matches using $evaluate
-        await hexedFile.worker.$evaluate(hexedFile, searchImpl, {
+        await hexedFile.worker?.$evaluate(hexedFile, searchImpl, {
           context: {
             pattern
           },
