@@ -5,8 +5,8 @@ import { formatFileSize } from "@hexed/file/formatter"
 import { createHexedEditorPlugin } from "../.."
 import { HexedPluginComponent } from "../../types"
 
-export const FileSize: HexedPluginComponent<"label"> = ({ file }) => (
-  <div className="items-center gap-2 font-mono hidden md:flex flex-col">
+export const FileSize: HexedPluginComponent = ({ file }) => (
+  <div className="items-center gap-2 font-mono flex flex-col">
     <span className="text-xs text-muted-foreground">
       {formatFileSize(file.size)}
     </span>

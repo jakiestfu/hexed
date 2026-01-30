@@ -93,6 +93,149 @@ function renderChart(
 }
 
 /**
+ * Internal helper to evaluate a function and return the result
+ * @param request - Evaluate request with file, function code, and options
+ * @returns The evaluation result
+ */
+async function evaluateFunction(request: EvaluateRequest): Promise<unknown> {
+  const { file, functionCode, signalId, context } = request
+
+  // Initialize abort state if signalId provided
+  if (signalId) {
+    abortStates.set(signalId, false)
+  }
+
+  // Create abort signal for HexedFile
+  const abortController = new AbortController()
+  const signal = abortController.signal
+
+  // Create API object with abort, progress, and result methods
+  const api: Omit<EvaluateAPIOptions<unknown, unknown>, "context"> = {
+    throwIfAborted(): void {
+      if (signalId && abortStates.get(signalId)) {
+        abortController.abort()
+        throw new DOMException("Aborted", "AbortError")
+      }
+      if (signal.aborted) {
+        throw new DOMException("Aborted", "AbortError")
+      }
+    },
+    emitProgress(data: { processed: number; size: number }): void {
+      const progress = Math.min(
+        100,
+        Math.round((data.processed / data.size) * 100)
+      )
+      const progressEvent: ProgressEvent = {
+        id: generateMessageId(),
+        type: "PROGRESS_EVENT",
+        requestId: request.id,
+        progress,
+        bytesRead: data.processed,
+        totalBytes: data.size
+      }
+      sendProgress(progressEvent)
+    },
+    emitResult(result: unknown): void {
+      const resultEvent = {
+        id: generateMessageId(),
+        type: "EVALUATE_RESULT_EVENT" as const,
+        requestId: request.id,
+        result
+      }
+      sendEvaluateResult(resultEvent)
+    }
+  }
+
+  // Create HexedFile instance
+  const hexedFile = new HexedFile(file)
+
+  // Check abort state before execution
+  api.throwIfAborted()
+
+  const code = `
+"use strict";
+
+const __fn = ${functionCode}
+
+return (async () => {
+  try {
+    return await __fn(file, api);
+  } catch (error) {
+    // Pass AbortError through untouched
+    if (
+      error &&
+      typeof error === "object" &&
+      error.name === "AbortError"
+    ) {
+      throw error;
+    }
+
+    throw error;
+  }
+})();
+`
+
+  // Create function in worker context
+  // Use Function constructor to create a function that receives file and api
+  const fn = new Function("file", "api", "context", code)
+
+  try {
+    const result = await Promise.resolve(
+      fn(hexedFile, {
+        ...api,
+        context
+      })
+    )
+    // Clean up abort state
+    if (signalId) {
+      abortStates.delete(signalId)
+    }
+    return result
+  } catch (error) {
+    // Clean up abort state on error
+    if (signalId) {
+      abortStates.delete(signalId)
+    }
+    throw error
+  }
+}
+
+/**
+ * Internal helper to render a chart on a canvas
+ * @param canvas - Offscreen canvas to render on
+ * @param config - Chart.js configuration object
+ * @param devicePixelRatio - Optional device pixel ratio for retina displays
+ */
+function renderChartOnCanvas(
+  canvas: OffscreenCanvas,
+  config: ChartConfiguration,
+  devicePixelRatio?: number
+): void {
+  // Check if we already have a chart instance for this canvas
+  const existingChart = chartInstances.get(canvas)
+  if (existingChart) {
+    // Destroy the old chart before creating a new one
+    if (typeof (existingChart as any).destroy === "function") {
+      ; (existingChart as any).destroy()
+    }
+    chartInstances.delete(canvas)
+  }
+
+  // Merge devicePixelRatio into chart config if provided
+  const chartConfig: ChartConfiguration = {
+    ...config,
+    options: {
+      ...(config.options || {}),
+      ...(devicePixelRatio !== undefined ? { devicePixelRatio } : {})
+    }
+  }
+
+  // Create new chart instance
+  const chart = renderChart(canvas, chartConfig)
+  chartInstances.set(canvas, chart)
+}
+
+/**
  * Handle CHART_RENDER_REQUEST - Render chart on offscreen canvas
  */
 async function handleChartRender(request: ChartRenderRequest): Promise<void> {
@@ -102,32 +245,11 @@ async function handleChartRender(request: ChartRenderRequest): Promise<void> {
       throw new Error("Canvas is required for chart rendering")
     }
 
-    // Check if we already have a chart instance for this canvas
-    // (This shouldn't happen with the new approach, but we clean up just in case)
-    const existingChart = chartInstances.get(request.canvas)
-    if (existingChart) {
-      // Destroy the old chart before creating a new one
-      if (typeof (existingChart as any).destroy === "function") {
-        ;(existingChart as any).destroy()
-      }
-      chartInstances.delete(request.canvas)
-    }
-
-    // Merge devicePixelRatio into chart config if provided
-    const baseConfig = request.config as ChartConfiguration
-    const chartConfig: ChartConfiguration = {
-      ...baseConfig,
-      options: {
-        ...(baseConfig.options || {}),
-        ...(request.devicePixelRatio !== undefined
-          ? { devicePixelRatio: request.devicePixelRatio }
-          : {})
-      }
-    }
-
-    // Create new chart instance
-    const chart = renderChart(request.canvas, chartConfig)
-    chartInstances.set(request.canvas, chart)
+    renderChartOnCanvas(
+      request.canvas,
+      request.config as ChartConfiguration,
+      request.devicePixelRatio
+    )
 
     const response: ChartRenderResponse = {
       id: request.id,
@@ -158,123 +280,23 @@ async function handleChartEvaluate(
       throw new Error("Canvas is required for chart rendering")
     }
 
-    // Check if we already have a chart instance for this canvas
-    const existingChart = chartInstances.get(canvas)
-    if (existingChart) {
-      // Destroy the old chart before creating a new one
-      if (typeof (existingChart as any).destroy === "function") {
-        ;(existingChart as any).destroy()
-      }
-      chartInstances.delete(canvas)
+    // Create EvaluateRequest from ChartEvaluateRequest fields
+    const evaluateRequest: EvaluateRequest = {
+      id: request.id,
+      type: "EVALUATE_REQUEST",
+      file,
+      functionCode,
+      signalId,
+      context
     }
 
-    // Initialize abort state if signalId provided
-    if (signalId) {
-      abortStates.set(signalId, false)
-    }
-
-    // Create abort signal for HexedFile
-    const abortController = new AbortController()
-    const signal = abortController.signal
-
-    // Create API object with abort, progress, and result methods
-    const api: Omit<
-      EvaluateAPIOptions<ChartConfiguration, unknown>,
-      "context"
-    > = {
-      throwIfAborted(): void {
-        if (signalId && abortStates.get(signalId)) {
-          abortController.abort()
-          throw new DOMException("Aborted", "AbortError")
-        }
-        if (signal.aborted) {
-          throw new DOMException("Aborted", "AbortError")
-        }
-      },
-      emitProgress(data: { processed: number; size: number }): void {
-        const progress = Math.min(
-          100,
-          Math.round((data.processed / data.size) * 100)
-        )
-        const progressEvent: ProgressEvent = {
-          id: generateMessageId(),
-          type: "PROGRESS_EVENT",
-          requestId: request.id,
-          progress,
-          bytesRead: data.processed,
-          totalBytes: data.size
-        }
-        sendProgress(progressEvent)
-      },
-      emitResult(result: ChartConfiguration): void {
-        // Not used for chart evaluation, but keep for API compatibility
-        const resultEvent = {
-          id: generateMessageId(),
-          type: "EVALUATE_RESULT_EVENT" as const,
-          requestId: request.id,
-          result
-        }
-        sendEvaluateResult(resultEvent)
-      }
-    }
-
-    // Create HexedFile instance
-    const hexedFile = new HexedFile(file)
-
-    // Check abort state before execution
-    api.throwIfAborted()
-
-    const code = `
-"use strict";
-
-const __fn = ${functionCode}
-
-return (async () => {
-  try {
-    return await __fn(file, api);
-  } catch (error) {
-    // Pass AbortError through untouched
-    if (
-      error &&
-      typeof error === "object" &&
-      error.name === "AbortError"
-    ) {
-      throw error;
-    }
-
-    throw error;
-  }
-})();
-`
-
-    // Create function in worker context
-    const fn = new Function("file", "api", "context", code)
-
-    // Execute visualization function to get chart config
-    const chartConfig = (await Promise.resolve(
-      fn(hexedFile, {
-        ...api,
-        context
-      })
+    // Evaluate function to get chart config
+    const chartConfig = (await evaluateFunction(
+      evaluateRequest
     )) as ChartConfiguration
 
-    // Clean up abort state
-    if (signalId) {
-      abortStates.delete(signalId)
-    }
-
-    // Merge devicePixelRatio into chart config if provided
-    const finalConfig: ChartConfiguration = {
-      ...chartConfig,
-      options: {
-        ...(chartConfig.options || {}),
-        ...(devicePixelRatio !== undefined ? { devicePixelRatio } : {})
-      }
-    }
-
     // Render chart on canvas
-    const chart = renderChart(canvas, finalConfig)
-    chartInstances.set(canvas, chart)
+    renderChartOnCanvas(canvas, chartConfig, devicePixelRatio)
 
     const response: ChartEvaluateResponse = {
       id: request.id,
@@ -283,11 +305,6 @@ return (async () => {
     }
     sendResponse(response)
   } catch (error) {
-    // Clean up abort state on error
-    if (request.signalId) {
-      abortStates.delete(request.signalId)
-    }
-
     if (error instanceof DOMException && error.name === "AbortError") {
       sendError("Operation aborted", request.id)
     } else {
@@ -307,97 +324,7 @@ return (async () => {
 async function handleEvaluate(request: EvaluateRequest): Promise<void> {
   logger.log(`Evaluating function (request: ${request.id})`)
   try {
-    const { file, functionCode, signalId, context } = request
-    // console.log("functionCode", functionCode)
-    // Initialize abort state if signalId provided
-    if (signalId) {
-      abortStates.set(signalId, false)
-    }
-
-    // Create abort signal for HexedFile
-    const abortController = new AbortController()
-    const signal = abortController.signal
-
-    // Create API object with abort, progress, and result methods
-    const api: Omit<EvaluateAPIOptions<unknown, unknown>, "context"> = {
-      throwIfAborted(): void {
-        if (signalId && abortStates.get(signalId)) {
-          abortController.abort()
-          throw new DOMException("Aborted", "AbortError")
-        }
-        if (signal.aborted) {
-          throw new DOMException("Aborted", "AbortError")
-        }
-      },
-      emitProgress(data: { processed: number; size: number }): void {
-        const progress = Math.min(
-          100,
-          Math.round((data.processed / data.size) * 100)
-        )
-        const progressEvent: ProgressEvent = {
-          id: generateMessageId(),
-          type: "PROGRESS_EVENT",
-          requestId: request.id,
-          progress,
-          bytesRead: data.processed,
-          totalBytes: data.size
-        }
-        sendProgress(progressEvent)
-      },
-      emitResult(result: unknown): void {
-        const resultEvent = {
-          id: generateMessageId(),
-          type: "EVALUATE_RESULT_EVENT" as const,
-          requestId: request.id,
-          result
-        }
-        sendEvaluateResult(resultEvent)
-      }
-    }
-
-    // Create HexedFile instance
-    const hexedFile = new HexedFile(file)
-
-    // Check abort state before execution
-    api.throwIfAborted()
-
-    const code = `
-"use strict";
-
-const __fn = (${functionCode});
-
-return (async () => {
-  try {
-    return await __fn(file, api);
-  } catch (error) {
-    // Pass AbortError through untouched
-    if (
-      error &&
-      typeof error === "object" &&
-      error.name === "AbortError"
-    ) {
-      throw error;
-    }
-
-    throw error;
-  }
-})();
-`
-
-    // Create function in worker context
-    // Use Function constructor to create a function that receives file and api
-    const fn = new Function("file", "api", "context", code)
-
-    const result = await Promise.resolve(
-      fn(hexedFile, {
-        ...api,
-        context
-      })
-    )
-    // Clean up abort state
-    if (signalId) {
-      abortStates.delete(signalId)
-    }
+    const result = await evaluateFunction(request)
 
     // Send response
     const response: EvaluateResponse = {
@@ -407,11 +334,6 @@ return (async () => {
     }
     sendResponse(response)
   } catch (error) {
-    // Clean up abort state on error
-    if (request.signalId) {
-      abortStates.delete(request.signalId)
-    }
-
     if (error instanceof DOMException && error.name === "AbortError") {
       sendError("Operation aborted", request.id)
     } else {

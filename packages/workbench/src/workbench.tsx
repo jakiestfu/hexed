@@ -1,10 +1,11 @@
 "use client"
-
-import { useEffect, useState } from "react"
+import * as monaco from "monaco-editor"
+import { useEffect, useRef, useState } from "react"
 import type { FunctionComponent } from "react"
 import { Editor as MonacoEditor } from "@monaco-editor/react"
-import type { EditorProps } from "@monaco-editor/react"
+import type { EditorProps, OnValidate } from "@monaco-editor/react"
 import {
+  AlertCircle,
   BarChart,
   Info,
   SplitSquareHorizontal,
@@ -42,6 +43,8 @@ import {
 
 import { onMount, template } from "./monaco-setup"
 import type { WorkbenchProps } from "./types"
+import { useIsValidTypeScript } from "./hooks/use-is-valid-typescript"
+import { ErrorsPopover } from "./components/errors-popover"
 
 type WorkbenchView = "code" | "split" | "preview"
 type SplitDirection = "horizontal" | "vertical"
@@ -95,6 +98,11 @@ export const Workbench: FunctionComponent<WorkbenchProps> = ({
   hexedFile,
   visualizations
 }) => {
+
+  const isValidTs = useIsValidTypeScript(value)
+
+  const editorRef = useRef<monaco.editor.IStandaloneCodeEditor | null>(null)
+
   const [view, setView] = useState<WorkbenchView>("preview")
   const [splitDirection, setSplitDirection] =
     useState<SplitDirection>("horizontal")
@@ -125,6 +133,22 @@ export const Workbench: FunctionComponent<WorkbenchProps> = ({
     }
   }, [visualizations])
 
+  const handleSelectError = (err: monaco.editor.IMarkerData) => {
+    if (!editorRef.current) return
+
+    const editor = editorRef.current
+    editor.focus()
+    editor.revealPositionInCenter({
+      lineNumber: err.startLineNumber,
+      column: err.startColumn
+    })
+    editor.setPosition({
+      lineNumber: err.startLineNumber,
+      column: err.startColumn
+    })
+  }
+
+  const [errors, setErrors] = useState<monaco.editor.IMarker[]>([])
   const editor = (
     <MonacoEditor
       path="file:///hexed.visualization.ts"
@@ -135,8 +159,14 @@ export const Workbench: FunctionComponent<WorkbenchProps> = ({
       defaultValue={value}
       value={value}
       onChange={onChange}
-      onMount={onMount}
-      className="relative overflow-visible z-10"
+      onMount={(editor, monacoInstance) => {
+        editorRef.current = editor
+        onMount(editor, monacoInstance)
+      }}
+      onValidate={(markers) => {
+        setErrors(markers.filter((mk) => mk.severity === monaco.MarkerSeverity.Error))
+      }}
+      className="relative overflow-visible z-10 grow"
       loading={
         <div className="h-full w-full flex items-center justify-center">
           <Spinner className="size-8" />
@@ -252,9 +282,17 @@ export const Workbench: FunctionComponent<WorkbenchProps> = ({
                   </TabsList>
                 ) : null}
               </div>
-              <div className="flex flex-1 justify-end">
+              <div className="flex flex-1 justify-end gap-2">
                 {editMode ? (
-                  <Button onClick={handleBuild}>Run</Button>
+                  <>
+                    {errors.length ? (
+                      <ErrorsPopover
+                        errors={errors}
+                        onSelectError={handleSelectError}
+                      />
+                    ) : null}
+                    <Button onClick={handleBuild} disabled={!!errors.length}>Run</Button>
+                  </>
                 ) : (
                   <Button
                     onClick={() => {
@@ -271,7 +309,7 @@ export const Workbench: FunctionComponent<WorkbenchProps> = ({
           </CardHeader>
 
           <CardContent className="grow min-h-0 overflow-hidden p-0">
-            {view === "code" && <div className="h-full w-full">{editor}</div>}
+            {view === "code" && <div className="h-full w-full flex flex-col">{editor}</div>}
             {view === "split" && (
               <ResizablePanelGroup
                 direction={splitDirection}
@@ -281,7 +319,7 @@ export const Workbench: FunctionComponent<WorkbenchProps> = ({
                   defaultSize={50}
                   minSize={20}
                 >
-                  <div className="h-full w-full">{editor}</div>
+                  <div className="h-full w-full flex flex-col">{editor}</div>
                 </ResizablePanel>
                 <ResizableHandle withHandle />
                 <ResizablePanel

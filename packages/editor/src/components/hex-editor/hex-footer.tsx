@@ -74,13 +74,16 @@ export const HexFooter: FunctionComponent<HexFooterProps> = ({ plugins }) => {
       </div>
 
       {/* center */}
-      <div className="order-last hidden w-full items-center justify-start md:order-0 md:w-auto md:flex md:justify-center h-full">
-        <div className="items-center gap-4 font-mono hidden md:flex h-full">
+      <div className="order-last w-full items-center justify-start md:order-0 md:w-auto md:flex md:justify-center h-full">
+        <div className="items-center gap-2 md:gap-4 font-mono flex items-center justify-center h-full mt-2 md:mt-0 whitespace-nowrap">
           {visibleLabelPlugins.map((plugin, index) => (
             <Fragment key={plugin.id}>
               <span className="flex items-center">{plugin.component}</span>
               {index < visibleLabelPlugins.length - 1 && (
-                <Separator orientation="vertical" />
+                <>
+                  <Separator orientation="vertical" className="hidden md:flex" />
+                  <span className="flex md:hidden text-muted-foreground">&middot;</span>
+                </>
               )}
             </Fragment>
           ))}
