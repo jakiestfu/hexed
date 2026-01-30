@@ -43,7 +43,7 @@ export const FindInput = forwardRef<
     if (typeof ref === "function") {
       ref(element)
     } else if (ref) {
-      ; (ref as MutableRefObject<HTMLInputElement | null>).current = element
+      ;(ref as MutableRefObject<HTMLInputElement | null>).current = element
     }
   }
 

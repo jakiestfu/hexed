@@ -1,11 +1,18 @@
 "use client"
 
+import { useEffect, useState } from "react"
+import type { FunctionComponent } from "react"
 import { Editor as MonacoEditor } from "@monaco-editor/react"
 import type { EditorProps } from "@monaco-editor/react"
-import { BarChart, SplitSquareHorizontal, SplitSquareVertical } from "lucide-react"
-import { useState } from "react"
-import type { FunctionComponent } from "react"
+import {
+  BarChart,
+  Info,
+  SplitSquareHorizontal,
+  SplitSquareVertical
+} from "lucide-react"
+import ts from "typescript"
 
+import { HexedFile } from "@hexed/file"
 import { Visualization } from "@hexed/plugins"
 // import { useHexedFileContext } from "@hexed/editor"
 import {
@@ -14,6 +21,9 @@ import {
   CardContent,
   CardHeader,
   cn,
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
   ResizableHandle,
   ResizablePanel,
   ResizablePanelGroup,
@@ -29,11 +39,9 @@ import {
   TabsList,
   TabsTrigger
 } from "@hexed/ui"
-import ts from "typescript"
 
 import { onMount, template } from "./monaco-setup"
 import type { WorkbenchProps } from "./types"
-import { HexedFile } from "@hexed/file"
 
 type WorkbenchView = "code" | "split" | "preview"
 type SplitDirection = "horizontal" | "vertical"
@@ -43,14 +51,17 @@ const stripTypeScript = (tsCode: string) => {
     compilerOptions: {
       target: ts.ScriptTarget.ES2022,
       module: ts.ModuleKind.ESNext,
-      isolatedModules: true,
+      isolatedModules: true
     },
-    fileName: "user.ts",
+    fileName: "user.ts"
   })
   return res.outputText
 }
 
-const PreviewPanel: FunctionComponent<{ evaluateFunction?: string, hexedFile: HexedFile | null }> = ({ evaluateFunction, hexedFile }) => {
+const PreviewPanel: FunctionComponent<{
+  evaluateFunction?: string
+  hexedFile: HexedFile | null
+}> = ({ evaluateFunction, hexedFile }) => {
   if (!evaluateFunction || !hexedFile) {
     return (
       <div className="h-full w-full flex items-center justify-center bg-muted/20 p-8">
@@ -84,20 +95,35 @@ export const Workbench: FunctionComponent<WorkbenchProps> = ({
   hexedFile,
   visualizations
 }) => {
-  const [view, setView] = useState<WorkbenchView>("split")
-  const [splitDirection, setSplitDirection] = useState<SplitDirection>("horizontal")
-  const [evaluateFunction, setEvaluateFunction] = useState<string | undefined>(undefined)
-  const [selectedPreset, setSelectedPreset] = useState("")
+  const [view, setView] = useState<WorkbenchView>("preview")
+  const [splitDirection, setSplitDirection] =
+    useState<SplitDirection>("horizontal")
+  const [evaluateFunction, setEvaluateFunction] = useState<string | undefined>(
+    undefined
+  )
+  const [editMode, setEditMode] = useState<boolean>(false)
+  const [presetId, setSelectedPresetId] = useState("")
+
+  const selectedPreset = visualizations?.find((p) => p.id === presetId)
 
   const handleBuild = () => {
-    const javascriptCode = stripTypeScript(value)
-    // Store the current editor value as the function string
-    setEvaluateFunction(javascriptCode)
-    // Switch to preview view if not already in split or preview
-    // if (view === "code") {
-    //   setView("preview")
-    // }
+    setEvaluateFunction(stripTypeScript(value))
   }
+
+  const onChangePreset = (id: string) => {
+    const preset = visualizations?.find((p) => p.id === id)
+    if (preset?.source) {
+      onChange(preset.source)
+      setSelectedPresetId(id)
+      setEvaluateFunction(stripTypeScript(preset.source))
+    }
+  }
+
+  useEffect(() => {
+    if (presetId === "") {
+      onChangePreset(visualizations?.[0]?.id || "")
+    }
+  }, [visualizations])
 
   const editor = (
     <MonacoEditor
@@ -106,15 +132,16 @@ export const Workbench: FunctionComponent<WorkbenchProps> = ({
       width={width}
       language="typescript"
       theme={theme}
+      defaultValue={value}
       value={value}
       onChange={onChange}
       onMount={onMount}
       className="relative overflow-visible z-10"
-      loading={(
+      loading={
         <div className="h-full w-full flex items-center justify-center">
           <Spinner className="size-8" />
         </div>
-      )}
+      }
       options={{
         minimap: { enabled: false },
         scrollBeyondLastLine: false,
@@ -144,18 +171,11 @@ export const Workbench: FunctionComponent<WorkbenchProps> = ({
         >
           <CardHeader className="p-0! gap-0 m-0 bg-muted/30 relative">
             <div className="flex items-center justify-between p-4 border-b overflow-hidden">
-              <div className="flex flex-1">
-
-                <Select onValueChange={(id) => {
-                  const preset = visualizations?.find(p => p.id === id)
-                  if (preset) {
-                    const visualization = preset.visualization.toString()
-                    const firstBrace = visualization.indexOf("{")
-                    const lastBrace = visualization.lastIndexOf("}")
-                    const body = visualization.slice(firstBrace + 1, lastBrace)
-                    onChange(template(body))
-                  }
-                }}>
+              <div className="flex flex-1 gap-2 ">
+                <Select
+                  onValueChange={onChangePreset}
+                  value={presetId}
+                >
                   <SelectTrigger className="w-full max-w-48">
                     <SelectValue placeholder="Presets" />
                   </SelectTrigger>
@@ -163,16 +183,48 @@ export const Workbench: FunctionComponent<WorkbenchProps> = ({
                     <SelectGroup>
                       <SelectLabel>Presets</SelectLabel>
                       {visualizations?.map((preset) => (
-                        <SelectItem key={preset.id} value={preset.id}>{preset.title}</SelectItem>
+                        <SelectItem
+                          key={preset.id}
+                          value={preset.id}
+                        >
+                          {preset.title}
+                        </SelectItem>
                       ))}
                     </SelectGroup>
                   </SelectContent>
                 </Select>
+                {/* Shows a popover */}
+                {selectedPreset?.info ? (
+                  <Popover>
+                    <PopoverTrigger asChild>
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        onClick={() => {
+                          setView("preview")
+                        }}
+                      >
+                        <Info className="h-4 w-4 text-muted-foreground" />
+                      </Button>
+                    </PopoverTrigger>
+                    <PopoverContent
+                      align="start"
+                      className="text-sm text-muted-foreground"
+                    >
+                      {selectedPreset.info}
+                    </PopoverContent>
+                  </Popover>
+                ) : null}
 
                 <Button
                   variant="ghost"
                   size="icon"
-                  className={cn("transition-opacity", view === "split" ? "opacity-100" : "opacity-0 pointer-events-none")}
+                  className={cn(
+                    "transition-opacity",
+                    view === "split"
+                      ? "opacity-100"
+                      : "opacity-0 pointer-events-none"
+                  )}
                   onClick={() =>
                     setSplitDirection((prev) =>
                       prev === "horizontal" ? "vertical" : "horizontal"
@@ -192,39 +244,66 @@ export const Workbench: FunctionComponent<WorkbenchProps> = ({
                 </Button>
               </div>
               <div className="flex items-center grow justify-center max-w-lg">
-                <TabsList className="w-full">
-                  <TabsTrigger value="code">Code</TabsTrigger>
-                  <TabsTrigger value="split">Split</TabsTrigger>
-                  <TabsTrigger value="preview">Preview</TabsTrigger>
-                </TabsList>
+                {editMode ? (
+                  <TabsList className="w-full">
+                    <TabsTrigger value="code">Code</TabsTrigger>
+                    <TabsTrigger value="split">Split</TabsTrigger>
+                    <TabsTrigger value="preview">Preview</TabsTrigger>
+                  </TabsList>
+                ) : null}
               </div>
               <div className="flex flex-1 justify-end">
-                <Button onClick={handleBuild} className="cursor-pointer">Render</Button>
+                {editMode ? (
+                  <Button onClick={handleBuild}>Run</Button>
+                ) : (
+                  <Button
+                    onClick={() => {
+                      setView("split")
+                      setEditMode(true)
+                    }}
+                    variant="outline"
+                  >
+                    Edit
+                  </Button>
+                )}
               </div>
             </div>
           </CardHeader>
 
           <CardContent className="grow min-h-0 overflow-hidden p-0">
-            {view === "code" && (
-              <div className="h-full w-full">{editor}</div>
-            )}
+            {view === "code" && <div className="h-full w-full">{editor}</div>}
             {view === "split" && (
               <ResizablePanelGroup
                 direction={splitDirection}
                 className="h-full w-full"
               >
-                <ResizablePanel defaultSize={50} minSize={20}>
+                <ResizablePanel
+                  defaultSize={50}
+                  minSize={20}
+                >
                   <div className="h-full w-full">{editor}</div>
                 </ResizablePanel>
                 <ResizableHandle withHandle />
-                <ResizablePanel defaultSize={50} minSize={20}>
-                  <PreviewPanel hexedFile={hexedFile} evaluateFunction={evaluateFunction} />
+                <ResizablePanel
+                  defaultSize={50}
+                  minSize={20}
+                >
+                  <PreviewPanel
+                    hexedFile={hexedFile}
+                    evaluateFunction={evaluateFunction}
+                  />
                 </ResizablePanel>
               </ResizablePanelGroup>
             )}
-            {view === "preview" && <PreviewPanel hexedFile={hexedFile} evaluateFunction={evaluateFunction} />}
+            {view === "preview" && (
+              <PreviewPanel
+                hexedFile={hexedFile}
+                evaluateFunction={evaluateFunction}
+              />
+            )}
           </CardContent>
-        </Tabs></Card>
+        </Tabs>
+      </Card>
     </div>
   )
 }

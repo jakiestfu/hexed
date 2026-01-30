@@ -1,13 +1,14 @@
 import { Activity } from "lucide-react"
 
 import type { ChartConfiguration, HexedVisualization } from "@hexed/worker"
+
 import type { VisualizationPreset } from "../../types"
 
 /**
  * Pure function to calculate entropy and return chart configuration
  * This function runs in the worker context via $task
  */
-export const calculateEntropy: HexedVisualization = async (file, api) => {
+export default (async (file, api) => {
   // Chunk size for streaming (1MB)
   const STREAM_CHUNK_SIZE = 1024 * 1024
   // Block size calculation constants
@@ -75,10 +76,7 @@ export const calculateEntropy: HexedVisualization = async (file, api) => {
     while (bytesRead < searchRange) {
       api.throwIfAborted()
       const chunkStart = bytesRead
-      const chunkEnd = Math.min(
-        chunkStart + STREAM_CHUNK_SIZE,
-        searchRange
-      )
+      const chunkEnd = Math.min(chunkStart + STREAM_CHUNK_SIZE, searchRange)
 
       // Ensure range is loaded and read chunk
       await file.ensureRange({ start: chunkStart, end: chunkEnd })
@@ -210,9 +208,9 @@ export const calculateEntropy: HexedVisualization = async (file, api) => {
       }
     }
   } satisfies ChartConfiguration
-}
+}) satisfies HexedVisualization
 
-export const entropyPreset: VisualizationPreset = {
+export const visualization: VisualizationPreset = {
   id: "entropy",
   title: "Entropy",
   icon: Activity,
@@ -239,6 +237,5 @@ export const entropyPreset: VisualizationPreset = {
         </a>
       </p>
     </div>
-  ),
-  visualization: calculateEntropy
+  )
 }

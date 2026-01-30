@@ -1,1 +1,1 @@
-packages/binary-templates/src/ksy/**/* linguist-vendored
+**/*.ksy linguist-vendored

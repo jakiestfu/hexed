@@ -1,4 +1,5 @@
 import type { EditorProps } from "@monaco-editor/react"
+
 import type { HexedFile } from "@hexed/file"
 import type { VisualizationPreset } from "@hexed/plugins/types"
 

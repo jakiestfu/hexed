@@ -6,12 +6,7 @@ import { ToolbarPlugin } from "./toolbar-plugin"
 import { HexedPlugin, HexedPluginOptions, VisualizationPreset } from "./types"
 import { Visualization } from "./Visualization"
 
-export {
-  Visualization,
-  LabelPlugin,
-  SidebarPlugin,
-  ToolbarPlugin,
-}
+export { Visualization, LabelPlugin, SidebarPlugin, ToolbarPlugin }
 
 export type { VisualizationPreset }
 

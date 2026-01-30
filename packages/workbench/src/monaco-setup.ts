@@ -1,6 +1,7 @@
-import * as monaco from "monaco-editor"
 // @ts-ignore - constrained-editor-plugin doesn't have type definitions
 import constrainedEditor from "constrained-editor-plugin"
+import * as monaco from "monaco-editor"
+
 // @ts-ignore
 import distTypes from "../../file/dist/file.d.ts?raw"
 
@@ -25,7 +26,9 @@ const defaultBody = `// Read the file and construct your data here
 
 // IMPORTANT: make sure the Monaco model URI ends with `.hexed.ts`
 // so the ambient module "*.hexed.ts" applies.
-export const template = (body?: string) => `export default (async (file, api) => {
+export const template = (
+  body?: string
+) => `export default (async (file, api) => {
   ${body ?? defaultBody}
 }) satisfies HexedVisualization`
 
@@ -93,8 +96,8 @@ export const setupConstrainedEditor = (
     {
       range: getRange(),
       label: "functionBody",
-      allowMultiline: true,
-    },
+      allowMultiline: true
+    }
   ])
 
   editor.addCommand(instance.KeyMod.CtrlCmd | instance.KeyCode.KeyA, () => {
@@ -102,7 +105,12 @@ export const setupConstrainedEditor = (
     if (!model) return
 
     const [startLineNumber, startColumn, endLineNumber, endColumn] = getRange()
-    const safe: monaco.IRange = { startLineNumber, startColumn, endLineNumber, endColumn }
+    const safe: monaco.IRange = {
+      startLineNumber,
+      startColumn,
+      endLineNumber,
+      endColumn
+    }
 
     editor.setSelection(safe)
     editor.revealRangeInCenterIfOutsideViewport(safe)
@@ -124,7 +132,7 @@ export const onMount = (
     resolveJsonModule: true,
     allowSyntheticDefaultImports: true,
     allowNonTsExtensions: true,
-    noEmit: true,
+    noEmit: true
   })
 
   addChartJsTypesToMonaco(instance)

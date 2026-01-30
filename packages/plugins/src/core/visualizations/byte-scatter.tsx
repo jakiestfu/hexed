@@ -1,13 +1,14 @@
 import { Grid3x3 } from "lucide-react"
 
 import type { ChartConfiguration, HexedVisualization } from "@hexed/worker"
+
 import type { VisualizationPreset } from "../../types"
 
 /**
  * Pure function to calculate byte scatter and return chart configuration
  * This function runs in the worker context via $task
  */
-export const calculateByteScatter: HexedVisualization = async (file, api) => {
+export default (async (file, api) => {
   // Chunk size for streaming (1MB)
   const STREAM_CHUNK_SIZE = 1024 * 1024
   // Maximum points to display in scatter plot (default 10000)
@@ -31,10 +32,7 @@ export const calculateByteScatter: HexedVisualization = async (file, api) => {
   while (bytesRead < searchRange && points.length < targetPoints) {
     api.throwIfAborted()
     const chunkStart = bytesRead
-    const chunkEnd = Math.min(
-      chunkStart + STREAM_CHUNK_SIZE,
-      searchRange
-    )
+    const chunkEnd = Math.min(chunkStart + STREAM_CHUNK_SIZE, searchRange)
 
     // Ensure range is loaded and read chunk
     await file.ensureRange({ start: chunkStart, end: chunkEnd })
@@ -141,9 +139,9 @@ export const calculateByteScatter: HexedVisualization = async (file, api) => {
       }
     }
   } satisfies ChartConfiguration
-}
+}) satisfies HexedVisualization
 
-export const byteScatterPreset: VisualizationPreset = {
+export const visualization: VisualizationPreset = {
   id: "byte-scatter",
   title: "Offset vs Bytes",
   icon: Grid3x3,
@@ -183,6 +181,5 @@ export const byteScatterPreset: VisualizationPreset = {
         see the exact offset and byte value.
       </p>
     </div>
-  ),
-  visualization: calculateByteScatter
+  )
 }

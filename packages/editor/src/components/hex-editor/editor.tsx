@@ -6,7 +6,6 @@ import type { FunctionComponent } from "react"
 import { HexCanvasReact } from "@hexed/canvas-react"
 // import { HexToolbarSearch } from "./hex-toolbar-search"
 import { plugins, visualizations } from "@hexed/plugins/core"
-import { Workbench, template as workbenchTemplate } from "@hexed/workbench"
 import {
   Card,
   CardContent,
@@ -19,6 +18,7 @@ import {
   Tabs,
   TabsContent
 } from "@hexed/ui"
+import { Workbench, template as workbenchTemplate } from "@hexed/workbench"
 
 // import { useGlobalKeyboard } from "../../hooks/use-global-keyboard"
 import { useHexedFileContext } from "../../providers/hexed-file-provider"
@@ -30,7 +30,6 @@ import { EmptyState } from "../file/empty-state"
 import { HexFooter } from "./hex-footer"
 import { HexSidebar } from "./hex-sidebar"
 import { HexToolbar } from "./hex-toolbar"
-
 
 export const Editor: FunctionComponent<EditorProps> = ({
   className = "",
@@ -81,9 +80,10 @@ export const Editor: FunctionComponent<EditorProps> = ({
   const isEditView = view === "edit" || view === null
   const hasSidebars = sidebar !== null && isEditView
 
-
   // Handle workbench content changes
-  const [workbenchValue, setWorkbenchValue] = useState<string>(() => workbenchTemplate())
+  const [workbenchValue, setWorkbenchValue] = useState<string>(() =>
+    workbenchTemplate()
+  )
 
   const workbenchPanel = (
     <ResizablePanel
@@ -93,17 +93,19 @@ export const Editor: FunctionComponent<EditorProps> = ({
       className={sidebar ? "hidden md:flex" : ""}
     >
       <div className="h-full w-full">
-        {hexedFile ? <Workbench
-          value={workbenchValue}
-          onChange={(v) => {
-            setWorkbenchValue(v ?? "")
-          }}
-          height="100%"
-          className="h-full"
-          theme={theme === "dark" ? "vs-dark" : "vs"}
-          hexedFile={hexedFile}
-          visualizations={visualizations}
-        /> : null}
+        {hexedFile ? (
+          <Workbench
+            value={workbenchValue}
+            onChange={(v) => {
+              setWorkbenchValue(v ?? "")
+            }}
+            height="100%"
+            className="h-full"
+            theme={theme === "dark" ? "vs-dark" : "vs"}
+            hexedFile={hexedFile}
+            visualizations={visualizations}
+          />
+        ) : null}
       </div>
     </ResizablePanel>
   )
@@ -144,10 +146,7 @@ export const Editor: FunctionComponent<EditorProps> = ({
       />
     ) : null
 
-  const mainContent =
-    view === "visualize"
-      ? workbenchPanel
-      : hexCanvasPanel
+  const mainContent = view === "visualize" ? workbenchPanel : hexCanvasPanel
 
   return (
     <Card
@@ -166,7 +165,7 @@ export const Editor: FunctionComponent<EditorProps> = ({
             fileSource={fileSource}
             isConnected={Boolean(hexedFile?.getHandle())}
             error={null}
-            onRestartWatching={() => { }}
+            onRestartWatching={() => {}}
             onClose={() => onChangeInput(null)}
           />
           {/* <HexToolbarTabs snapshots={snapshots} /> */}

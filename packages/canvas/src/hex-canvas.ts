@@ -1098,7 +1098,7 @@ export class HexCanvas extends EventTarget {
     const scrollPositionForThumb = this.pendingScrollTop ?? this.scrollTop
     const thumbY =
       (scrollPositionForThumb / this.maxScrollTop) *
-      (trackHeight - thumbHeight) +
+        (trackHeight - thumbHeight) +
       trackY
 
     return {

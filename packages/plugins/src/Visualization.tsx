@@ -1,9 +1,22 @@
-import { type FunctionComponent, type ReactNode, useEffect, useRef, useState } from "react"
+import {
+  useEffect,
+  useRef,
+  useState,
+  type FunctionComponent,
+  type ReactNode
+} from "react"
 import { AlertCircle, type LucideIcon } from "lucide-react"
 
 import { useHexedFileContext } from "@hexed/editor"
+import {
+  cn,
+  Empty,
+  EmptyDescription,
+  EmptyMedia,
+  EmptyTitle,
+  Progress
+} from "@hexed/ui"
 import type { HexedVisualization } from "@hexed/worker"
-import { cn, Empty, EmptyDescription, EmptyMedia, EmptyTitle, Progress } from "@hexed/ui"
 
 type Deferred<T> = {
   promise: Promise<T>
@@ -75,18 +88,21 @@ export const Visualization: FunctionComponent<{
       const offscreen = canvas.transferControlToOffscreen()
       offscreenRef.current = offscreen
 
-      if (!canvasDeferredRef.current) canvasDeferredRef.current = createDeferred<OffscreenCanvas>()
+      if (!canvasDeferredRef.current)
+        canvasDeferredRef.current = createDeferred<OffscreenCanvas>()
       canvasDeferredRef.current.resolve(offscreen)
     } catch (e) {
-      const err = e instanceof Error ? e : new Error("Failed to transfer canvas to OffscreenCanvas")
+      const err =
+        e instanceof Error
+          ? e
+          : new Error("Failed to transfer canvas to OffscreenCanvas")
       setError(err)
     }
   }, [canvasKey])
 
   useEffect(() => {
-    const worker = hexedFile.worker
     const file = hexedFile.getFile()
-    if (!worker || !file) return
+    if (!file) return
     if (!canvasRef.current) return
 
     const runId = ++runIdRef.current
@@ -99,7 +115,10 @@ export const Visualization: FunctionComponent<{
 
     // Recreate canvas if we need a new render (file or visualization changed)
     // This ensures we have a fresh canvas that can be transferred
-    if (lastSuccessfulKeyRef.current !== null && lastSuccessfulKeyRef.current !== currentKey) {
+    if (
+      lastSuccessfulKeyRef.current !== null &&
+      lastSuccessfulKeyRef.current !== currentKey
+    ) {
       // Reset canvas refs to force recreation
       offscreenRef.current = null
       canvasDeferredRef.current = null
@@ -117,9 +136,11 @@ export const Visualization: FunctionComponent<{
           offscreenRef.current ??
           (canvasDeferredRef.current
             ? await canvasDeferredRef.current.promise
-            : await (canvasDeferredRef.current = createDeferred<OffscreenCanvas>()).promise)
+            : await (canvasDeferredRef.current =
+                createDeferred<OffscreenCanvas>()).promise)
 
-        const chartConfig = await hexedFile.$task(visualization, {
+        // Evaluate visualization and render chart in a single operation
+        await hexedFile.$chart(visualization, offscreen, dpr, {
           onProgress: (p) => {
             // Ignore late progress from stale runs
             if (runIdRef.current !== runId) return
@@ -130,8 +151,6 @@ export const Visualization: FunctionComponent<{
 
         // If a newer run started, drop this result
         if (runIdRef.current !== runId) return
-
-        await worker.render(offscreen, chartConfig, dpr)
 
         // Still current? mark success + finish UI
         if (runIdRef.current === runId) {
@@ -166,7 +185,10 @@ export const Visualization: FunctionComponent<{
           </Empty>
         </div>
       ) : (
-        <div ref={containerRef} className="flex-1 relative min-h-0 m-4">
+        <div
+          ref={containerRef}
+          className="flex-1 relative min-h-0 m-4"
+        >
           <div
             className={cn(
               "absolute inset-0 flex items-center justify-center pointer-events-none transition-opacity duration-300 z-10",
@@ -174,7 +196,10 @@ export const Visualization: FunctionComponent<{
             )}
           >
             <div className="space-y-2 w-full max-w-lg px-4">
-              <Progress value={progress} className="h-2" />
+              <Progress
+                value={progress}
+                className="h-2"
+              />
               <div className="flex items-center justify-between text-xs text-muted-foreground">
                 <span className="animate-pulse">Calculating chart data...</span>
                 <span>{Math.round(progress)}%</span>
@@ -185,7 +210,10 @@ export const Visualization: FunctionComponent<{
           <canvas
             key={`${id}-${canvasKey}`}
             ref={canvasRef}
-            className={cn("w-full h-full transition-opacity duration-300", isProcessing ? "opacity-0" : "opacity-100")}
+            className={cn(
+              "w-full h-full transition-opacity duration-300",
+              isProcessing ? "opacity-0" : "opacity-100"
+            )}
             style={{ display: "block" }}
           />
         </div>

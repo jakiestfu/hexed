@@ -6,6 +6,8 @@ import type { HexedFile } from "@hexed/file"
 import { createLogger } from "@hexed/logger"
 
 import type {
+  ChartEvaluateRequest,
+  ChartEvaluateResponse,
   ChartRenderRequest,
   ChartRenderResponse,
   ConnectedResponse,
@@ -49,8 +51,8 @@ function parseFunctionCode(functionCode: string): string {
 
   // Check if function already takes (file, api) parameters
   // This is a simple heuristic - check if the function signature contains both "file" and "api"
-  const hasApiParameter = /\([^)]*\bapi\b[^)]*\)/.test(code) ||
-    /=>\s*\{[^}]*\bapi\b/.test(code)
+  const hasApiParameter =
+    /\([^)]*\bapi\b[^)]*\)/.test(code) || /=>\s*\{[^}]*\bapi\b/.test(code)
 
   if (hasApiParameter) {
     // Function already matches EvaluateAPI signature, use as-is
@@ -267,7 +269,7 @@ export function createWorkerClient(mainWorkerConstructor: new () => Worker) {
 
   /**
    * Evaluate a function in the worker context
-   * 
+   *
    * NOTE FOR PLUGIN AUTHORS / AI CODEGEN:
    *
    * The function passed to `evaluate` is STRINGIFIED and EXECUTED INSIDE A WEB WORKER.
@@ -308,7 +310,8 @@ export function createWorkerClient(mainWorkerConstructor: new () => Worker) {
   ): Promise<TResult> => {
     const worker = initializeMainWorker()
     // Serialize function to string or parse string function code
-    const functionCode = typeof fn === "string" ? parseFunctionCode(fn) : fn.toString()
+    const functionCode =
+      typeof fn === "string" ? parseFunctionCode(fn) : fn.toString()
 
     // Generate request ID and signal ID
     const requestId = generateMessageId()
@@ -375,6 +378,103 @@ export function createWorkerClient(mainWorkerConstructor: new () => Worker) {
     }
   }
 
+  /**
+   * Evaluate a visualization function and render the chart on an offscreen canvas
+   * This combines evaluation and rendering in a single worker operation
+   */
+  const chart = async <
+    TContext extends Record<string, unknown> | undefined = undefined
+  >(
+    canvas: OffscreenCanvas,
+    file: HexedFile,
+    fn: EvaluateAPI<unknown, TContext> | string,
+    devicePixelRatio?: number,
+    options?: EvaluateOptionsBase<unknown> &
+      (TContext extends undefined ? {} : { context: TContext })
+  ): Promise<void> => {
+    const worker = initializeMainWorker()
+    // Serialize function to string or parse string function code
+    const functionCode =
+      typeof fn === "string" ? parseFunctionCode(fn) : fn.toString()
+
+    // Generate request ID and signal ID
+    const requestId = generateMessageId()
+    const signalId = options?.signal ? `${requestId}-signal` : undefined
+
+    logger.log(`Evaluating and rendering chart (request: ${requestId})`)
+
+    // Set up abort signal listener if provided
+    let abortHandler: (() => void) | undefined
+    if (options?.signal && signalId) {
+      abortHandler = () => {
+        logger.log(`Abort signal fired for request: ${requestId}`)
+        const abortMessage: EvaluateAbort = {
+          id: generateMessageId(),
+          type: "EVALUATE_ABORT",
+          requestId: signalId
+        }
+        try {
+          worker.postMessage(abortMessage)
+        } catch (error) {
+          logger.log("Failed to send abort message:", error)
+        }
+      }
+      options.signal.addEventListener("abort", abortHandler)
+      abortSignalHandlers.set(requestId, abortHandler)
+    }
+
+    // Register progress callback if provided
+    if (options?.onProgress) {
+      evaluateProgressCallbacks.set(requestId, options.onProgress)
+    }
+
+    const request: ChartEvaluateRequest = {
+      id: requestId,
+      type: "CHART_EVALUATE_REQUEST",
+      canvas,
+      file: file.getFile()!,
+      functionCode,
+      signalId,
+      devicePixelRatio,
+      ...(options && "context" in options && options.context !== undefined
+        ? { context: options.context as Record<string, unknown> }
+        : {})
+    }
+
+    try {
+      // Transfer OffscreenCanvas via transfer list
+      // Note: Once transferred, the canvas becomes detached and can't be transferred again
+      await sendMainWorkerRequest<ChartEvaluateResponse>(request, [canvas])
+      logger.log(
+        `Chart evaluation and rendering completed (request: ${requestId})`
+      )
+    } catch (error) {
+      // If canvas is already detached, it means we're trying to transfer it again
+      // This shouldn't happen if used correctly, but handle gracefully
+      if (error instanceof Error && error.message.includes("detached")) {
+        logger.log(
+          "Canvas already transferred, sending update without transfer"
+        )
+        // Send request without transfer list (canvas reference will be null in worker)
+        // Worker should handle this by updating existing chart
+        const updateRequest: ChartEvaluateRequest = {
+          ...request,
+          canvas: null as unknown as OffscreenCanvas // Send null to indicate update
+        }
+        await sendMainWorkerRequest<ChartEvaluateResponse>(updateRequest)
+      } else {
+        throw error
+      }
+    } finally {
+      // Clean up
+      if (abortHandler && options?.signal) {
+        options.signal.removeEventListener("abort", abortHandler)
+      }
+      abortSignalHandlers.delete(requestId)
+      evaluateProgressCallbacks.delete(requestId)
+    }
+  }
+
   return {
     async render(
       canvas: OffscreenCanvas,
@@ -415,6 +515,8 @@ export function createWorkerClient(mainWorkerConstructor: new () => Worker) {
         }
       }
     },
+
+    chart,
 
     evaluate,
 

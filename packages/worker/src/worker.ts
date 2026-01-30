@@ -20,6 +20,8 @@ import { HexedFile } from "@hexed/file"
 import { createLogger } from "@hexed/logger"
 
 import type {
+  ChartEvaluateRequest,
+  ChartEvaluateResponse,
   ChartRenderRequest,
   ChartRenderResponse,
   ConnectedResponse,
@@ -106,7 +108,7 @@ async function handleChartRender(request: ChartRenderRequest): Promise<void> {
     if (existingChart) {
       // Destroy the old chart before creating a new one
       if (typeof (existingChart as any).destroy === "function") {
-        ; (existingChart as any).destroy()
+        ;(existingChart as any).destroy()
       }
       chartInstances.delete(request.canvas)
     }
@@ -138,6 +140,164 @@ async function handleChartRender(request: ChartRenderRequest): Promise<void> {
       error instanceof Error ? error.message : "Failed to render chart",
       request.id
     )
+  }
+}
+
+/**
+ * Handle CHART_EVALUATE_REQUEST - Execute visualization function and render chart on canvas
+ */
+async function handleChartEvaluate(
+  request: ChartEvaluateRequest
+): Promise<void> {
+  logger.log(`Evaluating and rendering chart (request: ${request.id})`)
+  try {
+    const { canvas, file, functionCode, signalId, context, devicePixelRatio } =
+      request
+
+    if (!canvas) {
+      throw new Error("Canvas is required for chart rendering")
+    }
+
+    // Check if we already have a chart instance for this canvas
+    const existingChart = chartInstances.get(canvas)
+    if (existingChart) {
+      // Destroy the old chart before creating a new one
+      if (typeof (existingChart as any).destroy === "function") {
+        ;(existingChart as any).destroy()
+      }
+      chartInstances.delete(canvas)
+    }
+
+    // Initialize abort state if signalId provided
+    if (signalId) {
+      abortStates.set(signalId, false)
+    }
+
+    // Create abort signal for HexedFile
+    const abortController = new AbortController()
+    const signal = abortController.signal
+
+    // Create API object with abort, progress, and result methods
+    const api: Omit<
+      EvaluateAPIOptions<ChartConfiguration, unknown>,
+      "context"
+    > = {
+      throwIfAborted(): void {
+        if (signalId && abortStates.get(signalId)) {
+          abortController.abort()
+          throw new DOMException("Aborted", "AbortError")
+        }
+        if (signal.aborted) {
+          throw new DOMException("Aborted", "AbortError")
+        }
+      },
+      emitProgress(data: { processed: number; size: number }): void {
+        const progress = Math.min(
+          100,
+          Math.round((data.processed / data.size) * 100)
+        )
+        const progressEvent: ProgressEvent = {
+          id: generateMessageId(),
+          type: "PROGRESS_EVENT",
+          requestId: request.id,
+          progress,
+          bytesRead: data.processed,
+          totalBytes: data.size
+        }
+        sendProgress(progressEvent)
+      },
+      emitResult(result: ChartConfiguration): void {
+        // Not used for chart evaluation, but keep for API compatibility
+        const resultEvent = {
+          id: generateMessageId(),
+          type: "EVALUATE_RESULT_EVENT" as const,
+          requestId: request.id,
+          result
+        }
+        sendEvaluateResult(resultEvent)
+      }
+    }
+
+    // Create HexedFile instance
+    const hexedFile = new HexedFile(file)
+
+    // Check abort state before execution
+    api.throwIfAborted()
+
+    const code = `
+"use strict";
+
+const __fn = ${functionCode}
+
+return (async () => {
+  try {
+    return await __fn(file, api);
+  } catch (error) {
+    // Pass AbortError through untouched
+    if (
+      error &&
+      typeof error === "object" &&
+      error.name === "AbortError"
+    ) {
+      throw error;
+    }
+
+    throw error;
+  }
+})();
+`
+
+    // Create function in worker context
+    const fn = new Function("file", "api", "context", code)
+
+    // Execute visualization function to get chart config
+    const chartConfig = (await Promise.resolve(
+      fn(hexedFile, {
+        ...api,
+        context
+      })
+    )) as ChartConfiguration
+
+    // Clean up abort state
+    if (signalId) {
+      abortStates.delete(signalId)
+    }
+
+    // Merge devicePixelRatio into chart config if provided
+    const finalConfig: ChartConfiguration = {
+      ...chartConfig,
+      options: {
+        ...(chartConfig.options || {}),
+        ...(devicePixelRatio !== undefined ? { devicePixelRatio } : {})
+      }
+    }
+
+    // Render chart on canvas
+    const chart = renderChart(canvas, finalConfig)
+    chartInstances.set(canvas, chart)
+
+    const response: ChartEvaluateResponse = {
+      id: request.id,
+      type: "CHART_EVALUATE_RESPONSE",
+      success: true
+    }
+    sendResponse(response)
+  } catch (error) {
+    // Clean up abort state on error
+    if (request.signalId) {
+      abortStates.delete(request.signalId)
+    }
+
+    if (error instanceof DOMException && error.name === "AbortError") {
+      sendError("Operation aborted", request.id)
+    } else {
+      sendError(
+        error instanceof Error
+          ? error.message
+          : "Failed to evaluate and render chart",
+        request.id
+      )
+    }
   }
 }
 
@@ -270,6 +430,9 @@ async function handleRequest(message: RequestMessage): Promise<void> {
   switch (message.type) {
     case "CHART_RENDER_REQUEST":
       await handleChartRender(message)
+      break
+    case "CHART_EVALUATE_REQUEST":
+      await handleChartEvaluate(message)
       break
     case "EVALUATE_REQUEST":
       await handleEvaluate(message)

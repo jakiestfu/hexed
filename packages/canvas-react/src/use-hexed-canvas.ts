@@ -114,7 +114,7 @@ export function useHexedCanvas(
     const canvasOptions: HexCanvasOptions = {
       windowSize,
       showAscii,
-      colors,
+      colors
     }
 
     canvasInstanceRef.current = new HexCanvas(

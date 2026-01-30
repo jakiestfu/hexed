@@ -1,13 +1,14 @@
 import { BarChart } from "lucide-react"
 
 import type { ChartConfiguration, HexedVisualization } from "@hexed/worker"
+
 import type { VisualizationPreset } from "../../types"
 
 /**
  * Pure function to calculate byte frequency distribution and return chart configuration
  * This function runs in the worker context via $task
  */
-export const calculateByteFrequency: HexedVisualization = async (file, api) => {
+export default (async (file, api) => {
   const STREAM_CHUNK_SIZE = 1024 * 1024
   const fileSize = file.size
   const endOffset = fileSize
@@ -18,10 +19,7 @@ export const calculateByteFrequency: HexedVisualization = async (file, api) => {
 
   while (bytesRead < searchRange) {
     api.throwIfAborted()
-    const chunkEnd = Math.min(
-      bytesRead + STREAM_CHUNK_SIZE,
-      searchRange
-    )
+    const chunkEnd = Math.min(bytesRead + STREAM_CHUNK_SIZE, searchRange)
 
     // Ensure range is loaded and read chunk
     await file.ensureRange({ start: bytesRead, end: chunkEnd })
@@ -91,11 +89,10 @@ export const calculateByteFrequency: HexedVisualization = async (file, api) => {
       }
     }
   } satisfies ChartConfiguration
-}
+}) satisfies HexedVisualization
 
-export const byteFrequencyPreset: VisualizationPreset = {
+export const visualization: VisualizationPreset = {
   id: "byte-frequency",
   title: "Byte Frequency",
-  icon: BarChart,
-  visualization: calculateByteFrequency
+  icon: BarChart
 }

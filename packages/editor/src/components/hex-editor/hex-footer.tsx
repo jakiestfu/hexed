@@ -43,10 +43,13 @@ export const HexFooter: FunctionComponent<HexFooterProps> = ({ plugins }) => {
       {/* left */}
       <div className="flex w-full min-w-0 md:w-auto md:flex-1">
         <div className="flex w-full grow items-center gap-2">
-          <Tabs value={view} onValueChange={(v) => setView(v as "edit" | "visualize")} className="w-full">
+          <Tabs
+            value={view}
+            onValueChange={(v) => setView(v as "edit" | "visualize")}
+            className="w-full"
+          >
             <TabsList className="w-full md:max-w-3xs border">
               <TabsTrigger
-
                 value="edit"
                 className={cn(
                   "font-mono text-xs",
@@ -58,7 +61,10 @@ export const HexFooter: FunctionComponent<HexFooterProps> = ({ plugins }) => {
               <TabsTrigger
                 value="visualize"
                 // onClick={() => setView("visualize")}
-                className={cn("font-mono text-xs", view === "visualize" ? "bg-accent" : "")}
+                className={cn(
+                  "font-mono text-xs",
+                  view === "visualize" ? "bg-accent" : ""
+                )}
               >
                 Visualize
               </TabsTrigger>
@@ -93,7 +99,10 @@ export const HexFooter: FunctionComponent<HexFooterProps> = ({ plugins }) => {
                 aria-label="Toggle ASCII view"
                 size="sm"
                 disabled={view !== "edit"}
-                className={cn("grow md:grow-0 transition-opacity", showAscii ? "bg-accent" : "")}
+                className={cn(
+                  "grow md:grow-0 transition-opacity",
+                  showAscii ? "bg-accent" : ""
+                )}
               >
                 <CaseSensitive />
               </Toggle>

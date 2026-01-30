@@ -1,13 +1,14 @@
 import { Repeat } from "lucide-react"
 
 import type { ChartConfiguration, HexedVisualization } from "@hexed/worker"
+
 import type { VisualizationPreset } from "../../types"
 
 /**
  * Pure function to calculate autocorrelation and return chart configuration
  * This function runs in the worker context via $task
  */
-export const calculateAutocorrelation: HexedVisualization = async (file, api) => {
+export default (async (file, api) => {
   // Chunk size for streaming (1MB)
   const STREAM_CHUNK_SIZE = 1024 * 1024
   // Maximum data size to process for autocorrelation (10MB)
@@ -82,10 +83,7 @@ export const calculateAutocorrelation: HexedVisualization = async (file, api) =>
   while (bytesRead < searchRange && dataIndex < targetSize) {
     api.throwIfAborted()
     const chunkStart = bytesRead
-    const chunkEnd = Math.min(
-      chunkStart + STREAM_CHUNK_SIZE,
-      searchRange
-    )
+    const chunkEnd = Math.min(chunkStart + STREAM_CHUNK_SIZE, searchRange)
 
     // Ensure range is loaded and read chunk
     await file.ensureRange({ start: chunkStart, end: chunkEnd })
@@ -218,9 +216,9 @@ export const calculateAutocorrelation: HexedVisualization = async (file, api) =>
       }
     }
   } satisfies ChartConfiguration
-}
+}) satisfies HexedVisualization
 
-export const autocorrelationPreset: VisualizationPreset = {
+export const visualization: VisualizationPreset = {
   id: "autocorrelation",
   title: "Autocorrelation",
   icon: Repeat,
@@ -265,6 +263,5 @@ export const autocorrelationPreset: VisualizationPreset = {
         </a>
       </p>
     </div>
-  ),
-  visualization: calculateAutocorrelation
+  )
 }

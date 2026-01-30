@@ -192,7 +192,7 @@ const extractStringsImpl: EvaluateAPI<
     let length = 0
     let charLength = 0
 
-    for (let i = 0; i < data.length;) {
+    for (let i = 0; i < data.length; ) {
       const result = isValidUtf8Char(data, i)
 
       if (result.valid && result.char) {

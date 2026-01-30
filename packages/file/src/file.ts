@@ -39,8 +39,14 @@ import {
   formatHex,
   formatBytesPreview
 } from "./formatter"
-import type { WorkerClient, EvaluateAPI, EvaluateAPIOptions } from "@hexed/worker"
+import type { WorkerClient, EvaluateAPI, EvaluateAPIOptions, ChartConfiguration } from "@hexed/worker"
 import { createWorkerClient } from "@hexed/worker"
+
+type EvaluateOptionsBase<TResult = unknown> = {
+  signal?: AbortSignal
+  onProgress?: (progress: { processed: number; size: number }) => void
+  onResult?: (result: TResult) => void
+}
 import type { ByteRange, HexedFileInput, HexedFileOptions } from "./types"
 
 type FileSystemObserver = {
@@ -984,6 +990,28 @@ return (async () => {
     // console.log("executor", code)
     const executor = new Function("file", "api", code)
     return await executor(this, api)
+  }
+
+  /**
+   * Execute a visualization function and render chart on offscreen canvas
+   * Combines evaluation and rendering in a single operation
+   * Requires a worker to be available
+   */
+  async $chart<TContext extends Record<string, unknown> | undefined = undefined>(
+    fn: EvaluateAPI<ChartConfiguration, TContext> | string,
+    canvas: OffscreenCanvas,
+    devicePixelRatio: number,
+    options?: EvaluateOptionsBase<ChartConfiguration> &
+      (TContext extends undefined ? {} : { context: TContext })
+  ): Promise<void> {
+    if (!this.worker) {
+      throw new Error(
+        "$chart requires a worker. Chart rendering must be done in a worker context."
+      )
+    }
+
+    // Delegate to worker.chart()
+    return await this.worker.chart(canvas, this, fn, devicePixelRatio, options)
   }
 
   /**

@@ -27,8 +27,8 @@ import {
   useHexedSettingsContext,
   useRecentFiles
 } from "@hexed/editor"
-import { HexedPlugin } from "@hexed/plugins/types"
 import { visualizations } from "@hexed/plugins/core"
+import { HexedPlugin } from "@hexed/plugins/types"
 import {
   Button,
   Dialog,

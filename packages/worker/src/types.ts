@@ -2,14 +2,17 @@
  * Message protocol for worker communication
  */
 
-import type { HexedFile } from "@hexed/file"
 import { ChartConfiguration } from "chart.js"
+
+import type { HexedFile } from "@hexed/file"
 
 export type MessageType =
   | "CHART_RENDER_REQUEST"
+  | "CHART_EVALUATE_REQUEST"
   | "EVALUATE_REQUEST"
   | "EVALUATE_ABORT"
   | "CHART_RENDER_RESPONSE"
+  | "CHART_EVALUATE_RESPONSE"
   | "EVALUATE_RESPONSE"
   | "PROGRESS_EVENT"
   | "EVALUATE_RESULT_EVENT"
@@ -55,6 +58,21 @@ export interface ChartRenderRequest extends BaseMessage {
 
 export interface ChartRenderResponse extends BaseMessage {
   type: "CHART_RENDER_RESPONSE"
+  success: boolean
+}
+
+export interface ChartEvaluateRequest extends BaseMessage {
+  type: "CHART_EVALUATE_REQUEST"
+  canvas: OffscreenCanvas
+  file: File
+  functionCode: string
+  signalId?: string
+  context?: Record<string, unknown>
+  devicePixelRatio?: number // Device pixel ratio for retina displays
+}
+
+export interface ChartEvaluateResponse extends BaseMessage {
+  type: "CHART_EVALUATE_RESPONSE"
   success: boolean
 }
 
@@ -127,7 +145,10 @@ export type HexedVisualization = EvaluateAPI<ChartConfiguration>
 /**
  * Union type of all request messages for the main worker
  */
-export type RequestMessage = ChartRenderRequest | EvaluateRequest
+export type RequestMessage =
+  | ChartRenderRequest
+  | ChartEvaluateRequest
+  | EvaluateRequest
 
 /**
  * Union type of all request messages (including chart render requests)
@@ -139,6 +160,7 @@ export type AllRequestMessage = RequestMessage | ChartRenderRequest
  */
 export type ResponseMessage =
   | ChartRenderResponse
+  | ChartEvaluateResponse
   | EvaluateResponse
   | ErrorResponse
   | ConnectedResponse

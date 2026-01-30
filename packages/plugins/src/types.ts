@@ -8,13 +8,12 @@ import type { HexedVisualization } from "@hexed/worker"
 export type HexedPluginType = "sidebar" | "toolbar" | "label"
 
 export type HexedPluginComponent = FunctionComponent<
-  PropsWithChildren<
-    {
-      file: HexedFile
-      settings: UseHexedSettings
-      state: HexedState
-    }
-  >>
+  PropsWithChildren<{
+    file: HexedFile
+    settings: UseHexedSettings
+    state: HexedState
+  }>
+>
 
 export type HexedPluginOptions = {
   type: HexedPluginType
@@ -41,5 +40,5 @@ export type VisualizationPreset = {
   title: string
   icon: LucideIcon
   info?: ReactNode
-  visualization: HexedVisualization
+  source?: string
 }
