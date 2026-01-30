@@ -29,6 +29,43 @@ type EvaluateOptionsBase<TResult = unknown> = {
   onResult?: (result: TResult) => void
 }
 
+/**
+ * Parse and wrap string function code to match EvaluateAPI signature
+ * Handles export default, import statements, and wraps functions that take (file) to take (file, api)
+ */
+function parseFunctionCode(functionCode: string): string {
+  let code = functionCode.trim()
+
+  // Remove import statements (they're not needed in the evaluated function)
+  code = code.replace(/^import\s+.*?from\s+['"].*?['"];?\s*/gm, "")
+
+  // Extract function if it's an export default
+  if (code.includes("export default")) {
+    const match = code.match(/export\s+default\s+(.+)/s)
+    if (match) {
+      code = match[1].trim()
+    }
+  }
+
+  // Check if function already takes (file, api) parameters
+  // This is a simple heuristic - check if the function signature contains both "file" and "api"
+  const hasApiParameter = /\([^)]*\bapi\b[^)]*\)/.test(code) ||
+    /=>\s*\{[^}]*\bapi\b/.test(code)
+
+  if (hasApiParameter) {
+    // Function already matches EvaluateAPI signature, use as-is
+    return code
+  }
+
+  // Wrap function to match EvaluateAPI signature
+  // User's function takes (file) and returns Promise<TResult>
+  // We wrap it to take (file, api) and call the user's function with file
+  return `async (file, api) => {
+    const userFn = ${code};
+    return await userFn(file);
+  }`
+}
+
 export type WorkerClient = ReturnType<typeof createWorkerClient>
 
 /**git sta
@@ -229,9 +266,11 @@ export function createWorkerClient(mainWorkerConstructor: new () => Worker) {
   }
 
   /**
+   * Evaluate a function in the worker context
+   * 
    * NOTE FOR PLUGIN AUTHORS / AI CODEGEN:
    *
-   * The function passed to `$evaluate` is STRINGIFIED and EXECUTED INSIDE A WEB WORKER.
+   * The function passed to `evaluate` is STRINGIFIED and EXECUTED INSIDE A WEB WORKER.
    * It does NOT run in the host JS environment.
    *
    * When writing the `fn` callback:
@@ -258,18 +297,18 @@ export function createWorkerClient(mainWorkerConstructor: new () => Worker) {
    *
    * Write this function as if it lives in a standalone `.js` file with NO imports.
    */
-  const $evaluate = async <
+  const evaluate = async <
     TResult,
     TContext extends Record<string, unknown> | undefined = undefined
   >(
     file: HexedFile,
-    fn: EvaluateAPI<TResult, TContext>,
+    fn: EvaluateAPI<TResult, TContext> | string,
     options?: EvaluateOptionsBase<TResult> &
       (TContext extends undefined ? {} : { context: TContext })
   ): Promise<TResult> => {
     const worker = initializeMainWorker()
-    // Serialize function to string
-    const functionCode = fn.toString()
+    // Serialize function to string or parse string function code
+    const functionCode = typeof fn === "string" ? parseFunctionCode(fn) : fn.toString()
 
     // Generate request ID and signal ID
     const requestId = generateMessageId()
@@ -316,7 +355,9 @@ export function createWorkerClient(mainWorkerConstructor: new () => Worker) {
       file: file.getFile()!,
       functionCode,
       signalId,
-      ...(options && "context" in options ? { context: options.context } : {})
+      ...(options && "context" in options && options.context !== undefined
+        ? { context: options.context as Record<string, unknown> }
+        : {})
     }
 
     try {
@@ -375,7 +416,7 @@ export function createWorkerClient(mainWorkerConstructor: new () => Worker) {
       }
     },
 
-    $evaluate,
+    evaluate,
 
     disconnect(): void {
       logger.log("Disconnecting worker client")

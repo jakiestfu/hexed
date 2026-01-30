@@ -1,42 +1,31 @@
 import { BarChart } from "lucide-react"
 
-import { HexedFile } from "@hexed/file"
-import type { ChartConfiguration, EvaluateAPI } from "@hexed/worker"
-
-import { createHexedEditorPlugin } from "../.."
-import type { ChartCalculationFunction } from "../../types"
-
-// Chunk size for streaming (1MB)
+import type { ChartConfiguration, HexedVisualization } from "@hexed/worker"
+import type { VisualizationPreset } from "../../types"
 
 /**
- * Pure function to calculate byte frequency distribution
- * This function runs in the worker context via $evaluate
+ * Pure function to calculate byte frequency distribution and return chart configuration
+ * This function runs in the worker context via $task
  */
-const calculateByteFrequencyImpl: EvaluateAPI<
-  number[],
-  { startOffset?: number; endOffset?: number }
-> = async (hexedFile, api) => {
+export const calculateByteFrequency: HexedVisualization = async (file, api) => {
   const STREAM_CHUNK_SIZE = 1024 * 1024
-  const fileSize = hexedFile.size
-  const startOffset = api.context?.startOffset ?? 0
-  const endOffset = api.context?.endOffset ?? fileSize
-  const searchRange = endOffset - startOffset
+  const fileSize = file.size
+  const endOffset = fileSize
+  const searchRange = endOffset
 
-  // Initialize frequency array (256 elements for bytes 0-255)
   const frequencies = new Array(256).fill(0)
   let bytesRead = 0
 
   while (bytesRead < searchRange) {
     api.throwIfAborted()
-    const chunkStart = startOffset + bytesRead
     const chunkEnd = Math.min(
-      chunkStart + STREAM_CHUNK_SIZE,
-      startOffset + searchRange
+      bytesRead + STREAM_CHUNK_SIZE,
+      searchRange
     )
 
     // Ensure range is loaded and read chunk
-    await hexedFile.ensureRange({ start: chunkStart, end: chunkEnd })
-    const chunk = hexedFile.readBytes(chunkStart, chunkEnd - chunkStart)
+    await file.ensureRange({ start: bytesRead, end: chunkEnd })
+    const chunk = file.readBytes(bytesRead, chunkEnd - bytesRead)
 
     if (chunk) {
       // Count byte frequencies in this chunk
@@ -45,7 +34,7 @@ const calculateByteFrequencyImpl: EvaluateAPI<
       }
     }
 
-    const chunkSize = chunkEnd - chunkStart
+    const chunkSize = chunkEnd - bytesRead
     bytesRead += chunkSize
 
     // Emit progress
@@ -55,49 +44,12 @@ const calculateByteFrequencyImpl: EvaluateAPI<
     await new Promise((resolve) => setTimeout(resolve, 0))
   }
 
-  return frequencies
-}
-
-/**
- * Calculate byte frequency and return chart configuration
- */
-export const calculateByteFrequency: ChartCalculationFunction = async (
-  file,
-  workerClient,
-  onProgress,
-  startOffset,
-  endOffset
-) => {
-  // Calculate byte frequency using $evaluate
-  const frequencies = await workerClient.$evaluate(
-    file,
-    calculateByteFrequencyImpl,
-    {
-      context: { startOffset, endOffset },
-      onProgress: onProgress
-        ? (progress) => {
-            const percentage = Math.round(
-              (progress.processed / progress.size) * 100
-            )
-            onProgress(percentage)
-          }
-        : undefined
-    }
-  )
-
-  // const frequencies = await calculateByteFrequencyImpl(file, {
-  //   throwIfAborted: () => { },
-  //   emitProgress: (progress) => {
-  //     onProgress(Math.round((progress.processed / progress.size) * 100))
-  //   },
-  //   context: { startOffset, endOffset }
-  // })
-
   // Create chart configuration
   const labels = Array.from({ length: 256 }, (_, i) => {
     const hex = i.toString(16).padStart(2, "0").toUpperCase()
     return `0x${hex}`
   })
+
   return {
     type: "bar",
     data: {
@@ -141,10 +93,9 @@ export const calculateByteFrequency: ChartCalculationFunction = async (
   } satisfies ChartConfiguration
 }
 
-export const byteFrequencyPlugin = createHexedEditorPlugin({
-  type: "visualization",
+export const byteFrequencyPreset: VisualizationPreset = {
   id: "byte-frequency",
   title: "Byte Frequency",
   icon: BarChart,
-  chart: calculateByteFrequency
-})
+  visualization: calculateByteFrequency
+}

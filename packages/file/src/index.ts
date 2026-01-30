@@ -65,3 +65,4 @@ export {
 // File
 export { HexedFile } from '@hexed/file/file';
 export type { HexedFileInput, HexedFileOptions, ByteRange } from '@hexed/file/types';
+export type { HexedVisualization } from '@hexed/worker';

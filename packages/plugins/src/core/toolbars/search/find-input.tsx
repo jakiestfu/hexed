@@ -127,8 +127,8 @@ export const FindInput = forwardRef<
         // Accumulate matches as they stream in
         const accumulatedMatches: SearchMatch[] = []
 
-        // Perform search with streaming matches using $evaluate
-        await hexedFile.worker?.$evaluate(hexedFile, searchImpl, {
+        // Perform search with streaming matches using $task
+        await hexedFile.$task(searchImpl, {
           context: {
             pattern
           },

@@ -14,8 +14,13 @@
   },
   "dependencies": {
     "@hexed/file": "workspace:*",
+    "@hexed/plugins": "workspace:*",
+    "@hexed/ui": "workspace:*",
+    "@hexed/worker": "workspace:*",
     "@monaco-editor/react": "^4.7.0",
-    "constrained-editor-plugin": "^1.4.0"
+    "constrained-editor-plugin": "^1.4.0",
+    "lucide-react": "^0.468.0",
+    "typescript": "^5.7.2"
   },
   "devDependencies": {
     "@hexed/eslint-config": "workspace:*",
@@ -24,8 +29,7 @@
     "@types/react": "^19.2.3",
     "@types/react-dom": "^19.2.3",
     "react": "^19.2.3",
-    "react-dom": "^19.2.3",
-    "typescript": "^5.7.2"
+    "react-dom": "^19.2.3"
   },
   "peerDependencies": {
     "monaco-editor": "^0.55.1",

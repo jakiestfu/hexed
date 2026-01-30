@@ -1,19 +1,13 @@
 import { Repeat } from "lucide-react"
 
-import { HexedFile } from "@hexed/file"
-import type { ChartConfiguration, EvaluateAPI } from "@hexed/worker"
-
-import { createHexedEditorPlugin } from "../.."
-import type { ChartCalculationFunction } from "../../types"
+import type { ChartConfiguration, HexedVisualization } from "@hexed/worker"
+import type { VisualizationPreset } from "../../types"
 
 /**
- * Pure function to calculate autocorrelation
- * This function runs in the worker context via $evaluate
+ * Pure function to calculate autocorrelation and return chart configuration
+ * This function runs in the worker context via $task
  */
-const calculateAutocorrelationImpl: EvaluateAPI<
-  { autocorrelationValues: number[]; lags: number[] },
-  { startOffset?: number; endOffset?: number; maxLag?: number }
-> = async (hexedFile, api) => {
+export const calculateAutocorrelation: HexedVisualization = async (hexedFile, api) => {
   // Chunk size for streaming (1MB)
   const STREAM_CHUNK_SIZE = 1024 * 1024
   // Maximum data size to process for autocorrelation (10MB)
@@ -21,7 +15,6 @@ const calculateAutocorrelationImpl: EvaluateAPI<
 
   /**
    * Pure function to calculate autocorrelation from data array
-   * This function runs in the worker context via $evaluate
    */
   const calculateAutocorrelationPure = (
     data: Uint8Array,
@@ -154,36 +147,6 @@ const calculateAutocorrelationImpl: EvaluateAPI<
     (_, i) => i + 1
   )
 
-  return { autocorrelationValues, lags }
-}
-
-/**
- * Calculate autocorrelation and return chart configuration
- */
-export const calculateAutocorrelation: ChartCalculationFunction = async (
-  file,
-  workerClient,
-  onProgress,
-  startOffset,
-  endOffset
-) => {
-  // Calculate autocorrelation using $evaluate
-  const { autocorrelationValues, lags } = await workerClient.$evaluate(
-    file,
-    calculateAutocorrelationImpl,
-    {
-      context: { startOffset, endOffset, maxLag: 256 },
-      onProgress: onProgress
-        ? (progress) => {
-            const percentage = Math.round(
-              (progress.processed / progress.size) * 100
-            )
-            onProgress(percentage)
-          }
-        : undefined
-    }
-  )
-
   // Create chart configuration
   // Format lag labels
   const labels = lags.map((lag) => `Lag ${lag}`)
@@ -256,10 +219,10 @@ export const calculateAutocorrelation: ChartCalculationFunction = async (
   } satisfies ChartConfiguration
 }
 
-export const autocorrelationPlugin = createHexedEditorPlugin({
-  type: "visualization",
+export const autocorrelationPreset: VisualizationPreset = {
   id: "autocorrelation",
   title: "Autocorrelation",
+  icon: Repeat,
   info: (
     <div className="space-y-2">
       <p>
@@ -302,6 +265,5 @@ export const autocorrelationPlugin = createHexedEditorPlugin({
       </p>
     </div>
   ),
-  icon: Repeat,
-  chart: calculateAutocorrelation
-})
+  visualization: calculateAutocorrelation
+}

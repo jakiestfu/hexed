@@ -28,6 +28,7 @@ import {
   useRecentFiles
 } from "@hexed/editor"
 import { HexedPlugin } from "@hexed/plugins/types"
+import { visualizations } from "@hexed/plugins/core"
 import {
   Button,
   Dialog,
@@ -228,21 +229,16 @@ export const Menu: FunctionComponent<MenuProps> = ({ plugins }) => {
             Visualize
           </DropdownMenuSubTrigger>
           <DropdownMenuSubContent>
-            {plugins
-              .filter((plugin) => plugin.type === "visualization")
-              .map((plugin) => (
-                <DropdownMenuItem
-                  key={plugin.id}
-                  className="cursor-pointer"
-                  onClick={() => setVisualization(plugin.id)}
-                >
-                  <plugin.icon className="mr-2 h-4 w-4" />
-                  {plugin.title}
-                  <DropdownMenuShortcut>
-                    {plugin.hotkey?.formatted}
-                  </DropdownMenuShortcut>
-                </DropdownMenuItem>
-              ))}
+            {visualizations.map((preset) => (
+              <DropdownMenuItem
+                key={preset.id}
+                className="cursor-pointer"
+                onClick={() => setVisualization(preset.id)}
+              >
+                <preset.icon className="mr-2 h-4 w-4" />
+                {preset.title}
+              </DropdownMenuItem>
+            ))}
           </DropdownMenuSubContent>
         </DropdownMenuSub>
 

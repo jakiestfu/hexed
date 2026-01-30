@@ -5,7 +5,8 @@ import type { FunctionComponent } from "react"
 
 import { HexCanvasReact } from "@hexed/canvas-react"
 // import { HexToolbarSearch } from "./hex-toolbar-search"
-import { plugins } from "@hexed/plugins/core"
+import { plugins, visualizations } from "@hexed/plugins/core"
+import { Visualization } from "@hexed/plugins"
 import { Workbench, template as workbenchTemplate } from "@hexed/workbench"
 import {
   Card,
@@ -30,6 +31,7 @@ import { EmptyState } from "../file/empty-state"
 import { HexFooter } from "./hex-footer"
 import { HexSidebar } from "./hex-sidebar"
 import { HexToolbar } from "./hex-toolbar"
+
 
 export const Editor: FunctionComponent<EditorProps> = ({
   className = "",
@@ -83,7 +85,7 @@ export const Editor: FunctionComponent<EditorProps> = ({
 
 
   // Handle workbench content changes
-  const [workbenchValue, setWorkbenchValue] = useState<string>(() => workbenchTemplate)
+  const [workbenchValue, setWorkbenchValue] = useState<string>(() => workbenchTemplate())
 
   const workbenchPanel = (
     <ResizablePanel
@@ -93,13 +95,17 @@ export const Editor: FunctionComponent<EditorProps> = ({
       className={sidebar ? "hidden md:flex" : ""}
     >
       <div className="h-full w-full">
-        <Workbench
+        {hexedFile ? <Workbench
           value={workbenchValue}
-          onChange={(v) => setWorkbenchValue(v ?? "")}
+          onChange={(v) => {
+            setWorkbenchValue(v ?? "")
+          }}
           height="100%"
           className="h-full"
           theme={theme === "dark" ? "vs-dark" : "vs"}
-        />
+          hexedFile={hexedFile}
+          visualizations={visualizations}
+        /> : null}
       </div>
     </ResizablePanel>
   )
@@ -140,15 +146,15 @@ export const Editor: FunctionComponent<EditorProps> = ({
       />
     ) : null
 
-  const visualizationPlugin = plugins.find(
-    (plugin) => plugin.id === visualization
+  const visualizationPreset = visualizations.find(
+    (preset) => preset.id === visualization
   )
 
   const mainContent =
     visualization === "workbench"
       ? workbenchPanel
-      : visualizationPlugin
-        ? visualizationPlugin.component
+      : visualizationPreset
+        ? <Visualization preset={visualizationPreset} />
         : hexCanvasPanel
 
   return (

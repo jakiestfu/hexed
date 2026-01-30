@@ -1,19 +1,13 @@
 import { Grid3x3 } from "lucide-react"
 
-import { HexedFile } from "@hexed/file"
-import type { ChartConfiguration, EvaluateAPI } from "@hexed/worker"
-
-import { createHexedEditorPlugin } from "../.."
-import type { ChartCalculationFunction } from "../../types"
+import type { ChartConfiguration, HexedVisualization } from "@hexed/worker"
+import type { VisualizationPreset } from "../../types"
 
 /**
- * Pure function to calculate byte scatter
- * This function runs in the worker context via $evaluate
+ * Pure function to calculate byte scatter and return chart configuration
+ * This function runs in the worker context via $task
  */
-const calculateByteScatterImpl: EvaluateAPI<
-  { points: Array<{ x: number; y: number }> },
-  { startOffset?: number; endOffset?: number; maxPoints?: number }
-> = async (hexedFile, api) => {
+export const calculateByteScatter: HexedVisualization = async (hexedFile, api) => {
   // Chunk size for streaming (1MB)
   const STREAM_CHUNK_SIZE = 1024 * 1024
   // Maximum points to display in scatter plot (default 10000)
@@ -99,36 +93,6 @@ const calculateByteScatterImpl: EvaluateAPI<
     await new Promise((resolve) => setTimeout(resolve, 0))
   }
 
-  return { points }
-}
-
-/**
- * Calculate byte scatter and return chart configuration
- */
-export const calculateByteScatter: ChartCalculationFunction = async (
-  file,
-  workerClient,
-  onProgress,
-  startOffset,
-  endOffset
-) => {
-  // Calculate byte scatter using $evaluate
-  const { points } = await workerClient.$evaluate(
-    file,
-    calculateByteScatterImpl,
-    {
-      context: { startOffset, endOffset, maxPoints: 10000 },
-      onProgress: onProgress
-        ? (progress) => {
-            const percentage = Math.round(
-              (progress.processed / progress.size) * 100
-            )
-            onProgress(percentage)
-          }
-        : undefined
-    }
-  )
-
   return {
     type: "scatter",
     data: {
@@ -180,10 +144,10 @@ export const calculateByteScatter: ChartCalculationFunction = async (
   } satisfies ChartConfiguration
 }
 
-export const byteScatterPlugin = createHexedEditorPlugin({
-  type: "visualization",
+export const byteScatterPreset: VisualizationPreset = {
   id: "byte-scatter",
   title: "Offset vs Bytes",
+  icon: Grid3x3,
   info: (
     <div className="space-y-2">
       <p>
@@ -221,6 +185,5 @@ export const byteScatterPlugin = createHexedEditorPlugin({
       </p>
     </div>
   ),
-  icon: Grid3x3,
-  chart: calculateByteScatter
-})
+  visualization: calculateByteScatter
+}

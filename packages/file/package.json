@@ -17,6 +17,7 @@
   },
   "scripts": {
     "typecheck": "tsc --noEmit",
+    "prebuild": "rm -rf ./tsconfig.declarations.tsbuildinfo",
     "build": "tsc -p tsconfig.declarations.json",
     "postbuild": "dts-bundle-generator --project ./tsconfig.declarations.json -o ./dist/file.d.ts ./dist/types/index.d.ts",
     "postpostbuild": "rm -rf ./dist/types",

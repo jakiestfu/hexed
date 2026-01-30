@@ -27,7 +27,7 @@ import {
   readUTF16Char as readUTF16CharImpl,
   readBinary as readBinaryImpl
 } from "./interpreter"
-import type { WorkerClient } from "@hexed/worker"
+import type { WorkerClient, EvaluateAPI, EvaluateAPIOptions } from "@hexed/worker"
 import { createWorkerClient } from "@hexed/worker"
 import type { ByteRange, HexedFileInput, HexedFileOptions } from "./types"
 
@@ -825,6 +825,123 @@ export class HexedFile extends EventTarget {
         await new Promise((resolve) => setTimeout(resolve, 0))
       }
     }
+  }
+
+  /**
+   * Check if we're running in a worker context
+   */
+  private isInWorker(): boolean {
+    return (
+      typeof self !== "undefined" &&
+      typeof (self as any).WorkerGlobalScope !== "undefined" &&
+      self instanceof (self as any).WorkerGlobalScope
+    )
+  }
+
+  /**
+   * Parse and wrap string function code to match EvaluateAPI signature
+   */
+  private parseFunctionCode(functionCode: string): string {
+    let code = functionCode.trim()
+
+    // Remove import statements (they're not needed in the evaluated function)
+    code = code.replace(/^import\s+.*?from\s+['"].*?['"];?\s*/gm, "")
+
+    // Extract function if it's an export default
+    if (code.includes("export default")) {
+      const match = code.match(/export\s+default\s+(.+)/s)
+      if (match) {
+        code = match[1].trim()
+      }
+    }
+
+    // Check if function already takes (file, api) parameters
+    const hasApiParameter =
+      /\([^)]*\bapi\b[^)]*\)/.test(code) ||
+      /=>\s*\{[^}]*\bapi\b/.test(code)
+
+    if (hasApiParameter) {
+      // Function already matches EvaluateAPI signature, use as-is
+      return code
+    }
+
+    // Wrap function to match EvaluateAPI signature
+    return `async (file, api) => {
+      const userFn = ${code};
+      return await userFn(file);
+    }`
+  }
+
+  /**
+   * Execute a function in worker context or directly if already in worker
+   * Supports both function objects and stringified functions
+   */
+  async $task<TResult, TContext extends Record<string, unknown> | undefined = undefined>(
+    fn: EvaluateAPI<TResult, TContext> | string,
+    options?: {
+      context?: TContext
+      signal?: AbortSignal
+      onProgress?: (progress: { processed: number; size: number }) => void
+      onResult?: (result: TResult) => void
+    }
+  ): Promise<TResult> {
+    const functionCode =
+      typeof fn === "string" ? this.parseFunctionCode(fn) : fn.toString()
+
+    // Create abort controller if signal provided
+    const abortController = options?.signal
+      ? new AbortController()
+      : null
+    if (abortController && options?.signal) {
+      options.signal.addEventListener("abort", () => {
+        abortController.abort()
+      })
+    }
+
+    // Create API object
+    const api: EvaluateAPIOptions<TResult, TContext> = {
+      throwIfAborted(): void {
+        if (abortController?.signal.aborted || options?.signal?.aborted) {
+          throw new DOMException("Aborted", "AbortError")
+        }
+      },
+      emitProgress(data: { processed: number; size: number }): void {
+        options?.onProgress?.(data)
+      },
+      emitResult(result: TResult): void {
+        // Call onResult callback if provided (for streaming support)
+        options?.onResult?.(result)
+      },
+      context: (options?.context ?? undefined) as TContext
+    }
+
+    // Wrap function code for execution
+    const code = `
+"use strict";
+
+const __fn = ${functionCode}
+
+return (async () => {
+  try {
+    return await __fn(file, api);
+  } catch (error) {
+    // Pass AbortError through untouched
+    if (
+      error &&
+      typeof error === "object" &&
+      error.name === "AbortError"
+    ) {
+      throw error;
+    }
+    throw error;
+  }
+})();
+`
+
+    // Execute function directly
+    // console.log("executor", code)
+    const executor = new Function("file", "api", code)
+    return await executor(this, api)
   }
 
   /**

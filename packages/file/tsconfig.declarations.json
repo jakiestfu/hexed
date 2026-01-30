@@ -8,7 +8,8 @@
     "stripInternal": true,
     "paths": {
       "@hexed/worker": ["../worker/dist/index.d.ts"],
-      "@hexed/file": ["./src"]
+      "@hexed/file": ["./src"],
+      "chart.js": ["../worker/node_modules/chart.js/dist/types/index.d.ts"]
     }
   },
   "include": ["src/**/*"],

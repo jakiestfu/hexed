@@ -1,19 +1,14 @@
 import { TrendingUp } from "lucide-react"
 
-import { formatAddress, HexedFile } from "@hexed/file"
-import type { ChartConfiguration, EvaluateAPI } from "@hexed/worker"
-
-import { createHexedEditorPlugin } from "../.."
-import type { ChartCalculationFunction } from "../../types"
+import { formatAddress } from "@hexed/file"
+import type { ChartConfiguration, HexedVisualization } from "@hexed/worker"
+import type { VisualizationPreset } from "../../types"
 
 /**
- * Pure function to calculate chi-square
- * This function runs in the worker context via $evaluate
+ * Pure function to calculate chi-square and return chart configuration
+ * This function runs in the worker context via $task
  */
-const calculateChiSquareImpl: EvaluateAPI<
-  { chiSquareValues: number[]; offsets: number[]; blockSize: number },
-  { startOffset?: number; endOffset?: number; blockSize?: number }
-> = async (hexedFile, api) => {
+export const calculateChiSquare: HexedVisualization = async (hexedFile, api) => {
   // Chunk size for streaming (1MB)
   const STREAM_CHUNK_SIZE = 1024 * 1024
   // Block size calculation constants
@@ -149,40 +144,10 @@ const calculateChiSquareImpl: EvaluateAPI<
     }
   }
 
-  return { chiSquareValues, offsets, blockSize }
-}
-
-/**
- * Calculate chi-square and return chart configuration
- */
-export const calculateChiSquare: ChartCalculationFunction = async (
-  file,
-  workerClient,
-  onProgress,
-  startOffset,
-  endOffset
-) => {
-  // Calculate chi-square using $evaluate
-  const { chiSquareValues, offsets, blockSize } = await workerClient.$evaluate(
-    file,
-    calculateChiSquareImpl,
-    {
-      context: { startOffset, endOffset },
-      onProgress: onProgress
-        ? (progress) => {
-            const percentage = Math.round(
-              (progress.processed / progress.size) * 100
-            )
-            onProgress(percentage)
-          }
-        : undefined
-    }
-  )
-
   // Create chart configuration
   // Format offsets as hex addresses
-  const labels = offsets.map((offset) => {
-    return formatAddress(offset)
+  const labels = chiSquareValues.map((_, index) => {
+    return formatAddress(offsets[index])
   })
 
   // For small datasets, show points and disable decimation
@@ -249,10 +214,10 @@ export const calculateChiSquare: ChartCalculationFunction = async (
   } satisfies ChartConfiguration
 }
 
-export const chiSquarePlugin = createHexedEditorPlugin({
-  type: "visualization",
+export const chiSquarePreset: VisualizationPreset = {
   id: "chi-square",
   title: "Chi-square",
+  icon: TrendingUp,
   info: (
     <div className="space-y-2">
       <p>
@@ -279,6 +244,5 @@ export const chiSquarePlugin = createHexedEditorPlugin({
       </p>
     </div>
   ),
-  icon: TrendingUp,
-  chart: calculateChiSquare
-})
+  visualization: calculateChiSquare
+}

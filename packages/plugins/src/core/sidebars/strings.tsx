@@ -31,7 +31,7 @@ import { HexedPluginComponent } from "../../types"
 
 /**
  * Pure function to extract strings from binary data
- * This function runs in the worker context via $evaluate
+ * This function runs in the worker context via $task
  */
 const extractStringsImpl: EvaluateAPI<
   StringMatch[],
@@ -193,7 +193,7 @@ const extractStringsImpl: EvaluateAPI<
     let length = 0
     let charLength = 0
 
-    for (let i = 0; i < data.length; ) {
+    for (let i = 0; i < data.length;) {
       const result = isValidUtf8Char(data, i)
 
       if (result.valid && result.char) {
@@ -688,7 +688,7 @@ const extractStringsImpl: EvaluateAPI<
   return allMatches
 }
 
-export const Strings: HexedPluginComponent<"sidebar"> = ({ file, state }) => {
+export const Strings: HexedPluginComponent = ({ file, state }) => {
   const [minLength, setMinLength] = useState<number>(4)
   const [encoding, setEncoding] = useState<StringEncoding>("ascii")
   const [isSearching, setIsSearching] = useState<boolean>(false)
@@ -710,7 +710,7 @@ export const Strings: HexedPluginComponent<"sidebar"> = ({ file, state }) => {
     setExtractedStrings([])
 
     try {
-      const matches = await file.worker.$evaluate(file, extractStringsImpl, {
+      const matches = await file.$task(extractStringsImpl, {
         context: { minLength, encoding },
         onProgress: (progress) => {
           const percentage = Math.round(

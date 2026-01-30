@@ -29,7 +29,6 @@ export function useResolveHandle(input: HexedFileInput) {
         const handleData = await getFileHandleById(input)
         if (handleData === null) return
 
-        console.log("setFileHandle", handleData)
         setFileHandle(handleData.handle)
       } catch (loadError) {
         console.error("Failed to load handle metadata:", loadError)

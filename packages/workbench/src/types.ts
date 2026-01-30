@@ -1,4 +1,6 @@
 import type { EditorProps } from "@monaco-editor/react"
+import type { HexedFile } from "@hexed/file"
+import type { VisualizationPreset } from "@hexed/plugins/types"
 
 export type WorkbenchProps = {
   /**
@@ -33,4 +35,13 @@ export type WorkbenchProps = {
    * Optional editor options
    */
   options?: EditorProps["options"]
+  /**
+   * Optional hexed file instance for visualization
+   */
+  hexedFile: HexedFile
+
+  /**
+   * Visualization presets for the workbench
+   */
+  visualizations?: VisualizationPreset[]
 }

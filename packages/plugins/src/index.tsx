@@ -1,11 +1,19 @@
 import { formatHotkey } from "@hexed/editor"
 
-import { plugins } from "./core"
 import { LabelPlugin } from "./label-plugin"
 import { SidebarPlugin } from "./sidebar-plugin"
 import { ToolbarPlugin } from "./toolbar-plugin"
-import { HexedPlugin, HexedPluginOptions } from "./types"
-import { VisualizationPlugin } from "./visualization-plugin"
+import { HexedPlugin, HexedPluginOptions, VisualizationPreset } from "./types"
+import { Visualization } from "./visualization-plugin"
+
+export {
+  Visualization,
+  LabelPlugin,
+  SidebarPlugin,
+  ToolbarPlugin,
+}
+
+export type { VisualizationPreset }
 
 const getComponent = (options: HexedPluginOptions) => {
   switch (options.type) {
@@ -15,9 +23,6 @@ const getComponent = (options: HexedPluginOptions) => {
       return <ToolbarPlugin {...options} />
     case "label":
       return <LabelPlugin {...options} />
-    case "visualization": {
-      return <VisualizationPlugin {...options} />
-    }
     default:
       return null
   }

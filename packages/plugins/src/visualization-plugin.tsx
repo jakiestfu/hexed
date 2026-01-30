@@ -3,9 +3,9 @@ import { Info, X } from "lucide-react"
 
 import {
   useHexedFileContext,
-  useHexedSettingsContext,
-  useHexedStateContext
+  useHexedSettingsContext
 } from "@hexed/editor"
+import type { VisualizationPreset } from "./types"
 import {
   Button,
   cn,
@@ -15,11 +15,10 @@ import {
   Progress
 } from "@hexed/ui"
 
-import { HexedPluginOptionsForVisualization } from "./types"
-
-export const VisualizationPlugin: FunctionComponent<
-  HexedPluginOptionsForVisualization
-> = ({ type, title, icon: Icon, chart: chartFunction, info }) => {
+export const Visualization: FunctionComponent<{
+  preset: VisualizationPreset
+}> = ({ preset }) => {
+  const { title, icon: Icon, info, visualization } = preset
   const settings = useHexedSettingsContext()
   const {
     input: { hexedFile }
@@ -40,7 +39,7 @@ export const VisualizationPlugin: FunctionComponent<
     })
   )
 
-  if (!hexedFile || type !== "visualization" || !hexedFile.worker) return null
+  if (!hexedFile || !hexedFile.worker) return null
 
   // Transfer canvas to chart worker once it's mounted
   useEffect(() => {
@@ -95,7 +94,8 @@ export const VisualizationPlugin: FunctionComponent<
   // Calculate and render chart when file changes
   useEffect(() => {
     const file = hexedFile?.getFile()
-    if (!file || !hexedFile?.worker || isProcessing) return
+    const worker = hexedFile?.worker
+    if (!file || !worker || isProcessing) return
 
     const loadData = async () => {
       try {
@@ -114,14 +114,16 @@ export const VisualizationPlugin: FunctionComponent<
           ? Promise.resolve(offscreenCanvasRef.current)
           : canvasReadyPromiseRef.current
 
-        // Call chart function to get chart config
-        const chartConfigPromise = chartFunction(
-          hexedFile,
-          hexedFile.worker!,
-          (progressValue) => {
+        // Execute visualization using hexedFile.$task
+        const chartConfigPromise = hexedFile.$task(visualization, {
+          onProgress: (progressData) => {
+            const progressValue = Math.min(
+              100,
+              Math.round((progressData.processed / progressData.size) * 100)
+            )
             setProgress(progressValue)
           }
-        )
+        })
 
         // Wait for both chart config and canvas to be ready
         const [chartConfig, offscreenCanvas] = await Promise.all([
@@ -133,7 +135,7 @@ export const VisualizationPlugin: FunctionComponent<
         const dpr = window.devicePixelRatio || 1
 
         // Render chart using unified worker client
-        await hexedFile.worker!.render(offscreenCanvas, chartConfig, dpr)
+        await worker.render(offscreenCanvas, chartConfig, dpr)
         setProgress(100)
       } catch (err) {
         const error =
@@ -147,7 +149,7 @@ export const VisualizationPlugin: FunctionComponent<
     }
 
     loadData()
-  }, [hexedFile, chartFunction, isProcessing])
+  }, [hexedFile, visualization, isProcessing])
 
   return (
     <div className="flex flex-col h-full w-full relative">
@@ -155,7 +157,6 @@ export const VisualizationPlugin: FunctionComponent<
         <div className="flex items-center gap-2">
           <h2 className="text-lg font-bold">{title}</h2>
           {info ? (
-            // Create a popover
             <Popover>
               <PopoverTrigger asChild>
                 <Button

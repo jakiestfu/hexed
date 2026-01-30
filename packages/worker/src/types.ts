@@ -3,6 +3,7 @@
  */
 
 import type { HexedFile } from "@hexed/file"
+import { ChartConfiguration } from "chart.js"
 
 export type MessageType =
   | "CHART_RENDER_REQUEST"
@@ -120,6 +121,8 @@ export type EvaluateAPI<TResult = unknown, TContext = undefined> = (
   hexedFile: HexedFile,
   api: EvaluateAPIOptions<TResult, TContext>
 ) => Promise<TResult>
+
+export type HexedVisualization = EvaluateAPI<ChartConfiguration>
 
 /**
  * Union type of all request messages for the main worker

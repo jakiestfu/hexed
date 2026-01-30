@@ -274,18 +274,17 @@ If your plugin needs to perform heavy computations, you can use the worker clien
 const MyPlugin: HexedPluginComponent = ({ file }) => {
   const handleProcess = async () => {
     const fileHandle = file.getHandle()
-    if (!file?.worker || !fileHandle) return
+    if (!fileHandle) return
 
-    const fileObj = await fileHandle.getFile()
-    // Use file.worker methods for heavy operations
-    await file.worker.$evaluate(file, someFunction, { ... })
+    // Use file.$task() for heavy operations that run in worker context
+    await file.$task(someFunction, { ... })
   }
 
   return <button onClick={handleProcess}>Process File</button>
 }
 ```
 
-The worker client is automatically created when a `HexedFile` is instantiated with a `workerConstructor` option, and is accessible via `file.worker`.
+The `$task` method on `HexedFile` automatically handles worker execution. If the code is already running in a worker context, it executes directly. Otherwise, it delegates to the worker client. The worker client is automatically created when a `HexedFile` is instantiated with a `workerConstructor` option.
 
 ## Best Practices
 

@@ -1,6 +1,6 @@
 /**
  * Pure function to search for byte patterns in a file
- * This function runs in the worker context via $evaluate
+ * This function runs in the worker context via $task
  */
 
 import type { EvaluateAPI } from "@hexed/worker"

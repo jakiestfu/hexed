@@ -6,11 +6,11 @@ import { interpreterPlugin } from "./sidebars/interpreter"
 import { stringsPlugin } from "./sidebars/strings"
 import { templatesPlugin } from "./sidebars/templates"
 import { searchPlugin } from "./toolbars/search"
-import { autocorrelationPlugin } from "./visualizations/autocorrelation"
-import { byteFrequencyPlugin } from "./visualizations/byte-frequency"
-import { byteScatterPlugin } from "./visualizations/byte-scatter"
-import { chiSquarePlugin } from "./visualizations/chi-square"
-import { entropyPlugin } from "./visualizations/entropy"
+import { autocorrelationPreset } from "./visualizations/autocorrelation"
+import { byteFrequencyPreset } from "./visualizations/byte-frequency"
+import { byteScatterPreset } from "./visualizations/byte-scatter"
+import { chiSquarePreset } from "./visualizations/chi-square"
+import { entropyPreset } from "./visualizations/entropy"
 
 export const plugins: HexedPlugin[] = pluginsWithHotkeys([
   interpreterPlugin,
@@ -18,10 +18,13 @@ export const plugins: HexedPlugin[] = pluginsWithHotkeys([
   templatesPlugin,
   searchPlugin,
   fileSizePlugin,
-  memoryProfilerPlugin,
-  byteFrequencyPlugin,
-  entropyPlugin,
-  chiSquarePlugin,
-  autocorrelationPlugin,
-  byteScatterPlugin
+  memoryProfilerPlugin
 ])
+
+export const visualizations = [
+  byteFrequencyPreset,
+  entropyPreset,
+  chiSquarePreset,
+  autocorrelationPreset,
+  byteScatterPreset
+]
