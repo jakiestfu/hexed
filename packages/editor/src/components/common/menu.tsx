@@ -78,7 +78,7 @@ export const Menu: FunctionComponent<MenuProps> = ({ plugins }) => {
     setShowChecksums,
     sidebarPosition,
     setSidebarPosition,
-    setVisualization,
+    setView,
     theme,
     setTheme,
     visibleLabels,
@@ -233,7 +233,7 @@ export const Menu: FunctionComponent<MenuProps> = ({ plugins }) => {
               <DropdownMenuItem
                 key={preset.id}
                 className="cursor-pointer"
-                onClick={() => setVisualization(preset.id)}
+                onClick={() => setView("visualize")}
               >
                 <preset.icon className="mr-2 h-4 w-4" />
                 {preset.title}

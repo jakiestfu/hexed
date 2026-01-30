@@ -1,6 +1,5 @@
 import { TrendingUp } from "lucide-react"
 
-import { formatAddress } from "@hexed/file"
 import type { ChartConfiguration, HexedVisualization } from "@hexed/worker"
 import type { VisualizationPreset } from "../../types"
 
@@ -8,7 +7,7 @@ import type { VisualizationPreset } from "../../types"
  * Pure function to calculate chi-square and return chart configuration
  * This function runs in the worker context via $task
  */
-export const calculateChiSquare: HexedVisualization = async (hexedFile, api) => {
+export const calculateChiSquare: HexedVisualization = async (file, api) => {
   // Chunk size for streaming (1MB)
   const STREAM_CHUNK_SIZE = 1024 * 1024
   // Block size calculation constants
@@ -62,13 +61,12 @@ export const calculateChiSquare: HexedVisualization = async (hexedFile, api) => 
     return chiSquare
   }
 
-  const fileSize = hexedFile.size
-  const startOffset = api.context?.startOffset ?? 0
-  const endOffset = api.context?.endOffset ?? fileSize
-  const searchRange = endOffset - startOffset
+  const fileSize = file.size
+  const endOffset = fileSize
+  const searchRange = endOffset
 
-  // Determine block size based on file size (or use provided blockSize)
-  const blockSize = api.context?.blockSize ?? getBlockSize(searchRange)
+  // Determine block size based on file size
+  const blockSize = getBlockSize(searchRange)
 
   const chiSquareValues: number[] = []
   const offsets: number[] = []
@@ -80,15 +78,15 @@ export const calculateChiSquare: HexedVisualization = async (hexedFile, api) => 
     let bytesRead = 0
     while (bytesRead < searchRange) {
       api.throwIfAborted()
-      const chunkStart = startOffset + bytesRead
+      const chunkStart = bytesRead
       const chunkEnd = Math.min(
         chunkStart + STREAM_CHUNK_SIZE,
-        startOffset + searchRange
+        searchRange
       )
 
       // Ensure range is loaded and read chunk
-      await hexedFile.ensureRange({ start: chunkStart, end: chunkEnd })
-      const chunk = hexedFile.readBytes(chunkStart, chunkEnd - chunkStart)
+      await file.ensureRange({ start: chunkStart, end: chunkEnd })
+      const chunk = file.readBytes(chunkStart, chunkEnd - chunkStart)
 
       if (chunk) {
         // Calculate chi-square for entire chunk
@@ -108,7 +106,7 @@ export const calculateChiSquare: HexedVisualization = async (hexedFile, api) => 
     }
   } else {
     // Small file: process in smaller blocks for better visualization
-    let currentOffset = startOffset
+    let currentOffset = 0
     let blocksProcessed = 0
 
     while (currentOffset < endOffset) {
@@ -116,8 +114,8 @@ export const calculateChiSquare: HexedVisualization = async (hexedFile, api) => 
       const blockEnd = Math.min(currentOffset + blockSize, endOffset)
 
       // Ensure range is loaded and read block
-      await hexedFile.ensureRange({ start: currentOffset, end: blockEnd })
-      const block = hexedFile.readBytes(currentOffset, blockEnd - currentOffset)
+      await file.ensureRange({ start: currentOffset, end: blockEnd })
+      const block = file.readBytes(currentOffset, blockEnd - currentOffset)
 
       if (block) {
         // Calculate chi-square for this block
@@ -132,7 +130,7 @@ export const calculateChiSquare: HexedVisualization = async (hexedFile, api) => 
       // Emit progress periodically (every 10 blocks or at end)
       if (blocksProcessed % 10 === 0 || currentOffset >= endOffset) {
         api.emitProgress({
-          processed: currentOffset - startOffset,
+          processed: currentOffset,
           size: searchRange
         })
       }
@@ -147,7 +145,7 @@ export const calculateChiSquare: HexedVisualization = async (hexedFile, api) => 
   // Create chart configuration
   // Format offsets as hex addresses
   const labels = chiSquareValues.map((_, index) => {
-    return formatAddress(offsets[index])
+    return file.format.address(offsets[index])
   })
 
   // For small datasets, show points and disable decimation

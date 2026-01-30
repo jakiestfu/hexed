@@ -13,7 +13,8 @@ export const STORAGE_KEYS = {
   SIDEBAR_POSITION: "hexed:sidebar-position",
   MEMORY_PROFILER: "hexed:show-memory-profiler",
   THEME: "hexed:theme",
-  VISIBLE_LABELS: "hexed:visible-labels"
+  VISIBLE_LABELS: "hexed:visible-labels",
+  VIEW: "hexed:view"
 }
 
 export type HexedSettings = {
@@ -24,7 +25,7 @@ export type HexedSettings = {
   sidebarPosition: SidebarPosition
   showMemoryProfiler: boolean
   toolbar: string | null
-  visualization: string | null
+  view: "edit" | "visualize" | null
   visibleLabels: string[]
 }
 
@@ -62,9 +63,10 @@ export function useHexedSettings(overrides: Partial<HexedSettings> = {}) {
     setToolbar(overrides.toolbar ?? null)
   }, [overrides.toolbar])
 
-  const [visualization, setVisualization] = useState<string | null>(
-    overrides.visualization ?? null
-  )
+  const [view, setView] = useState<"edit" | "visualize">("edit")
+  useEffect(() => {
+    setView(overrides.view ?? "edit")
+  }, [overrides.view])
 
   const [sidebar, setSidebar] = useLocalStorage<string | null>(
     STORAGE_KEYS.SIDEBAR,
@@ -124,7 +126,7 @@ export function useHexedSettings(overrides: Partial<HexedSettings> = {}) {
     visibleLabels,
     setVisibleLabels,
 
-    visualization,
-    setVisualization
+    view,
+    setView
   }
 }

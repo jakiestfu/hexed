@@ -4,7 +4,7 @@ import { LabelPlugin } from "./label-plugin"
 import { SidebarPlugin } from "./sidebar-plugin"
 import { ToolbarPlugin } from "./toolbar-plugin"
 import { HexedPlugin, HexedPluginOptions, VisualizationPreset } from "./types"
-import { Visualization } from "./visualization-plugin"
+import { Visualization } from "./Visualization"
 
 export {
   Visualization,

@@ -1,11 +1,13 @@
 import { FunctionComponent, useEffect, useRef, useState } from "react"
+import type { ReactNode } from "react"
 import { Info, X } from "lucide-react"
+import type { LucideIcon } from "lucide-react"
 
 import {
   useHexedFileContext,
   useHexedSettingsContext
 } from "@hexed/editor"
-import type { VisualizationPreset } from "./types"
+import type { HexedVisualization } from "@hexed/worker"
 import {
   Button,
   cn,
@@ -16,9 +18,12 @@ import {
 } from "@hexed/ui"
 
 export const Visualization: FunctionComponent<{
-  preset: VisualizationPreset
-}> = ({ preset }) => {
-  const { title, icon: Icon, info, visualization } = preset
+  id: string
+  title: string
+  icon: LucideIcon
+  info?: ReactNode
+  visualization: HexedVisualization | string
+}> = ({ title, icon: Icon, info, visualization }) => {
   const settings = useHexedSettingsContext()
   const {
     input: { hexedFile }
@@ -99,7 +104,11 @@ export const Visualization: FunctionComponent<{
 
     const loadData = async () => {
       try {
-        const fileKey = `${file.name}-${file.size}-${file.lastModified}`
+        const visualizationKey =
+          typeof visualization === "string"
+            ? visualization
+            : visualization.toString()
+        const fileKey = `${file.name}-${file.size}-${file.lastModified}-${visualizationKey}`
 
         // Skip if already processed
         if (fileProcessedRef.current === fileKey) return
@@ -142,7 +151,6 @@ export const Visualization: FunctionComponent<{
           err instanceof Error ? err : new Error("Failed to render chart")
         console.error("Failed to render chart:", err)
         setError(error)
-        fileProcessedRef.current = null
       } finally {
         setIsProcessing(false)
       }
@@ -153,37 +161,6 @@ export const Visualization: FunctionComponent<{
 
   return (
     <div className="flex flex-col h-full w-full relative">
-      <div className="flex items-center justify-between p-4">
-        <div className="flex items-center gap-2">
-          <h2 className="text-lg font-bold">{title}</h2>
-          {info ? (
-            <Popover>
-              <PopoverTrigger asChild>
-                <Button
-                  variant="ghost"
-                  size="icon"
-                >
-                  <Info className="size-4" />
-                </Button>
-              </PopoverTrigger>
-              <PopoverContent
-                align="start"
-                className="text-sm text-muted-foreground"
-              >
-                {info}
-              </PopoverContent>
-            </Popover>
-          ) : null}
-        </div>
-        <Button
-          onClick={() => settings.setVisualization(null)}
-          variant="ghost"
-          size="icon-lg"
-        >
-          <X className="size-4" />
-        </Button>
-      </div>
-
       {/* Error Display */}
       {error && (
         <div className="p-4 border-b bg-destructive/10 text-destructive">
@@ -194,7 +171,7 @@ export const Visualization: FunctionComponent<{
       {/* Chart Canvas */}
       <div
         ref={containerRef}
-        className="flex-1 relative min-h-0 m-4 mt-0"
+        className="flex-1 relative min-h-0 m-4"
       >
         {/* Progress Bar */}
         <div

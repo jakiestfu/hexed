@@ -1,12 +1,14 @@
 import { Fragment, type FunctionComponent } from "react"
-import { CaseSensitive, Plus } from "lucide-react"
+import { CaseSensitive } from "lucide-react"
 
 // import { MemoryProfiler } from "../common/memory-profiler"
 import { HexedPlugin } from "@hexed/plugins/types"
 import {
-  Button,
   cn,
   Separator,
+  Tabs,
+  TabsList,
+  TabsTrigger,
   Toggle,
   ToggleGroup,
   ToggleGroupItem,
@@ -28,8 +30,8 @@ export const HexFooter: FunctionComponent<HexFooterProps> = ({ plugins }) => {
     visibleLabels,
     sidebar,
     setSidebar,
-    visualization,
-    setVisualization
+    view,
+    setView
   } = useHexedSettingsContext()
 
   const visibleLabelPlugins = plugins.filter((plugin) =>
@@ -41,56 +43,32 @@ export const HexFooter: FunctionComponent<HexFooterProps> = ({ plugins }) => {
       {/* left */}
       <div className="flex w-full min-w-0 md:w-auto md:flex-1">
         <div className="flex w-full grow items-center gap-2">
-          <ToggleGroup
-            type="single"
-            value={visualization ?? ""}
-            onValueChange={(value) => setVisualization(value)}
-            variant="outline"
-            size="sm"
-            className="grow md:grow-0"
-          >
-            {plugins
-              .filter((plugin) => plugin.type === "visualization")
-              .map((plugin) => (
-                <Tooltip key={plugin.id}>
-                  <TooltipTrigger asChild>
-                    <ToggleGroupItem
-                      value={plugin.id}
-                      aria-label={`Toggle ${plugin.title} visualization`}
-                      className={cn(
-                        "grow md:grow-0",
-                        visualization === plugin.id ? "bg-accent" : ""
-                      )}
-                    >
-                      <plugin.icon />
-                    </ToggleGroupItem>
-                  </TooltipTrigger>
-                  <TooltipContent>{plugin.title}</TooltipContent>
-                </Tooltip>
-              ))}
-          </ToggleGroup>
-          <Tooltip>
-            <TooltipTrigger asChild>
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() => setVisualization("workbench")}
-                aria-label="Open Workbench"
+          <Tabs value={view} onValueChange={(v) => setView(v as "edit" | "visualize")} className="w-full">
+            <TabsList className="w-full md:max-w-3xs border">
+              <TabsTrigger
+
+                value="edit"
                 className={cn(
-                  "grow md:grow-0",
-                  visualization === "workbench" ? "bg-accent" : ""
+                  "font-mono text-xs",
+                  view === "edit" || view === null ? "bg-accent" : ""
                 )}
               >
-                <Plus />
-              </Button>
-            </TooltipTrigger>
-            <TooltipContent>Open Workbench</TooltipContent>
-          </Tooltip>
+                Edit
+              </TabsTrigger>
+              <TabsTrigger
+                value="visualize"
+                // onClick={() => setView("visualize")}
+                className={cn("font-mono text-xs", view === "visualize" ? "bg-accent" : "")}
+              >
+                Visualize
+              </TabsTrigger>
+            </TabsList>
+          </Tabs>
         </div>
       </div>
 
       {/* center */}
-      <div className="order-last hidden w-full items-center justify-start md:order-none md:w-auto md:flex md:justify-center h-full">
+      <div className="order-last hidden w-full items-center justify-start md:order-0 md:w-auto md:flex md:justify-center h-full">
         <div className="items-center gap-4 font-mono hidden md:flex h-full">
           {visibleLabelPlugins.map((plugin, index) => (
             <Fragment key={plugin.id}>

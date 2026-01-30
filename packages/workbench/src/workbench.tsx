@@ -62,15 +62,14 @@ const PreviewPanel: FunctionComponent<{ evaluateFunction?: string, hexedFile: He
     )
   }
 
-  // Create a dummy preset for the workbench preview
-  const previewPreset = {
-    id: "workbench-preview",
-    title: "Preview",
-    icon: BarChart,
-    visualization: evaluateFunction as any // Stringified function will be parsed by $task
-  }
-
-  return <Visualization preset={previewPreset} />
+  return (
+    <Visualization
+      id="workbench-preview"
+      title="Preview"
+      icon={BarChart}
+      visualization={evaluateFunction}
+    />
+  )
 }
 
 export const Workbench: FunctionComponent<WorkbenchProps> = ({
@@ -108,7 +107,7 @@ export const Workbench: FunctionComponent<WorkbenchProps> = ({
       language="typescript"
       theme={theme}
       value={value}
-      // onChange={onChange}
+      onChange={onChange}
       onMount={onMount}
       className="relative overflow-visible z-10"
       loading={(
@@ -147,12 +146,13 @@ export const Workbench: FunctionComponent<WorkbenchProps> = ({
             <div className="flex items-center justify-between p-4 border-b overflow-hidden">
               <div className="flex flex-1">
 
-                <Select onValueChange={(data) => {
-                  const preset = visualizations?.find(p => p.visualization.toString() === data)
+                <Select onValueChange={(id) => {
+                  const preset = visualizations?.find(p => p.id === id)
                   if (preset) {
-                    const firstBrace = data.indexOf("{")
-                    const lastBrace = data.lastIndexOf("}")
-                    const body = data.slice(firstBrace + 1, lastBrace)
+                    const visualization = preset.visualization.toString()
+                    const firstBrace = visualization.indexOf("{")
+                    const lastBrace = visualization.lastIndexOf("}")
+                    const body = visualization.slice(firstBrace + 1, lastBrace)
                     onChange(template(body))
                   }
                 }}>
@@ -163,7 +163,7 @@ export const Workbench: FunctionComponent<WorkbenchProps> = ({
                     <SelectGroup>
                       <SelectLabel>Presets</SelectLabel>
                       {visualizations?.map((preset) => (
-                        <SelectItem key={preset.id} value={preset.visualization.toString()}>{preset.title}</SelectItem>
+                        <SelectItem key={preset.id} value={preset.id}>{preset.title}</SelectItem>
                       ))}
                     </SelectGroup>
                   </SelectContent>

@@ -6,7 +6,6 @@ import type { FunctionComponent } from "react"
 import { HexCanvasReact } from "@hexed/canvas-react"
 // import { HexToolbarSearch } from "./hex-toolbar-search"
 import { plugins, visualizations } from "@hexed/plugins/core"
-import { Visualization } from "@hexed/plugins"
 import { Workbench, template as workbenchTemplate } from "@hexed/workbench"
 import {
   Card,
@@ -41,7 +40,7 @@ export const Editor: FunctionComponent<EditorProps> = ({
     input: { hexedFile, handleId },
     onChangeInput
   } = useHexedFileContext()
-  const { showAscii, sidebar, sidebarPosition, visualization, theme } =
+  const { showAscii, sidebar, sidebarPosition, view, theme } =
     useHexedSettingsContext()
   const state = useHexedStateContext()
 
@@ -51,9 +50,6 @@ export const Editor: FunctionComponent<EditorProps> = ({
   // useGlobalKeyboard({
   //   data: new Uint8Array()
   // })
-
-  // Derived value for toggle group
-  const paneToggleValue = sidebar || ""
 
   // Window size for chunked file loading
   const windowSize = 1024 * 128
@@ -81,7 +77,9 @@ export const Editor: FunctionComponent<EditorProps> = ({
     }
   }, [state.setDimensions])
 
-  const hasSidebars = sidebar !== null
+  // Sidebars only show in edit view, not in visualize view
+  const isEditView = view === "edit" || view === null
+  const hasSidebars = sidebar !== null && isEditView
 
 
   // Handle workbench content changes
@@ -135,9 +133,9 @@ export const Editor: FunctionComponent<EditorProps> = ({
     </ResizablePanel>
   )
 
-  // Sidebar component - only render when we have data
+  // Sidebar component - only render when we have data and in edit view
   const sidebarPanel =
-    hasSidebars && canRender ? (
+    hasSidebars && canRender && isEditView ? (
       <HexSidebar
         defaultSize={30}
         minSize={30}
@@ -146,16 +144,10 @@ export const Editor: FunctionComponent<EditorProps> = ({
       />
     ) : null
 
-  const visualizationPreset = visualizations.find(
-    (preset) => preset.id === visualization
-  )
-
   const mainContent =
-    visualization === "workbench"
+    view === "visualize"
       ? workbenchPanel
-      : visualizationPreset
-        ? <Visualization preset={visualizationPreset} />
-        : hexCanvasPanel
+      : hexCanvasPanel
 
   return (
     <Card

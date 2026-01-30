@@ -3,7 +3,6 @@ import type { CSSProperties } from "react"
 import { Search, Type } from "lucide-react"
 import { FixedSizeList } from "react-window"
 
-import { formatAddress } from "@hexed/file/formatter"
 import type { StringEncoding, StringMatch } from "@hexed/file/strings"
 import {
   Button,
@@ -768,7 +767,7 @@ export const Strings: HexedPluginComponent = ({ file, state }) => {
       const match = extractedStrings[index]
       if (!match) return null
 
-      const hexOffset = formatAddress(match.offset)
+      const hexOffset = file.format.address(match.offset)
       const decimalOffset = match.offset.toLocaleString()
       const displayText =
         match.text.length > 100 ? `${match.text.slice(0, 100)}...` : match.text

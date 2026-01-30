@@ -7,18 +7,20 @@ import type { VisualizationPreset } from "../../types"
  * Pure function to calculate autocorrelation and return chart configuration
  * This function runs in the worker context via $task
  */
-export const calculateAutocorrelation: HexedVisualization = async (hexedFile, api) => {
+export const calculateAutocorrelation: HexedVisualization = async (file, api) => {
   // Chunk size for streaming (1MB)
   const STREAM_CHUNK_SIZE = 1024 * 1024
   // Maximum data size to process for autocorrelation (10MB)
   const MAX_AUTOCORRELATION_SIZE = 10 * 1024 * 1024
+  // Maximum lag for autocorrelation calculation
+  const MAX_LAG = 256
 
   /**
    * Pure function to calculate autocorrelation from data array
    */
   const calculateAutocorrelationPure = (
     data: Uint8Array,
-    maxLag: number = 256
+    maxLag: number = MAX_LAG
   ): number[] => {
     const n = data.length
     if (n < 2) return []
@@ -61,11 +63,10 @@ export const calculateAutocorrelation: HexedVisualization = async (hexedFile, ap
     return autocorrelations
   }
 
-  const fileSize = hexedFile.size
-  const startOffset = api.context?.startOffset ?? 0
-  const endOffset = api.context?.endOffset ?? fileSize
-  const searchRange = endOffset - startOffset
-  const maxLag = api.context?.maxLag ?? 256
+  const fileSize = file.size
+  const endOffset = fileSize
+  const searchRange = endOffset
+  const maxLag = MAX_LAG
 
   // Determine if we need to sample the data
   const needsSampling = searchRange > MAX_AUTOCORRELATION_SIZE
@@ -80,22 +81,22 @@ export const calculateAutocorrelation: HexedVisualization = async (hexedFile, ap
 
   while (bytesRead < searchRange && dataIndex < targetSize) {
     api.throwIfAborted()
-    const chunkStart = startOffset + bytesRead
+    const chunkStart = bytesRead
     const chunkEnd = Math.min(
       chunkStart + STREAM_CHUNK_SIZE,
-      startOffset + searchRange
+      searchRange
     )
 
     // Ensure range is loaded and read chunk
-    await hexedFile.ensureRange({ start: chunkStart, end: chunkEnd })
-    const chunk = hexedFile.readBytes(chunkStart, chunkEnd - chunkStart)
+    await file.ensureRange({ start: chunkStart, end: chunkEnd })
+    const chunk = file.readBytes(chunkStart, chunkEnd - chunkStart)
 
     if (chunk) {
       if (needsSampling) {
         // Sample uniformly across the entire file range
         // Find which bytes in this chunk should be sampled
-        const chunkStartAbsolute = chunkStart - startOffset
-        const chunkEndAbsolute = chunkEnd - startOffset
+        const chunkStartAbsolute = chunkStart
+        const chunkEndAbsolute = chunkEnd
 
         // Find the first sample position in or after this chunk
         while (

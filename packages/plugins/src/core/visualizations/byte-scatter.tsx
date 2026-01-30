@@ -7,17 +7,16 @@ import type { VisualizationPreset } from "../../types"
  * Pure function to calculate byte scatter and return chart configuration
  * This function runs in the worker context via $task
  */
-export const calculateByteScatter: HexedVisualization = async (hexedFile, api) => {
+export const calculateByteScatter: HexedVisualization = async (file, api) => {
   // Chunk size for streaming (1MB)
   const STREAM_CHUNK_SIZE = 1024 * 1024
   // Maximum points to display in scatter plot (default 10000)
-  const DEFAULT_MAX_SCATTER_POINTS = 10000
+  const MAX_SCATTER_POINTS = 10000
 
-  const fileSize = hexedFile.size
-  const startOffset = api.context?.startOffset ?? 0
-  const endOffset = api.context?.endOffset ?? fileSize
-  const searchRange = endOffset - startOffset
-  const maxPoints = api.context?.maxPoints ?? DEFAULT_MAX_SCATTER_POINTS
+  const fileSize = file.size
+  const endOffset = fileSize
+  const searchRange = endOffset
+  const maxPoints = MAX_SCATTER_POINTS
 
   // Determine if we need to sample the data
   const needsSampling = searchRange > maxPoints
@@ -31,21 +30,21 @@ export const calculateByteScatter: HexedVisualization = async (hexedFile, api) =
 
   while (bytesRead < searchRange && points.length < targetPoints) {
     api.throwIfAborted()
-    const chunkStart = startOffset + bytesRead
+    const chunkStart = bytesRead
     const chunkEnd = Math.min(
       chunkStart + STREAM_CHUNK_SIZE,
-      startOffset + searchRange
+      searchRange
     )
 
     // Ensure range is loaded and read chunk
-    await hexedFile.ensureRange({ start: chunkStart, end: chunkEnd })
-    const chunk = hexedFile.readBytes(chunkStart, chunkEnd - chunkStart)
+    await file.ensureRange({ start: chunkStart, end: chunkEnd })
+    const chunk = file.readBytes(chunkStart, chunkEnd - chunkStart)
 
     if (chunk) {
       if (needsSampling) {
         // Sample uniformly across the entire file range
-        const chunkStartAbsolute = chunkStart - startOffset
-        const chunkEndAbsolute = chunkEnd - startOffset
+        const chunkStartAbsolute = chunkStart
+        const chunkEndAbsolute = chunkEnd
 
         // Find the first sample position in or after this chunk
         while (
@@ -63,7 +62,7 @@ export const calculateByteScatter: HexedVisualization = async (hexedFile, api) =
         ) {
           const offsetInChunk = nextSamplePosition - chunkStartAbsolute
           if (offsetInChunk < chunk.length) {
-            const absoluteOffset = startOffset + nextSamplePosition
+            const absoluteOffset = nextSamplePosition
             points.push({
               x: absoluteOffset,
               y: chunk[offsetInChunk]

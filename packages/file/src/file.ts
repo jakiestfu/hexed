@@ -27,6 +27,18 @@ import {
   readUTF16Char as readUTF16CharImpl,
   readBinary as readBinaryImpl
 } from "./interpreter"
+import {
+  formatAddress,
+  byteToHex,
+  byteToAscii,
+  toHexString,
+  toAsciiString,
+  formatDataIntoRows,
+  formatFileSize,
+  formatBytes,
+  formatHex,
+  formatBytesPreview
+} from "./formatter"
 import type { WorkerClient, EvaluateAPI, EvaluateAPIOptions } from "@hexed/worker"
 import { createWorkerClient } from "@hexed/worker"
 import type { ByteRange, HexedFileInput, HexedFileOptions } from "./types"
@@ -56,6 +68,22 @@ export class HexedFile extends EventTarget {
   size: number
   type: string | null
   readonly worker?: WorkerClient
+  readonly format: {
+    address: (offset: number, width?: number) => string
+    byteToHex: (byte: number | null | undefined) => string
+    byteToAscii: (byte: number) => string
+    toHexString: (data: Uint8Array, separator?: string) => string
+    toAsciiString: (data: Uint8Array) => string
+    dataIntoRows: (
+      data: Uint8Array,
+      bytesPerRow?: number,
+      dataStartOffset?: number
+    ) => import("./formatter").FormattedRow[]
+    fileSize: (bytes: number, hideBytes?: boolean) => string
+    bytes: (bytes: number) => string
+    hex: (value: number) => string
+    bytesPreview: (bytes: Uint8Array, maxLength?: number) => string
+  }
 
   private input: HexedFileInput
   private options: Required<Omit<HexedFileOptions, "workerConstructor">> &
@@ -80,6 +108,20 @@ export class HexedFile extends EventTarget {
     // Create worker client if workerConstructor is provided
     if (options?.workerConstructor) {
       this.worker = createWorkerClient(options.workerConstructor)
+    }
+
+    // Initialize format property with all formatter methods
+    this.format = {
+      address: formatAddress,
+      byteToHex,
+      byteToAscii,
+      toHexString,
+      toAsciiString,
+      dataIntoRows: formatDataIntoRows,
+      fileSize: formatFileSize,
+      bytes: formatBytes,
+      hex: formatHex,
+      bytesPreview: formatBytesPreview
     }
 
     // Initialize based on input type
