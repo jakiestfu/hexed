@@ -1,21 +1,22 @@
-import { FunctionComponent, useEffect, useRef, useState } from "react"
-import type { ReactNode } from "react"
-import { Info, X } from "lucide-react"
-import type { LucideIcon } from "lucide-react"
+import { type FunctionComponent, type ReactNode, useEffect, useRef, useState } from "react"
+import { AlertCircle, type LucideIcon } from "lucide-react"
 
-import {
-  useHexedFileContext,
-  useHexedSettingsContext
-} from "@hexed/editor"
+import { useHexedFileContext } from "@hexed/editor"
 import type { HexedVisualization } from "@hexed/worker"
-import {
-  Button,
-  cn,
-  Popover,
-  PopoverContent,
-  PopoverTrigger,
-  Progress
-} from "@hexed/ui"
+import { cn, Empty, EmptyDescription, EmptyMedia, EmptyTitle, Progress } from "@hexed/ui"
+
+type Deferred<T> = {
+  promise: Promise<T>
+  resolve: (value: T) => void
+}
+
+const createDeferred = <T,>(): Deferred<T> => {
+  let resolve!: (value: T) => void
+  const promise = new Promise<T>((r) => {
+    resolve = r
+  })
+  return { promise, resolve }
+}
 
 export const Visualization: FunctionComponent<{
   id: string
@@ -23,184 +24,172 @@ export const Visualization: FunctionComponent<{
   icon: LucideIcon
   info?: ReactNode
   visualization: HexedVisualization | string
-}> = ({ title, icon: Icon, info, visualization }) => {
-  const settings = useHexedSettingsContext()
+}> = ({ id, visualization }) => {
   const {
     input: { hexedFile }
   } = useHexedFileContext()
+
   const containerRef = useRef<HTMLDivElement>(null)
   const canvasRef = useRef<HTMLCanvasElement>(null)
+
+  const offscreenRef = useRef<OffscreenCanvas | null>(null)
+  const canvasDeferredRef = useRef<Deferred<OffscreenCanvas> | null>(null)
+
+  const lastSuccessfulKeyRef = useRef<string | null>(null)
+  const runIdRef = useRef(0)
+  const [canvasKey, setCanvasKey] = useState(0)
+
   const [progress, setProgress] = useState(0)
   const [isProcessing, setIsProcessing] = useState(false)
   const [error, setError] = useState<Error | null>(null)
-  const fileProcessedRef = useRef<string | null>(null)
-  const offscreenCanvasRef = useRef<OffscreenCanvas | null>(null)
-  const canvasReadyResolveRef = useRef<
-    ((canvas: OffscreenCanvas) => void) | null
-  >(null)
-  const canvasReadyPromiseRef = useRef<Promise<OffscreenCanvas>>(
-    new Promise<OffscreenCanvas>((resolve) => {
-      canvasReadyResolveRef.current = resolve
-    })
-  )
 
-  if (!hexedFile || !hexedFile.worker) return null
+  if (!hexedFile?.worker) return null
 
-  // Transfer canvas to chart worker once it's mounted
+  // Transfer canvas to OffscreenCanvas when canvas element is created/recreated.
+  // This effect runs when canvasKey changes, which forces React to recreate the canvas element.
   useEffect(() => {
     const canvas = canvasRef.current
-    if (!canvas || !hexedFile?.worker || offscreenCanvasRef.current) return
+    if (!canvas) return
+    // Skip if we already transferred this canvas (prevents double-transfer)
+    if (offscreenRef.current) return
 
     if (typeof OffscreenCanvas === "undefined") {
-      setError(new Error("OffscreenCanvas is not supported"))
+      setError(new Error("OffscreenCanvas is not supported in this browser"))
       return
     }
 
-    // Set dimensions
-    const container = containerRef?.current
-    let displayWidth: number
-    let displayHeight: number
+    const container = containerRef.current
+    const rect = container?.getBoundingClientRect()
+    const displayWidth = rect?.width || 800
+    const displayHeight = rect?.height || 600
 
-    if (container) {
-      const rect = container.getBoundingClientRect()
-      displayWidth = rect.width || 800
-      displayHeight = rect.height || 600
-    } else {
-      displayWidth = 800
-      displayHeight = 600
-    }
-
-    // Set canvas size to display dimensions
-    // Chart.js will handle devicePixelRatio scaling internally
-    const devicePixelRatio = window.devicePixelRatio || 1
-    canvas.width = displayWidth / devicePixelRatio
-    canvas.height = displayHeight / devicePixelRatio
-
-    // Set CSS size to maintain correct display size
+    // Keep CSS size == display size. Offscreen render uses DPR passed to worker.
     canvas.style.width = `${displayWidth}px`
     canvas.style.height = `${displayHeight}px`
 
-    // Transfer canvas
+    const dpr = window.devicePixelRatio || 1
+    canvas.width = Math.floor(displayWidth / dpr)
+    canvas.height = Math.floor(displayHeight / dpr)
+
     try {
       const offscreen = canvas.transferControlToOffscreen()
-      offscreenCanvasRef.current = offscreen
-      // Resolve the promise if it hasn't been resolved yet
-      if (canvasReadyResolveRef.current) {
-        canvasReadyResolveRef.current(offscreen)
-        canvasReadyResolveRef.current = null
-      }
-    } catch (err) {
-      const error =
-        err instanceof Error ? err : new Error("Failed to transfer canvas")
-      setError(error)
+      offscreenRef.current = offscreen
+
+      if (!canvasDeferredRef.current) canvasDeferredRef.current = createDeferred<OffscreenCanvas>()
+      canvasDeferredRef.current.resolve(offscreen)
+    } catch (e) {
+      const err = e instanceof Error ? e : new Error("Failed to transfer canvas to OffscreenCanvas")
+      setError(err)
     }
-  }, [hexedFile?.worker])
+  }, [canvasKey])
 
-  // Calculate and render chart when file changes
   useEffect(() => {
-    const file = hexedFile?.getFile()
-    const worker = hexedFile?.worker
-    if (!file || !worker || isProcessing) return
+    const worker = hexedFile.worker
+    const file = hexedFile.getFile()
+    if (!worker || !file) return
+    if (!canvasRef.current) return
 
-    const loadData = async () => {
+    const runId = ++runIdRef.current
+    const dpr = window.devicePixelRatio || 1
+
+    const currentKey = `${file.name}-${file.size}-${file.lastModified}-viz:${id}`
+
+    // If we already rendered this exact file+visualization successfully, skip.
+    if (lastSuccessfulKeyRef.current === currentKey) return
+
+    // Recreate canvas if we need a new render (file or visualization changed)
+    // This ensures we have a fresh canvas that can be transferred
+    if (lastSuccessfulKeyRef.current !== null && lastSuccessfulKeyRef.current !== currentKey) {
+      // Reset canvas refs to force recreation
+      offscreenRef.current = null
+      canvasDeferredRef.current = null
+      setCanvasKey((prev) => prev + 1)
+    }
+
+    const run = async () => {
       try {
-        const visualizationKey =
-          typeof visualization === "string"
-            ? visualization
-            : visualization.toString()
-        const fileKey = `${file.name}-${file.size}-${file.lastModified}-${visualizationKey}`
-
-        // Skip if already processed
-        if (fileProcessedRef.current === fileKey) return
-
-        fileProcessedRef.current = fileKey
+        setError(null)
         setIsProcessing(true)
         setProgress(0)
-        setError(null)
 
-        // Wait for canvas to be ready (if not already ready)
-        const canvasPromise = offscreenCanvasRef.current
-          ? Promise.resolve(offscreenCanvasRef.current)
-          : canvasReadyPromiseRef.current
+        // Wait for canvas to be transferred if needed
+        const offscreen =
+          offscreenRef.current ??
+          (canvasDeferredRef.current
+            ? await canvasDeferredRef.current.promise
+            : await (canvasDeferredRef.current = createDeferred<OffscreenCanvas>()).promise)
 
-        // Execute visualization using hexedFile.$task
-        const chartConfigPromise = hexedFile.$task(visualization, {
-          onProgress: (progressData) => {
-            const progressValue = Math.min(
-              100,
-              Math.round((progressData.processed / progressData.size) * 100)
-            )
-            setProgress(progressValue)
+        const chartConfig = await hexedFile.$task(visualization, {
+          onProgress: (p) => {
+            // Ignore late progress from stale runs
+            if (runIdRef.current !== runId) return
+            const v = Math.min(100, Math.round((p.processed / p.size) * 100))
+            setProgress(v)
           }
         })
 
-        // Wait for both chart config and canvas to be ready
-        const [chartConfig, offscreenCanvas] = await Promise.all([
-          chartConfigPromise,
-          canvasPromise
-        ])
+        // If a newer run started, drop this result
+        if (runIdRef.current !== runId) return
 
-        // Get devicePixelRatio for Chart.js config
-        const dpr = window.devicePixelRatio || 1
+        await worker.render(offscreen, chartConfig, dpr)
 
-        // Render chart using unified worker client
-        await worker.render(offscreenCanvas, chartConfig, dpr)
-        setProgress(100)
-      } catch (err) {
-        const error =
-          err instanceof Error ? err : new Error("Failed to render chart")
-        console.error("Failed to render chart:", err)
-        setError(error)
+        // Still current? mark success + finish UI
+        if (runIdRef.current === runId) {
+          lastSuccessfulKeyRef.current = currentKey
+          setProgress(100)
+        }
+      } catch (e) {
+        if (runIdRef.current !== runId) return
+        const err = e instanceof Error ? e : new Error("Failed to render chart")
+        console.error(err)
+        setError(err)
+        // allow retry on next effect run
+        lastSuccessfulKeyRef.current = null
       } finally {
-        setIsProcessing(false)
+        if (runIdRef.current === runId) setIsProcessing(false)
       }
     }
 
-    loadData()
-  }, [hexedFile, visualization, isProcessing])
+    run()
+  }, [hexedFile, id, visualization])
 
   return (
     <div className="flex flex-col h-full w-full relative">
-      {/* Error Display */}
-      {error && (
-        <div className="p-4 border-b bg-destructive/10 text-destructive">
-          <p className="text-sm">{error.message}</p>
+      {error ? (
+        <div className="flex-1 flex items-center justify-center m-4">
+          <Empty>
+            <EmptyMedia variant="icon">
+              <AlertCircle className="text-destructive" />
+            </EmptyMedia>
+            <EmptyTitle>Failed to render chart</EmptyTitle>
+            <EmptyDescription>{error.message}</EmptyDescription>
+          </Empty>
         </div>
-      )}
-
-      {/* Chart Canvas */}
-      <div
-        ref={containerRef}
-        className="flex-1 relative min-h-0 m-4"
-      >
-        {/* Progress Bar */}
-        <div
-          className={cn(
-            "absolute inset-0 flex items-center justify-center pointer-events-none transition-opacity duration-300 z-10",
-            isProcessing ? "opacity-100" : "opacity-0"
-          )}
-        >
-          <div className="space-y-2 w-full max-w-lg px-4">
-            <Progress
-              value={progress}
-              className="h-2"
-            />
-            <div className="flex items-center justify-between text-xs text-muted-foreground">
-              <span className="animate-pulse">Calculating chart data...</span>
-              <span>{Math.round(progress)}%</span>
+      ) : (
+        <div ref={containerRef} className="flex-1 relative min-h-0 m-4">
+          <div
+            className={cn(
+              "absolute inset-0 flex items-center justify-center pointer-events-none transition-opacity duration-300 z-10",
+              isProcessing ? "opacity-100" : "opacity-0"
+            )}
+          >
+            <div className="space-y-2 w-full max-w-lg px-4">
+              <Progress value={progress} className="h-2" />
+              <div className="flex items-center justify-between text-xs text-muted-foreground">
+                <span className="animate-pulse">Calculating chart data...</span>
+                <span>{Math.round(progress)}%</span>
+              </div>
             </div>
           </div>
-        </div>
 
-        <canvas
-          ref={canvasRef}
-          className={cn(
-            "w-full h-full transition-opacity duration-300",
-            isProcessing ? "opacity-0" : "opacity-100"
-          )}
-          style={{ display: "block" }}
-        />
-      </div>
+          <canvas
+            key={`${id}-${canvasKey}`}
+            ref={canvasRef}
+            className={cn("w-full h-full transition-opacity duration-300", isProcessing ? "opacity-0" : "opacity-100")}
+            style={{ display: "block" }}
+          />
+        </div>
+      )}
     </div>
   )
 }

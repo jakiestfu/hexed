@@ -65,7 +65,9 @@ const logger = createLogger("worker")
 const abortStates = new Map<string, boolean>()
 
 /**
- * Store chart instances by canvas (for updates without re-transferring)
+ * Store chart instances by canvas
+ * Note: Since we recreate the canvas each time, each canvas will only be used once
+ * We keep this map to destroy old charts before creating new ones if needed
  */
 const chartInstances = new Map<OffscreenCanvas, unknown>()
 
@@ -94,39 +96,36 @@ function renderChart(
 async function handleChartRender(request: ChartRenderRequest): Promise<void> {
   logger.log(`Rendering chart (request: ${request.id})`)
   try {
-    // Check if we already have a chart instance for this canvas
-    const existingChart = chartInstances.get(request.canvas)
+    if (!request.canvas) {
+      throw new Error("Canvas is required for chart rendering")
+    }
 
-    if (existingChart && request.canvas) {
-      // Update existing chart with new config
-      // Chart.js doesn't have a direct update method, so we'll create a new one
-      // But first, destroy the old one if possible
+    // Check if we already have a chart instance for this canvas
+    // (This shouldn't happen with the new approach, but we clean up just in case)
+    const existingChart = chartInstances.get(request.canvas)
+    if (existingChart) {
+      // Destroy the old chart before creating a new one
       if (typeof (existingChart as any).destroy === "function") {
         ; (existingChart as any).destroy()
+      }
+      chartInstances.delete(request.canvas)
+    }
+
+    // Merge devicePixelRatio into chart config if provided
+    const baseConfig = request.config as ChartConfiguration
+    const chartConfig: ChartConfiguration = {
+      ...baseConfig,
+      options: {
+        ...(baseConfig.options || {}),
+        ...(request.devicePixelRatio !== undefined
+          ? { devicePixelRatio: request.devicePixelRatio }
+          : {})
       }
     }
 
     // Create new chart instance
-    if (request.canvas) {
-      // Merge devicePixelRatio into chart config if provided
-      const baseConfig = request.config as ChartConfiguration
-      const chartConfig: ChartConfiguration = {
-        ...baseConfig,
-        options: {
-          ...(baseConfig.options || {}),
-          ...(request.devicePixelRatio !== undefined
-            ? { devicePixelRatio: request.devicePixelRatio }
-            : {})
-        }
-      }
-
-      const chart = renderChart(request.canvas, chartConfig)
-      chartInstances.set(request.canvas, chart)
-    } else {
-      // Canvas is null, which means this is an update request
-      // We can't update without the canvas, so this is an error
-      throw new Error("Canvas is required for chart rendering")
-    }
+    const chart = renderChart(request.canvas, chartConfig)
+    chartInstances.set(request.canvas, chart)
 
     const response: ChartRenderResponse = {
       id: request.id,

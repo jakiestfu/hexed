@@ -92,7 +92,8 @@ export const HexFooter: FunctionComponent<HexFooterProps> = ({ plugins }) => {
                 onPressedChange={setShowAscii}
                 aria-label="Toggle ASCII view"
                 size="sm"
-                className={cn("grow md:grow-0", showAscii ? "bg-accent" : "")}
+                disabled={view !== "edit"}
+                className={cn("grow md:grow-0 transition-opacity", showAscii ? "bg-accent" : "")}
               >
                 <CaseSensitive />
               </Toggle>
@@ -106,7 +107,8 @@ export const HexFooter: FunctionComponent<HexFooterProps> = ({ plugins }) => {
             onValueChange={setSidebar}
             variant="outline"
             size="sm"
-            className="grow md:grow-0"
+            disabled={view !== "edit"}
+            className="grow md:grow-0 transition-opacity"
           >
             {plugins
               .filter((plugin) => plugin.type === "sidebar")

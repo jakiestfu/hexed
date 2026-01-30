@@ -64,7 +64,7 @@ const PreviewPanel: FunctionComponent<{ evaluateFunction?: string, hexedFile: He
 
   return (
     <Visualization
-      id="workbench-preview"
+      id={evaluateFunction}
       title="Preview"
       icon={BarChart}
       visualization={evaluateFunction}
@@ -94,9 +94,9 @@ export const Workbench: FunctionComponent<WorkbenchProps> = ({
     // Store the current editor value as the function string
     setEvaluateFunction(javascriptCode)
     // Switch to preview view if not already in split or preview
-    if (view === "code") {
-      setView("preview")
-    }
+    // if (view === "code") {
+    //   setView("preview")
+    // }
   }
 
   const editor = (
@@ -199,7 +199,7 @@ export const Workbench: FunctionComponent<WorkbenchProps> = ({
                 </TabsList>
               </div>
               <div className="flex flex-1 justify-end">
-                <Button onClick={handleBuild}>Build</Button>
+                <Button onClick={handleBuild} className="cursor-pointer">Render</Button>
               </div>
             </div>
           </CardHeader>
